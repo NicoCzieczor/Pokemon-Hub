@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- PWA: Homescreen-App + Offline -->
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0d0f2b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PokéHub">
+  <link rel="apple-touch-icon" href="../icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1320x2868.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1260x2736.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1206x2622.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1290x2796.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1179x2556.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1284x2778.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1170x2532.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1125x2436.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1242x2688.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-828x1792.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-750x1334.png">
+  <script src="../pwa.js"></script>
+  <title>Duo</title>
+  <link rel="stylesheet" href="../Pokelocke/base.css" />
+  <style>
+    html, body {
+      min-height: 100%;
+      background: radial-gradient(circle at top left, rgba(87, 210, 255, 0.14), transparent 18%),
+                  radial-gradient(circle at bottom right, rgba(255, 218, 8, 0.12), transparent 20%),
+                  #0d0f2b;
+      color: var(--color-text);
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 28px 16px;
+      font-family: var(--font-main);
+    }
+    #app {
+      width: min(98vw, 1340px);
+      margin: 0 auto;
+      padding: 24px;
+      background: rgba(25, 27, 58, 0.96);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    header { display: flex; flex-direction: column; gap: 6px; }
+    header h1 { margin-bottom: 0; font-size: clamp(1.8rem, 2.6vw, 2.4rem); letter-spacing: -0.04em; }
+    header p  { margin: 0; color: var(--color-muted); }
+
+    /* ── TEAMS AREA (Level Cap sidebar + Players Row) ── */
+    #teams-area {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    #level-cap-panel {
+      flex: 0 0 210px;
+      background: rgba(25,27,58,0.82);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 16px;
+      max-height: calc(100vh - 48px);
+    }
+
+    .lcp-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    #lcp-game-select {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: #edf2f7;
+      font-size: 0.82rem;
+      appearance: none;
+      -webkit-appearance: none;
+      font: inherit;
+      cursor: pointer;
+    }
+    #lcp-game-select option { color: #111827; background: #f8fafc; }
+    #lcp-game-select:focus { outline: none; border-color: var(--color-accent-strong); }
+
+    .header-main { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+    .lang-toggle {
+      position: fixed;
+      top: 16px; right: 16px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background: rgba(25,27,58,0.92);
+      color: var(--color-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.2s, color 0.2s;
+      z-index: 100;
+    }
+    .lang-toggle:hover {
+      border-color: rgba(255,218,8,0.4);
+      color: var(--color-accent);
+    }
+
+    .tool-nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      overflow-x: auto;
+      margin: 12px -4px -4px;
+      padding: 0 4px;
+      min-height: 42px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      scrollbar-width: thin;
+    }
+    .tool-nav-link {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      height: 42px;
+      padding: 0 0 4px;
+      color: rgba(224,232,249,0.78);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      transition: color 0.2s;
+    }
+    .tool-nav-link:hover {
+      color: #f8fafc;
+      text-decoration: none;
+    }
+    .tool-nav-link.is-active {
+      color: #fff;
+      pointer-events: none;
+    }
+    .tool-nav-link.is-active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
+      box-shadow: 0 0 10px rgba(87,210,255,0.28);
+    }
+
+    #lcp-list {
+      overflow-y: auto;
+      padding: 8px 6px;
+      flex: 1;
+    }
+
+    .lcp-entry {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      transition: background 0.15s;
+    }
+    .lcp-entry:hover { background: rgba(255,255,255,0.05); }
+
+    .lcp-entry.lcp-divider {
+      font-size: 0.68rem;
+      color: var(--color-muted);
+      justify-content: center;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      margin-top: 4px;
+      padding-top: 8px;
+      pointer-events: none;
+    }
+    .lcp-entry.lcp-divider:first-child { border-top: none; }
+
+    .lcp-num {
+      font-size: 0.68rem;
+      color: var(--color-muted);
+      min-width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .lcp-name {
+      flex: 1;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lcp-type {
+      font-size: 0.62rem;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: var(--color-muted);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .lcp-variant {
+      font-size: 0.6rem;
+      line-height: 1;
+      padding: 2px 5px;
+      border-radius: 999px;
+      color: rgba(237,242,247,0.72);
+      border: 1px solid rgba(237,242,247,0.12);
+      background: rgba(255,255,255,0.045);
+      flex-shrink: 0;
+    }
+
+    .lcp-cap {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--color-accent);
+      min-width: 38px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .lcp-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      transition: background-color 0.2s;
+    }
+    .lcp-title-row:hover { background: rgba(255,255,255,0.04); }
+    .lcp-toggle-icon { font-size: 0.72rem; color: var(--color-muted); }
+
+    .lcp-has-team { cursor: pointer; }
+    .lcp-has-team:hover { background: rgba(255,255,255,0.07); }
+    .lcp-team-open { background: rgba(87,210,255,0.07) !important; }
+    .lcp-team-panel {
+      display: flex; flex-wrap: wrap; gap: 2px 6px;
+      padding: 8px 8px 10px 28px;
+      background: rgba(8,10,30,0.55);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .lcp-team-note {
+      width: 100%;
+      margin: 0 0 4px;
+      font-size: 0.67rem;
+      color: rgba(203,213,225,0.74);
+      line-height: 1.3;
+    }
+    .lcp-team-mon { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .lcp-team-mon img { image-rendering: pixelated; width: 44px; height: 44px; }
+    .lcp-team-mon span { font-size: 0.68rem; color: var(--color-muted); }
+
+    #level-cap-panel.lcp-collapsed .lcp-collapsible { display: none; }
+    #level-cap-panel.lcp-collapsed .lcp-title-row { border-bottom: none; }
+    #level-cap-panel.lcp-collapsed { max-height: none; }
+    #level-cap-panel.lcp-collapsed .lcp-header { padding-bottom: 14px; }
+
+    #players-row { flex: 1; }
+
+    @media (max-width: 960px) {
+      #teams-area { flex-direction: column; }
+      #level-cap-panel { flex: none; width: 100%; position: static; max-height: 260px; }
+    }
+    @media (max-width: 680px) {
+      .tool-nav { gap: 15px; min-height: 40px; }
+      .tool-nav-link { height: 40px; font-size: 0.72rem; letter-spacing: 0.06em; }
+    }
+
+    /* ── PLAYERS ROW ── */
+    #players-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 680px) { #players-row { grid-template-columns: 1fr; } }
+
+    .player-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(25,27,58,0.82);
+    }
+    .player-panel.p1 { border-color: rgba(87,210,255,0.22); }
+    .player-panel.p2 { border-color: rgba(255,218,8,0.22); }
+
+    .player-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: 0.01em;
+    }
+    .p1 .player-title { color: var(--color-accent-strong); }
+    .p2 .player-title { color: var(--color-accent); }
+
+    .team-builder {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 12px;
+    }
+    .pokemon-slot {
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      min-height: 95px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition: transform 0.25s, background-color 0.25s, border-color 0.25s;
+      color: var(--color-text);
+    }
+    .p1 .pokemon-slot:hover { background: rgba(87,210,255,0.10); border-color: rgba(87,210,255,0.35); transform: translateY(-2px); }
+    .p2 .pokemon-slot:hover { background: rgba(255,218,8,0.10);  border-color: rgba(255,218,8,0.35);  transform: translateY(-2px); }
+
+    .team-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-box {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font: inherit;
+    }
+    .btn-box-1 { background: var(--color-accent-strong); color: #0f172a; box-shadow: 0 8px 20px rgba(87,210,255,0.18); }
+    .btn-box-1:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(87,210,255,0.28); }
+    .btn-box-2 { background: var(--color-accent); color: #0f172a; box-shadow: 0 8px 20px rgba(255,218,8,0.18); }
+    .btn-box-2:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(255,218,8,0.28); }
+
+    /* ── LINKED SLOTS ── */
+    .pokemon-slot.slot-linked::after {
+      content: '⛓';
+      position: absolute;
+      top: 5px; right: 7px;
+      font-size: 0.62rem;
+      opacity: 0.85;
+      pointer-events: none;
+      line-height: 1;
+    }
+    .pokemon-slot.slot-linked[data-slot="0"] { border-color: rgba(184,100,255,0.55); background: rgba(184,100,255,0.07); }
+    .pokemon-slot.slot-linked[data-slot="1"] { border-color: rgba(0,200,180,0.55);   background: rgba(0,200,180,0.07); }
+    .pokemon-slot.slot-linked[data-slot="2"] { border-color: rgba(255,140,0,0.55);   background: rgba(255,140,0,0.07); }
+    .pokemon-slot.slot-linked[data-slot="3"] { border-color: rgba(255,80,150,0.55);  background: rgba(255,80,150,0.07); }
+    .pokemon-slot.slot-linked[data-slot="4"] { border-color: rgba(80,150,255,0.55);  background: rgba(80,150,255,0.07); }
+    .pokemon-slot.slot-linked[data-slot="5"] { border-color: rgba(80,220,80,0.55);   background: rgba(80,220,80,0.07); }
+    .pokemon-slot.slot-link-hover[data-slot="0"] { border-color: rgba(184,100,255,0.95) !important; box-shadow: 0 0 18px rgba(184,100,255,0.4) !important; transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="1"] { border-color: rgba(0,200,180,0.95) !important;   box-shadow: 0 0 18px rgba(0,200,180,0.4) !important;   transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="2"] { border-color: rgba(255,140,0,0.95) !important;   box-shadow: 0 0 18px rgba(255,140,0,0.4) !important;   transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="3"] { border-color: rgba(255,80,150,0.95) !important;  box-shadow: 0 0 18px rgba(255,80,150,0.4) !important;  transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="4"] { border-color: rgba(80,150,255,0.95) !important;  box-shadow: 0 0 18px rgba(80,150,255,0.4) !important;  transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="5"] { border-color: rgba(80,220,80,0.95) !important;   box-shadow: 0 0 18px rgba(80,220,80,0.4) !important;   transform: translateY(-3px) !important; }
+
+    #link-progress {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      background: color-mix(in srgb, #0d0f2b 72%, rgba(87,210,255,0.18));
+      border: 1px solid rgba(87,210,255,0.22);
+      border-radius: 14px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .link-prog-step { display: flex; align-items: center; gap: 10px; }
+    .link-prog-pending { opacity: 0.55; }
+    .link-prog-label { font-size: 0.72rem; color: var(--color-muted); margin-bottom: 2px; }
+    .link-prog-check { color: #50e880; font-size: 1.15rem; margin-left: 4px; }
+    .link-prog-arrow { font-size: 1.3rem; color: var(--color-accent); padding: 0 4px; }
+    .link-prog-empty {
+      width: 44px; height: 44px; border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 2px dashed rgba(255,255,255,0.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; color: var(--color-muted);
+    }
+    #modal-skip-link {
+      display: none;
+      padding: 12px 22px;
+      background: rgba(255,218,8,0.08);
+      color: var(--color-accent);
+      border: 1px solid rgba(255,218,8,0.25);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    #modal-skip-link:hover { background: rgba(255,218,8,0.14); transform: translateY(-1px); }
+    .modal-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+    /* ── INFO SECTION ── */
+    .info-slot {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      min-height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 17px;
+      cursor: pointer;
+      transition: transform 0.25s, background-color 0.25s, border-color 0.25s;
+      color: var(--color-text);
+      text-align: center;
+      padding: 14px;
+    }
+    .info-slot:hover { background: rgba(255,255,255,0.08); border-color: rgba(87,210,255,0.35); transform: translateY(-2px); }
+
+    #info-panel {
+      display: grid;
+      grid-template-columns: minmax(0,1.8fr) minmax(200px,1fr);
+      gap: 18px;
+      width: 100%;
+    }
+    #info-details, #info-controls {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 18px;
+      min-height: 200px;
+    }
+    #info-details h3, #info-controls h3 { margin-top: 0; margin-bottom: 12px; font-size: 1.1rem; color: #f8fafc; }
+    #info-content { display: grid; gap: 14px; }
+    .info-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--color-text); }
+    .info-types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .info-type { padding: 5px 10px; border-radius: 999px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(87,210,255,0.12); color: #e2e8f0; }
+    .info-stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+    .info-stat { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 10px 12px; text-align: center; font-size: 0.92rem; }
+    .info-stat.stat-hp         { background: rgba(100,210, 90,0.15); border-color: rgba(100,210, 90,0.55); color: #90e880; }
+    .info-stat.stat-attack     { background: rgba(248,200, 60,0.15); border-color: rgba(248,200, 60,0.55); color: #f8d860; }
+    .info-stat.stat-defense    { background: rgba(240,130, 60,0.15); border-color: rgba(240,130, 60,0.55); color: #f09060; }
+    .info-stat.stat-sp-atk    { background: rgba( 60,190,200,0.15); border-color: rgba( 60,190,200,0.55); color: #60d8e0; }
+    .info-stat.stat-sp-def    { background: rgba(110,150,230,0.15); border-color: rgba(110,150,230,0.55); color: #90b0f0; }
+    .info-stat.stat-speed      { background: rgba(210, 90,210,0.15); border-color: rgba(210, 90,210,0.55); color: #e070e0; }
+    .evo-chain { display: flex; flex-direction: column; gap: 8px; }
+    .evo-none  { font-size: 0.88rem; color: var(--color-muted); }
+    .evo-path  { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .evo-stage { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); min-width: 64px; transition: transform 0.18s, background 0.18s, border-color 0.18s; }
+    .evo-stage img { image-rendering: pixelated; }
+    .evo-stage-active { background: rgba(87,210,255,0.15); border-color: rgba(87,210,255,0.5); }
+    .evo-stage-clickable { cursor: pointer; }
+    .evo-stage-clickable:hover { background: rgba(87,210,255,0.10); border-color: rgba(87,210,255,0.35); transform: translateY(-2px); }
+    .evo-name { font-size: 0.78rem; text-align: center; max-width: 72px; line-height: 1.2; }
+    .evo-arrow { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .evo-arrow-icon { color: var(--color-muted); font-size: 1.1rem; line-height: 1; }
+    .evo-condition { font-size: 0.72rem; color: var(--color-accent); white-space: nowrap; }
+    .info-moves { display: grid; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
+    .info-move { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 10px 12px; font-size: 0.9rem; color: var(--color-text); }
+    .learn-method-tag { margin-left: 0.35rem; }
+    .learn-method-highlight { color: #ffda08; font-weight: 600; }
+
+    #info-generation-select {
+      width: 100%; padding: 10px 12px; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.1); color: #edf2f7; font-size: 0.95rem;
+      appearance: none; -webkit-appearance: none; font: inherit;
+    }
+    #info-generation-select option { color: #111827; background: #f8fafc; }
+    #info-generation-select:focus { outline: none; border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(87,210,255,0.18); }
+    .generation-label { display: inline-block; margin-right: 8px; font-size: 0.95rem; color: rgba(226,232,240,0.8); }
+
+    #save-status { color: var(--color-accent-strong); font-size: 0.95rem; min-height: 1.2rem; text-align: center; }
+
+    /* ── MODALS ── */
+    #pokemon-modal, #box-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.72); display: flex; justify-content: center; align-items: center; z-index: 1002;
+    }
+    #box-modal { z-index: 1001; }
+    #modal-content, #box-content {
+      background: #16193f; padding: 24px; border-radius: 24px;
+      max-width: 860px; width: min(95vw,860px); max-height: 80%; overflow-y: auto;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.08);
+    }
+    #modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    #modal-header h2 { margin: 0; font-size: 1.4rem; color: #fff; }
+    #pokemon-search {
+      flex: 0 0 240px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 14px; background: rgba(255,255,255,0.06); color: var(--color-text); font: inherit;
+    }
+    #pokemon-search::placeholder { color: rgba(226,232,240,0.6); }
+    #pokemon-search:focus { outline: none; border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(87,210,255,0.18); background: rgba(255,255,255,0.1); }
+    #generation-select {
+      padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.12); color: #edf2f7; font-size: 0.95rem; min-width: 110px;
+      appearance: none; -webkit-appearance: none; font: inherit;
+    }
+    #generation-select option { color: #111827; background: #f8fafc; }
+    #generation-select:focus { outline: none; border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(87,210,255,0.18); }
+    #pokemon-list {
+      list-style: none; padding: 0; margin: 0;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 16px;
+    }
+    #pokemon-list li {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 18px; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px;
+      background: rgba(255,255,255,0.04); min-height: 140px; text-align: center;
+      transition: background-color 0.2s, transform 0.2s, border-color 0.2s; color: var(--color-text);
+    }
+    #pokemon-list li:hover { background: rgba(87,210,255,0.14); border-color: rgba(87,210,255,0.4); transform: translateY(-2px); }
+    #pokemon-list li img { width: 72px; height: 72px; margin-bottom: 10px; }
+    #pokemon-list li div { font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; padding: 0 4px; color: var(--color-text); }
+    button { font: inherit; }
+    #close-modal, #close-box {
+      padding: 12px 22px;
+      background: rgba(255,255,255,0.06); color: var(--color-text);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    #close-modal:hover, #close-box:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+
+    /* Shared box button */
+    .btn-box-shared {
+      padding: 10px 26px; border: 1px solid rgba(255,255,255,0.16); border-radius: 14px;
+      cursor: pointer; font-size: 0.9rem; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      font: inherit;
+      background: linear-gradient(135deg, rgba(87,210,255,0.14), rgba(255,218,8,0.10));
+      color: var(--color-text);
+    }
+    .btn-box-shared:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(87,210,255,0.14); border-color: rgba(255,255,255,0.28); }
+
+    /* Box */
+    #box-slots {
+      display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; margin-bottom: 20px;
+    }
+    .box-slot {
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(255,255,255,0.04);
+      display: flex; flex-direction: row; gap: 3px; padding: 4px; min-height: 72px;
+      cursor: pointer; transition: background-color 0.2s, border-color 0.2s; position: relative;
+    }
+    .box-slot:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+    .box-slot-half {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 8px; overflow: hidden; font-size: 0.58rem; color: var(--color-muted); text-align: center;
+    }
+    .box-slot-half.p1-half { background: rgba(87,210,255,0.05); border: 1px dashed rgba(87,210,255,0.22); }
+    .box-slot-half.p2-half { background: rgba(255,218,8,0.05); border: 1px dashed rgba(255,218,8,0.22); }
+    .box-slot-half.filled.p1-half { border-style: solid; border-color: rgba(87,210,255,0.38); background: rgba(87,210,255,0.10); }
+    .box-slot-half.filled.p2-half { border-style: solid; border-color: rgba(255,218,8,0.38); background: rgba(255,218,8,0.10); }
+    .box-slot-half img { image-rendering: pixelated; }
+    .box-slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; margin-top: 2px; }
+    .box-slot-empty { font-size: 0.9rem; opacity: 0.22; line-height: 1; }
+    .box-chain-icon { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--color-accent); pointer-events: none; }
+
+    /* ── WEAKNESS ── */
+    #weakness-section { padding: 24px; background: rgba(25,27,58,0.82); border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); }
+    #weakness-section h2 { font-size: 1.15rem; margin-bottom: 14px; color: #f8fafc; }
+    .weakness-empty { color: var(--color-muted); text-align: center; padding: 16px 0; margin: 0; }
+    .weakness-wrapper { display: flex; gap: 20px; align-items: flex-start; }
+    .weakness-table-scroll { overflow-x: auto; flex: 1 1 auto; }
+    .weakness-table { display: flex; flex-direction: column; gap: 3px; }
+    .weakness-row { display: flex; gap: 3px; align-items: center; }
+    .weakness-type-label { width: 72px; min-width: 72px; height: 28px; padding: 0 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; text-align: center; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
+    .weakness-player-label { height: 22px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 1px; flex-shrink: 0; }
+    .weakness-player-label.p1-label { background: rgba(87,210,255,0.15); color: var(--color-accent-strong); }
+    .weakness-player-label.p2-label { background: rgba(255,218,8,0.12);  color: var(--color-accent); }
+    .weakness-pokemon-header { width: 64px; min-width: 64px; text-align: center; font-size: 0.65rem; color: var(--color-muted); display: flex; flex-direction: column; align-items: center; gap: 2px; padding-bottom: 6px; }
+    .weakness-pokemon-header.p1-col { border-bottom: 2px solid rgba(87,210,255,0.4); }
+    .weakness-pokemon-header.p2-col { border-bottom: 2px solid rgba(255,218,8,0.4); }
+    .weakness-pokemon-header img { image-rendering: pixelated; border-radius: 0; }
+    .weakness-pokemon-header div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62px; }
+    .weakness-cell { width: 64px; min-width: 64px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 7px; font-size: 0.8rem; font-weight: 700; }
+    .weakness-divider { width: 10px; min-width: 10px; background: rgba(255,255,255,0.06); border-radius: 4px; align-self: stretch; }
+    .weakness-divider-label { width: 10px; min-width: 10px; }
+    .eff-immune  { background: rgba(120,120,120,0.2); color: #666; font-size: 0.72rem; font-weight: 400; }
+    .eff-resist2 { background: rgba(60,200,100,0.3);  color: #50e880; }
+    .eff-resist  { background: rgba(60,180,80,0.2);   color: #50c060; }
+    .eff-neutral { background: rgba(255,255,255,0.03); }
+    .eff-weak    { background: rgba(240,80,60,0.2);   color: #f07060; }
+    .eff-weak4   { background: rgba(230,40,40,0.4);   color: #ff5050; }
+    /* Summary */
+    .weakness-summary { flex: 0 0 auto; display: flex; gap: 16px; }
+    .weakness-summary-player { min-width: 120px; display: flex; flex-direction: column; gap: 5px; }
+    .weakness-summary-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .weakness-summary-title.p1 { color: var(--color-accent-strong); }
+    .weakness-summary-title.p2 { color: var(--color-accent); }
+    .weakness-summary-subtitle { font-size: 0.75rem; font-weight: 600; color: var(--color-muted); margin-top: 8px; margin-bottom: 2px; }
+    .weakness-summary-row { display: flex; align-items: center; gap: 8px; }
+    .weakness-summary-count { font-size: 0.85rem; font-weight: 700; color: #f07060; }
+    .weakness-summary-immune { color: #8899cc; }
+    /* Type badges */
+    .type-bg-normal   { background: #bbbbaa; color: #404035 !important; text-shadow: none !important; }
+    .type-bg-fire     { background: #ff421c; }
+    .type-bg-water    { background: #2c9be3; }
+    .type-bg-electric { background: #ffdc00; color: #504000 !important; text-shadow: none !important; }
+    .type-bg-grass    { background: #62bc5a; color: #1a3a10 !important; text-shadow: none !important; }
+    .type-bg-ice      { background: #74cfc0; color: #1a4040 !important; text-shadow: none !important; }
+    .type-bg-fighting { background: #bb5544; }
+    .type-bg-poison   { background: #9553cd; }
+    .type-bg-ground   { background: #a67439; }
+    .type-bg-flying   { background: #96caff; color: #1a3050 !important; text-shadow: none !important; }
+    .type-bg-psychic  { background: #ff6380; }
+    .type-bg-bug      { background: #92c12a; color: #283010 !important; text-shadow: none !important; }
+    .type-bg-rock     { background: #bbaa66; color: #403020 !important; text-shadow: none !important; }
+    .type-bg-ghost    { background: #6e4370; }
+    .type-bg-dragon   { background: #5670be; }
+    .type-bg-dark     { background: #4e4545; }
+    .type-bg-steel    { background: #aaaabb; color: #30303a !important; text-shadow: none !important; }
+    .type-bg-fairy    { background: #ec8fe6; color: #602050 !important; text-shadow: none !important; }
+
+    /* ── TOOLTIP ── */
+    #poke-tooltip {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      max-width: 270px;
+      background: #12143a;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      font-size: 0.83rem;
+      line-height: 1.5;
+      color: var(--color-text);
+      pointer-events: auto;
+    }
+    #poke-tooltip .tt-title { font-weight: 700; font-size: 0.92rem; color: #fff; margin-bottom: 5px; }
+    #poke-tooltip .tt-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+    #poke-tooltip .tt-type { padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    #poke-tooltip .tt-cat { font-size: 0.78rem; color: var(--color-muted); }
+    #poke-tooltip .tt-stats { display: flex; gap: 10px; font-size: 0.8rem; color: var(--color-muted); margin-bottom: 6px; flex-wrap: wrap; }
+    #poke-tooltip .tt-desc { font-size: 0.8rem; color: var(--color-muted); line-height: 1.45; }
+
+    /* ── BOX INLINE ── */
+    #box-section {
+      background: rgba(25,27,58,0.82);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    .box-toggle-btn {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; cursor: pointer; background: none; border: none;
+      color: var(--color-text); font: inherit; font-weight: 700; font-size: 1rem;
+      transition: background-color 0.2s;
+    }
+    .box-toggle-btn:hover { background: rgba(255,255,255,0.04); }
+    .box-toggle-icon { font-size: 0.85rem; color: var(--color-muted); }
+    #box-body { padding: 12px 16px 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+
+    /* ── DRAG & DROP ── */
+    .pokemon-slot.drag-over {
+      border-color: rgba(87,210,255,0.85) !important;
+      background: rgba(87,210,255,0.14) !important;
+      box-shadow: 0 0 16px rgba(87,210,255,0.28) !important;
+      transform: translateY(-2px) !important;
+    }
+    .box-slot-half.drag-over {
+      border-style: solid !important;
+      border-color: rgba(87,210,255,0.85) !important;
+      background: rgba(87,210,255,0.18) !important;
+    }
+    .dragging { opacity: 0.35; }
+    /* Prevent inner content from intercepting drag/click events */
+    .pokemon-slot > * { pointer-events: none; }
+    .info-slot.drag-over {
+      border-color: rgba(87,210,255,0.8) !important;
+      background: rgba(87,210,255,0.12) !important;
+      box-shadow: 0 0 16px rgba(87,210,255,0.25) !important;
+      transform: translateY(-2px) !important;
+    }
+    #box-section.drag-over-section {
+      border-color: rgba(87,210,255,0.6);
+      box-shadow: 0 0 20px rgba(87,210,255,0.16);
+    }
+    #box-section.drag-over-section .box-toggle-btn {
+      background: rgba(87,210,255,0.10);
+      color: var(--color-accent-strong);
+    }
+
+    /* ── COVERAGE RECOMMENDATIONS ── */
+    .coverage-players-wrapper {
+      display: flex;
+      gap: 20px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .coverage-section {
+      flex: 1;
+      min-width: 0;
+      padding-left: 14px;
+      border-left: 3px solid rgba(255,255,255,0.1);
+    }
+    .coverage-section.p1 { border-left-color: rgba(87,210,255,0.45); }
+    .coverage-section.p2 { border-left-color: rgba(255,218,8,0.45); }
+
+    .coverage-header { margin-bottom: 12px; }
+    .coverage-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 2px;
+    }
+    .coverage-player-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+    }
+    .coverage-player-tag.p1 { background: rgba(87,210,255,0.15); color: var(--color-accent-strong); }
+    .coverage-player-tag.p2 { background: rgba(255,218,8,0.12);  color: var(--color-accent); }
+    .coverage-subtitle {
+      font-size: 0.7rem;
+      color: var(--color-muted);
+    }
+
+    .coverage-list { display: flex; flex-direction: column; gap: 8px; }
+    .coverage-item {
+      display: grid;
+      grid-template-columns: 24px minmax(0,1fr) 28px;
+      align-items: center;
+      gap: 11px;
+      padding: 11px 13px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-left: 3px solid rgba(var(--coverage-rgb),0.48);
+      background: rgba(255,255,255,0.032);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .coverage-item:hover { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); }
+    .coverage-item.is-open {
+      align-items: start;
+      background: linear-gradient(to right, rgba(var(--coverage-rgb),0.10), rgba(255,255,255,0.035) 58%);
+    }
+
+    .coverage-rank {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.42);
+    }
+    .coverage-type-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 70px;
+      height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--coverage-rgb),0.38);
+      background: rgba(var(--coverage-rgb),0.16);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #f8fafc;
+      text-shadow: none;
+    }
+    .coverage-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+    .coverage-main {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+    .coverage-count {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: rgba(248,250,252,0.9);
+    }
+    .coverage-toggle {
+      width: 26px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      color: var(--color-muted);
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s, transform 0.2s;
+    }
+    .coverage-toggle:hover { color: #f8fafc; background: rgba(255,255,255,0.08); }
+    .coverage-toggle-icon { font-size: 0.72rem; transition: transform 0.2s; }
+    .coverage-item.is-open .coverage-toggle-icon { transform: rotate(180deg); }
+    .coverage-meta {
+      display: none;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding-top: 2px;
+    }
+    .coverage-item.is-open .coverage-meta { display: flex; }
+    .coverage-chip-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: rgba(177,179,204,0.74);
+      margin-right: 2px;
+    }
+    .coverage-chips { display: contents; }
+    .coverage-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 0 7px;
+      height: 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--chip-rgb),0.28);
+      background: rgba(var(--chip-rgb),0.13);
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: rgba(248,250,252,0.9);
+      text-shadow: none;
+    }
+    .coverage-chip-weight {
+      color: rgba(248,250,252,0.55);
+      font-size: 0.55rem;
+    }
+    @media (max-width: 760px) { .coverage-players-wrapper { flex-direction: column; } }
+    .forms-list { align-items: flex-start !important; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 680px) {
+      #info-panel { grid-template-columns: 1fr; }
+      #modal-header { flex-wrap: wrap; }
+      #pokemon-search { flex: 1 1 100%; }
+      .info-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (hover: none) {
+      .p1 .pokemon-slot:active { background: rgba(87,210,255,0.10); border-color: rgba(87,210,255,0.35); transform: translateY(-2px); }
+      .p2 .pokemon-slot:active { background: rgba(255,218,8,0.10);  border-color: rgba(255,218,8,0.35);  transform: translateY(-2px); }
+      .box-slot-half:active { filter: brightness(1.15); }
+    }
+
+    /* ── SESSION PANEL ── */
+    #session-panel {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 11px 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      flex-wrap: wrap;
+      transition: padding 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+    }
+    #session-panel.session-panel--full {
+      padding: 7px 14px;
+      background: rgba(80,210,130,0.05);
+      border-color: rgba(80,210,130,0.18);
+    }
+    #session-panel.session-panel--full #sync-copy-btn { display: none; }
+    #session-panel.session-panel--full .sync-code-label { display: none; }
+    #session-panel.session-panel--full .sync-code { font-size: 0.88rem; letter-spacing: 0.12em; opacity: 0.6; }
+    .session-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .session-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+    .sync-status {
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+    .sync-status-idle     { color: rgba(203,213,225,0.55); background: rgba(255,255,255,0.05); }
+    .sync-status-loading  { color: rgba(255,218,8,0.9);    background: rgba(255,218,8,0.1); }
+    .sync-status-waiting  { color: rgba(255,218,8,0.9);    background: rgba(255,218,8,0.1); }
+    .sync-status-connected{ color: rgba(80,210,130,0.95);  background: rgba(80,210,130,0.12); }
+    .sync-status-error    { color: rgba(255,100,80,0.95);  background: rgba(255,100,80,0.12); }
+    .sync-player-count {
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+      font-variant-numeric: tabular-nums;
+    }
+    .sync-player-count-hidden  { display: none; }
+    .sync-player-count-partial { color: rgba(255,218,8,0.9);   background: rgba(255,218,8,0.1); }
+    .sync-player-count-full    { color: rgba(80,210,130,0.95); background: rgba(80,210,130,0.12); }
+    .session-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .sync-btn {
+      padding: 6px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: #edf2f7;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      line-height: 1;
+    }
+    .sync-btn:hover { background: rgba(255,255,255,0.14); }
+    .sync-btn-primary { border-color: rgba(87,210,255,0.35); color: var(--color-accent); }
+    .sync-btn-primary:hover { background: rgba(87,210,255,0.1); }
+    .sync-btn-danger  { border-color: rgba(255,100,80,0.35); color: rgba(255,130,110,0.9); }
+    .sync-btn-danger:hover  { background: rgba(255,100,80,0.1); }
+    .sync-btn-icon { padding: 6px 10px; }
+    .sync-join-area { display: flex; align-items: center; gap: 6px; }
+    #sync-code-input {
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.07);
+      color: #edf2f7;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      width: 90px;
+      text-align: center;
+    }
+    #sync-code-input:focus { outline: none; border-color: var(--color-accent-strong); }
+    #sync-code-input::placeholder { letter-spacing: 0.04em; text-transform: none; font-weight: 500; color: rgba(255,255,255,0.3); }
+    .sync-code-box { display: flex; align-items: center; gap: 8px; }
+    .sync-code-label { font-size: 0.78rem; color: var(--color-muted); }
+    .sync-code {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: var(--color-accent-strong);
+    }
+    @media (max-width: 600px) {
+      #session-panel { flex-direction: column; align-items: flex-start; gap: 10px; }
+    }
+
+    /* ── Context Menu ── */
+    .ctx-menu {
+      position: fixed;
+      background: rgba(25,27,58,0.98);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 12px;
+      padding: 6px;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      min-width: 160px;
+    }
+    .ctx-menu button {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: #edf2f7;
+      padding: 8px 14px;
+      text-align: left;
+      font: inherit;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ctx-menu button:hover { background: rgba(255,255,255,0.08); }
+    .ctx-menu button.ctx-danger { color: #fc8181; }
+    .ctx-menu button.ctx-danger:hover { background: rgba(252,129,129,0.12); }
+
+    /* ── Box + Graveyard row ── */
+    #box-graveyard-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    #box-graveyard-row #box-section {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ── Graveyard sidebar ── */
+    #graveyard-section {
+      width: 200px;
+      flex-shrink: 0;
+      background: rgba(25,27,58,0.82);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      overflow: hidden;
+      position: sticky;
+      top: 16px;
+      align-self: flex-start;
+    }
+    .graveyard-toggle-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      background: none;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      color: var(--color-muted);
+      font: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .graveyard-toggle-btn:hover { background: rgba(255,255,255,0.04); }
+    #graveyard-toggle-icon { font-size: 0.75rem; }
+    #graveyard-slots { padding: 10px 12px 14px; }
+    .graveyard-player-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 8px 0 6px;
+    }
+    .graveyard-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .grave-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: context-menu;
+      opacity: 0.72;
+      transition: opacity 0.15s;
+    }
+    .grave-slot:hover { opacity: 1; }
+    .grave-slot img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      filter: grayscale(1) brightness(0.65);
+      image-rendering: pixelated;
+    }
+    .grave-slot-name {
+      font-size: 0.6rem;
+      color: var(--color-muted);
+      text-align: center;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .graveyard-empty { color: var(--color-muted); font-size: 0.78rem; padding: 2px 0; }
+    .grave-killer {
+      font-size: 0.58rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 4px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.08);
+      color: var(--color-muted);
+      letter-spacing: 0.04em;
+    }
+    .grave-killer-1 { background: rgba(87,210,255,0.18); color: var(--color-accent-strong); }
+    .grave-killer-2 { background: rgba(255,218,8,0.18); color: var(--color-accent); }
+  </style>
+</head>
+<script>
+  (function(){
+    if (window.innerWidth < 768 && navigator.maxTouchPoints > 0)
+      window.location.replace('mobile.html');
+  })();
+</script>
+<body>
+  <div id="app">
+    <nav class="tool-nav" aria-label="Pokemon tools">
+      <a class="tool-nav-link" href="../index.html" data-i18n="nav-home">Home</a>
+      <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav-run">Run</a>
+      <a class="tool-nav-link" href="../Pokelocke/index.html" data-i18n="nav-team">Team</a>
+      <a class="tool-nav-link is-active" href="index.html" aria-current="page">Duo</a>
+      <a class="tool-nav-link" href="../Trio/index.html" data-i18n="nav-trio">Trio</a>
+      <a class="tool-nav-link" href="../Catchrate/index.html" data-i18n="nav-catch">Fangrate</a>
+      <a class="tool-nav-link" href="../DamageCalc/index.html" data-i18n="nav-damage">Schaden</a>
+      <a class="tool-nav-link" href="../Typrechner/index.html" data-i18n="nav-types">Typen</a>
+      <a class="tool-nav-link" href="../PokemonInfo/index.html">Dex</a>
+      <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
+    </nav>
+
+    <header>
+      <div class="header-main">
+        <div>
+          <h1>Duo Nuzlocke</h1>
+          <p data-i18n="subtitle">Team-Builder für zwei Spieler – Typen, Stats und gemeinsame Analyse.</p>
+        </div>
+        <button class="lang-toggle" id="lang-toggle">DE</button>
+      </div>
+    </header>
+
+    <div id="session-panel">
+      <div class="session-left">
+        <span class="session-label">Sync</span>
+        <span id="sync-status" class="sync-status sync-status-idle">Nicht verbunden</span>
+        <span id="sync-player-count" class="sync-player-count sync-player-count-hidden"></span>
+      </div>
+      <div class="session-actions">
+        <button id="sync-create-btn" class="sync-btn sync-btn-primary">Session erstellen</button>
+        <div id="sync-join-area" class="sync-join-area">
+          <input id="sync-code-input" type="text" maxlength="6" placeholder="Code eingeben" autocomplete="off" spellcheck="false" />
+          <button id="sync-join-btn" class="sync-btn">Beitreten</button>
+        </div>
+        <div id="sync-code-box" class="sync-code-box" style="display:none">
+          <span class="sync-code-label">Code:</span>
+          <strong id="sync-code-display" class="sync-code">––––––</strong>
+          <button id="sync-copy-btn" class="sync-btn" title="Code kopieren">Copy</button>
+        </div>
+        <button id="sync-leave-btn" class="sync-btn sync-btn-danger" style="display:none">Session verlassen</button>
+      </div>
+    </div>
+
+    <div id="teams-area">
+
+    <!-- Level Cap Panel -->
+    <div id="level-cap-panel" class="lcp-collapsed">
+      <div class="lcp-title-row" id="lcp-toggle">
+        <span class="lcp-title">⚔️ Level Caps</span>
+        <span class="lcp-toggle-icon" id="lcp-toggle-icon">▶</span>
+      </div>
+      <div class="lcp-collapsible" style="padding: 10px 14px 0">
+        <select id="lcp-game-select"></select>
+      </div>
+      <div id="lcp-list" class="lcp-collapsible"></div>
+    </div>
+
+    <div id="players-row">
+      <!-- Spieler 1 -->
+      <div class="player-panel p1">
+        <div class="player-title" data-i18n="player1">Spieler 1</div>
+        <div class="team-builder" id="team-builder-1">
+          <div class="pokemon-slot" data-player="1" data-slot="0"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="1"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="2"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="3"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="4"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="5"></div>
+        </div>
+      </div>
+
+      <!-- Spieler 2 -->
+      <div class="player-panel p2">
+        <div class="player-title" data-i18n="player2">Spieler 2</div>
+        <div class="team-builder" id="team-builder-2">
+          <div class="pokemon-slot" data-player="2" data-slot="0"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="1"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="2"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="3"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="4"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="5"></div>
+        </div>
+      </div>
+    </div><!-- #players-row -->
+    </div><!-- #teams-area -->
+
+    <div id="box-graveyard-row">
+      <section id="box-section">
+        <button class="box-toggle-btn" id="box-toggle">
+          <span data-i18n="box">📦 Gemeinsame Box</span>
+          <span class="box-toggle-icon" id="box-toggle-icon">▼</span>
+        </button>
+        <div id="box-body" style="display:none">
+          <div id="box-slots"></div>
+        </div>
+      </section>
+
+      <section id="graveyard-section">
+        <button id="graveyard-toggle" class="graveyard-toggle-btn">
+          <span>☠ Friedhof</span>
+          <span id="graveyard-toggle-icon">▼</span>
+        </button>
+        <div id="graveyard-body" style="display:none">
+          <div id="graveyard-slots"><div class="graveyard-empty">Noch keine gefallenen Pokémon.</div></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Shared info section -->
+    <div class="info-slot" data-slot="info" data-i18n="info-slot-empty">Info-Pokémon wählen</div>
+    <div id="info-panel">
+      <div id="info-details">
+        <h3 data-i18n="info-title">Pokémon-Info</h3>
+        <div id="info-content">
+          <div id="info-placeholder" class="info-row" data-i18n="info-placeholder">Wähle ein Pokémon aus einem Team oder dem Info-Slot.</div>
+        </div>
+      </div>
+      <div id="info-controls">
+        <h3 data-i18n="info-gen-section">Info-Generation</h3>
+        <label for="info-generation-select" class="generation-label" data-i18n="info-gen-label">Generation auswählen</label>
+        <select id="info-generation-select">
+          <option value="1">Gen 1</option>
+          <option value="2">Gen 2</option>
+          <option value="3">Gen 3</option>
+          <option value="4">Gen 4</option>
+          <option value="5">Gen 5</option>
+          <option value="6">Gen 6</option>
+          <option value="7">Gen 7</option>
+          <option value="8">Gen 8</option>
+          <option value="9">Gen 9</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="save-status" aria-live="polite"></div>
+
+    <section id="weakness-section">
+      <h2 data-i18n="weakness-title">Team-Typ-Analyse</h2>
+      <div id="team-weakness-panel">
+        <p class="weakness-empty" data-i18n="weakness-empty">Füge Pokémon zu einem Team hinzu, um die Typ-Analyse zu sehen.</p>
+      </div>
+    </section>
+
+  </div>
+
+  <div id="ctx-menu" class="ctx-menu">
+    <button id="ctx-remove">Entfernen</button>
+    <button id="ctx-kill" class="ctx-danger">☠ Gestorben</button>
+  </div>
+
+  <!-- Pokémon-Auswahl Modal -->
+  <div id="pokemon-modal" style="display:none;">
+    <div id="modal-content">
+      <div id="modal-header">
+        <div>
+          <h2 id="modal-title" data-i18n="modal-title">Wähle ein Pokémon</h2>
+          <label for="generation-select" class="generation-label" data-i18n="gen-label">Generation:</label>
+          <select id="generation-select">
+            <option value="1">Gen 1</option>
+            <option value="2">Gen 2</option>
+            <option value="3">Gen 3</option>
+            <option value="4">Gen 4</option>
+            <option value="5">Gen 5</option>
+            <option value="6">Gen 6</option>
+            <option value="7">Gen 7</option>
+            <option value="8">Gen 8</option>
+            <option value="9">Gen 9</option>
+          </select>
+        </div>
+        <input id="pokemon-search" type="search" placeholder="Suche..." autocomplete="off" data-i18n="search-placeholder" data-i18n-attr="placeholder" />
+      </div>
+      <div id="link-progress"></div>
+      <ul id="pokemon-list"></ul>
+      <div class="modal-buttons">
+        <button id="close-modal" data-i18n="modal-close">Schließen</button>
+        <button id="modal-skip-link" data-i18n="modal-no-link">Ohne Verknüpfung</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ── i18n ─────────────────────────────────────────────────────────────────────
+window.LANG = localStorage.getItem('duo-lang') || 'de';
+
+const TRANSLATIONS = {
+  de: {
+    'subtitle':'Team-Builder für zwei Spieler – Typen, Stats und gemeinsame Analyse.',
+    'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
+    'nav-catch':'Fangrate', 'nav-damage':'Schaden', 'nav-types':'Typen',
+    'player1':'Spieler 1', 'player2':'Spieler 2', 'box':'📦 Gemeinsame Box',
+    'info-title':'Pokémon-Info', 'info-placeholder':'Wähle ein Pokémon aus einem Team oder dem Info-Slot.',
+    'info-gen-section':'Info-Generation', 'info-gen-label':'Generation auswählen',
+    'info-slot-empty':'Info-Pokémon wählen', 'weakness-title':'Team-Typ-Analyse',
+    'weakness-empty':'Füge Pokémon zu einem Team hinzu, um die Typ-Analyse zu sehen.',
+    'modal-title':'Wähle ein Pokémon', 'gen-label':'Generation:', 'search-placeholder':'Suche...',
+    'modal-close':'Schließen', 'modal-no-link':'Ohne Verknüpfung',
+    'e4-divider':'Top Vier & Champion', 'weaknesses':'Schwächen', 'immunities':'Immunitäten',
+    'variant-badge':'Var.', 'variant-note':'Team kann je nach Starter, Edition oder gewähltem Leiter variieren; gezeigt ist eine Beispielvariante.',
+    'abilities':'Fähigkeiten', 'hidden-ability':'Versteckte Fähigkeit',
+    'evolution':'Entwicklung', 'forms':'Formen', 'no-evolution':'Entwickelt sich nicht.',
+    'no-evo-data':'Entwicklungsdaten nicht verfügbar.',
+    'moves-gen': n => `Attacken in Generation ${n}`,
+    'no-moves':'Keine Attacken für diese Generation gefunden.',
+    'recommendations':'Empfehlungen', 'recs-subtitle':'Welche Typen helfen eure Schwächen auszugleichen',
+    'covers-label':'gegen', 'resists': n => `Deckt ${n} Problem-Typ${n!==1?'en':''} ab`,
+    'stat-hp':'KP', 'stat-attack':'Angriff', 'stat-defense':'Verteidigung',
+    'stat-sp-atk':'Spezial-Angriff', 'stat-sp-def':'Spezial-Verteidigung', 'stat-speed':'Initiative',
+    'power':'Stärke', 'accuracy':'Genauigkeit', 'pp':'AP',
+    'physical':'Physisch', 'special-class':'Speziell', 'status-class':'Status',
+    'unknown':'Unbekannt', 'tm-hm':'TM / HM', 'egg':'Ei',
+    'day':'Tags', 'night':'Nachts', 'in-rain':'Im Regen', 'upside-down':'Konsole umdrehen',
+    'trade':'Tausch', 'trade-with-item': i => `Tausch + ${i}`, 'trade-with': p => `Tausch mit ${p}`,
+    'shed':'Mausern', 'spin':'Drehen', 'damage':'Schaden', 'three-crits':'3× krit. Treffer',
+    'special-evo':'Besonders', 'level-up':'Level-up',
+    'type-suffix': t => `${t}-Typ`, 'knows-move': m => `Kennt ${m}`,
+    'atk-gt-def':'Angriff > Verteidigung', 'def-gt-atk':'Verteidigung > Angriff', 'atk-eq-def':'Angriff = Verteidigung',
+    'happiness': n => `Glück ≥${n}`, 'affection': n => `Zuneigung ≥${n}`,
+    'saved':'Gespeichert!',
+    'loading-pokemon':'Lade Pokémon...', 'no-pokemon-found':'Kein Pokémon gefunden.',
+    'pick-pokemon': (pl, slot) => `Spieler ${pl} – Pokémon wählen (Slot ${slot})`,
+    'link-pick': (pl, slot) => `Verknüpftes Pokémon für Spieler ${pl} – Slot ${slot}`,
+    'link-pick-box': (pl, slot) => `Verknüpftes Box-Pokémon für Spieler ${pl} – Slot ${slot}`,
+    'box-pick': (slot, pl) => `Gemeinsame Box – Slot ${slot} (Spieler ${pl})`,
+    'link-label': (pl, slot) => `Spieler ${pl} – Slot ${slot}`,
+    'pending': 'Ausstehend…',
+  },
+  en: {
+    'subtitle':'Team builder for two players – types, stats and shared analysis.',
+    'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
+    'nav-catch':'Catch', 'nav-damage':'Damage', 'nav-types':'Types',
+    'player1':'Player 1', 'player2':'Player 2', 'box':'📦 Shared Box',
+    'info-title':'Pokémon Info', 'info-placeholder':'Select a Pokémon from a team or the info slot.',
+    'info-gen-section':'Info Generation', 'info-gen-label':'Select generation',
+    'info-slot-empty':'Select Info Pokémon', 'weakness-title':'Team Type Analysis',
+    'weakness-empty':'Add Pokémon to a team to see the type analysis.',
+    'modal-title':'Choose a Pokémon', 'gen-label':'Generation:', 'search-placeholder':'Search...',
+    'modal-close':'Close', 'modal-no-link':'Without link',
+    'e4-divider':'Elite Four & Champion', 'weaknesses':'Weaknesses', 'immunities':'Immunities',
+    'variant-badge':'Var.', 'variant-note':'Team may vary by starter, version or chosen leader; this shows one example variant.',
+    'abilities':'Abilities', 'hidden-ability':'Hidden Ability',
+    'evolution':'Evolution', 'forms':'Forms', 'no-evolution':'Does not evolve.',
+    'no-evo-data':'Evolution data not available.',
+    'moves-gen': n => `Moves in Generation ${n}`,
+    'no-moves':'No moves found for this generation.',
+    'recommendations':'Recommendations', 'recs-subtitle':'Which types help balance your weaknesses',
+    'covers-label':'against', 'resists': n => `Covers ${n} problem type${n!==1?'s':''}`,
+    'stat-hp':'HP', 'stat-attack':'Attack', 'stat-defense':'Defense',
+    'stat-sp-atk':'Sp. Attack', 'stat-sp-def':'Sp. Defense', 'stat-speed':'Speed',
+    'power':'Power', 'accuracy':'Accuracy', 'pp':'PP',
+    'physical':'Physical', 'special-class':'Special', 'status-class':'Status',
+    'unknown':'Unknown', 'tm-hm':'TM / HM', 'egg':'Egg',
+    'day':'Day', 'night':'Night', 'in-rain':'In rain', 'upside-down':'Turn console upside down',
+    'trade':'Trade', 'trade-with-item': i => `Trade + ${i}`, 'trade-with': p => `Trade with ${p}`,
+    'shed':'Shed', 'spin':'Spin', 'damage':'Damage', 'three-crits':'3× critical hits',
+    'special-evo':'Special', 'level-up':'Level-up',
+    'type-suffix': t => `${t}-type`, 'knows-move': m => `Knows ${m}`,
+    'atk-gt-def':'Attack > Defense', 'def-gt-atk':'Defense > Attack', 'atk-eq-def':'Attack = Defense',
+    'happiness': n => `Happiness ≥${n}`, 'affection': n => `Affection ≥${n}`,
+    'saved':'Saved!',
+    'loading-pokemon':'Loading Pokémon...', 'no-pokemon-found':'No Pokémon found.',
+    'pick-pokemon': (pl, slot) => `Player ${pl} – Choose Pokémon (Slot ${slot})`,
+    'link-pick': (pl, slot) => `Linked Pokémon for Player ${pl} – Slot ${slot}`,
+    'link-pick-box': (pl, slot) => `Linked Box Pokémon for Player ${pl} – Slot ${slot}`,
+    'box-pick': (slot, pl) => `Shared Box – Slot ${slot} (Player ${pl})`,
+    'link-label': (pl, slot) => `Player ${pl} – Slot ${slot}`,
+    'pending': 'Pending…',
+  },
+};
+
+window.t = (key, ...args) => {
+  const v = TRANSLATIONS[window.LANG]?.[key];
+  if (v === undefined) return key;
+  return typeof v === 'function' ? v(...args) : v;
+};
+
+const TYPE_LABELS = {
+  de: { normal:'Normal',fire:'Feuer',water:'Wasser',electric:'Elektro',grass:'Pflanze',ice:'Eis',fighting:'Kampf',poison:'Gift',ground:'Boden',flying:'Flug',psychic:'Psycho',bug:'Käfer',rock:'Gestein',ghost:'Geist',dragon:'Drache',dark:'Unlicht',steel:'Stahl',fairy:'Fee' },
+  en: { normal:'Normal',fire:'Fire',water:'Water',electric:'Electric',grass:'Grass',ice:'Ice',fighting:'Fighting',poison:'Poison',ground:'Ground',flying:'Flying',psychic:'Psychic',bug:'Bug',rock:'Rock',ghost:'Ghost',dragon:'Dragon',dark:'Dark',steel:'Steel',fairy:'Fairy' },
+};
+window.typeLabel = type => TYPE_LABELS[window.LANG]?.[type] || type;
+
+function applyLang() {
+  document.documentElement.lang = window.LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const attr = el.dataset.i18nAttr;
+    const txt = window.t(key);
+    if (attr) el.setAttribute(attr, txt);
+    else el.textContent = txt;
+  });
+  const btn = document.getElementById('lang-toggle');
+  if (btn) btn.textContent = window.LANG.toUpperCase();
+  const sel = document.getElementById('lcp-game-select');
+  if (sel) { buildGameSelect(); renderLevelCaps(sel.value); }
+  document.dispatchEvent(new CustomEvent('langchange'));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.documentElement.lang = window.LANG;
+  if (window.LANG === 'en') applyLang();
+  document.getElementById('lang-toggle').addEventListener('click', () => {
+    window.LANG = window.LANG === 'de' ? 'en' : 'de';
+    localStorage.setItem('duo-lang', window.LANG);
+    applyLang();
+  });
+});
+</script>
+<script src="../vendor/supabase-2.117.2.js"></script>
+<script type="module" src="main.js"></script>
+<script>
+const LEVEL_CAPS = {
+  'rot-blau': { label: 'Rot / Blau', labelEn: 'Red / Blue', entries: [
+    { name: 'Rocko', type: 'rock', cap: 14, team: [{id:74,level:12},{id:95,level:14}] },
+    { name: 'Misty', type: 'water', cap: 21, team: [{id:120,level:18},{id:121,level:21}] },
+    { name: 'Surge', type: 'electric', cap: 24, team: [{id:100,level:21},{id:25,level:18},{id:26,level:24}] },
+    { name: 'Erika', type: 'grass', cap: 29, team: [{id:71,level:29},{id:114,level:24},{id:45,level:29}] },
+    { name: 'Koga', type: 'poison', cap: 43, team: [{id:109,level:37},{id:89,level:39},{id:109,level:37},{id:110,level:43}] },
+    { name: 'Sabrina', type: 'psychic', cap: 43, team: [{id:64,level:38},{id:122,level:37},{id:49,level:38},{id:65,level:43}] },
+    { name: 'Pyro', type: 'fire', cap: 47, team: [{id:58,level:42},{id:77,level:40},{id:78,level:42},{id:59,level:47}] },
+    { name: 'Giovanni', type: 'ground', cap: 50, team: [{id:111,level:45},{id:51,level:42},{id:31,level:44},{id:34,level:45},{id:112,level:50}] },
+    { name: 'Lorelei', cap: 56, isE4: true, team: [{id:87,level:54},{id:91,level:54},{id:80,level:54},{id:124,level:56},{id:131,level:56}] },
+    { name: 'Bruno', cap: 58, isE4: true, team: [{id:95,level:53},{id:107,level:55},{id:106,level:55},{id:95,level:56},{id:68,level:58}] },
+    { name: 'Agathe', cap: 60, isE4: true, team: [{id:94,level:54},{id:93,level:56},{id:94,level:58},{id:24,level:58},{id:94,level:60}] },
+    { name: 'Siegfried', cap: 62, isE4: true, team: [{id:130,level:56},{id:148,level:58},{id:148,level:58},{id:142,level:60},{id:149,level:62}] },
+    { name: 'Champion Blau', cap: 65, isE4: true, variant: true, team: [{id:18,level:59},{id:65,level:57},{id:112,level:59},{id:59,level:59},{id:103,level:61},{id:6,level:65}] },
+  ]},
+  'gelb': { label: 'Gelb', labelEn: 'Yellow', entries: [
+    { name: 'Rocko', type: 'rock', cap: 12, team: [{id:74,level:10},{id:95,level:12}] },
+    { name: 'Misty', type: 'water', cap: 21, team: [{id:120,level:18},{id:121,level:21}] },
+    { name: 'Surge', type: 'electric', cap: 28, team: [{id:26,level:28}] },
+    { name: 'Erika', type: 'grass', cap: 32, team: [{id:114,level:30},{id:70,level:32},{id:44,level:32}] },
+    { name: 'Koga', type: 'poison', cap: 50, team: [{id:48,level:44},{id:48,level:46},{id:109,level:48},{id:89,level:50}] },
+    { name: 'Sabrina', type: 'psychic', cap: 50, team: [{id:122,level:50},{id:124,level:50},{id:65,level:50}] },
+    { name: 'Pyro', type: 'fire', cap: 54, team: [{id:38,level:48},{id:59,level:50},{id:136,level:54}] },
+    { name: 'Giovanni', type: 'ground', cap: 55, team: [{id:111,level:50},{id:51,level:53},{id:112,level:55},{id:31,level:55},{id:34,level:55}] },
+    { name: 'Lorelei', cap: 56, isE4: true, team: [{id:87,level:54},{id:91,level:54},{id:80,level:54},{id:124,level:56},{id:131,level:56}] },
+    { name: 'Bruno', cap: 58, isE4: true, team: [{id:95,level:53},{id:107,level:55},{id:106,level:55},{id:95,level:56},{id:68,level:58}] },
+    { name: 'Agathe', cap: 60, isE4: true, team: [{id:94,level:54},{id:93,level:56},{id:94,level:58},{id:24,level:58},{id:94,level:60}] },
+    { name: 'Siegfried', cap: 62, isE4: true, team: [{id:130,level:56},{id:148,level:58},{id:148,level:58},{id:142,level:60},{id:149,level:62}] },
+    { name: 'Champion Blau', cap: 65, isE4: true, variant: true, team: [{id:28,level:61},{id:65,level:59},{id:103,level:61},{id:91,level:61},{id:38,level:63},{id:135,level:65}] },
+  ]},
+  'gold-silber': { label: 'Gold / Silber', labelEn: 'Gold / Silver', entries: [
+    { name: 'Falkner', type: 'flying', cap: 9, team: [{id:16,level:7},{id:17,level:9}] },
+    { name: 'Ahornia', type: 'bug', cap: 16, team: [{id:11,level:14},{id:14,level:14},{id:123,level:16}] },
+    { name: 'Whitney', type: 'normal', cap: 20, team: [{id:35,level:18},{id:241,level:20}] },
+    { name: 'Morty', type: 'ghost', cap: 25, team: [{id:92,level:21},{id:93,level:21},{id:93,level:23},{id:94,level:25}] },
+    { name: 'Chuck', type: 'fighting', cap: 30, team: [{id:57,level:27},{id:62,level:30}] },
+    { name: 'Jasmine', type: 'steel', cap: 35, team: [{id:81,level:30},{id:81,level:30},{id:208,level:35}] },
+    { name: 'Pryce', type: 'ice', cap: 31, team: [{id:86,level:27},{id:87,level:29},{id:221,level:31}] },
+    { name: 'Clair', type: 'dragon', cap: 40, team: [{id:148,level:37},{id:148,level:37},{id:130,level:38},{id:230,level:40}] },
+    { name: 'Will', cap: 42, isE4: true, team: [{id:178,level:40},{id:124,level:41},{id:103,level:41},{id:80,level:41},{id:178,level:42}] },
+    { name: 'Koga', cap: 44, isE4: true, team: [{id:168,level:40},{id:49,level:41},{id:205,level:43},{id:89,level:42},{id:169,level:44}] },
+    { name: 'Bruno', cap: 46, isE4: true, team: [{id:237,level:42},{id:106,level:42},{id:107,level:42},{id:95,level:43},{id:68,level:46}] },
+    { name: 'Karen', cap: 47, isE4: true, team: [{id:197,level:42},{id:45,level:42},{id:198,level:44},{id:94,level:45},{id:229,level:47}] },
+    { name: 'Champion Siegfried', cap: 50, isE4: true, team: [{id:130,level:44},{id:149,level:47},{id:149,level:47},{id:6,level:46},{id:142,level:46},{id:149,level:50}] },
+  ]},
+  'kristall': { label: 'Kristall', labelEn: 'Crystal', entries: [
+    { name: 'Falkner', type: 'flying', cap: 9, team: [{id:16,level:7},{id:17,level:9}] },
+    { name: 'Ahornia', type: 'bug', cap: 16, team: [{id:167,level:14},{id:11,level:14},{id:123,level:16}] },
+    { name: 'Whitney', type: 'normal', cap: 20, team: [{id:35,level:18},{id:241,level:20}] },
+    { name: 'Morty', type: 'ghost', cap: 25, team: [{id:92,level:21},{id:93,level:21},{id:93,level:23},{id:94,level:25}] },
+    { name: 'Chuck', type: 'fighting', cap: 30, team: [{id:57,level:27},{id:62,level:30}] },
+    { name: 'Jasmine', type: 'steel', cap: 35, team: [{id:81,level:30},{id:81,level:30},{id:208,level:35}] },
+    { name: 'Pryce', type: 'ice', cap: 31, team: [{id:86,level:27},{id:87,level:29},{id:221,level:31}] },
+    { name: 'Clair', type: 'dragon', cap: 40, team: [{id:148,level:37},{id:148,level:37},{id:130,level:38},{id:230,level:40}] },
+    { name: 'Will', cap: 42, isE4: true, team: [{id:178,level:40},{id:124,level:41},{id:103,level:41},{id:80,level:41},{id:178,level:42}] },
+    { name: 'Koga', cap: 44, isE4: true, team: [{id:168,level:40},{id:49,level:41},{id:205,level:43},{id:89,level:42},{id:169,level:44}] },
+    { name: 'Bruno', cap: 46, isE4: true, team: [{id:237,level:42},{id:106,level:42},{id:107,level:42},{id:95,level:43},{id:68,level:46}] },
+    { name: 'Karen', cap: 47, isE4: true, team: [{id:197,level:42},{id:45,level:42},{id:198,level:44},{id:94,level:45},{id:229,level:47}] },
+    { name: 'Champion Siegfried', cap: 50, isE4: true, team: [{id:130,level:44},{id:149,level:47},{id:149,level:47},{id:6,level:46},{id:142,level:46},{id:149,level:50}] },
+  ]},
+  'rubin-saphir': { label: 'Rubin / Saphir', labelEn: 'Ruby / Sapphire', entries: [
+    { name: 'Roxanne', type: 'rock', cap: 15, team: [{id:74,level:14},{id:299,level:15}] },
+    { name: 'Brawly', type: 'fighting', cap: 18, team: [{id:66,level:17},{id:307,level:17},{id:296,level:18}] },
+    { name: 'Wattson', type: 'electric', cap: 23, team: [{id:100,level:20},{id:81,level:20},{id:82,level:22},{id:310,level:23}] },
+    { name: 'Flannery', type: 'fire', cap: 28, team: [{id:322,level:24},{id:218,level:26},{id:218,level:26},{id:324,level:28}] },
+    { name: 'Norman', type: 'normal', cap: 31, team: [{id:327,level:27},{id:288,level:27},{id:264,level:29},{id:289,level:31}] },
+    { name: 'Winona', type: 'flying', cap: 33, team: [{id:333,level:29},{id:357,level:29},{id:279,level:30},{id:227,level:31},{id:334,level:33}] },
+    { name: 'Tate & Liza', type: 'psychic', cap: 42, team: [{id:337,level:42},{id:338,level:42}] },
+    { name: 'Wallace', type: 'water', cap: 43, team: [{id:370,level:40},{id:364,level:40},{id:119,level:42},{id:340,level:42},{id:350,level:43}] },
+    { name: 'Sidney', cap: 49, isE4: true, team: [{id:262,level:46},{id:332,level:46},{id:275,level:48},{id:319,level:48},{id:359,level:49}] },
+    { name: 'Phoebe', cap: 51, isE4: true, team: [{id:356,level:48},{id:354,level:49},{id:302,level:50},{id:354,level:49},{id:356,level:51}] },
+    { name: 'Glacia', cap: 53, isE4: true, team: [{id:364,level:50},{id:364,level:50},{id:362,level:52},{id:362,level:52},{id:365,level:53}] },
+    { name: 'Drake', cap: 55, isE4: true, team: [{id:372,level:52},{id:334,level:54},{id:330,level:53},{id:330,level:53},{id:373,level:55}] },
+    { name: 'Champion Steven', cap: 58, isE4: true, team: [{id:227,level:57},{id:344,level:55},{id:306,level:56},{id:346,level:56},{id:348,level:56},{id:376,level:58}] },
+  ]},
+  'smaragd': { label: 'Smaragd', labelEn: 'Emerald', entries: [
+    { name: 'Roxanne', type: 'rock', cap: 15, team: [{id:74,level:14},{id:299,level:15}] },
+    { name: 'Brawly', type: 'fighting', cap: 19, team: [{id:66,level:17},{id:307,level:17},{id:296,level:19}] },
+    { name: 'Wattson', type: 'electric', cap: 24, team: [{id:100,level:20},{id:81,level:20},{id:82,level:22},{id:310,level:24}] },
+    { name: 'Flannery', type: 'fire', cap: 29, team: [{id:322,level:24},{id:218,level:24},{id:218,level:26},{id:324,level:29}] },
+    { name: 'Norman', type: 'normal', cap: 31, team: [{id:327,level:27},{id:264,level:27},{id:288,level:29},{id:289,level:31}] },
+    { name: 'Winona', type: 'flying', cap: 33, team: [{id:333,level:29},{id:357,level:29},{id:279,level:30},{id:227,level:31},{id:334,level:33}] },
+    { name: 'Tate & Liza', type: 'psychic', cap: 42, team: [{id:344,level:41},{id:178,level:41},{id:337,level:42},{id:338,level:42}] },
+    { name: 'Juan', type: 'water', cap: 46, team: [{id:370,level:41},{id:340,level:41},{id:364,level:43},{id:342,level:43},{id:230,level:46}] },
+    { name: 'Sidney', cap: 49, isE4: true, team: [{id:262,level:46},{id:332,level:46},{id:275,level:48},{id:319,level:48},{id:359,level:49}] },
+    { name: 'Phoebe', cap: 51, isE4: true, team: [{id:356,level:48},{id:354,level:49},{id:302,level:50},{id:354,level:49},{id:356,level:51}] },
+    { name: 'Glacia', cap: 53, isE4: true, team: [{id:364,level:50},{id:364,level:50},{id:362,level:52},{id:362,level:52},{id:365,level:53}] },
+    { name: 'Drake', cap: 55, isE4: true, team: [{id:372,level:52},{id:334,level:54},{id:330,level:53},{id:330,level:53},{id:373,level:55}] },
+    { name: 'Champion Wallace', cap: 58, isE4: true, team: [{id:321,level:57},{id:73,level:55},{id:272,level:56},{id:340,level:56},{id:130,level:56},{id:350,level:58}] },
+  ]},
+  'feuerrot-blattgruen': { label: 'Feuerrot / Blattgrün', labelEn: 'FireRed / LeafGreen', entries: [
+    { name: 'Rocko', type: 'rock', cap: 14, team: [{id:74,level:12},{id:95,level:14}] },
+    { name: 'Misty', type: 'water', cap: 21, team: [{id:120,level:18},{id:121,level:21}] },
+    { name: 'Surge', type: 'electric', cap: 24, team: [{id:100,level:21},{id:25,level:18},{id:26,level:24}] },
+    { name: 'Erika', type: 'grass', cap: 29, team: [{id:114,level:24},{id:44,level:29},{id:71,level:29}] },
+    { name: 'Koga', type: 'poison', cap: 43, team: [{id:109,level:37},{id:89,level:39},{id:109,level:37},{id:110,level:43}] },
+    { name: 'Sabrina', type: 'psychic', cap: 43, team: [{id:122,level:38},{id:124,level:38},{id:65,level:43}] },
+    { name: 'Pyro', type: 'fire', cap: 47, team: [{id:77,level:40},{id:58,level:42},{id:78,level:42},{id:59,level:47}] },
+    { name: 'Giovanni', type: 'ground', cap: 50, team: [{id:51,level:50},{id:31,level:45},{id:53,level:40},{id:34,level:45},{id:112,level:50}] },
+    { name: 'Lorelei', cap: 54, isE4: true, team: [{id:87,level:54},{id:91,level:51},{id:80,level:52},{id:124,level:54},{id:131,level:54}] },
+    { name: 'Bruno', cap: 56, isE4: true, team: [{id:95,level:53},{id:107,level:55},{id:106,level:55},{id:95,level:54},{id:68,level:56}] },
+    { name: 'Agathe', cap: 58, isE4: true, team: [{id:94,level:54},{id:93,level:53},{id:94,level:56},{id:24,level:58},{id:94,level:58}] },
+    { name: 'Siegfried', cap: 60, isE4: true, team: [{id:117,level:56},{id:130,level:58},{id:142,level:60},{id:149,level:60},{id:149,level:60}] },
+    { name: 'Champion Blau', cap: 63, isE4: true, variant: true, team: [{id:18,level:59},{id:65,level:57},{id:112,level:59},{id:103,level:59},{id:130,level:61},{id:6,level:63}] },
+  ]},
+  'diamant-perl': { label: 'Diamant / Perl', labelEn: 'Diamond / Pearl', entries: [
+    { name: 'Roark', type: 'rock', cap: 14, team: [{id:74,level:12},{id:95,level:12},{id:408,level:14}] },
+    { name: 'Gardenia', type: 'grass', cap: 22, team: [{id:420,level:19},{id:387,level:19},{id:407,level:22}] },
+    { name: 'Maylene', type: 'fighting', cap: 30, team: [{id:307,level:28},{id:67,level:27},{id:448,level:30}] },
+    { name: 'Crasher Wake', type: 'water', cap: 30, team: [{id:130,level:27},{id:195,level:27},{id:419,level:30}] },
+    { name: 'Fantina', type: 'ghost', cap: 36, team: [{id:426,level:32},{id:94,level:34},{id:429,level:36}] },
+    { name: 'Byron', type: 'steel', cap: 39, team: [{id:436,level:36},{id:208,level:36},{id:411,level:39}] },
+    { name: 'Candice', type: 'ice', cap: 42, team: [{id:459,level:38},{id:215,level:38},{id:308,level:40},{id:460,level:42}] },
+    { name: 'Volkner', type: 'electric', cap: 49, team: [{id:26,level:46},{id:424,level:47},{id:224,level:47},{id:405,level:49}] },
+    { name: 'Aaron', cap: 57, isE4: true, team: [{id:269,level:53},{id:267,level:53},{id:416,level:54},{id:214,level:54},{id:452,level:57}] },
+    { name: 'Bertha', cap: 59, isE4: true, team: [{id:195,level:55},{id:185,level:56},{id:76,level:56},{id:340,level:55},{id:450,level:59}] },
+    { name: 'Flint', cap: 61, isE4: true, team: [{id:78,level:58},{id:208,level:57},{id:426,level:58},{id:428,level:57},{id:392,level:61}] },
+    { name: 'Lucian', cap: 63, isE4: true, team: [{id:122,level:59},{id:203,level:59},{id:308,level:60},{id:65,level:60},{id:437,level:63}] },
+    { name: 'Champion Cynthia', cap: 66, isE4: true, team: [{id:442,level:61},{id:407,level:60},{id:423,level:60},{id:448,level:63},{id:350,level:63},{id:445,level:66}] },
+  ]},
+  'platin': { label: 'Platin', labelEn: 'Platinum', entries: [
+    { name: 'Roark', type: 'rock', cap: 14, team: [{id:74,level:12},{id:95,level:12},{id:408,level:14}] },
+    { name: 'Gardenia', type: 'grass', cap: 22, team: [{id:387,level:20},{id:420,level:19},{id:407,level:22}] },
+    { name: 'Fantina', type: 'ghost', cap: 26, team: [{id:200,level:24},{id:93,level:24},{id:429,level:26}] },
+    { name: 'Maylene', type: 'fighting', cap: 32, team: [{id:307,level:30},{id:67,level:30},{id:448,level:32}] },
+    { name: 'Crasher Wake', type: 'water', cap: 37, team: [{id:130,level:33},{id:195,level:34},{id:419,level:37}] },
+    { name: 'Byron', type: 'steel', cap: 41, team: [{id:82,level:37},{id:436,level:38},{id:208,level:39},{id:411,level:41}] },
+    { name: 'Candice', type: 'ice', cap: 44, team: [{id:215,level:40},{id:459,level:40},{id:308,level:40},{id:460,level:44}] },
+    { name: 'Volkner', type: 'electric', cap: 50, team: [{id:135,level:46},{id:26,level:46},{id:405,level:48},{id:466,level:50}] },
+    { name: 'Aaron', cap: 53, isE4: true, team: [{id:469,level:49},{id:416,level:50},{id:214,level:50},{id:212,level:51},{id:452,level:53}] },
+    { name: 'Bertha', cap: 55, isE4: true, team: [{id:340,level:52},{id:185,level:53},{id:76,level:54},{id:472,level:55},{id:450,level:55}] },
+    { name: 'Flint', cap: 57, isE4: true, team: [{id:229,level:54},{id:78,level:53},{id:136,level:55},{id:392,level:57},{id:467,level:57}] },
+    { name: 'Lucian', cap: 59, isE4: true, team: [{id:122,level:56},{id:475,level:56},{id:196,level:56},{id:437,level:59},{id:65,level:59}] },
+    { name: 'Champion Cynthia', cap: 62, isE4: true, team: [{id:442,level:58},{id:407,level:58},{id:423,level:60},{id:448,level:60},{id:350,level:58},{id:445,level:62}] },
+  ]},
+  'heartgold-soulsilver': { label: 'HeartGold / SoulSilver', labelEn: 'HeartGold / SoulSilver', entries: [
+    { name: 'Falkner', type: 'flying', cap: 13, team: [{id:16,level:7},{id:17,level:13}] },
+    { name: 'Ahornia', type: 'bug', cap: 17, team: [{id:14,level:15},{id:11,level:15},{id:123,level:17}] },
+    { name: 'Whitney', type: 'normal', cap: 19, team: [{id:35,level:17},{id:241,level:19}] },
+    { name: 'Morty', type: 'ghost', cap: 25, team: [{id:92,level:21},{id:93,level:23},{id:93,level:23},{id:94,level:25}] },
+    { name: 'Chuck', type: 'fighting', cap: 31, team: [{id:57,level:29},{id:62,level:31}] },
+    { name: 'Jasmine', type: 'steel', cap: 35, team: [{id:81,level:30},{id:81,level:30},{id:208,level:35}] },
+    { name: 'Pryce', type: 'ice', cap: 34, team: [{id:86,level:30},{id:87,level:32},{id:221,level:34}] },
+    { name: 'Clair', type: 'dragon', cap: 41, team: [{id:130,level:38},{id:148,level:38},{id:148,level:38},{id:230,level:41}] },
+    { name: 'Will', cap: 42, isE4: true, team: [{id:124,level:41},{id:178,level:41},{id:103,level:41},{id:80,level:41},{id:178,level:42}] },
+    { name: 'Koga', cap: 44, isE4: true, team: [{id:168,level:40},{id:49,level:41},{id:205,level:43},{id:89,level:42},{id:169,level:44}] },
+    { name: 'Bruno', cap: 46, isE4: true, team: [{id:237,level:42},{id:106,level:42},{id:107,level:42},{id:95,level:43},{id:68,level:46}] },
+    { name: 'Karen', cap: 47, isE4: true, team: [{id:197,level:42},{id:45,level:42},{id:198,level:44},{id:94,level:45},{id:229,level:47}] },
+    { name: 'Champion Siegfried', cap: 50, isE4: true, team: [{id:130,level:44},{id:149,level:47},{id:149,level:47},{id:6,level:46},{id:142,level:46},{id:149,level:50}] },
+    { name: 'Kanto (Post-Game)', isDivider: true, resetCount: true },
+    { name: 'Rocko', type: 'rock', cap: 54, team: [{id:74,level:51},{id:75,level:51},{id:95,level:51},{id:139,level:52},{id:111,level:52},{id:141,level:54}] },
+    { name: 'Misty', type: 'water', cap: 54, team: [{id:55,level:49},{id:195,level:49},{id:131,level:52},{id:121,level:54}] },
+    { name: 'Surge', type: 'electric', cap: 53, team: [{id:101,level:50},{id:101,level:50},{id:26,level:51},{id:82,level:53},{id:101,level:51}] },
+    { name: 'Erika', type: 'grass', cap: 56, team: [{id:114,level:52},{id:189,level:52},{id:71,level:54},{id:182,level:56}] },
+    { name: 'Janine', type: 'poison', cap: 50, team: [{id:169,level:47},{id:110,level:47},{id:168,level:47},{id:169,level:50},{id:49,level:50}] },
+    { name: 'Sabrina', type: 'psychic', cap: 55, team: [{id:196,level:53},{id:122,level:55},{id:65,level:55},{id:124,level:53}] },
+    { name: 'Pyro', type: 'fire', cap: 59, team: [{id:58,level:54},{id:78,level:54},{id:219,level:58},{id:467,level:59}] },
+    { name: 'Blau', cap: 58, isE4: true, team: [{id:18,level:56},{id:130,level:58},{id:112,level:56},{id:59,level:58},{id:65,level:54},{id:103,level:58}] },
+    { name: 'Red', cap: 88, isE4: true, team: [{id:25,level:88},{id:196,level:73},{id:143,level:75},{id:3,level:77},{id:6,level:77},{id:9,level:77}] },
+  ]},
+  'schwarz-weiss': { label: 'Schwarz / Weiß', labelEn: 'Black / White', entries: [
+    { name: 'Cilan / Chili / Cress', type: 'div.', cap: 14, variant: true, team: [{id:506,level:12},{id:511,level:14}] },
+    { name: 'Lenora', type: 'normal', cap: 20, team: [{id:507,level:18},{id:505,level:20}] },
+    { name: 'Burgh', type: 'bug', cap: 23, team: [{id:544,level:21},{id:557,level:21},{id:541,level:23}] },
+    { name: 'Elesa', type: 'electric', cap: 27, team: [{id:587,level:25},{id:587,level:25},{id:523,level:27}] },
+    { name: 'Clay', type: 'ground', cap: 31, team: [{id:552,level:29},{id:536,level:29},{id:530,level:31}] },
+    { name: 'Skyla', type: 'flying', cap: 35, team: [{id:527,level:33},{id:521,level:33},{id:581,level:35}] },
+    { name: 'Brycen', type: 'ice', cap: 39, team: [{id:584,level:37},{id:615,level:37},{id:614,level:39}] },
+    { name: 'Drayden / Iris', type: 'dragon', cap: 43, variant: true, team: [{id:611,level:41},{id:611,level:41},{id:612,level:43}] },
+    { name: 'Shauntal', cap: 50, isE4: true, team: [{id:563,level:48},{id:593,level:48},{id:623,level:50},{id:609,level:50}] },
+    { name: 'Grimsley', cap: 50, isE4: true, team: [{id:560,level:48},{id:510,level:48},{id:625,level:50},{id:553,level:50}] },
+    { name: 'Caitlin', cap: 50, isE4: true, team: [{id:518,level:48},{id:561,level:48},{id:579,level:50},{id:576,level:50}] },
+    { name: 'Marshal', cap: 50, isE4: true, team: [{id:538,level:48},{id:539,level:48},{id:620,level:50},{id:534,level:50}] },
+    { name: 'N', cap: 52, isE4: true, variant: true, team: [{id:644,level:52},{id:565,level:50},{id:567,level:50},{id:584,level:50},{id:571,level:50},{id:601,level:50}] },
+    { name: 'Ghetsis', cap: 54, isE4: true, team: [{id:563,level:52},{id:626,level:52},{id:537,level:52},{id:625,level:52},{id:604,level:52},{id:635,level:54}] },
+    { name: 'Post-Game', isDivider: true },
+    { name: 'Champion Alder', cap: 77, isE4: true, team: [{id:617,level:75},{id:626,level:75},{id:589,level:75},{id:537,level:75},{id:621,level:77},{id:637,level:77}] },
+  ]},
+  'schwarz2-weiss2': { label: 'Schwarz 2 / Weiß 2', labelEn: 'Black 2 / White 2', entries: [
+    { name: 'Cheren', type: 'normal', cap: 13, team: [{id:504,level:11},{id:506,level:13}] },
+    { name: 'Roxie', type: 'poison', cap: 18, team: [{id:109,level:16},{id:544,level:18}] },
+    { name: 'Burgh', type: 'bug', cap: 24, team: [{id:557,level:20},{id:540,level:22},{id:541,level:24}] },
+    { name: 'Elesa', type: 'electric', cap: 30, team: [{id:587,level:28},{id:587,level:28},{id:180,level:30}] },
+    { name: 'Clay', type: 'ground', cap: 33, team: [{id:552,level:31},{id:536,level:31},{id:530,level:33}] },
+    { name: 'Skyla', type: 'flying', cap: 39, team: [{id:527,level:37},{id:521,level:37},{id:581,level:39}] },
+    { name: 'Drayden', type: 'dragon', cap: 48, team: [{id:621,level:46},{id:330,level:46},{id:612,level:48}] },
+    { name: 'Marlon', type: 'water', cap: 51, team: [{id:565,level:49},{id:321,level:49},{id:593,level:51}] },
+    { name: 'Shauntal', cap: 56, isE4: true, team: [{id:563,level:52},{id:426,level:54},{id:609,level:54},{id:623,level:56}] },
+    { name: 'Grimsley', cap: 56, isE4: true, team: [{id:510,level:52},{id:560,level:52},{id:553,level:56},{id:625,level:56}] },
+    { name: 'Caitlin', cap: 56, isE4: true, team: [{id:518,level:52},{id:561,level:54},{id:579,level:54},{id:576,level:56}] },
+    { name: 'Marshal', cap: 56, isE4: true, team: [{id:538,level:52},{id:539,level:52},{id:620,level:56},{id:534,level:56}] },
+    { name: 'Champion Iris', cap: 59, isE4: true, team: [{id:635,level:57},{id:452,level:55},{id:306,level:57},{id:131,level:55},{id:567,level:57},{id:612,level:59}] },
+  ]},
+  'x-y': { label: 'X / Y', labelEn: 'X / Y', entries: [
+    { name: 'Viola', type: 'bug', cap: 12, team: [{id:283,level:10},{id:666,level:12}] },
+    { name: 'Grant', type: 'rock', cap: 25, team: [{id:698,level:25},{id:696,level:25}] },
+    { name: 'Korrina', type: 'fighting', cap: 32, team: [{id:619,level:29},{id:67,level:28},{id:701,level:32}] },
+    { name: 'Ramos', type: 'grass', cap: 34, team: [{id:189,level:30},{id:70,level:31},{id:673,level:34}] },
+    { name: 'Clemont', type: 'electric', cap: 37, team: [{id:587,level:35},{id:82,level:35},{id:695,level:37}] },
+    { name: 'Valerie', type: 'fairy', cap: 42, team: [{id:303,level:38},{id:122,level:39},{id:700,level:42}] },
+    { name: 'Olympia', type: 'psychic', cap: 48, team: [{id:561,level:44},{id:199,level:45},{id:678,level:48}] },
+    { name: 'Wulfric', type: 'ice', cap: 59, team: [{id:460,level:56},{id:615,level:55},{id:713,level:59}] },
+    { name: 'Malva', cap: 65, isE4: true, team: [{id:668,level:63},{id:324,level:63},{id:609,level:63},{id:663,level:65}] },
+    { name: 'Siebold', cap: 65, isE4: true, team: [{id:693,level:63},{id:130,level:63},{id:689,level:63},{id:121,level:65}] },
+    { name: 'Wikstrom', cap: 65, isE4: true, team: [{id:707,level:63},{id:476,level:63},{id:212,level:63},{id:681,level:65}] },
+    { name: 'Drasna', cap: 65, isE4: true, team: [{id:691,level:63},{id:621,level:63},{id:334,level:63},{id:715,level:65}] },
+    { name: 'Champion Diantha', cap: 68, isE4: true, team: [{id:701,level:64},{id:697,level:65},{id:699,level:65},{id:711,level:65},{id:706,level:66},{id:282,level:68}] },
+  ]},
+  'omega-rubin-alpha-saphir': { label: 'Omega Rubin / Alpha Saphir', labelEn: 'Omega Ruby / Alpha Sapphire', entries: [
+    { name: 'Roxanne', type: 'rock', cap: 14, team: [{id:74,level:12},{id:299,level:14}] },
+    { name: 'Brawly', type: 'fighting', cap: 16, team: [{id:307,level:14},{id:296,level:16}] },
+    { name: 'Wattson', type: 'electric', cap: 21, team: [{id:100,level:19},{id:82,level:19},{id:310,level:21}] },
+    { name: 'Flannery', type: 'fire', cap: 28, team: [{id:322,level:24},{id:218,level:26},{id:324,level:28}] },
+    { name: 'Norman', type: 'normal', cap: 30, team: [{id:327,level:27},{id:288,level:27},{id:264,level:29},{id:289,level:30}] },
+    { name: 'Winona', type: 'flying', cap: 35, team: [{id:333,level:33},{id:227,level:33},{id:279,level:34},{id:357,level:34},{id:334,level:35}] },
+    { name: 'Tate & Liza', type: 'psychic', cap: 45, team: [{id:337,level:45},{id:338,level:45}] },
+    { name: 'Wallace', type: 'water', cap: 46, team: [{id:370,level:44},{id:364,level:44},{id:119,level:44},{id:340,level:44},{id:350,level:46}] },
+    { name: 'Sidney', cap: 52, isE4: true, team: [{id:262,level:49},{id:275,level:50},{id:332,level:50},{id:319,level:52},{id:359,level:52}] },
+    { name: 'Phoebe', cap: 53, isE4: true, team: [{id:356,level:51},{id:354,level:51},{id:302,level:53},{id:354,level:51},{id:477,level:53}] },
+    { name: 'Glacia', cap: 54, isE4: true, team: [{id:364,level:52},{id:364,level:52},{id:362,level:52},{id:365,level:54},{id:478,level:54}] },
+    { name: 'Drake', cap: 55, isE4: true, team: [{id:330,level:53},{id:334,level:54},{id:330,level:53},{id:230,level:54},{id:373,level:55}] },
+    { name: 'Champion Steven', cap: 59, isE4: true, team: [{id:227,level:57},{id:344,level:57},{id:306,level:58},{id:346,level:57},{id:348,level:57},{id:376,level:59}] },
+  ]},
+  'sonne-mond': { label: 'Sonne / Mond', labelEn: 'Sun / Moon', entries: [
+    { name: 'Ilima (Prüfung)', type: 'normal', cap: 12, team: [{id:735,level:11},{id:735,level:12}] },
+    { name: 'Kahuna Hala', type: 'fighting', cap: 15, team: [{id:56,level:13},{id:739,level:14},{id:297,level:15}] },
+    { name: 'Lana (Prüfung)', type: 'water', cap: 20, team: [{id:746,level:20}] },
+    { name: 'Kiawe (Prüfung)', type: 'fire', cap: 22, team: [{id:105,level:22}] },
+    { name: 'Mallow (Prüfung)', type: 'grass', cap: 24, team: [{id:754,level:24}] },
+    { name: 'Kahuna Olivia', type: 'rock', cap: 27, team: [{id:299,level:26},{id:525,level:26},{id:745,level:27}] },
+    { name: 'Sophocles (Prüfung)', type: 'electric', cap: 29, team: [{id:738,level:29}] },
+    { name: 'Acerola (Prüfung)', type: 'ghost', cap: 33, team: [{id:778,level:33}] },
+    { name: 'Kahuna Nanu', type: 'dark', cap: 39, team: [{id:302,level:36},{id:552,level:37},{id:53,level:39}] },
+    { name: 'Kahuna Hapu', type: 'ground', cap: 48, team: [{id:51,level:44},{id:423,level:45},{id:330,level:46},{id:750,level:48}] },
+    { name: 'E4 Hala', cap: 55, isE4: true, team: [{id:297,level:51},{id:740,level:52},{id:760,level:54},{id:62,level:53},{id:57,level:53}] },
+    { name: 'E4 Olivia', cap: 55, isE4: true, team: [{id:348,level:52},{id:346,level:52},{id:141,level:54},{id:476,level:53},{id:745,level:55}] },
+    { name: 'E4 Kahili', cap: 55, isE4: true, team: [{id:169,level:53},{id:741,level:53},{id:227,level:54},{id:630,level:54},{id:733,level:55}] },
+    { name: 'E4 Acerola', cap: 55, isE4: true, team: [{id:302,level:54},{id:781,level:53},{id:770,level:53},{id:426,level:53},{id:778,level:55}] },
+    { name: 'Champion Kukui', cap: 58, isE4: true, team: [{id:745,level:55},{id:628,level:57},{id:462,level:57},{id:38,level:58},{id:143,level:58},{id:727,level:58}] },
+  ]},
+  'ultrasonne-ultramond': { label: 'Ultrasonne / Ultramond', labelEn: 'Ultra Sun / Ultra Moon', entries: [
+    { name: 'Ilima (Prüfung)', type: 'normal', cap: 12, team: [{id:735,level:11},{id:735,level:12}] },
+    { name: 'Kahuna Hala', type: 'fighting', cap: 16, team: [{id:56,level:13},{id:739,level:14},{id:297,level:16}] },
+    { name: 'Lana (Prüfung)', type: 'water', cap: 20, team: [{id:746,level:20}] },
+    { name: 'Kiawe (Prüfung)', type: 'fire', cap: 22, team: [{id:105,level:22}] },
+    { name: 'Mallow (Prüfung)', type: 'grass', cap: 24, team: [{id:754,level:24}] },
+    { name: 'Kahuna Olivia', type: 'rock', cap: 28, team: [{id:299,level:26},{id:525,level:26},{id:745,level:28}] },
+    { name: 'Sophocles (Prüfung)', type: 'electric', cap: 29, team: [{id:738,level:29}] },
+    { name: 'Acerola (Prüfung)', type: 'ghost', cap: 33, team: [{id:778,level:33}] },
+    { name: 'Kahuna Nanu', type: 'dark', cap: 44, team: [{id:302,level:41},{id:552,level:43},{id:53,level:44}] },
+    { name: 'Mina (Prüfung)', type: 'fairy', cap: 50, team: [{id:210,level:49},{id:40,level:49},{id:756,level:49},{id:468,level:49},{id:743,level:50}] },
+    { name: 'Kahuna Hapu', type: 'ground', cap: 54, team: [{id:51,level:50},{id:423,level:51},{id:330,level:52},{id:750,level:54}] },
+    { name: 'E4 Molayne', cap: 57, isE4: true, team: [{id:375,level:54},{id:82,level:54},{id:227,level:55},{id:625,level:56},{id:376,level:57}] },
+    { name: 'E4 Olivia', cap: 57, isE4: true, team: [{id:348,level:54},{id:346,level:54},{id:141,level:55},{id:476,level:56},{id:745,level:57}] },
+    { name: 'E4 Kahili', cap: 57, isE4: true, team: [{id:169,level:55},{id:741,level:55},{id:227,level:56},{id:733,level:57},{id:630,level:57}] },
+    { name: 'E4 Acerola', cap: 57, isE4: true, team: [{id:302,level:54},{id:781,level:54},{id:770,level:55},{id:426,level:55},{id:778,level:57}] },
+    { name: 'Champion Kukui', cap: 60, isE4: true, team: [{id:745,level:58},{id:628,level:59},{id:462,level:59},{id:38,level:60},{id:143,level:60},{id:727,level:60}] },
+  ]},
+  'schwert-schild': { label: 'Schwert / Schild', labelEn: 'Sword / Shield', entries: [
+    { name: 'Milo', type: 'grass', cap: 20, team: [{id:829,level:18},{id:830,level:20}] },
+    { name: 'Nessa', type: 'water', cap: 24, team: [{id:118,level:22},{id:846,level:23},{id:834,level:24}] },
+    { name: 'Kabu', type: 'fire', cap: 27, team: [{id:38,level:25},{id:59,level:25},{id:851,level:27}] },
+    { name: 'Bea / Allister', type: 'fighting/ghost', cap: 36, variant: true, team: [{id:237,level:34},{id:675,level:34},{id:865,level:36},{id:68,level:36}] },
+    { name: 'Opal', type: 'fairy', cap: 38, team: [{id:110,level:36},{id:468,level:37},{id:303,level:36},{id:869,level:38}] },
+    { name: 'Gordie / Melony', type: 'rock/ice', cap: 42, variant: true, team: [{id:689,level:40},{id:213,level:40},{id:874,level:42}] },
+    { name: 'Piers', type: 'dark', cap: 46, team: [{id:560,level:44},{id:687,level:44},{id:435,level:45},{id:862,level:46}] },
+    { name: 'Raihan', type: 'dragon', cap: 48, team: [{id:330,level:46},{id:526,level:46},{id:844,level:47},{id:884,level:48}] },
+    { name: 'Champion Leon', cap: 65, isE4: true, variant: true, team: [{id:681,level:62},{id:612,level:63},{id:866,level:64},{id:887,level:64},{id:537,level:64},{id:6,level:65}] },
+  ]},
+  'strahl-diamant-leucht-perl': { label: 'Str. Diamant / Leuch. Perl', labelEn: 'BD / SP', entries: [
+    { name: 'Roark', type: 'rock', cap: 14, team: [{id:74,level:12},{id:95,level:12},{id:408,level:14}] },
+    { name: 'Gardenia', type: 'grass', cap: 22, team: [{id:420,level:19},{id:387,level:19},{id:407,level:22}] },
+    { name: 'Maylene', type: 'fighting', cap: 30, team: [{id:307,level:28},{id:67,level:27},{id:448,level:30}] },
+    { name: 'Crasher Wake', type: 'water', cap: 30, team: [{id:130,level:27},{id:195,level:27},{id:419,level:30}] },
+    { name: 'Fantina', type: 'ghost', cap: 36, team: [{id:426,level:32},{id:94,level:34},{id:429,level:36}] },
+    { name: 'Byron', type: 'steel', cap: 39, team: [{id:436,level:36},{id:208,level:36},{id:411,level:39}] },
+    { name: 'Candice', type: 'ice', cap: 42, team: [{id:459,level:38},{id:215,level:38},{id:308,level:40},{id:460,level:42}] },
+    { name: 'Volkner', type: 'electric', cap: 49, team: [{id:26,level:46},{id:424,level:47},{id:224,level:47},{id:405,level:49}] },
+    { name: 'Aaron', cap: 57, isE4: true, team: [{id:269,level:53},{id:267,level:53},{id:416,level:54},{id:214,level:54},{id:452,level:57}] },
+    { name: 'Bertha', cap: 59, isE4: true, team: [{id:195,level:55},{id:185,level:56},{id:76,level:56},{id:340,level:55},{id:450,level:59}] },
+    { name: 'Flint', cap: 61, isE4: true, team: [{id:78,level:58},{id:208,level:57},{id:426,level:58},{id:428,level:57},{id:392,level:61}] },
+    { name: 'Lucian', cap: 63, isE4: true, team: [{id:122,level:59},{id:203,level:59},{id:308,level:60},{id:65,level:60},{id:437,level:63}] },
+    { name: 'Champion Cynthia', cap: 66, isE4: true, team: [{id:442,level:61},{id:407,level:60},{id:423,level:60},{id:448,level:63},{id:350,level:63},{id:445,level:66}] },
+  ]},
+  'karmesin-purpur': { label: 'Karmesin / Purpur', labelEn: 'Scarlet / Violet', entries: [
+    { name: 'Katy', type: 'bug', cap: 15, team: [{id:917,level:14},{id:919,level:14},{id:214,level:15}] },
+    { name: 'Brassius', type: 'grass', cap: 17, team: [{id:928,level:16},{id:548,level:16},{id:185,level:17}] },
+    { name: 'Iono', type: 'electric', cap: 24, team: [{id:940,level:23},{id:939,level:23},{id:404,level:23},{id:429,level:24}] },
+    { name: 'Kofu', type: 'water', cap: 30, team: [{id:976,level:27},{id:961,level:28},{id:740,level:30}] },
+    { name: 'Larry', type: 'normal', cap: 36, team: [{id:775,level:35},{id:982,level:35},{id:398,level:36}] },
+    { name: 'Ryme', type: 'ghost', cap: 42, team: [{id:971,level:41},{id:972,level:41},{id:778,level:41},{id:94,level:42}] },
+    { name: 'Tulip', type: 'psychic', cap: 45, team: [{id:956,level:44},{id:981,level:44},{id:282,level:44},{id:671,level:45}] },
+    { name: 'Grusha', type: 'ice', cap: 48, team: [{id:873,level:47},{id:614,level:47},{id:975,level:47},{id:334,level:48}] },
+    { name: 'Rika', cap: 58, isE4: true, team: [{id:340,level:57},{id:323,level:57},{id:232,level:57},{id:51,level:57},{id:980,level:58}] },
+    { name: 'Poppy', cap: 59, isE4: true, team: [{id:879,level:58},{id:462,level:58},{id:437,level:58},{id:823,level:58},{id:959,level:59}] },
+    { name: 'Larry', cap: 60, isE4: true, team: [{id:357,level:59},{id:398,level:59},{id:334,level:59},{id:973,level:60},{id:741,level:60}] },
+    { name: 'Hassel', cap: 61, isE4: true, team: [{id:715,level:59},{id:612,level:60},{id:691,level:60},{id:841,level:60},{id:998,level:61}] },
+    { name: 'Champion Geeta', cap: 62, isE4: true, team: [{id:956,level:61},{id:673,level:61},{id:976,level:61},{id:713,level:61},{id:983,level:61},{id:970,level:62}] },
+  ]},
+};
+
+function buildGameSelect() {
+  const sel = document.getElementById('lcp-game-select');
+  if (!sel) return;
+  const cur = sel.value || Object.keys(LEVEL_CAPS)[0];
+  sel.innerHTML = '';
+  Object.entries(LEVEL_CAPS).forEach(([key, game]) => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = window.LANG === 'en' ? (game.labelEn || game.label) : game.label;
+    sel.appendChild(opt);
+  });
+  sel.value = LEVEL_CAPS[cur] ? cur : Object.keys(LEVEL_CAPS)[0];
+}
+
+function renderLevelCaps(gameKey) {
+  const game = LEVEL_CAPS[gameKey];
+  const list = document.getElementById('lcp-list');
+  if (!game) { list.innerHTML = ''; return; }
+  list.innerHTML = '';
+  let gymCount = 0, e4Seen = false;
+  let openRow = null, openPanel = null;
+
+  for (const e of game.entries) {
+    if (e.isDivider) {
+      const d = document.createElement('div');
+      d.className = 'lcp-entry lcp-divider';
+      d.textContent = e.name;
+      list.appendChild(d);
+      if (e.resetCount) { gymCount = 0; e4Seen = false; }
+      continue;
+    }
+    if (e.isE4 && !e4Seen) {
+      const d = document.createElement('div');
+      d.className = 'lcp-entry lcp-divider';
+      d.textContent = window.t('e4-divider');
+      list.appendChild(d);
+      e4Seen = true;
+    }
+    const numStr = e.isE4 ? '★' : ++gymCount;
+    const row = document.createElement('div');
+    row.className = 'lcp-entry' + (e.isE4 ? ' lcp-e4' : '') + (e.team?.length ? ' lcp-has-team' : '');
+    const typeDisplay = e.type ? e.type.split('/').map(t => window.typeLabel(t.trim()) || t.trim()).join('/') : '';
+    const variantNote = e.variant ? window.t('variant-note') : '';
+    row.innerHTML = `<span class="lcp-num">${numStr}</span><span class="lcp-name">${e.name}</span>${typeDisplay ? `<span class="lcp-type">${typeDisplay}</span>` : ''}${variantNote ? `<span class="lcp-variant" title="${variantNote}">${window.t('variant-badge')}</span>` : ''}${e.cap != null ? `<span class="lcp-cap">Lv.${e.cap}</span>` : ''}`;
+    if (variantNote) row.title = variantNote;
+
+    if (e.team?.length) {
+      const panel = document.createElement('div');
+      panel.className = 'lcp-team-panel';
+      panel.innerHTML = (variantNote ? `<div class="lcp-team-note">${variantNote}</div>` : '') + e.team.map(m =>
+        `<div class="lcp-team-mon"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${m.id}.png" loading="lazy" alt=""><span>Lv.${m.level}</span></div>`
+      ).join('');
+
+      row.addEventListener('click', () => {
+        if (openPanel) { openPanel.remove(); openRow.classList.remove('lcp-team-open'); }
+        if (openRow === row) { openRow = null; openPanel = null; return; }
+        row.classList.add('lcp-team-open');
+        row.after(panel);
+        openRow = row; openPanel = panel;
+      });
+    }
+    list.appendChild(row);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('lcp-game-select');
+  buildGameSelect();
+  sel.addEventListener('change', e => renderLevelCaps(e.target.value));
+  renderLevelCaps(sel.value);
+
+  document.getElementById('lcp-toggle').addEventListener('click', () => {
+    const panel = document.getElementById('level-cap-panel');
+    const collapsed = panel.classList.toggle('lcp-collapsed');
+    document.getElementById('lcp-toggle-icon').textContent = collapsed ? '▶' : '▼';
+    document.getElementById('lcp-toggle').title = collapsed ? 'Ausklappen' : 'Einklappen';
+  });
+});
+</script>
+</body>
+</html>

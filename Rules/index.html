@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- PWA: Homescreen-App + Offline -->
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0d0f2b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PokéHub">
+  <link rel="apple-touch-icon" href="../icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1320x2868.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1260x2736.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1206x2622.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1290x2796.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1179x2556.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1284x2778.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1170x2532.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1125x2436.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1242x2688.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-828x1792.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-750x1334.png">
+  <script src="../pwa.js"></script>
+  <title>Nuzlocke Regelwerk</title>
+  <link rel="stylesheet" href="../Pokelocke/base.css">
+  <style>
+    :root {
+      --color-bg: #0d0f2b;
+      --color-surface: #191b3a;
+      --color-text: #e0e8f9;
+      --color-accent: #ffda08;
+      --color-accent-strong: #57d2ff;
+      --color-muted: #b1b3cc;
+      --color-border: #303258;
+      --font-main: 'Segoe UI', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      font-family: var(--font-main);
+      background: #0d0f2b;
+      color: var(--color-text);
+      min-height: 100%;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 28px 16px 48px;
+      font-family: var(--font-main);
+    }
+
+    #app {
+      width: min(98vw, 1340px);
+      margin: 0 auto;
+      padding: 24px;
+      background: rgba(25, 27, 58, 0.96);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── LANG BUTTON ── */
+    .lang-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background: rgba(25, 27, 58, 0.92);
+      color: var(--color-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: var(--font-main);
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.2s, color 0.2s;
+      z-index: 100;
+    }
+    .lang-btn:hover {
+      border-color: rgba(255, 218, 8, 0.4);
+      color: var(--color-accent);
+    }
+
+    /* ── HEADER ── */
+    .page-title { padding: 24px 0 20px; }
+    .page-title h1 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #fff;
+    }
+    .page-title h1 span {
+      background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .page-title p {
+      font-size: 0.85rem;
+      color: var(--color-muted);
+      margin-top: 3px;
+    }
+
+    /* ── LAYOUT ── */
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .top-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 620px) {
+      .top-row { grid-template-columns: 1fr; }
+    }
+
+    /* ── SECTIONS ── */
+    .rule-section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .section-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .section-title { font-size: 0.95rem; font-weight: 700; color: #fff; flex: 1; }
+    .section-badge {
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.67rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .badge-core    { background: rgba(255,218,8,0.12);  color: var(--color-accent);        border: 1px solid rgba(255,218,8,0.3); }
+    .badge-clause  { background: rgba(87,210,255,0.10); color: var(--color-accent-strong); border: 1px solid rgba(87,210,255,0.25); }
+    .badge-variant { background: rgba(112,56,248,0.12); color: #b48fff;                    border: 1px solid rgba(112,56,248,0.3); }
+    .badge-custom  { background: rgba(72,200,100,0.10); color: #4ec864;                    border: 1px solid rgba(72,200,100,0.25); }
+
+    /* ── RULES LIST ── */
+    .rules-list { padding: 2px 0; }
+
+    .rule-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .rule-item:last-child { border-bottom: none; }
+    .rule-item:hover { background: rgba(255,255,255,0.03); }
+
+    .rule-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .num-core   { background: rgba(255,218,8,0.12);  color: var(--color-accent); }
+    .num-clause { background: rgba(87,210,255,0.10); color: var(--color-accent-strong); }
+
+    .rule-body { flex: 1; min-width: 0; }
+    .rule-name { font-size: 0.86rem; font-weight: 700; color: var(--color-text); margin-bottom: 2px; }
+    .rule-desc { font-size: 0.79rem; color: var(--color-muted); line-height: 1.5; }
+
+    /* ── VARIANT GRID ── */
+    .variant-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+    @media (max-width: 620px) {
+      .variant-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .variant-card {
+      padding: 14px 18px;
+      border-right: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .variant-card:nth-child(3n) { border-right: none; }
+    .variant-card:nth-last-child(-n+3) { border-bottom: none; }
+    .variant-card:hover { background: rgba(255,255,255,0.02); }
+
+    .variant-name {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .variant-tag {
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(112,56,248,0.15);
+      color: #b48fff;
+      border: 1px solid rgba(112,56,248,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .variant-desc { font-size: 0.77rem; color: var(--color-muted); line-height: 1.45; margin-bottom: 7px; }
+    .variant-rules { display: flex; flex-direction: column; gap: 3px; }
+    .variant-rule-line {
+      font-size: 0.73rem;
+      color: var(--color-muted);
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+    .variant-rule-line::before { content: '—'; color: var(--color-border); flex-shrink: 0; }
+
+    /* ── CUSTOM RULES ── */
+    .custom-add {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      gap: 10px;
+    }
+    .custom-input {
+      flex: 1;
+      padding: 7px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--color-border);
+      border-radius: 9px;
+      color: var(--color-text);
+      font-size: 0.84rem;
+      font-family: var(--font-main);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .custom-input:focus {
+      border-color: rgba(72,200,100,0.5);
+      box-shadow: 0 0 0 3px rgba(72,200,100,0.1);
+    }
+    .custom-input::placeholder { color: var(--color-muted); opacity: 0.6; }
+    .add-btn {
+      padding: 7px 15px;
+      border-radius: 9px;
+      border: 1px solid rgba(72,200,100,0.3);
+      background: rgba(72,200,100,0.15);
+      color: #4ec864;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font-main);
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .add-btn:hover  { background: rgba(72,200,100,0.25); }
+    .add-btn:active { background: rgba(72,200,100,0.35); }
+
+    .custom-list { padding: 2px 0; min-height: 44px; }
+    .custom-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 18px;
+      font-size: 0.81rem;
+      color: var(--color-muted);
+      opacity: 0.5;
+    }
+    .custom-rule-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .custom-rule-item:last-child { border-bottom: none; }
+    .custom-rule-item:hover { background: rgba(255,255,255,0.03); }
+    .custom-rule-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ec864; flex-shrink: 0; }
+    .custom-rule-text { flex: 1; font-size: 0.84rem; color: var(--color-text); line-height: 1.4; }
+    .delete-btn {
+      width: 22px; height: 22px;
+      border-radius: 6px; border: none;
+      background: transparent; color: var(--color-muted);
+      font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s, background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .custom-rule-item:hover .delete-btn { opacity: 1; }
+    .delete-btn:hover { background: rgba(255,80,80,0.15); color: #ff7070; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--color-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--color-accent); border-radius: 6px; }
+    * { scrollbar-width: thin; scrollbar-color: var(--color-accent) var(--color-bg); }
+  </style>
+</head>
+<body>
+
+  <button class="lang-btn" id="lang-btn">EN</button>
+
+  <div id="app">
+
+    <nav class="tool-nav" aria-label="Pokemon tools">
+      <a class="tool-nav-link" href="../index.html">Home</a>
+      <a class="tool-nav-link" href="../RunDashboard/index.html">Run</a>
+      <a class="tool-nav-link" href="../Pokelocke/index.html">Team</a>
+      <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
+      <a class="tool-nav-link" href="../Trio/index.html">Trio</a>
+      <a class="tool-nav-link" href="../Catchrate/index.html">Fangrate</a>
+      <a class="tool-nav-link" href="../DamageCalc/index.html">Schaden</a>
+      <a class="tool-nav-link" href="../Typrechner/index.html">Typen</a>
+      <a class="tool-nav-link" href="../PokemonInfo/index.html">Dex</a>
+      <a class="tool-nav-link is-active" href="index.html" aria-current="page">Regeln</a>
+    </nav>
+
+    <div class="page-title">
+      <h1>Nuzlocke <span data-i18n="page-h1">Regelwerk</span></h1>
+      <p data-i18n="page-sub">Grundregeln, Klauseln, Varianten — und deine eigenen.</p>
+    </div>
+
+    <div class="content">
+
+      <!-- ── OBEN: Grundregeln + Klauseln nebeneinander ── -->
+      <div class="top-row">
+
+        <!-- Grundregeln -->
+        <div class="rule-section">
+          <div class="section-head">
+            <span class="section-icon">📜</span>
+            <span class="section-title" data-i18n="tab-core">Grundregeln</span>
+            <span class="section-badge badge-core" data-i18n="core-badge">Pflicht</span>
+          </div>
+          <div class="rules-list">
+            <div class="rule-item">
+              <div class="rule-num num-core">1</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="core-1-name">Nur der erste Fund</div>
+                <div class="rule-desc" data-i18n="core-1-desc">Auf jeder Route darf nur das erste wild angetroffene Pokémon gefangen werden. Flieht es oder stirbt es im Kampf, gibt es keinen zweiten Versuch.</div>
+              </div>
+            </div>
+            <div class="rule-item">
+              <div class="rule-num num-core">2</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="core-2-name">Permadeath</div>
+                <div class="rule-desc" data-i18n="core-2-desc">Ein Pokémon, das besiegt wird, gilt als tot. Es muss sofort entlassen oder in eine „Friedhofs-Box" verschoben werden — es darf nicht mehr eingesetzt werden.</div>
+              </div>
+            </div>
+            <div class="rule-item">
+              <div class="rule-num num-core">3</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="core-3-name">Nicknamenpflicht</div>
+                <div class="rule-desc" data-i18n="core-3-desc">Jedes gefangene Pokémon muss einen Nicknamen erhalten. Die emotionale Bindung macht Verluste schwerer — das ist der Kern des Nuzlocke-Erlebnisses.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Klauseln -->
+        <div class="rule-section">
+          <div class="section-head">
+            <span class="section-icon">⚖️</span>
+            <span class="section-title" data-i18n="tab-clauses">Klauseln</span>
+            <span class="section-badge badge-clause" data-i18n="clauses-badge">Optional</span>
+          </div>
+          <div class="rules-list">
+            <div class="rule-item">
+              <div class="rule-num num-clause">A</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="clause-a-name">Duplikate-Klausel</div>
+                <div class="rule-desc" data-i18n="clause-a-desc">Ist das erste Pokémon einer Route eine Art, die du bereits besitzt, darf weitergesucht werden.</div>
+              </div>
+            </div>
+            <div class="rule-item">
+              <div class="rule-num num-clause">B</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="clause-b-name">Shiny-Klausel</div>
+                <div class="rule-desc" data-i18n="clause-b-desc">Ein Shiny darf immer gefangen werden — unabhängig von Route oder bereits vorhandenem Encounter.</div>
+              </div>
+            </div>
+            <div class="rule-item">
+              <div class="rule-num num-clause">C</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="clause-c-name">Geschenk-Pokémon</div>
+                <div class="rule-desc" data-i18n="clause-c-desc">In-Game-Geschenke (Starter, Fossilien, Tausch-NPCs) gelten als Encounter oder werden ignoriert — muss vorab festgelegt werden.</div>
+              </div>
+            </div>
+            <div class="rule-item">
+              <div class="rule-num num-clause">D</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="clause-d-name">Set-Modus</div>
+                <div class="rule-desc" data-i18n="clause-d-desc">Kampfmodus auf „Set" — kein prophylaktischer Wechsel nach gegnerischem KO möglich. Erhöht die Schwierigkeit deutlich.</div>
+              </div>
+            </div>
+            <div class="rule-item">
+              <div class="rule-num num-clause">E</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="clause-e-name">Keine Items im Kampf</div>
+                <div class="rule-desc" data-i18n="clause-e-desc">Heilitems, Statusitems und X-Items dürfen während des Kampfes nicht aus dem Bag benutzt werden.</div>
+              </div>
+            </div>
+            <div class="rule-item">
+              <div class="rule-num num-clause">F</div>
+              <div class="rule-body">
+                <div class="rule-name" data-i18n="clause-f-name">Levelgrenze</div>
+                <div class="rule-desc" data-i18n="clause-f-desc">Kein Pokémon darf das Level des nächsten Bosses (Arenaleiter, Rivale, E4) überschreiten.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.top-row -->
+
+      <!-- ── VARIANTEN ── -->
+      <div class="rule-section">
+        <div class="section-head">
+          <span class="section-icon">🎮</span>
+          <span class="section-title" data-i18n="tab-variants">Varianten</span>
+          <span class="section-badge badge-variant" data-i18n="variants-badge">Varianten</span>
+        </div>
+        <div class="variant-grid">
+          <div class="variant-card">
+            <div class="variant-name">Hardcore Nuzlocke <span class="variant-tag" data-i18n="tag-popular">Populär</span></div>
+            <div class="variant-desc" data-i18n="v-hardcore-desc">Die strikteste Standardvariante, popularisiert durch SmallAnt. Kombiniert Grundregeln mit den härtesten Klauseln.</div>
+            <div class="variant-rules">
+              <div class="variant-rule-line" data-i18n="v-core-rules">Grundregeln 1–3</div>
+              <div class="variant-rule-line" data-i18n="v-set-required">Set-Modus Pflicht</div>
+              <div class="variant-rule-line" data-i18n="v-no-items">Keine Items im Kampf</div>
+              <div class="variant-rule-line" data-i18n="v-levelcap-on">Levelgrenze aktiv</div>
+            </div>
+          </div>
+          <div class="variant-card">
+            <div class="variant-name">Soul Link</div>
+            <div class="variant-desc" data-i18n="v-soullink-desc">Für zwei Spieler gleichzeitig. Jeder Encounter einer Route wird mit dem des Partners verknüpft.</div>
+            <div class="variant-rules">
+              <div class="variant-rule-line" data-i18n="v-core-rules-both">Grundregeln 1–3 für beide</div>
+              <div class="variant-rule-line" data-i18n="v-encounters-linked">Encounters gleicher Route sind verlinkt</div>
+              <div class="variant-rule-line" data-i18n="v-link-death">Stirbt eines, stirbt das andere ebenfalls</div>
+              <div class="variant-rule-line" data-i18n="v-no-link-no-use">Kein verlinktes Pokémon = kein Einsatz</div>
+            </div>
+          </div>
+          <div class="variant-card">
+            <div class="variant-name">Randomizer</div>
+            <div class="variant-desc" data-i18n="v-randomizer-desc">Wild- und Trainer-Pokémon per ROM-Patcher randomisiert. Kombinierbar mit allen Varianten.</div>
+            <div class="variant-rules">
+              <div class="variant-rule-line" data-i18n="v-starter-rand">Starter randomisiert</div>
+              <div class="variant-rule-line" data-i18n="v-wild-rand">Wild-Pokémon randomisiert</div>
+              <div class="variant-rule-line" data-i18n="v-trainer-rand">Trainer-Teams optional randomisiert</div>
+              <div class="variant-rule-line" data-i18n="v-items-rand">Items &amp; TMs optional randomisiert</div>
+            </div>
+          </div>
+          <div class="variant-card">
+            <div class="variant-name">Wedlocke</div>
+            <div class="variant-desc" data-i18n="v-wedlocke-desc">Pokémon werden in Paare eingeteilt. Stirbt eines, darf sein Partner nicht mehr eingesetzt werden.</div>
+            <div class="variant-rules">
+              <div class="variant-rule-line" data-i18n="v-core-rules">Grundregeln 1–3</div>
+              <div class="variant-rule-line" data-i18n="v-one-partner">Jedes Pokémon hat genau einen Partner</div>
+              <div class="variant-rule-line" data-i18n="v-partners-only">Nur Partner dürfen zusammen kämpfen</div>
+              <div class="variant-rule-line" data-i18n="v-partner-death">Tod eines Partners = Rente beider</div>
+            </div>
+          </div>
+          <div class="variant-card">
+            <div class="variant-name">Monotype</div>
+            <div class="variant-desc" data-i18n="v-monotype-desc">Nur Pokémon eines einzigen Typs. Typ wird per Zufall oder vor dem Run festgelegt.</div>
+            <div class="variant-rules">
+              <div class="variant-rule-line" data-i18n="v-core-rules">Grundregeln 1–3</div>
+              <div class="variant-rule-line" data-i18n="v-one-type">Nur Pokémon des gewählten Typs</div>
+              <div class="variant-rule-line" data-i18n="v-evo-type">Entwicklungen dürfen Typ wechseln (optional)</div>
+            </div>
+          </div>
+          <div class="variant-card">
+            <div class="variant-name">Egglocke</div>
+            <div class="variant-desc" data-i18n="v-egglocke-desc">Jeder Encounter wird gegen ein vorbereitetes zufälliges Ei eingetauscht.</div>
+            <div class="variant-rules">
+              <div class="variant-rule-line" data-i18n="v-core-rules">Grundregeln 1–3</div>
+              <div class="variant-rule-line" data-i18n="v-egg-trade">Gefangenes Pokémon wird gegen Ei getauscht</div>
+              <div class="variant-rule-line" data-i18n="v-egg-unknown">Ei-Inhalt unbekannt bis zum Schlüpfen</div>
+              <div class="variant-rule-line" data-i18n="v-egg-death">Permadeath gilt auch für geschlüpfte Pokémon</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EIGENE REGELN ── -->
+      <div class="rule-section">
+        <div class="section-head">
+          <span class="section-icon">✏️</span>
+          <span class="section-title" data-i18n="tab-custom">Eigene Regeln</span>
+          <span class="section-badge badge-custom" data-i18n="custom-badge">Eigene</span>
+        </div>
+        <div class="custom-add">
+          <input id="custom-input" class="custom-input" type="text" placeholder="Neue Regel eingeben …" maxlength="200">
+          <button id="add-btn" class="add-btn" data-i18n="custom-add-btn">Hinzufügen</button>
+        </div>
+        <div class="custom-list" id="custom-list">
+          <div class="custom-empty" id="custom-empty" data-i18n="custom-empty">Noch keine eigenen Regeln.</div>
+        </div>
+      </div>
+
+    </div><!-- /.content -->
+
+  </div>
+
+  <script>
+    // ── Custom rules ──
+    const STORAGE_KEY = 'nuzlocke-custom-rules';
+    const input  = document.getElementById('custom-input');
+    const addBtn = document.getElementById('add-btn');
+    const list   = document.getElementById('custom-list');
+    const empty  = document.getElementById('custom-empty');
+
+    function loadRules() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+      catch { return []; }
+    }
+    function saveRules(rules) { localStorage.setItem(STORAGE_KEY, JSON.stringify(rules)); }
+    function renderRules() {
+      const rules = loadRules();
+      list.querySelectorAll('.custom-rule-item').forEach(el => el.remove());
+      if (rules.length === 0) { empty.style.display = ''; return; }
+      empty.style.display = 'none';
+      rules.forEach((text, index) => {
+        const item = document.createElement('div');
+        item.className = 'custom-rule-item';
+        item.innerHTML = `
+          <div class="custom-rule-dot"></div>
+          <div class="custom-rule-text">${escapeHtml(text)}</div>
+          <button class="delete-btn" data-index="${index}" title="Löschen" aria-label="Löschen">&#215;</button>
+        `;
+        list.appendChild(item);
+      });
+    }
+    function addRule() {
+      const text = input.value.trim();
+      if (!text) return;
+      const rules = loadRules();
+      rules.push(text);
+      saveRules(rules);
+      input.value = '';
+      renderRules();
+    }
+    function deleteRule(index) {
+      const rules = loadRules();
+      rules.splice(index, 1);
+      saveRules(rules);
+      renderRules();
+    }
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    addBtn.addEventListener('click', addRule);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') addRule(); });
+    list.addEventListener('click', e => {
+      const btn = e.target.closest('.delete-btn');
+      if (btn) deleteRule(Number(btn.dataset.index));
+    });
+    renderRules();
+
+    // ── Translation ──
+    const TRANSLATIONS = {
+      de: {
+        'page-h1':          'Regelwerk',
+        'page-sub':         'Grundregeln, Klauseln, Varianten — und deine eigenen.',
+        'tab-core':         'Grundregeln',
+        'tab-clauses':      'Klauseln',
+        'tab-variants':     'Varianten',
+        'tab-custom':       'Eigene Regeln',
+        'core-badge':       'Pflicht',
+        'core-1-name':      'Nur der erste Fund',
+        'core-1-desc':      'Auf jeder Route darf nur das erste wild angetroffene Pokémon gefangen werden. Flieht es oder stirbt es im Kampf, gibt es keinen zweiten Versuch.',
+        'core-2-name':      'Permadeath',
+        'core-2-desc':      'Ein Pokémon, das besiegt wird, gilt als tot. Es muss sofort entlassen oder in eine „Friedhofs-Box" verschoben werden — es darf nicht mehr eingesetzt werden.',
+        'core-3-name':      'Nicknamenpflicht',
+        'core-3-desc':      'Jedes gefangene Pokémon muss einen Nicknamen erhalten. Die emotionale Bindung macht Verluste schwerer — das ist der Kern des Nuzlocke-Erlebnisses.',
+        'clauses-badge':    'Optional',
+        'clause-a-name':    'Duplikate-Klausel',
+        'clause-a-desc':    'Ist das erste Pokémon einer Route eine Art, die du bereits besitzt, darf weitergesucht werden.',
+        'clause-b-name':    'Shiny-Klausel',
+        'clause-b-desc':    'Ein Shiny darf immer gefangen werden — unabhängig von Route oder bereits vorhandenem Encounter.',
+        'clause-c-name':    'Geschenk-Pokémon',
+        'clause-c-desc':    'In-Game-Geschenke (Starter, Fossilien, Tausch-NPCs) gelten als Encounter oder werden ignoriert — muss vorab festgelegt werden.',
+        'clause-d-name':    'Set-Modus',
+        'clause-d-desc':    'Kampfmodus auf „Set" — kein prophylaktischer Wechsel nach gegnerischem KO möglich. Erhöht die Schwierigkeit deutlich.',
+        'clause-e-name':    'Keine Items im Kampf',
+        'clause-e-desc':    'Heilitems, Statusitems und X-Items dürfen während des Kampfes nicht aus dem Bag benutzt werden.',
+        'clause-f-name':    'Levelgrenze',
+        'clause-f-desc':    'Kein Pokémon darf das Level des nächsten Bosses (Arenaleiter, Rivale, E4) überschreiten.',
+        'variants-badge':   'Varianten',
+        'tag-popular':      'Populär',
+        'v-hardcore-desc':  'Die strikteste Standardvariante, popularisiert durch SmallAnt. Kombiniert Grundregeln mit den härtesten Klauseln.',
+        'v-core-rules':     'Grundregeln 1–3',
+        'v-set-required':   'Set-Modus Pflicht',
+        'v-no-items':       'Keine Items im Kampf',
+        'v-levelcap-on':    'Levelgrenze aktiv',
+        'v-soullink-desc':  'Für zwei Spieler gleichzeitig. Jeder Encounter einer Route wird mit dem des Partners verknüpft.',
+        'v-core-rules-both':'Grundregeln 1–3 für beide',
+        'v-encounters-linked':'Encounters gleicher Route sind verlinkt',
+        'v-link-death':     'Stirbt eines, stirbt das andere ebenfalls',
+        'v-no-link-no-use': 'Kein verlinktes Pokémon = kein Einsatz',
+        'v-randomizer-desc':'Wild- und Trainer-Pokémon per ROM-Patcher randomisiert. Kombinierbar mit allen Varianten.',
+        'v-starter-rand':   'Starter randomisiert',
+        'v-wild-rand':      'Wild-Pokémon randomisiert',
+        'v-trainer-rand':   'Trainer-Teams optional randomisiert',
+        'v-items-rand':     'Items &amp; TMs optional randomisiert',
+        'v-wedlocke-desc':  'Pokémon werden in Paare eingeteilt. Stirbt eines, darf sein Partner nicht mehr eingesetzt werden.',
+        'v-one-partner':    'Jedes Pokémon hat genau einen Partner',
+        'v-partners-only':  'Nur Partner dürfen zusammen kämpfen',
+        'v-partner-death':  'Tod eines Partners = Rente beider',
+        'v-monotype-desc':  'Nur Pokémon eines einzigen Typs. Typ wird per Zufall oder vor dem Run festgelegt.',
+        'v-one-type':       'Nur Pokémon des gewählten Typs',
+        'v-evo-type':       'Entwicklungen dürfen Typ wechseln (optional)',
+        'v-egglocke-desc':  'Jeder Encounter wird gegen ein vorbereitetes zufälliges Ei eingetauscht.',
+        'v-egg-trade':      'Gefangenes Pokémon wird gegen Ei getauscht',
+        'v-egg-unknown':    'Ei-Inhalt unbekannt bis zum Schlüpfen',
+        'v-egg-death':      'Permadeath gilt auch für geschlüpfte Pokémon',
+        'custom-badge':     'Eigene',
+        'custom-add-btn':   'Hinzufügen',
+        'custom-empty':     'Noch keine eigenen Regeln.',
+        'custom-placeholder':'Neue Regel eingeben …',
+      },
+      en: {
+        'page-h1':          'Rulebook',
+        'page-sub':         'Core rules, clauses, variants — and your own.',
+        'tab-core':         'Core Rules',
+        'tab-clauses':      'Clauses',
+        'tab-variants':     'Variants',
+        'tab-custom':       'Custom Rules',
+        'core-badge':       'Required',
+        'core-1-name':      'First Encounter Only',
+        'core-1-desc':      'On each route, only the first wild Pokémon encountered may be caught. If it flees or faints, there is no second chance.',
+        'core-2-name':      'Permadeath',
+        'core-2-desc':      'A Pokémon that is defeated is considered dead. It must immediately be released or moved to a "graveyard box" — it may no longer be used.',
+        'core-3-name':      'Nickname Rule',
+        'core-3-desc':      'Every caught Pokémon must receive a nickname. The emotional bond makes losses harder — that is the core of the Nuzlocke experience.',
+        'clauses-badge':    'Optional',
+        'clause-a-name':    'Duplicate Clause',
+        'clause-a-desc':    'If the first Pokémon on a route is a species you already own, the battle may be abandoned to keep searching.',
+        'clause-b-name':    'Shiny Clause',
+        'clause-b-desc':    'A shiny may always be caught — regardless of route or a previous encounter.',
+        'clause-c-name':    'Gift Pokémon',
+        'clause-c-desc':    'In-game gifts (starters, fossils, trade NPCs) count as an encounter or are ignored — must be decided beforehand.',
+        'clause-d-name':    'Set Mode',
+        'clause-d-desc':    'Battle mode set to "Set" — no prophylactic switching after an opponent\'s KO. Increases difficulty significantly.',
+        'clause-e-name':    'No Items in Battle',
+        'clause-e-desc':    'Healing items, status items and X-items may not be used from the bag during battle.',
+        'clause-f-name':    'Level Cap',
+        'clause-f-desc':    'No Pokémon may exceed the level of the next boss (Gym Leader, Rival, Elite Four).',
+        'variants-badge':   'Variants',
+        'tag-popular':      'Popular',
+        'v-hardcore-desc':  'The strictest standard variant, popularized by SmallAnt. Combines core rules with the hardest clauses.',
+        'v-core-rules':     'Core rules 1–3',
+        'v-set-required':   'Set mode required',
+        'v-no-items':       'No items in battle',
+        'v-levelcap-on':    'Level cap active',
+        'v-soullink-desc':  'For two players simultaneously. Each encounter on a route is linked to the partner\'s encounter.',
+        'v-core-rules-both':'Core rules 1–3 for both',
+        'v-encounters-linked':'Encounters on the same route are linked',
+        'v-link-death':     'If one dies, the other dies too',
+        'v-no-link-no-use': 'No linked Pokémon = cannot be used',
+        'v-randomizer-desc':'Wild and trainer Pokémon randomized via ROM patcher. Can be combined with all variants.',
+        'v-starter-rand':   'Starter randomized',
+        'v-wild-rand':      'Wild Pokémon randomized',
+        'v-trainer-rand':   'Trainer teams optionally randomized',
+        'v-items-rand':     'Items &amp; TMs optionally randomized',
+        'v-wedlocke-desc':  'Pokémon are assigned into pairs. If one dies, its partner may no longer be used.',
+        'v-one-partner':    'Each Pokémon has exactly one partner',
+        'v-partners-only':  'Only partners may fight together',
+        'v-partner-death':  'Death of one partner = retirement of both',
+        'v-monotype-desc':  'Only Pokémon of a single type. Type is determined randomly or before the run.',
+        'v-one-type':       'Only Pokémon of the chosen type',
+        'v-evo-type':       'Evolutions may change type (optional)',
+        'v-egglocke-desc':  'Each encounter is exchanged for a previously prepared random egg.',
+        'v-egg-trade':      'Caught Pokémon is traded for an egg',
+        'v-egg-unknown':    'Egg contents unknown until hatching',
+        'v-egg-death':      'Permadeath applies to hatched Pokémon too',
+        'custom-badge':     'Custom',
+        'custom-add-btn':   'Add',
+        'custom-empty':     'No custom rules yet.',
+        'custom-placeholder':'Enter new rule …',
+      },
+    };
+
+    let lang = localStorage.getItem('hub-lang') || 'de';
+    const langBtn = document.getElementById('lang-btn');
+
+    function applyLang(l) {
+      lang = l;
+      localStorage.setItem('hub-lang', l);
+      document.documentElement.lang = l;
+      langBtn.textContent = l.toUpperCase();
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (TRANSLATIONS[l][key] !== undefined) el.innerHTML = TRANSLATIONS[l][key];
+      });
+      input.placeholder = TRANSLATIONS[l]['custom-placeholder'];
+    }
+
+    langBtn.addEventListener('click', () => applyLang(lang === 'de' ? 'en' : 'de'));
+    applyLang(lang);
+  </script>
+
+</body>
+</html>

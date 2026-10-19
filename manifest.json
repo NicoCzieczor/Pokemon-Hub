@@ -1,0 +1,32 @@
+{
+  "id": "./",
+  "name": "Pokémon Hub",
+  "short_name": "PokéHub",
+  "description": "Nuzlocke-Tools: Run-Dashboard, Team Builder, Duo, Trio, Fangrate, Schaden, Typen, Pokédex.",
+  "lang": "de",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d0f2b",
+  "theme_color": "#0d0f2b",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

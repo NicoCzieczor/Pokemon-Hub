@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- PWA: Homescreen-App + Offline -->
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0d0f2b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PokéHub">
+  <link rel="apple-touch-icon" href="../icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1320x2868.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1260x2736.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1206x2622.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1290x2796.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1179x2556.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1284x2778.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1170x2532.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1125x2436.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1242x2688.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-828x1792.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-750x1334.png">
+  <script src="../pwa.js"></script>
+  <title>Trio Nuzlocke</title>
+  <link rel="stylesheet" href="../Pokelocke/base.css" />
+  <style>
+    html, body {
+      min-height: 100%;
+      background: radial-gradient(circle at top left, rgba(87, 210, 255, 0.14), transparent 18%),
+                  radial-gradient(circle at bottom right, rgba(255, 218, 8, 0.12), transparent 20%),
+                  radial-gradient(circle at top right, rgba(80, 220, 80, 0.10), transparent 18%),
+                  #0d0f2b;
+      color: var(--color-text);
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 28px 16px;
+      font-family: var(--font-main);
+    }
+    #app {
+      width: min(98vw, 1340px);
+      margin: 0 auto;
+      padding: 24px;
+      background: rgba(25, 27, 58, 0.96);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    header { display: flex; flex-direction: column; gap: 6px; }
+    header h1 { margin-bottom: 0; font-size: clamp(1.8rem, 2.6vw, 2.4rem); letter-spacing: -0.04em; }
+    header p  { margin: 0; color: var(--color-muted); }
+
+    /* ── PLAYERS ROW ── */
+    #players-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) { #players-row { grid-template-columns: 1fr; } }
+
+    .player-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(25,27,58,0.82);
+    }
+    .player-panel.p1 { border-color: rgba(87,210,255,0.22); }
+    .player-panel.p2 { border-color: rgba(255,218,8,0.22); }
+    .player-panel.p3 { border-color: rgba(80,220,80,0.22); }
+
+    .player-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: 0.01em;
+    }
+    .p1 .player-title { color: var(--color-accent-strong); }
+    .p2 .player-title { color: var(--color-accent); }
+    .p3 .player-title { color: #50dc50; }
+
+    .team-builder {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 12px;
+    }
+    .pokemon-slot {
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      min-height: 95px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition: transform 0.25s, background-color 0.25s, border-color 0.25s;
+      color: var(--color-text);
+    }
+    .p1 .pokemon-slot:hover { background: rgba(87,210,255,0.10); border-color: rgba(87,210,255,0.35); transform: translateY(-2px); }
+    .p2 .pokemon-slot:hover { background: rgba(255,218,8,0.10);  border-color: rgba(255,218,8,0.35);  transform: translateY(-2px); }
+    .p3 .pokemon-slot:hover { background: rgba(80,220,80,0.10);  border-color: rgba(80,220,80,0.35);  transform: translateY(-2px); }
+
+    /* ── LINKED SLOTS ── */
+    .pokemon-slot.slot-linked::after {
+      content: '⛓';
+      position: absolute;
+      top: 5px; right: 7px;
+      font-size: 0.62rem;
+      opacity: 0.85;
+      pointer-events: none;
+      line-height: 1;
+    }
+    .pokemon-slot.slot-linked[data-slot="0"] { border-color: rgba(184,100,255,0.55); background: rgba(184,100,255,0.07); }
+    .pokemon-slot.slot-linked[data-slot="1"] { border-color: rgba(0,200,180,0.55);   background: rgba(0,200,180,0.07); }
+    .pokemon-slot.slot-linked[data-slot="2"] { border-color: rgba(255,140,0,0.55);   background: rgba(255,140,0,0.07); }
+    .pokemon-slot.slot-linked[data-slot="3"] { border-color: rgba(255,80,150,0.55);  background: rgba(255,80,150,0.07); }
+    .pokemon-slot.slot-linked[data-slot="4"] { border-color: rgba(80,150,255,0.55);  background: rgba(80,150,255,0.07); }
+    .pokemon-slot.slot-linked[data-slot="5"] { border-color: rgba(80,220,80,0.55);   background: rgba(80,220,80,0.07); }
+    .pokemon-slot.slot-link-hover[data-slot="0"] { border-color: rgba(184,100,255,0.95) !important; box-shadow: 0 0 18px rgba(184,100,255,0.4) !important; transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="1"] { border-color: rgba(0,200,180,0.95) !important;   box-shadow: 0 0 18px rgba(0,200,180,0.4) !important;   transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="2"] { border-color: rgba(255,140,0,0.95) !important;   box-shadow: 0 0 18px rgba(255,140,0,0.4) !important;   transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="3"] { border-color: rgba(255,80,150,0.95) !important;  box-shadow: 0 0 18px rgba(255,80,150,0.4) !important;  transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="4"] { border-color: rgba(80,150,255,0.95) !important;  box-shadow: 0 0 18px rgba(80,150,255,0.4) !important;  transform: translateY(-3px) !important; }
+    .pokemon-slot.slot-link-hover[data-slot="5"] { border-color: rgba(80,220,80,0.95) !important;   box-shadow: 0 0 18px rgba(80,220,80,0.4) !important;   transform: translateY(-3px) !important; }
+
+    #link-progress {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      background: color-mix(in srgb, #0d0f2b 72%, rgba(87,210,255,0.18));
+      border: 1px solid rgba(87,210,255,0.22);
+      border-radius: 14px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .link-prog-step { display: flex; align-items: center; gap: 10px; }
+    .link-prog-pending { opacity: 0.55; }
+    .link-prog-label { font-size: 0.72rem; color: var(--color-muted); margin-bottom: 2px; }
+    .link-prog-check { color: #50e880; font-size: 1.15rem; margin-left: 4px; }
+    .link-prog-arrow { font-size: 1.3rem; color: var(--color-accent); padding: 0 4px; }
+    .link-prog-empty {
+      width: 44px; height: 44px; border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 2px dashed rgba(255,255,255,0.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; color: var(--color-muted);
+    }
+    #modal-skip-link {
+      display: none;
+      padding: 12px 22px;
+      background: rgba(255,218,8,0.08);
+      color: var(--color-accent);
+      border: 1px solid rgba(255,218,8,0.25);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    #modal-skip-link:hover { background: rgba(255,218,8,0.14); transform: translateY(-1px); }
+    .modal-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+    /* ── INFO SECTION ── */
+    .info-slot {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      min-height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 17px;
+      cursor: pointer;
+      transition: transform 0.25s, background-color 0.25s, border-color 0.25s;
+      color: var(--color-text);
+      text-align: center;
+      padding: 14px;
+    }
+    .info-slot:hover { background: rgba(255,255,255,0.08); border-color: rgba(87,210,255,0.35); transform: translateY(-2px); }
+
+    #info-panel {
+      display: grid;
+      grid-template-columns: minmax(0,1.8fr) minmax(200px,1fr);
+      gap: 18px;
+      width: 100%;
+    }
+    #info-details, #info-controls {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 18px;
+      min-height: 200px;
+    }
+    #info-details h3, #info-controls h3 { margin-top: 0; margin-bottom: 12px; font-size: 1.1rem; color: #f8fafc; }
+    #info-content { display: grid; gap: 14px; }
+    .info-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--color-text); }
+    .info-types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .info-type { padding: 5px 10px; border-radius: 999px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(87,210,255,0.12); color: #e2e8f0; }
+    .info-stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+    .info-stat { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 10px 12px; text-align: center; font-size: 0.92rem; }
+    .info-stat.stat-hp         { background: rgba(100,210, 90,0.15); border-color: rgba(100,210, 90,0.55); color: #90e880; }
+    .info-stat.stat-attack     { background: rgba(248,200, 60,0.15); border-color: rgba(248,200, 60,0.55); color: #f8d860; }
+    .info-stat.stat-defense    { background: rgba(240,130, 60,0.15); border-color: rgba(240,130, 60,0.55); color: #f09060; }
+    .info-stat.stat-sp-atk     { background: rgba( 60,190,200,0.15); border-color: rgba( 60,190,200,0.55); color: #60d8e0; }
+    .info-stat.stat-sp-def     { background: rgba(110,150,230,0.15); border-color: rgba(110,150,230,0.55); color: #90b0f0; }
+    .info-stat.stat-speed      { background: rgba(210, 90,210,0.15); border-color: rgba(210, 90,210,0.55); color: #e070e0; }
+    .evo-chain { display: flex; flex-direction: column; gap: 8px; }
+    .evo-none  { font-size: 0.88rem; color: var(--color-muted); }
+    .evo-path  { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .evo-stage { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); min-width: 64px; }
+    .evo-stage img { image-rendering: pixelated; }
+    .evo-stage-active { background: rgba(87,210,255,0.15); border-color: rgba(87,210,255,0.5); }
+    .evo-name { font-size: 0.78rem; text-align: center; max-width: 72px; line-height: 1.2; }
+    .evo-arrow { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .evo-arrow-icon { color: var(--color-muted); font-size: 1.1rem; line-height: 1; }
+    .evo-condition { font-size: 0.72rem; color: var(--color-accent); white-space: nowrap; }
+    .info-moves { display: grid; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
+    .info-move { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 10px 12px; font-size: 0.9rem; color: var(--color-text); }
+    .learn-method-tag { margin-left: 0.35rem; }
+    .learn-method-highlight { color: #ffda08; font-weight: 600; }
+
+    #info-generation-select {
+      width: 100%; padding: 10px 12px; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.1); color: #edf2f7; font-size: 0.95rem;
+      appearance: none; -webkit-appearance: none; font: inherit;
+    }
+    #info-generation-select option { color: #111827; background: #f8fafc; }
+    #info-generation-select:focus { outline: none; border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(87,210,255,0.18); }
+    .generation-label { display: inline-block; margin-right: 8px; font-size: 0.95rem; color: rgba(226,232,240,0.8); }
+
+    #save-status { color: var(--color-accent-strong); font-size: 0.95rem; min-height: 1.2rem; text-align: center; }
+
+    /* ── MODALS ── */
+    #pokemon-modal, #box-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.72); display: flex; justify-content: center; align-items: center; z-index: 1002;
+    }
+    #box-modal { z-index: 1001; }
+    #modal-content, #box-content {
+      background: #16193f; padding: 24px; border-radius: 24px;
+      max-width: 860px; width: min(95vw,860px); max-height: 80%; overflow-y: auto;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.08);
+    }
+    #modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    #modal-header h2 { margin: 0; font-size: 1.4rem; color: #fff; }
+    #pokemon-search {
+      flex: 0 0 240px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 14px; background: rgba(255,255,255,0.06); color: var(--color-text); font: inherit;
+    }
+    #pokemon-search::placeholder { color: rgba(226,232,240,0.6); }
+    #pokemon-search:focus { outline: none; border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(87,210,255,0.18); background: rgba(255,255,255,0.1); }
+    #generation-select {
+      padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.12); color: #edf2f7; font-size: 0.95rem; min-width: 110px;
+      appearance: none; -webkit-appearance: none; font: inherit;
+    }
+    #generation-select option { color: #111827; background: #f8fafc; }
+    #generation-select:focus { outline: none; border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(87,210,255,0.18); }
+    #pokemon-list {
+      list-style: none; padding: 0; margin: 0;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 16px;
+    }
+    #pokemon-list li {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 18px; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px;
+      background: rgba(255,255,255,0.04); min-height: 140px; text-align: center;
+      transition: background-color 0.2s, transform 0.2s, border-color 0.2s; color: var(--color-text);
+    }
+    #pokemon-list li:hover { background: rgba(87,210,255,0.14); border-color: rgba(87,210,255,0.4); transform: translateY(-2px); }
+    #pokemon-list li img { width: 72px; height: 72px; margin-bottom: 10px; }
+    #pokemon-list li div { font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; padding: 0 4px; color: var(--color-text); }
+    button { font: inherit; }
+    #close-modal, #close-box {
+      padding: 12px 22px;
+      background: rgba(255,255,255,0.06); color: var(--color-text);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    #close-modal:hover, #close-box:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+
+    .btn-box-shared {
+      padding: 10px 26px; border: 1px solid rgba(255,255,255,0.16); border-radius: 14px;
+      cursor: pointer; font-size: 0.9rem; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      font: inherit;
+      background: linear-gradient(135deg, rgba(87,210,255,0.14), rgba(255,218,8,0.10), rgba(80,220,80,0.12));
+      color: var(--color-text);
+    }
+    .btn-box-shared:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(87,210,255,0.14); border-color: rgba(255,255,255,0.28); }
+
+    /* ── BOX ── */
+    #box-slots {
+      display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; margin-bottom: 20px;
+    }
+    .box-slot {
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(255,255,255,0.04);
+      display: flex; flex-direction: row; gap: 2px; padding: 3px; min-height: 72px;
+      cursor: pointer; transition: background-color 0.2s, border-color 0.2s; position: relative;
+    }
+    .box-slot:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+    .box-slot-third {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 6px; overflow: hidden; font-size: 0.55rem; color: var(--color-muted); text-align: center;
+    }
+    .box-slot-third.p1-third { background: rgba(87,210,255,0.05); border: 1px dashed rgba(87,210,255,0.22); }
+    .box-slot-third.p2-third { background: rgba(255,218,8,0.05);   border: 1px dashed rgba(255,218,8,0.22); }
+    .box-slot-third.p3-third { background: rgba(80,220,80,0.05);   border: 1px dashed rgba(80,220,80,0.22); }
+    .box-slot-third.filled.p1-third { border-style: solid; border-color: rgba(87,210,255,0.38); background: rgba(87,210,255,0.10); }
+    .box-slot-third.filled.p2-third { border-style: solid; border-color: rgba(255,218,8,0.38);  background: rgba(255,218,8,0.10); }
+    .box-slot-third.filled.p3-third { border-style: solid; border-color: rgba(80,220,80,0.38);  background: rgba(80,220,80,0.10); }
+    .box-slot-third img { image-rendering: pixelated; }
+    .box-slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 38px; margin-top: 1px; }
+    .box-slot-empty { font-size: 0.9rem; opacity: 0.22; line-height: 1; }
+    .box-chain-icon { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--color-accent); pointer-events: none; }
+
+    /* ── WEAKNESS ── */
+    #weakness-section { padding: 24px; background: rgba(25,27,58,0.82); border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); }
+    #weakness-section h2 { font-size: 1.15rem; margin-bottom: 14px; color: #f8fafc; }
+    .weakness-empty { color: var(--color-muted); text-align: center; padding: 16px 0; margin: 0; }
+    .weakness-wrapper { display: flex; gap: 20px; align-items: flex-start; }
+    .weakness-table-scroll { overflow-x: auto; flex: 1 1 auto; }
+    .weakness-table { display: flex; flex-direction: column; gap: 3px; }
+    .weakness-row { display: flex; gap: 3px; align-items: center; }
+    .weakness-type-label { width: 72px; min-width: 72px; height: 28px; padding: 0 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; text-align: center; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
+    .weakness-player-label { height: 22px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 1px; flex-shrink: 0; }
+    .weakness-player-label.p1-label { background: rgba(87,210,255,0.15); color: var(--color-accent-strong); }
+    .weakness-player-label.p2-label { background: rgba(255,218,8,0.12);  color: var(--color-accent); }
+    .weakness-player-label.p3-label { background: rgba(80,220,80,0.12);  color: #50dc50; }
+    .weakness-pokemon-header { width: 64px; min-width: 64px; text-align: center; font-size: 0.65rem; color: var(--color-muted); display: flex; flex-direction: column; align-items: center; gap: 2px; padding-bottom: 6px; }
+    .weakness-pokemon-header.p1-col { border-bottom: 2px solid rgba(87,210,255,0.4); }
+    .weakness-pokemon-header.p2-col { border-bottom: 2px solid rgba(255,218,8,0.4); }
+    .weakness-pokemon-header.p3-col { border-bottom: 2px solid rgba(80,220,80,0.4); }
+    .weakness-pokemon-header img { image-rendering: pixelated; border-radius: 0; }
+    .weakness-pokemon-header div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62px; }
+    .weakness-cell { width: 64px; min-width: 64px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 7px; font-size: 0.8rem; font-weight: 700; }
+    .weakness-divider { width: 10px; min-width: 10px; background: rgba(255,255,255,0.06); border-radius: 4px; align-self: stretch; }
+    .weakness-divider-label { width: 10px; min-width: 10px; }
+    .eff-immune  { background: rgba(120,120,120,0.2); color: #666; font-size: 0.72rem; font-weight: 400; }
+    .eff-resist2 { background: rgba(60,200,100,0.3);  color: #50e880; }
+    .eff-resist  { background: rgba(60,180,80,0.2);   color: #50c060; }
+    .eff-neutral { background: rgba(255,255,255,0.03); }
+    .eff-weak    { background: rgba(240,80,60,0.2);   color: #f07060; }
+    .eff-weak4   { background: rgba(230,40,40,0.4);   color: #ff5050; }
+    .weakness-summary { flex: 0 0 auto; display: flex; gap: 16px; }
+    .weakness-summary-player { min-width: 120px; display: flex; flex-direction: column; gap: 5px; }
+    .weakness-summary-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .weakness-summary-title.p1 { color: var(--color-accent-strong); }
+    .weakness-summary-title.p2 { color: var(--color-accent); }
+    .weakness-summary-title.p3 { color: #50dc50; }
+    .weakness-summary-subtitle { font-size: 0.75rem; font-weight: 600; color: var(--color-muted); margin-top: 8px; margin-bottom: 2px; }
+    .weakness-summary-row { display: flex; align-items: center; gap: 8px; }
+    .weakness-summary-count { font-size: 0.85rem; font-weight: 700; color: #f07060; }
+    .weakness-summary-immune { color: #8899cc; }
+    /* Type colours */
+    .type-bg-normal   { background: rgba(168,168,120,0.45); }
+    .type-bg-fire     { background: rgb(255,0,0); }
+    .type-bg-water    { background: rgb(0,76,255); }
+    .type-bg-electric { background: rgb(255,204,0); color: #3a2800 !important; text-shadow: none !important; }
+    .type-bg-grass    { background: rgba(104,248,33,0.671); }
+    .type-bg-ice      { background: rgb(0,255,255); color: #205050 !important; text-shadow: none !important; }
+    .type-bg-fighting { background: rgb(255,115,0); }
+    .type-bg-poison   { background: rgba(255,0,255,0.568); }
+    .type-bg-ground   { background: rgba(255,187,0,0.733); color: #604010 !important; text-shadow: none !important; }
+    .type-bg-flying   { background: rgba(164,219,255,0.774); color: #204060 !important; text-shadow: none !important; }
+    .type-bg-psychic  { background: rgb(255,0,76); }
+    .type-bg-bug      { background: rgba(229,255,0,0.808); color: #405010 !important; text-shadow: none !important; }
+    .type-bg-rock     { background: rgb(97,58,0); }
+    .type-bg-ghost    { background: rgba(112,88,152,0.55); }
+    .type-bg-dragon   { background: rgba(112,56,248,0.5); }
+    .type-bg-dark     { background: rgba(112,88,72,0.349); }
+    .type-bg-steel    { background: rgb(175,175,175); color: #303040 !important; text-shadow: none !important; }
+    .type-bg-fairy    { background: rgb(255,176,193); color: #802040 !important; text-shadow: none !important; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <nav class="tool-nav" aria-label="Pokemon tools">
+        <a class="tool-nav-link" href="../index.html">Home</a>
+        <a class="tool-nav-link" href="../RunDashboard/index.html">Run</a>
+        <a class="tool-nav-link" href="../Pokelocke/index.html">Team</a>
+        <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
+        <a class="tool-nav-link is-active" href="index.html" aria-current="page">Trio</a>
+        <a class="tool-nav-link" href="../Catchrate/index.html">Fangrate</a>
+        <a class="tool-nav-link" href="../DamageCalc/index.html">Schaden</a>
+        <a class="tool-nav-link" href="../Typrechner/index.html">Typen</a>
+        <a class="tool-nav-link" href="../PokemonInfo/index.html">Dex</a>
+        <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
+      </nav>
+
+    <header>
+      <h1>Trio Nuzlocke</h1>
+      <p>Team-Builder für drei Spieler – Typen, Stats und gemeinsame Analyse.</p>
+    </header>
+
+    <div id="players-row">
+      <!-- Spieler 1 -->
+      <div class="player-panel p1">
+        <div class="player-title">Spieler 1</div>
+        <div class="team-builder" id="team-builder-1">
+          <div class="pokemon-slot" data-player="1" data-slot="0"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="1"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="2"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="3"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="4"></div>
+          <div class="pokemon-slot" data-player="1" data-slot="5"></div>
+        </div>
+      </div>
+
+      <!-- Spieler 2 -->
+      <div class="player-panel p2">
+        <div class="player-title">Spieler 2</div>
+        <div class="team-builder" id="team-builder-2">
+          <div class="pokemon-slot" data-player="2" data-slot="0"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="1"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="2"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="3"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="4"></div>
+          <div class="pokemon-slot" data-player="2" data-slot="5"></div>
+        </div>
+      </div>
+
+      <!-- Spieler 3 -->
+      <div class="player-panel p3">
+        <div class="player-title">Spieler 3</div>
+        <div class="team-builder" id="team-builder-3">
+          <div class="pokemon-slot" data-player="3" data-slot="0"></div>
+          <div class="pokemon-slot" data-player="3" data-slot="1"></div>
+          <div class="pokemon-slot" data-player="3" data-slot="2"></div>
+          <div class="pokemon-slot" data-player="3" data-slot="3"></div>
+          <div class="pokemon-slot" data-player="3" data-slot="4"></div>
+          <div class="pokemon-slot" data-player="3" data-slot="5"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center">
+      <button class="btn-box-shared" id="open-box">Gemeinsame Box öffnen</button>
+    </div>
+
+    <!-- Shared info section -->
+    <div class="info-slot" data-slot="info">Info-Pokémon wählen</div>
+    <div id="info-panel">
+      <div id="info-details">
+        <h3>Pokémon-Info</h3>
+        <div id="info-content">
+          <div id="info-placeholder" class="info-row">Wähle ein Pokémon aus einem Team oder dem Info-Slot.</div>
+        </div>
+      </div>
+      <div id="info-controls">
+        <h3>Info-Generation</h3>
+        <label for="info-generation-select" class="generation-label">Generation auswählen</label>
+        <select id="info-generation-select">
+          <option value="1">Gen 1</option>
+          <option value="2">Gen 2</option>
+          <option value="3">Gen 3</option>
+          <option value="4">Gen 4</option>
+          <option value="5">Gen 5</option>
+          <option value="6">Gen 6</option>
+          <option value="7">Gen 7</option>
+          <option value="8">Gen 8</option>
+          <option value="9">Gen 9</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="save-status" aria-live="polite"></div>
+
+    <section id="weakness-section">
+      <h2>Team-Typ-Analyse</h2>
+      <div id="team-weakness-panel">
+        <p class="weakness-empty">Füge Pokémon zu einem Team hinzu, um die Typ-Analyse zu sehen.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Pokémon-Auswahl Modal -->
+  <div id="pokemon-modal" style="display:none;">
+    <div id="modal-content">
+      <div id="modal-header">
+        <div>
+          <h2 id="modal-title">Wähle ein Pokémon</h2>
+          <label for="generation-select" class="generation-label">Generation:</label>
+          <select id="generation-select">
+            <option value="1">Gen 1</option>
+            <option value="2">Gen 2</option>
+            <option value="3">Gen 3</option>
+            <option value="4">Gen 4</option>
+            <option value="5">Gen 5</option>
+            <option value="6">Gen 6</option>
+            <option value="7">Gen 7</option>
+            <option value="8">Gen 8</option>
+            <option value="9">Gen 9</option>
+          </select>
+        </div>
+        <input id="pokemon-search" type="search" placeholder="Suche..." autocomplete="off" />
+      </div>
+      <div id="link-progress"></div>
+      <ul id="pokemon-list"></ul>
+      <div class="modal-buttons">
+        <button id="close-modal">Schließen</button>
+        <button id="modal-skip-link">Ohne Verknüpfung</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Box Modal -->
+  <div id="box-modal" style="display:none;">
+    <div id="box-content">
+      <h2 id="box-title">Gemeinsame Box</h2>
+      <div id="box-slots"></div>
+      <button id="close-box">Schließen</button>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

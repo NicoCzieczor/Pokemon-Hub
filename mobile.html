@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <!-- PWA: Homescreen-App + Offline -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d0f2b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PokéHub">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1320x2868.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1260x2736.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1206x2622.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1290x2796.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1179x2556.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1284x2778.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1170x2532.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1125x2436.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1242x2688.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash-828x1792.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash-750x1334.png">
+  <script src="pwa.js"></script>
+  <title>Pokémon Hub</title>
+  <style>
+    :root {
+      --color-bg: #0d0f2b;
+      --color-accent: #ffda08;
+      --color-accent-strong: #57d2ff;
+      --color-muted: #b1b3cc;
+      --color-border: #303258;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      font-family: 'Segoe UI', sans-serif;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(87,210,255,0.12), transparent 30%),
+        radial-gradient(circle at 85% 80%, rgba(255,218,8,0.10), transparent 28%),
+        #0d0f2b;
+      color: #e0e8f9;
+      min-height: 100dvh;
+    }
+    body {
+      padding: 20px 14px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── LANG ── */
+    .lang-btn {
+      position: fixed;
+      top: 14px; right: 14px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background: rgba(25,27,58,0.92);
+      color: var(--color-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      text-align: center;
+      margin-bottom: 22px;
+      padding-top: 4px;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px; height: 50px;
+      border-radius: 50%;
+      background: rgba(255,218,8,0.12);
+      border: 2px solid rgba(255,218,8,0.35);
+      color: var(--color-accent);
+      margin-bottom: 10px;
+    }
+    .logo svg { width: 28px; height: 28px; }
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #fff;
+    }
+    h1 span {
+      background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── GRID ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    /* ── TILE ── */
+    .tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px 10px 16px;
+      background: rgba(25,27,58,0.92);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      text-decoration: none;
+      color: #e0e8f9;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .tile:active { transform: scale(0.94); border-color: rgba(87,210,255,0.35); }
+    .tile--soon  { opacity: 0.45; pointer-events: none; }
+
+    .tile-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px; height: 52px;
+      border-radius: 16px;
+      background: rgba(87,210,255,0.10);
+      border: 1px solid rgba(87,210,255,0.22);
+      color: var(--color-accent-strong);
+      flex-shrink: 0;
+    }
+    .tile-icon svg { width: 26px; height: 26px; }
+    .tile-icon img {
+      width: 46px; height: 46px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+    }
+    #icon-pokedex img { width: 38px; height: 38px; }
+
+    .tile-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .tile-badge {
+      position: absolute;
+      top: 8px; right: 8px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(255,218,8,0.14);
+      color: var(--color-accent);
+      border: 1px solid rgba(255,218,8,0.25);
+    }
+
+    .ai-notice {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(87,210,255,0.22);
+      background: rgba(87,210,255,0.06);
+      color: var(--color-muted);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      opacity: 0.7;
+    }
+
+    /* ── DATEN SICHERN / LADEN ── */
+    .data-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 440px;
+      margin-top: 14px;
+    }
+    .data-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(25,27,58,0.6);
+      color: var(--color-muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .data-btn:active { transform: scale(0.96); border-color: rgba(87,210,255,0.35); }
+    .data-btn svg { width: 16px; height: 16px; color: var(--color-accent-strong); flex-shrink: 0; }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 24px;
+      font-size: 0.7rem;
+      color: var(--color-muted);
+      text-align: center;
+      opacity: 0.45;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="lang-btn" id="lang-btn">EN</button>
+
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="3"/>
+        <path d="M3 24 H45" stroke="currentColor" stroke-width="3"/>
+        <circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="3" fill="#0d0f2b"/>
+        <circle cx="24" cy="24" r="4" fill="currentColor"/>
+      </svg>
+    </div>
+    <h1>Pokémon <span>Hub</span></h1>
+    <div class="ai-notice">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5Z"/>
+      </svg>
+      <span data-i18n="ai-notice">Erstellt mit KI-Unterstützung</span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <a href="./RunDashboard/index.html" class="tile">
+      <div class="tile-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="4" width="22" height="25" rx="3"/>
+          <path d="M11 4V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/>
+          <path d="M10 13l2.5 2.5L17 11M10 19l2.5 2.5L17 17M21 13h1M21 19h1"/>
+        </svg>
+      </div>
+      <span class="tile-name" data-i18n="rundashboard-name">Run-Dashboard</span>
+    </a>
+
+    <a href="./Pokelocke/index.html" class="tile">
+      <div class="tile-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 3 L28 8 V18 C28 25 16 30 16 30 C16 30 4 25 4 18 V8 Z"/>
+          <path d="M16 10l1.5 3.5 3.5.5-2.5 2.5.5 3.5L16 18l-3 2 .5-3.5L11 14l3.5-.5Z"/>
+        </svg>
+      </div>
+      <span class="tile-name" data-i18n="teambuilder-name">Team Builder</span>
+    </a>
+
+
+    <a href="./Duo/index.html" class="tile">
+      <div class="tile-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="4"/>
+          <circle cx="21" cy="11" r="4"/>
+          <path d="M3 28c0-4.4 3.6-8 8-8"/>
+          <path d="M29 28c0-4.4-3.6-8-8-8"/>
+          <path d="M11 20c1.3-.6 2.7-.9 4.2-1 .6 0 1.2.1 1.8.1"/>
+          <path d="M22 18l2 2-2 2M26 20h-4" stroke-width="1.8"/>
+        </svg>
+      </div>
+      <span class="tile-name">Duo</span>
+    </a>
+
+    <a href="./Catchrate/index.html" class="tile">
+      <div class="tile-icon" id="icon-catchrate"></div>
+      <span class="tile-name" data-i18n="catchrate-name">Fangrate-Rechner</span>
+    </a>
+
+    <a href="./Trio/index.html" class="tile">
+      <div class="tile-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="16" cy="8" r="4"/>
+          <circle cx="7" cy="22" r="4"/>
+          <circle cx="25" cy="22" r="4"/>
+          <path d="M13.5 12 L9.5 18M18.5 12 L22.5 18M11 22 h10"/>
+        </svg>
+      </div>
+      <span class="tile-name" data-i18n="trio-name">Trio Nuzlocke</span>
+    </a>
+
+    <a href="./Rules/index.html" class="tile">
+      <div class="tile-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 5 C6 5 10 4 16 4 C22 4 26 5 26 5 L26 27 C26 27 22 26 16 26 C10 26 6 27 6 27 Z"/>
+          <path d="M16 4 L16 26"/>
+          <path d="M10 10 h4M10 14 h4M10 18 h3M18 10 h4M18 14 h4M18 18 h3"/>
+        </svg>
+      </div>
+      <span class="tile-name" data-i18n="rules-name">Regelwerk</span>
+    </a>
+
+    <a href="./DamageCalc/index.html" class="tile">
+      <div class="tile-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 3 L8 18 H16 L14 29 L24 14 H16 Z"/>
+        </svg>
+      </div>
+      <span class="tile-name" data-i18n="damage-name">Schadens-Rechner</span>
+    </a>
+
+    <a href="./Typrechner/index.html" class="tile">
+      <div class="tile-icon" id="hub-type-icon"></div>
+      <span class="tile-name" data-i18n="typcalc-name">Typ-Rechner</span>
+    </a>
+
+    <a href="./PokemonInfo/index.html" class="tile">
+      <div class="tile-icon" id="icon-pokedex"></div>
+      <span class="tile-name" data-i18n="pokedex-name">Pokédex</span>
+    </a>
+
+  </div>
+
+  <div class="data-actions">
+    <button type="button" class="data-btn" id="backup-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-export">Daten sichern</span></button>
+    <button type="button" class="data-btn" id="backup-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-import">Daten laden</span></button>
+  </div>
+
+  <footer data-i18n="footer">Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.</footer>
+
+  <script>
+    // ── Typ-Rechner Icon ──
+    const _T=['Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
+    const _SP={Grass:[0,0],Fire:[1,0],Water:[2,0],Electric:[3,0],Normal:[4,0],Fighting:[0,1],Dark:[1,1],Steel:[2,1],Dragon:[3,1],Fairy:[4,1],Bug:[0,2],Flying:[1,2],Ghost:[2,2],Poison:[3,2],Psychic:[4,2],Ground:[0,3],Rock:[1,3],Ice:[3,3]};
+    const _CE={Grass:[115,109],Fire:[103.5,111],Water:[115,110.5],Electric:[112,111],Normal:[104.5,110],Fighting:[114,108],Dark:[106,107],Steel:[113.5,108],Dragon:[112,108],Fairy:[104,108],Bug:[111,102.5],Flying:[105,102],Ghost:[114,101.5],Poison:[113,103],Psychic:[105,105],Ground:[108,96.5],Rock:[104,94],Ice:[116,95.5]};
+    const _t=_T[Math.floor(Math.random()*_T.length)],_sz=40,_half=_sz/2,_ICON=144;
+    const[_c,_r]=_SP[_t],[_cx,_cy]=_CE[_t]??[108,119];
+    const _bsW=Math.round(1080*_sz/_ICON),_bsH=Math.round(956*_sz/_ICON);
+    const _bpX=_half-(_c*216+_cx)*(_bsW/1080),_bpY=_half-(_r*239+_cy)*(_bsH/956);
+    const _te=document.getElementById('hub-type-icon');
+    if(_te){const s=document.createElement('span');s.style.cssText=`display:block;width:${_sz}px;height:${_sz}px;background:url('./Typrechner/Types.png') ${_bpX}px ${_bpY}px/${_bsW}px ${_bsH}px no-repeat`;_te.appendChild(s);}
+
+    // ── Ball & Pokédex Icons ──
+    const BALLS=['poke-ball','great-ball','ultra-ball','master-ball','safari-ball','net-ball','dive-ball','nest-ball','repeat-ball','timer-ball','luxury-ball','premier-ball','dusk-ball','heal-ball','quick-ball','moon-ball','dream-ball','beast-ball','friend-ball','love-ball','lure-ball','level-ball','fast-ball','heavy-ball','sport-ball','cherish-ball'];
+    const _item=n=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${n}.png`;
+    [['catchrate',_item(BALLS[Math.floor(Math.random()*BALLS.length)])],['pokedex','./img/dp-pokedex.png']].forEach(([id,src])=>{
+      const el=document.getElementById('icon-'+id);if(!el)return;
+      const img=document.createElement('img');img.src=src;img.alt='';img.loading='lazy';el.appendChild(img);
+    });
+
+    // ── i18n ──
+    const TR={
+      de:{'rundashboard-name':'Run-Dashboard','teambuilder-name':'Team Builder','catchrate-name':'Fangrate-Rechner','trio-name':'Trio Nuzlocke','rules-name':'Regelwerk','damage-name':'Schadens-Rechner','typcalc-name':'Typ-Rechner','pokedex-name':'Pokédex','footer':'Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.','ai-notice':'Erstellt mit KI-Unterstützung','backup-export':'Daten sichern','backup-import':'Daten laden'},
+      en:{'rundashboard-name':'Run Dashboard','teambuilder-name':'Team Builder','catchrate-name':'Catch Rate','trio-name':'Trio Nuzlocke','rules-name':'Rulebook','damage-name':'Damage Calc','typcalc-name':'Type Calc','pokedex-name':'Pokédex','footer':'Pokémon and all related names are trademarks of Nintendo / Game Freak.','ai-notice':'Built with AI assistance','backup-export':'Back up data','backup-import':'Restore data'},
+    };
+    let lang=localStorage.getItem('hub-lang')||'de';
+    const btn=document.getElementById('lang-btn');
+    function applyLang(l){lang=l;localStorage.setItem('hub-lang',l);document.documentElement.lang=l;btn.textContent=l.toUpperCase();document.querySelectorAll('[data-i18n]').forEach(el=>{if(TR[l][el.dataset.i18n])el.textContent=TR[l][el.dataset.i18n];});}
+    btn.addEventListener('click',()=>applyLang(lang==='de'?'en':'de'));
+    applyLang(lang);
+  </script>
+</body>
+</html>
