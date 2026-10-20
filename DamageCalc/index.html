@@ -26,380 +26,7 @@
   <script src="../pwa.js"></script>
   <title>Schadens-Rechner – Pokémon Hub</title>
   <link rel="stylesheet" href="../Pokelocke/base.css">
-  <style>
-    html, body {
-      min-height: 100%;
-      background: radial-gradient(circle at 15% 20%, rgba(87,210,255,0.10), transparent 30%),
-                  radial-gradient(circle at 85% 80%, rgba(255,218,8,0.08), transparent 28%),
-                  #0d0f2b;
-    }
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      padding: 28px 16px;
-      font-family: var(--font-main);
-    }
-    * { box-sizing: border-box; }
-
-    #app {
-      width: min(98vw, 1340px);
-      margin: 0 auto;
-      padding: 24px;
-      background: rgba(25, 27, 58, 0.96);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    header {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    header h1 {
-      margin: 0;
-      font-size: clamp(1.8rem, 2.6vw, 2.4rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      color: #fff;
-    }
-    header p { margin: 0; color: var(--color-muted); }
-    .tool-nav {
-      margin: 0;
-      padding-inline: 4px;
-    }
-
-    main {
-      flex: 1; max-width: none; width: 100%;
-      margin: 0; padding: 0;
-      display: flex; flex-direction: column; gap: 18px;
-    }
-
-    /* Settings bar */
-    .settings-bar {
-      display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 14px; padding: 11px 18px;
-    }
-    .setting-group { display: flex; align-items: center; gap: 8px; }
-    .setting-group label { font-size: 0.8rem; color: var(--color-muted); white-space: nowrap; }
-    .setting-group select {
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 8px; color: var(--color-text); padding: 5px 8px;
-      font: inherit; font-size: 0.84rem; cursor: pointer;
-    }
-    select option {
-      background: #191b3a;
-      color: #edf2f7;
-    }
-    select option:checked {
-      background: #1f6fd6;
-      color: #fff;
-    }
-    .toggle-row { display: flex; gap: 8px; flex-wrap: wrap; }
-    .tog {
-      padding: 4px 11px; border-radius: 8px; font: inherit; font-size: 0.78rem; font-weight: 600;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-      color: var(--color-muted); cursor: pointer; transition: all 0.15s; user-select: none;
-    }
-    .tog.on { background: rgba(87,210,255,0.14); border-color: rgba(87,210,255,0.4); color: var(--color-accent-strong); }
-
-    /* Grid */
-    .calc-grid {
-      display: grid; grid-template-columns: 1fr 190px 1fr; gap: 14px; align-items: start;
-    }
-
-    /* Cards */
-    .card {
-      background: rgba(25,27,58,0.92); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px; padding: 18px;
-    }
-    .card-title {
-      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.07em; color: var(--color-muted); margin-bottom: 14px;
-    }
-
-    /* Pokémon picker button */
-    .poke-display {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 14px; border-radius: 14px; min-height: 72px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
-      margin-bottom: 14px; cursor: pointer; transition: border-color 0.18s, background 0.18s;
-      position: relative;
-    }
-    .poke-display:hover { border-color: rgba(87,210,255,0.45); background: rgba(87,210,255,0.06); }
-    .poke-display:hover .pick-hint { opacity: 1; }
-    .pick-hint {
-      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-      font-size: 0.72rem; color: var(--color-accent-strong); opacity: 0;
-      transition: opacity 0.15s; pointer-events: none;
-    }
-    .poke-sprite { width: 64px; height: 64px; image-rendering: pixelated; flex-shrink: 0; }
-    .poke-name { font-size: 0.95rem; font-weight: 700; color: #fff; }
-    .poke-types { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
-    .poke-empty { color: var(--color-muted); font-size: 0.84rem; }
-    .poke-stats-mini { font-size: 0.7rem; color: var(--color-muted); margin-top: 3px; }
-    .type-pill {
-      font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 5px;
-      text-transform: uppercase; letter-spacing: 0.03em; color: #fff;
-    }
-
-    /* Stat rows */
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-    .ig { display: flex; flex-direction: column; gap: 3px; }
-    .ig label { font-size: 0.72rem; color: var(--color-muted); font-weight: 600; }
-    .ig input, .ig select {
-      width: 100%; padding: 6px 8px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11);
-      border-radius: 8px; color: var(--color-text); font: inherit; font-size: 0.84rem;
-    }
-    .ig input:focus, .ig select:focus { outline: none; border-color: rgba(87,210,255,0.45); }
-    .stat-section { margin-top: 10px; }
-    .stat-section-title {
-      font-size: 0.7rem; font-weight: 700; color: var(--color-muted); text-transform: uppercase;
-      letter-spacing: 0.05em; margin-bottom: 6px; padding-bottom: 4px;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-    }
-    .stat-block { display: flex; flex-direction: column; gap: 5px; }
-    .stat-row { display: grid; grid-template-columns: 74px 1fr 1fr; gap: 6px; align-items: center; }
-    .stat-label { font-size: 0.72rem; color: var(--color-muted); font-weight: 600; }
-    .stat-row input {
-      width: 100%; padding: 5px 7px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11);
-      border-radius: 7px; color: var(--color-text); font: inherit; font-size: 0.82rem;
-    }
-    .stat-row input:focus { outline: none; border-color: rgba(87,210,255,0.45); }
-    .stat-final { font-size: 0.68rem; color: var(--color-accent-strong); font-weight: 700; text-align: right; padding-right: 2px; }
-    .stat-row.active-stat .stat-label { color: var(--color-accent-strong); }
-    .stat-row.active-stat input { border-color: rgba(87,210,255,0.35); background: rgba(87,210,255,0.07); }
-
-    /* Move card */
-    .move-display {
-      padding: 10px 12px; border-radius: 12px; min-height: 60px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-      margin-bottom: 12px; cursor: pointer; transition: border-color 0.18s, background 0.18s;
-      position: relative;
-    }
-    .move-display:hover { border-color: rgba(87,210,255,0.45); background: rgba(87,210,255,0.06); }
-    .move-display:hover .pick-hint { opacity: 1; }
-    .move-name { font-size: 0.92rem; font-weight: 700; color: #fff; margin-bottom: 5px; }
-    .move-meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
-    .move-empty { color: var(--color-muted); font-size: 0.84rem; }
-    .move-power-badge { font-size: 0.75rem; color: var(--color-muted); }
-    .class-phys { font-size: 0.62rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(248,200,60,0.2); color: #f8c840; text-transform: uppercase; }
-    .class-spec { font-size: 0.62rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(60,190,200,0.2); color: #40c8d0; text-transform: uppercase; }
-    .class-stat { font-size: 0.62rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(150,150,150,0.15); color: #aaa; text-transform: uppercase; }
-    .stab-tag { font-size: 0.62rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(255,218,8,0.15); color: var(--color-accent); }
-    .power-override { margin-top: 10px; }
-
-    /* VS divider */
-    .vs-col { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 80px; }
-    .vs-label { font-size: 1.1rem; font-weight: 800; color: rgba(255,255,255,0.18); }
-    .swap-btn {
-      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.13);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.85rem; color: var(--color-muted); transition: all 0.15s;
-    }
-    .swap-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
-
-    /* Calc button */
-    .calc-btn {
-      width: 100%; margin-top: 12px; padding: 10px;
-      background: linear-gradient(135deg, rgba(87,210,255,0.18), rgba(87,210,255,0.07));
-      border: 1px solid rgba(87,210,255,0.38); border-radius: 12px;
-      color: var(--color-accent-strong); font: inherit; font-size: 0.88rem; font-weight: 700;
-      cursor: pointer; transition: all 0.18s;
-    }
-    .calc-btn:hover { background: rgba(87,210,255,0.22); }
-    .quick-action-btn {
-      width: 100%; padding: 8px 10px; margin: 2px 0 10px;
-      background: rgba(255,218,8,0.10); border: 1px solid rgba(255,218,8,0.30);
-      border-radius: 10px; color: var(--color-accent); font: inherit;
-      font-size: 0.8rem; font-weight: 700; cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-    }
-    .quick-action-btn:hover {
-      background: rgba(255,218,8,0.16); border-color: rgba(255,218,8,0.48);
-      color: #ffe66d;
-    }
-
-    /* Results */
-    .results-card {
-      background: rgba(25,27,58,0.92); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px; padding: 20px 22px;
-    }
-    .results-empty { color: var(--color-muted); font-size: 0.88rem; text-align: center; padding: 10px 0; }
-    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-    .res-box {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px; padding: 13px 15px;
-    }
-    .res-box-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); margin-bottom: 8px; }
-    .res-big { font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1.2; }
-    .res-sub { font-size: 0.8rem; color: var(--color-muted); margin-top: 2px; }
-    .res-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); margin-top: 10px; overflow: hidden; }
-    .res-bar-fill { height: 100%; border-radius: 3px; }
-    .ko-color-1 { color: #ff4040; }
-    .ko-color-2 { color: #ff8800; }
-    .ko-color-3 { color: #ffda08; }
-    .ko-color-safe { color: #44dd44; }
-    .eff-tag { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 5px; display: inline-block; }
-    .eff-0   { background: rgba(120,120,120,0.2); color: #888; }
-    .eff-025 { background: rgba(60,200,100,0.25); color: #50e870; }
-    .eff-05  { background: rgba(60,180,80,0.2); color: #50c060; }
-    .eff-1   { background: rgba(255,255,255,0.07); color: #aaa; }
-    .eff-2   { background: rgba(240,80,60,0.2); color: #f06050; }
-    .eff-4   { background: rgba(240,40,20,0.28); color: #ff3020; }
-
-    /* ── MODAL ── */
-    #pokemon-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
-      display: flex; justify-content: center; align-items: center; z-index: 1000;
-    }
-    #modal-content {
-      background: #16193f; padding: 24px; border-radius: 24px;
-      max-width: 880px; width: min(95vw, 880px);
-      max-height: 82vh; overflow-y: auto;
-      border: 1px solid rgba(255,255,255,0.10);
-      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
-      display: flex; flex-direction: column; gap: 16px;
-    }
-    #modal-header {
-      display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
-    }
-    #modal-header > div { display: flex; flex-direction: column; gap: 6px; }
-    #modal-title { font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0; }
-    #generation-select {
-      padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.10); color: #edf2f7; font-size: 0.88rem;
-      font: inherit; cursor: pointer; min-width: 110px;
-    }
-    #pokemon-search {
-      flex: 1; min-width: 180px; padding: 9px 14px;
-      border: 1px solid rgba(255,255,255,0.16); border-radius: 12px;
-      background: rgba(255,255,255,0.08); color: #edf2f7;
-      font: inherit; font-size: 0.95rem;
-    }
-    #pokemon-search:focus { outline: none; border-color: var(--color-accent-strong); }
-    #pokemon-list {
-      list-style: none; padding: 0; margin: 0;
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
-    }
-    #pokemon-list li {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 12px 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px; background: rgba(255,255,255,0.03);
-      transition: background 0.18s, transform 0.18s, border-color 0.18s;
-      text-align: center;
-    }
-    #pokemon-list li:hover { background: rgba(87,210,255,0.13); border-color: rgba(87,210,255,0.4); transform: translateY(-2px); }
-    #pokemon-list li img { width: 72px; height: 72px; image-rendering: pixelated; margin-bottom: 6px; }
-    #pokemon-list li .pli-name { font-size: 0.82rem; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-    #pokemon-list li .pli-id { font-size: 0.68rem; color: var(--color-muted); }
-    #pokemon-list .pokemon-gen-header {
-      grid-column: 1 / -1;
-      padding: 8px 4px 2px;
-      border-bottom: 1px solid rgba(87,210,255,0.18);
-      color: var(--color-accent-strong);
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      cursor: default;
-    }
-    #pokemon-list .pokemon-empty {
-      grid-column: 1 / -1;
-      padding: 24px 8px;
-      color: var(--color-muted);
-      text-align: center;
-      cursor: default;
-    }
-    #modal-loading { text-align: center; color: var(--color-muted); padding: 32px 0; font-size: 0.9rem; }
-    .modal-buttons { display: flex; gap: 10px; margin-top: 4px; }
-    #close-modal {
-      padding: 9px 22px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.07); color: var(--color-text);
-      font: inherit; font-size: 0.88rem; cursor: pointer; transition: background 0.15s;
-    }
-    #close-modal:hover { background: rgba(255,255,255,0.13); }
-
-    /* Move modal */
-    #move-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
-      display: flex; justify-content: center; align-items: center; z-index: 1000;
-    }
-    #move-modal-content {
-      background: #16193f; padding: 24px; border-radius: 24px;
-      max-width: 700px; width: min(95vw, 700px);
-      max-height: 82vh; overflow-y: auto;
-      border: 1px solid rgba(255,255,255,0.10);
-      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
-      display: flex; flex-direction: column; gap: 14px;
-    }
-    #move-search {
-      width: 100%; padding: 10px 14px; border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.08);
-      color: #edf2f7; font: inherit; font-size: 0.95rem;
-    }
-    #move-search:focus { outline: none; border-color: var(--color-accent-strong); }
-    #move-list {
-      display: flex; flex-direction: column; gap: 6px;
-      max-height: 50vh; overflow-y: auto;
-    }
-    .move-list-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 14px; border-radius: 12px; cursor: pointer;
-      border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .move-list-item:hover { background: rgba(87,210,255,0.10); border-color: rgba(87,210,255,0.35); }
-    .mli-name { font-size: 0.9rem; font-weight: 600; color: #fff; flex: 1; }
-    .mli-type { font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; color: #fff; text-transform: uppercase; }
-    .mli-class { font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-    .mli-power { font-size: 0.78rem; color: var(--color-muted); min-width: 52px; text-align: right; }
-    #move-loading { text-align: center; color: var(--color-muted); padding: 24px 0; font-size: 0.9rem; }
-    #close-move-modal {
-      padding: 9px 22px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.07); color: var(--color-text);
-      font: inherit; font-size: 0.88rem; cursor: pointer; transition: background 0.15s;
-    }
-    #close-move-modal:hover { background: rgba(255,255,255,0.13); }
-
-    .lang-toggle {
-      position: fixed;
-      top: 16px; right: 16px;
-      padding: 6px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--color-border, #303258);
-      background: rgba(25,27,58,0.92);
-      color: var(--color-muted, #b1b3cc);
-      font-size: 0.78rem;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      letter-spacing: 0.06em;
-      backdrop-filter: blur(8px);
-      transition: border-color 0.2s, color 0.2s;
-      z-index: 200;
-    }
-    .lang-toggle:hover {
-      border-color: rgba(255,218,8,0.4);
-      color: var(--color-accent, #ffda08);
-    }
-
-    @media (max-width: 860px) {
-      body { padding: 18px 10px; }
-      #app { padding: 18px; border-radius: 22px; }
-      .calc-grid { grid-template-columns: 1fr; }
-      .vs-col { flex-direction: row; padding-top: 0; }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="app">
@@ -416,1057 +43,168 @@
   <a class="tool-nav-link is-active" href="index.html" aria-current="page">Schaden</a>
   <a class="tool-nav-link" href="../Typrechner/index.html">Typen</a>
   <a class="tool-nav-link" href="../PokemonInfo/index.html">Dex</a>
+  <a class="tool-nav-link" href="../Karte/index.html">Karte</a>
+  <a class="tool-nav-link" href="../SaveViewer/index.html">Save</a>
   <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
 </nav>
 
 <header>
   <h1 data-i18n="title">Schadens-Rechner</h1>
-  <p data-i18n="subtitle">Berechne Schaden, KO-Chancen und Krit-Werte für beliebige Pokémon und Attacken.</p>
+  <p data-i18n="subtitle">Schaden, KO-Chance und Volltreffer – mit den Formeln und Werten der gewählten Generation.</p>
 </header>
 
 <main>
 
-  <!-- Settings -->
-  <div class="settings-bar">
-    <div class="setting-group">
-      <label data-i18n="genLabel">Generation:</label>
-      <select id="gen-select">
-        <option value="1">Gen 1</option><option value="2">Gen 2</option>
-        <option value="3">Gen 3</option><option value="4">Gen 4</option>
-        <option value="5">Gen 5</option><option value="6" selected>Gen 6</option>
-        <option value="7">Gen 7</option><option value="8">Gen 8</option>
-        <option value="9">Gen 9</option>
-      </select>
+  <!-- Generation + Kampfbedingungen -->
+  <section class="setup">
+    <div class="setup-block">
+      <span class="setup-label" data-i18n="genLabel">Generation</span>
+      <div class="gen-chips" id="gen-chips" role="radiogroup" aria-label="Generation">
+        <button type="button" class="gen-chip" data-gen="1">1</button>
+        <button type="button" class="gen-chip" data-gen="2">2</button>
+        <button type="button" class="gen-chip" data-gen="3">3</button>
+        <button type="button" class="gen-chip" data-gen="4">4</button>
+        <button type="button" class="gen-chip" data-gen="5">5</button>
+        <button type="button" class="gen-chip" data-gen="6">6</button>
+        <button type="button" class="gen-chip" data-gen="7">7</button>
+        <button type="button" class="gen-chip" data-gen="8">8</button>
+        <button type="button" class="gen-chip" data-gen="9">9</button>
+      </div>
+      <p class="gen-info" id="gen-info"></p>
     </div>
-    <div class="setting-group">
-      <label data-i18n="optionsLabel">Optionen:</label>
-      <div class="toggle-row">
-        <button class="tog" id="tog-burn" data-i18n="togBurn">🔥 Verbrennung</button>
-        <button class="tog" id="tog-weather-sun" data-i18n="togSun">☀️ Sonne</button>
-        <button class="tog" id="tog-weather-rain" data-i18n="togRain">🌧️ Regen</button>
-        <button class="tog" id="tog-screens" data-i18n="togScreens">🛡️ Schutzschild</button>
+    <div class="setup-block setup-block--grow">
+      <span class="setup-label" data-i18n="condLabel">Bedingungen</span>
+      <!-- Schalter-Kacheln wie beim Fangraten-Rechner: Item-Sprite grau = aus, farbig = an -->
+      <div class="cond-grid">
+        <label class="tog"><input type="checkbox" id="tog-burn"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/flame-orb.png" alt="" loading="lazy"><span data-i18n="togBurn">Verbrennung</span></label>
+        <label class="tog"><input type="checkbox" id="tog-sun"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/heat-rock.png" alt="" loading="lazy"><span data-i18n="togSun">Sonne</span></label>
+        <label class="tog"><input type="checkbox" id="tog-rain"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/damp-rock.png" alt="" loading="lazy"><span data-i18n="togRain">Regen</span></label>
+        <label class="tog"><input type="checkbox" id="tog-screens"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-clay.png" alt="" loading="lazy"><span data-i18n="togScreens">Reflektor / Lichtschild</span></label>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Calc grid -->
   <div class="calc-grid">
 
-    <!-- Attacker -->
-    <div class="card">
-      <div class="card-title" data-i18n="attackerTitle">⚔️ Angreifer</div>
-      <div class="poke-display" id="atk-display">
-        <span class="poke-empty">Pokémon wählen →</span>
-        <span class="pick-hint" data-i18n="pickHintPoke">Klicken zum Auswählen</span>
+    <!-- Angreifer -->
+    <section class="side-card side-card--atk">
+      <h2 data-i18n="attackerTitle">Angreifer</h2>
+      <button type="button" class="pick" id="atk-display"></button>
+      <div class="field-row">
+        <label class="field"><span data-i18n="levelLabel">Level</span><input type="number" id="atk-level" value="50" min="1" max="100" inputmode="numeric"></label>
+        <label class="field"><span data-i18n="natureLabel">Wesen</span><select id="atk-nature"></select></label>
       </div>
-      <div class="row2">
-        <div class="ig"><label data-i18n="levelLabel">Level</label><input type="number" id="atk-level" value="50" min="1" max="100"></div>
-        <div class="ig"><label data-i18n="natureLabel">Natur</label><select id="atk-nature"></select></div>
-      </div>
-      <div class="stat-section">
-        <div class="stat-section-title"><span data-i18n="atkStatSection">Angriff-Werte</span> <span style="font-size:0.65rem;font-weight:400">(EV · IV)</span></div>
-        <div class="stat-block">
-          <div class="stat-row" id="atk-atk-row">
-            <span class="stat-label" data-i18n="atkStat">Angriff</span>
-            <input type="number" id="atk-atk-ev" placeholder="EV 0" min="0" max="252" value="0">
-            <input type="number" id="atk-atk-iv" placeholder="IV 31" min="0" max="31" value="31">
-          </div>
-          <div class="stat-final" id="atk-atk-final"></div>
-          <div class="stat-row" id="atk-spa-row">
-            <span class="stat-label" data-i18n="spaStat">Sp. Angriff</span>
-            <input type="number" id="atk-spa-ev" placeholder="EV 0" min="0" max="252" value="0">
-            <input type="number" id="atk-spa-iv" placeholder="IV 31" min="0" max="31" value="31">
-          </div>
-          <div class="stat-final" id="atk-spa-final"></div>
+      <div class="stat-table">
+        <div class="st-head"><span></span><span>EV</span><span class="iv-head">IV</span><span data-i18n="statValue">Wert</span></div>
+        <div class="st-row" id="atk-atk-row">
+          <span class="st-name" data-i18n="atkStat">Angriff</span>
+          <input type="number" id="atk-atk-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
+          <input type="number" id="atk-atk-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <output id="atk-atk-final">–</output>
+        </div>
+        <div class="st-row" id="atk-spa-row">
+          <span class="st-name" id="atk-spa-label">Sp. Angriff</span>
+          <input type="number" id="atk-spa-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
+          <input type="number" id="atk-spa-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <output id="atk-spa-final">–</output>
         </div>
       </div>
-    </div>
+      <p class="card-note" id="atk-note" hidden></p>
+    </section>
 
-    <!-- VS + Move -->
-    <div class="vs-col">
-      <div class="vs-label">VS</div>
-      <button class="swap-btn" id="swap-btn" title="Tauschen">⇄</button>
-      <div class="card" style="width:100%;margin-top:8px;">
-        <div class="card-title" data-i18n="moveTitle">💥 Attacke</div>
-        <div class="move-display" id="move-display">
-          <span class="move-empty">Attacke wählen →</span>
-          <span class="pick-hint" data-i18n="pickHintClick">Klicken</span>
-        </div>
-        <div class="ig power-override">
-          <label data-i18n="powerOverrideLabel">Stärke überschreiben</label>
-          <input type="number" id="move-power-override" placeholder="–" min="1" max="999">
-        </div>
-        <button class="calc-btn" id="calc-btn" data-i18n="calcBtn">Schaden berechnen ▶</button>
-      </div>
-    </div>
+    <!-- Attacke -->
+    <section class="side-card side-card--move">
+      <h2 data-i18n="moveTitle">Attacke</h2>
+      <button type="button" class="pick pick--move" id="move-display"></button>
+      <label class="field"><span data-i18n="powerOverrideLabel">Stärke überschreiben</span><input type="number" id="move-power-override" placeholder="–" min="1" max="999" inputmode="numeric"></label>
+      <p class="card-note" id="move-note" hidden></p>
+      <button type="button" class="swap-btn" id="swap-btn"><span aria-hidden="true">⇄</span> <span data-i18n="swapBtn">Angreifer und Verteidiger tauschen</span></button>
+    </section>
 
-    <!-- Defender -->
-    <div class="card">
-      <div class="card-title" data-i18n="defenderTitle">🛡️ Verteidiger</div>
-      <div class="poke-display" id="def-display">
-        <span class="poke-empty">Pokémon wählen →</span>
-        <span class="pick-hint" data-i18n="pickHintPoke">Klicken zum Auswählen</span>
+    <!-- Verteidiger -->
+    <section class="side-card side-card--def">
+      <h2><span data-i18n="defenderTitle">Verteidiger</span>
+        <button type="button" class="mini-btn" id="def-worst-case-btn" data-i18n="worstCaseBtn" data-i18n-title="worstCaseBtnTitle" title="KP und passende Verteidigung auf 252 EV / 31 IV, passendes Wesen">Worst Case</button>
+      </h2>
+      <button type="button" class="pick" id="def-display"></button>
+      <div class="field-row">
+        <label class="field"><span data-i18n="levelLabel">Level</span><input type="number" id="def-level" value="50" min="1" max="100" inputmode="numeric"></label>
+        <label class="field"><span data-i18n="natureLabel">Wesen</span><select id="def-nature"></select></label>
       </div>
-      <div class="row2">
-        <div class="ig"><label data-i18n="levelLabel">Level</label><input type="number" id="def-level" value="50" min="1" max="100"></div>
-        <div class="ig"><label data-i18n="natureLabel">Natur</label><select id="def-nature"></select></div>
-      </div>
-      <button class="quick-action-btn" id="def-worst-case-btn" data-i18n="worstCaseBtn" data-i18n-title="worstCaseBtnTitle" title="Maximale Defensive passend zur gewählten Attacke setzen">Worst Case setzen</button>
-      <div class="stat-section">
-        <div class="stat-section-title"><span data-i18n="defStatSection">Verteidigungs-Werte</span> <span style="font-size:0.65rem;font-weight:400">(EV · IV)</span></div>
-        <div class="stat-block">
-          <div class="stat-row">
-            <span class="stat-label" data-i18n="hpStat">KP</span>
-            <input type="number" id="def-hp-ev" placeholder="EV 0" min="0" max="252" value="0">
-            <input type="number" id="def-hp-iv" placeholder="IV 31" min="0" max="31" value="31">
-          </div>
-          <div class="stat-final" id="def-hp-final"></div>
-          <div class="stat-row" id="def-def-row">
-            <span class="stat-label" data-i18n="defStat">Verteidigung</span>
-            <input type="number" id="def-def-ev" placeholder="EV 0" min="0" max="252" value="0">
-            <input type="number" id="def-def-iv" placeholder="IV 31" min="0" max="31" value="31">
-          </div>
-          <div class="stat-final" id="def-def-final"></div>
-          <div class="stat-row" id="def-spd-row">
-            <span class="stat-label" data-i18n="spdStat">Sp. Vert.</span>
-            <input type="number" id="def-spd-ev" placeholder="EV 0" min="0" max="252" value="0">
-            <input type="number" id="def-spd-iv" placeholder="IV 31" min="0" max="31" value="31">
-          </div>
-          <div class="stat-final" id="def-spd-final"></div>
+      <div class="stat-table">
+        <div class="st-head"><span></span><span>EV</span><span class="iv-head">IV</span><span data-i18n="statValue">Wert</span></div>
+        <div class="st-row" id="def-hp-row">
+          <span class="st-name" data-i18n="hpStat">KP</span>
+          <input type="number" id="def-hp-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
+          <input type="number" id="def-hp-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <output id="def-hp-final">–</output>
+        </div>
+        <div class="st-row" id="def-def-row">
+          <span class="st-name" data-i18n="defStat">Verteidigung</span>
+          <input type="number" id="def-def-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
+          <input type="number" id="def-def-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <output id="def-def-final">–</output>
+        </div>
+        <div class="st-row" id="def-spd-row">
+          <span class="st-name" id="def-spd-label">Sp. Vert.</span>
+          <input type="number" id="def-spd-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
+          <input type="number" id="def-spd-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <output id="def-spd-final">–</output>
         </div>
       </div>
-    </div>
+      <p class="card-note" id="def-note" hidden></p>
+    </section>
 
   </div>
 
-  <!-- Results -->
-  <div class="results-card">
-    <div class="card-title" style="margin-bottom:12px;" data-i18n="resultsTitle">📊 Ergebnis</div>
-    <div id="results-area">
-      <div class="results-empty" data-i18n="resultsEmpty">Wähle Pokémon und Attacke, dann klicke „Schaden berechnen".</div>
-    </div>
-  </div>
+  <!-- Ergebnis -->
+  <section class="results-card">
+    <h2 data-i18n="resultsTitle">Ergebnis</h2>
+    <div id="results-area"></div>
+  </section>
 
 </main>
 
 </div>
 
-<!-- Pokémon Modal -->
-<div id="pokemon-modal" style="display:none;">
-  <div id="modal-content">
-    <div id="modal-header">
-      <div>
-        <h2 id="modal-title" data-i18n="modalTitleAtk">Pokémon wählen</h2>
-        <select id="generation-select">
-          <option value="1">Gen 1</option><option value="2">Gen 2</option>
-          <option value="3">Gen 3</option><option value="4">Gen 4</option>
-          <option value="5">Gen 5</option><option value="6">Gen 6</option>
-          <option value="7">Gen 7</option><option value="8">Gen 8</option>
-          <option value="9">Gen 9</option>
-        </select>
-      </div>
-      <input id="pokemon-search" type="search" placeholder="Name oder #ID suchen…" data-i18n-placeholder="pokeSearchPlaceholder" autocomplete="off">
+<!-- Pokémon-Auswahl -->
+<div id="pokemon-modal" class="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="modal-title" data-i18n="modalTitleAtk">Pokémon wählen</h2>
+      <select id="generation-select" aria-label="Generation">
+        <option value="1">Gen 1</option><option value="2">Gen 2</option>
+        <option value="3">Gen 3</option><option value="4">Gen 4</option>
+        <option value="5">Gen 5</option><option value="6">Gen 6</option>
+        <option value="7">Gen 7</option><option value="8">Gen 8</option>
+        <option value="9">Gen 9</option>
+      </select>
     </div>
-    <div id="modal-loading" style="display:none;" data-i18n="loadingPoke">Lade Pokémon…</div>
+    <input id="pokemon-search" class="modal-search" type="search" placeholder="Name oder #ID suchen…" data-i18n-placeholder="pokeSearchPlaceholder" autocomplete="off">
+    <div id="modal-loading" class="modal-loading" hidden data-i18n="loadingPoke">Lade Pokémon…</div>
     <ul id="pokemon-list"></ul>
-    <div class="modal-buttons">
-      <button id="close-modal" data-i18n="closeModal">Schließen</button>
+    <div class="modal-foot">
+      <button type="button" class="modal-close" id="close-modal" data-i18n="closeModal">Schließen</button>
     </div>
   </div>
 </div>
 
-<!-- Move Modal -->
-<div id="move-modal" style="display:none;">
-  <div id="move-modal-content">
-    <h2 style="font-size:1.1rem;font-weight:700;color:#fff;margin:0" data-i18n="moveModalTitle">Attacke wählen</h2>
-    <input id="move-search" type="search" placeholder="Attacken-Name suchen…" data-i18n-placeholder="moveSearchPlaceholder" autocomplete="off">
-    <div id="move-loading" style="display:none;" data-i18n="loadingMoves">Lade Attacken…</div>
+<!-- Attacken-Auswahl -->
+<div id="move-modal" class="modal" hidden>
+  <div class="modal-box modal-box--narrow">
+    <div class="modal-head">
+      <h2 data-i18n="moveModalTitle">Attacke wählen</h2>
+    </div>
+    <input id="move-search" class="modal-search" type="search" placeholder="Attacken-Name suchen…" data-i18n-placeholder="moveSearchPlaceholder" autocomplete="off">
+    <div id="move-loading" class="modal-loading" hidden data-i18n="loadingMoves">Lade Attacken…</div>
     <div id="move-list"></div>
-    <div class="modal-buttons">
-      <button id="close-move-modal" data-i18n="closeModal">Schließen</button>
+    <div class="modal-foot">
+      <button type="button" class="modal-close" id="close-move-modal" data-i18n="closeModal">Schließen</button>
     </div>
   </div>
 </div>
 
-<script>
-window.LANG = localStorage.getItem('hub-lang') || 'de';
-document.documentElement.lang = window.LANG;
-
-const TRANSLATIONS = {
-  de: {
-    title: 'Schadens-Rechner',
-    subtitle: 'Berechne Schaden, KO-Chancen und Krit-Werte für beliebige Pokémon und Attacken.',
-    resultsEmpty: 'Wähle Pokémon und Attacke, dann klicke „Schaden berechnen".',
-    attackerTitle: '⚔️ Angreifer',
-    defenderTitle: '🛡️ Verteidiger',
-    moveTitle: '💥 Attacke',
-    resultsTitle: '📊 Ergebnis',
-    genLabel: 'Generation:',
-    optionsLabel: 'Optionen:',
-    togBurn: '🔥 Verbrennung',
-    togSun: '☀️ Sonne',
-    togRain: '🌧️ Regen',
-    togScreens: '🛡️ Schutzschild',
-    pickHintPoke: 'Klicken zum Auswählen',
-    pickHintChange: 'Ändern',
-    pickHintClick: 'Klicken',
-    levelLabel: 'Level',
-    natureLabel: 'Natur',
-    atkStatSection: 'Angriff-Werte',
-    defStatSection: 'Verteidigungs-Werte',
-    atkStat: 'Angriff',
-    spaStat: 'Sp. Angriff',
-    hpStat: 'KP',
-    defStat: 'Verteidigung',
-    spdStat: 'Sp. Vert.',
-    powerOverrideLabel: 'Stärke überschreiben',
-    calcBtn: 'Schaden berechnen ▶',
-    worstCaseBtn: 'Worst Case setzen',
-    worstCaseBtnTitle: 'Maximale Defensive passend zur gewählten Attacke setzen',
-    closeModal: 'Schließen',
-    modalTitleAtk: 'Angreifer wählen',
-    modalTitleDef: 'Verteidiger wählen',
-    moveModalTitle: 'Attacke wählen',
-    pokeSearchPlaceholder: 'Name oder #ID suchen…',
-    moveSearchPlaceholder: 'Attacken-Name suchen…',
-    moveEmpty: 'Attacke wählen →',
-    pokeEmpty: 'Pokémon wählen →',
-    loadingPoke: 'Lade Pokémon…',
-    loadingMoves: 'Lade Attacken…',
-  },
-  en: {
-    title: 'Damage Calculator',
-    subtitle: 'Calculate damage, KO chances and crit values for any Pokémon and move.',
-    resultsEmpty: 'Choose Pokémon and a move, then click "Calculate Damage".',
-    attackerTitle: '⚔️ Attacker',
-    defenderTitle: '🛡️ Defender',
-    moveTitle: '💥 Move',
-    resultsTitle: '📊 Results',
-    genLabel: 'Generation:',
-    optionsLabel: 'Options:',
-    togBurn: '🔥 Burn',
-    togSun: '☀️ Sun',
-    togRain: '🌧️ Rain',
-    togScreens: '🛡️ Screens',
-    pickHintPoke: 'Click to choose',
-    pickHintChange: 'Change',
-    pickHintClick: 'Click',
-    levelLabel: 'Level',
-    natureLabel: 'Nature',
-    atkStatSection: 'Attack Stats',
-    defStatSection: 'Defense Stats',
-    atkStat: 'Attack',
-    spaStat: 'Sp. Attack',
-    hpStat: 'HP',
-    defStat: 'Defense',
-    spdStat: 'Sp. Def.',
-    powerOverrideLabel: 'Override power',
-    calcBtn: 'Calculate Damage ▶',
-    worstCaseBtn: 'Set Worst Case',
-    worstCaseBtnTitle: 'Set maximum defense matching the chosen move',
-    closeModal: 'Close',
-    modalTitleAtk: 'Choose Attacker',
-    modalTitleDef: 'Choose Defender',
-    moveModalTitle: 'Choose Move',
-    pokeSearchPlaceholder: 'Search by name or #ID…',
-    moveSearchPlaceholder: 'Search move name…',
-    moveEmpty: 'Choose move →',
-    pokeEmpty: 'Choose Pokémon →',
-    loadingPoke: 'Loading Pokémon…',
-    loadingMoves: 'Loading moves…',
-  }
-};
-
-// ── Type chart ────────────────────────────────────────────────────────────────
-const TYPE_CHART = {
-  normal:   { rock:0.5, ghost:0, steel:0.5 },
-  fire:     { grass:2, ice:2, bug:2, steel:2, fire:0.5, rock:0.5, water:0.5, dragon:0.5 },
-  water:    { fire:2, ground:2, rock:2, water:0.5, grass:0.5, dragon:0.5 },
-  electric: { water:2, flying:2, electric:0.5, grass:0.5, dragon:0.5, ground:0 },
-  grass:    { water:2, ground:2, rock:2, fire:0.5, grass:0.5, poison:0.5, flying:0.5, bug:0.5, dragon:0.5, steel:0.5 },
-  ice:      { grass:2, ground:2, flying:2, dragon:2, fire:0.5, water:0.5, ice:0.5, steel:0.5 },
-  fighting: { normal:2, ice:2, rock:2, dark:2, steel:2, poison:0.5, flying:0.5, psychic:0.5, bug:0.5, fairy:0.5, ghost:0 },
-  poison:   { grass:2, fairy:2, poison:0.5, ground:0.5, rock:0.5, ghost:0.5, steel:0 },
-  ground:   { fire:2, electric:2, poison:2, rock:2, steel:2, grass:0.5, bug:0.5, flying:0 },
-  flying:   { grass:2, fighting:2, bug:2, electric:0.5, rock:0.5, steel:0.5 },
-  psychic:  { fighting:2, poison:2, psychic:0.5, steel:0.5, dark:0 },
-  bug:      { grass:2, psychic:2, dark:2, fire:0.5, fighting:0.5, flying:0.5, ghost:0.5, steel:0.5, fairy:0.5 },
-  rock:     { fire:2, ice:2, flying:2, bug:2, fighting:0.5, ground:0.5, steel:0.5 },
-  ghost:    { psychic:2, ghost:2, dark:0.5, normal:0 },
-  dragon:   { dragon:2, steel:0.5, fairy:0 },
-  dark:     { psychic:2, ghost:2, fighting:0.5, dark:0.5, fairy:0.5 },
-  steel:    { ice:2, rock:2, fairy:2, fire:0.5, water:0.5, electric:0.5, steel:0.5 },
-  fairy:    { fighting:2, dragon:2, dark:2, fire:0.5, poison:0.5, steel:0.5 },
-};
-function typeEff(atkType, defTypes) {
-  let e = 1;
-  const chart = TYPE_CHART[atkType] || {};
-  for (const t of defTypes) e *= (chart[t] ?? 1);
-  return e;
-}
-
-const TYPE_COLORS = {
-  normal:'#bbbbaa', fire:'#ff421c', water:'#2c9be3',
-  electric:'#ffdc00', grass:'#62bc5a', ice:'#74cfc0',
-  fighting:'#bb5544', poison:'#9553cd', ground:'#a67439',
-  flying:'#96caff', psychic:'#ff6380', bug:'#92c12a',
-  rock:'#bbaa66', ghost:'#6e4370', dragon:'#5670be',
-  dark:'#4e4545', steel:'#aaaabb', fairy:'#ec8fe6',
-};
-const TYPE_TEXT = { normal:'#404035', electric:'#504000', grass:'#1a3a10', ice:'#1a4040', flying:'#1a3050', bug:'#283010', rock:'#403020', steel:'#30303a', fairy:'#602050' };
-
-// ── Natures ───────────────────────────────────────────────────────────────────
-const NATURES = {
-  Hardy:[null,null], Lonely:['attack','defense'], Brave:['attack','speed'],
-  Adamant:['attack','sp_attack'], Naughty:['attack','sp_defense'],
-  Bold:['defense','attack'], Docile:[null,null], Relaxed:['defense','speed'],
-  Impish:['defense','sp_attack'], Lax:['defense','sp_defense'],
-  Timid:['speed','attack'], Hasty:['speed','defense'], Serious:[null,null],
-  Jolly:['speed','sp_attack'], Naive:['speed','sp_defense'],
-  Modest:['sp_attack','attack'], Mild:['sp_attack','defense'],
-  Quiet:['sp_attack','speed'], Bashful:[null,null], Rash:['sp_attack','sp_defense'],
-  Calm:['sp_defense','attack'], Gentle:['sp_defense','defense'],
-  Sassy:['sp_defense','speed'], Careful:['sp_defense','sp_attack'], Quirky:[null,null],
-};
-const NATURE_DE = {
-  Hardy:'Robust', Lonely:'Solo', Brave:'Forsch', Adamant:'Bescheiden', Naughty:'Frech',
-  Bold:'Kühn', Docile:'Sanft', Relaxed:'Locker', Impish:'Pfiffig', Lax:'Lasch',
-  Timid:'Scheu', Hasty:'Hastig', Serious:'Ernst', Jolly:'Fröhlich', Naive:'Naiv',
-  Modest:'Mäßig', Mild:'Mild', Quiet:'Still', Bashful:'Zaghaft', Rash:'Hitzig',
-  Calm:'Ruhig', Gentle:'Zart', Sassy:'Kess', Careful:'Sorgfältig', Quirky:'Seltsam',
-};
-const STAT_SHORT = { attack:'ATK', defense:'DEF', sp_attack:'SpA', sp_defense:'SpD', speed:'SPE' };
-
-function natureMult(name, stat) {
-  const n = NATURES[name]; if (!n) return 1;
-  if (n[0] === stat) return 1.1; if (n[1] === stat) return 0.9; return 1;
-}
-
-// ── Stat calc ─────────────────────────────────────────────────────────────────
-function calcStat(base, iv, ev, level, nat) {
-  return Math.floor((Math.floor((2*base + Math.min(31,iv||31) + Math.floor(Math.min(252,ev||0)/4)) * level/100) + 5) * nat);
-}
-function calcHP(base, iv, ev, level) {
-  if (base === 1) return 1;
-  return Math.floor((2*base + Math.min(31,iv||31) + Math.floor(Math.min(252,ev||0)/4)) * level/100) + level + 10;
-}
-
-// ── Damage ────────────────────────────────────────────────────────────────────
-function damageRolls(level, power, atk, def, opts) {
-  const critMult = (opts.gen||6) >= 6 ? 1.5 : 2.0;
-  const base = Math.floor(Math.floor(2*level/5+2) * power * atk/def/50) + 2;
-  const rolls = [];
-  for (let r = 85; r <= 100; r++) {
-    let d = base;
-    if (opts.weather==='sun'  && opts.moveType==='fire')  d = Math.floor(d*3/2);
-    if (opts.weather==='sun'  && opts.moveType==='water') d = Math.floor(d/2);
-    if (opts.weather==='rain' && opts.moveType==='water') d = Math.floor(d*3/2);
-    if (opts.weather==='rain' && opts.moveType==='fire')  d = Math.floor(d/2);
-    if (opts.crit) d = Math.floor(d*critMult);
-    d = Math.floor(d*r/100);
-    if (opts.stab) d = Math.floor(d*3/2);
-    const eff = opts.typeEff;
-    if (eff===0) { rolls.push(0); continue; }
-    if (eff===0.25) d=Math.floor(d/4);
-    else if (eff===0.5) d=Math.floor(d/2);
-    else if (eff===2) d=d*2;
-    else if (eff===4) d=d*4;
-    if (opts.burn && opts.damageClass==='physical') d=Math.floor(d/2);
-    if (opts.screens) d=Math.floor(d/2);
-    rolls.push(Math.max(1,d));
-  }
-  return rolls;
-}
-
-// ── API cache ─────────────────────────────────────────────────────────────────
-const BASE_URL = 'https://pokeapi.co/api/v2';
-const apiCache = new Map();
-async function apiFetch(url) {
-  if (apiCache.has(url)) return apiCache.get(url);
-  const r = await fetch(url); if (!r.ok) throw new Error(r.status);
-  const d = await r.json(); apiCache.set(url, d); return d;
-}
-
-const GEN_RANGES = {
-  1:{limit:151,offset:0}, 2:{limit:100,offset:151}, 3:{limit:135,offset:251},
-  4:{limit:107,offset:386}, 5:{limit:156,offset:493}, 6:{limit:72,offset:649},
-  7:{limit:88,offset:721}, 8:{limit:96,offset:809}, 9:{limit:120,offset:905},
-};
-
-const GEN_LABELS = {
-  1:'Generation 1 - Kanto', 2:'Generation 2 - Johto', 3:'Generation 3 - Hoenn',
-  4:'Generation 4 - Sinnoh', 5:'Generation 5 - Einall', 6:'Generation 6 - Kalos',
-  7:'Generation 7 - Alola', 8:'Generation 8 - Galar', 9:'Generation 9 - Paldea',
-};
-
-// Cache loaded gen data (names+ids only)
-const genListCache = new Map();
-let allPokemonList = [];
-
-async function loadGenList(gen) {
-  if (genListCache.has(gen)) return genListCache.get(gen);
-  const {limit,offset} = GEN_RANGES[gen];
-  const d = await apiFetch(`${BASE_URL}/pokemon?limit=${limit}&offset=${offset}`);
-  const list = d.results.map((p,i) => ({
-    name: p.name,
-    id: offset + i + 1,
-    gen,
-    displayName: cap(p.name),
-    sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${offset + i + 1}.png`,
-  }));
-  genListCache.set(gen, list);
-  return list;
-}
-
-async function fetchSpeciesName(nameOrId) {
-  try {
-    const sp = await apiFetch(`${BASE_URL}/pokemon-species/${String(nameOrId).toLowerCase()}`);
-    return sp.names.find(n=>n.language.name==='de')?.name
-        || sp.names.find(n=>n.language.name==='en')?.name || null;
-  } catch {
-    return null;
-  }
-}
-
-async function localizePokemonList(list, rerender = null) {
-  await Promise.allSettled(list.map(async p => {
-    if (p.localized) return;
-    const deName = await fetchSpeciesName(p.name);
-    if (deName) p.displayName = deName;
-    p.localized = true;
-  }));
-  if (rerender) rerender();
-}
-
-async function loadAllPokemonBasic() {
-  if (allPokemonList.length) return allPokemonList;
-  const results = await Promise.allSettled(Object.keys(GEN_RANGES).map(g => loadGenList(+g)));
-  allPokemonList = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
-  return allPokemonList;
-}
-
-async function fetchPokemon(nameOrId) {
-  const d = await apiFetch(`${BASE_URL}/pokemon/${String(nameOrId).toLowerCase()}`);
-  const sp = await apiFetch(`${BASE_URL}/pokemon-species/${d.species.name}`);
-  const deName = sp.names.find(n=>n.language.name==='de')?.name
-              || sp.names.find(n=>n.language.name==='en')?.name || d.name;
-  return {
-    id: d.id, name: d.name, deName,
-    sprite: d.sprites.front_default,
-    types: d.types.map(t=>t.type.name),
-    moves: d.moves || [],
-    base: {
-      hp:d.stats[0].base_stat, attack:d.stats[1].base_stat,
-      defense:d.stats[2].base_stat, sp_attack:d.stats[3].base_stat,
-      sp_defense:d.stats[4].base_stat, speed:d.stats[5].base_stat,
-    }
-  };
-}
-
-// All move names (loaded once)
-let moveListAll = null;
-async function loadMoveList() {
-  if (moveListAll) return moveListAll;
-  const d = await apiFetch(`${BASE_URL}/move?limit=1000`);
-  moveListAll = d.results.map(m => ({
-    ...m,
-    displayName: cap(m.name),
-    localized: false,
-  }));
-  return moveListAll;
-}
-
-async function fetchMove(nameOrId) {
-  const d = await apiFetch(`${BASE_URL}/move/${String(nameOrId).toLowerCase()}`);
-  const deName = d.names.find(n=>n.language.name==='de')?.name
-              || d.names.find(n=>n.language.name==='en')?.name || d.name;
-  return { name:d.name, deName, type:d.type?.name||null, power:d.power||null, damageClass:d.damage_class?.name||null };
-}
-
-async function localizeMoveList(list) {
-  await Promise.allSettled(list.map(async m => {
-    if (m.localized) return;
-    const data = await fetchMove(m.name);
-    m.displayName = data.deName || m.displayName;
-    m.type = data.type;
-    m.power = data.power;
-    m.damageClass = data.damageClass;
-    m.localized = true;
-  }));
-}
-
-function searchKey(value) {
-  return String(value || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\u00df/g, 'ss')
-    .replace(/ß/g, 'ss')
-    .replace(/[\s-]+/g, '');
-}
-
-const GEN_VERSION_GROUPS = {
-  1:['red-blue','yellow'],
-  2:['gold-silver','crystal'],
-  3:['ruby-sapphire','emerald','firered-leafgreen','colosseum','xd'],
-  4:['diamond-pearl','platinum','heartgold-soulsilver'],
-  5:['black-white','black-2-white-2'],
-  6:['x-y','omega-ruby-alpha-sapphire'],
-  7:['sun-moon','ultra-sun-ultra-moon','lets-go-pikachu-lets-go-eevee'],
-  8:['sword-shield','isle-of-armor','crown-tundra','brilliant-diamond-and-shining-pearl','legends-arceus'],
-  9:['scarlet-violet','the-teal-mask','the-indigo-disk'],
-};
-
-function pokemonCanLearnMove(pokemon, moveName, gen = +document.getElementById('gen-select').value || 6) {
-  if (!pokemon?.moves?.length || !moveName) return false;
-  const move = pokemon.moves.find(m => m.move?.name === moveName);
-  if (!move) return false;
-  const groups = GEN_VERSION_GROUPS[gen] || [];
-  return move.version_group_details?.some(d => groups.includes(d.version_group?.name));
-}
-
-async function getLearnableMovesForAttacker() {
-  if (!atkPokemon) return [];
-  const all = await loadMoveList();
-  const gen = +document.getElementById('gen-select').value || 6;
-  const groups = GEN_VERSION_GROUPS[gen] || [];
-  const names = new Set(
-    (atkPokemon.moves || [])
-      .filter(m => m.version_group_details?.some(d => groups.includes(d.version_group?.name)))
-      .map(m => m.move?.name)
-      .filter(Boolean)
-  );
-  return all.filter(m => names.has(m.name));
-}
-
-// ── State ─────────────────────────────────────────────────────────────────────
-let atkPokemon = null, defPokemon = null, currentMove = null;
-let modalTarget = null; // 'atk' | 'def'
-const tog = { burn:false, weatherSun:false, weatherRain:false, screens:false };
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function cap(s) { return s.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
-function typePill(type) {
-  const bg = TYPE_COLORS[type]||'#888', col = TYPE_TEXT[type]||'#fff';
-  return `<span class="type-pill" style="background:${bg};color:${col}">${cap(type)}</span>`;
-}
-
-// ── Nature dropdowns ──────────────────────────────────────────────────────────
-function buildNatureSelects() {
-  ['atk-nature','def-nature'].forEach(id => {
-    const sel = document.getElementById(id);
-    for (const [en, de] of Object.entries(NATURE_DE)) {
-      const n = NATURES[en];
-      const label = n[0] ? `${de} (+${STAT_SHORT[n[0]]} −${STAT_SHORT[n[1]]})` : de;
-      sel.appendChild(Object.assign(document.createElement('option'), { value:en, textContent:label }));
-    }
-    sel.value = 'Hardy';
-  });
-}
-
-// ── Pokémon display render ────────────────────────────────────────────────────
-function renderAtkDisplay(p) {
-  document.getElementById('atk-display').innerHTML = `
-    <img class="poke-sprite" src="${p.sprite||''}" alt="${p.deName}">
-    <div>
-      <div class="poke-name">${p.deName} <span style="color:var(--color-muted);font-weight:400;font-size:0.8rem">#${p.id}</span></div>
-      <div class="poke-types">${p.types.map(typePill).join('')}</div>
-      <div class="poke-stats-mini">ATK ${p.base.attack} · SpA ${p.base.sp_attack}</div>
-    </div>
-    <span class="pick-hint">${window.LANG === 'en' ? 'Change' : 'Ändern'}</span>`;
-  updateAtkStats(); validateCurrentMoveForAttacker(); autoCalc();
-}
-function renderDefDisplay(p) {
-  document.getElementById('def-display').innerHTML = `
-    <img class="poke-sprite" src="${p.sprite||''}" alt="${p.deName}">
-    <div>
-      <div class="poke-name">${p.deName} <span style="color:var(--color-muted);font-weight:400;font-size:0.8rem">#${p.id}</span></div>
-      <div class="poke-types">${p.types.map(typePill).join('')}</div>
-      <div class="poke-stats-mini">DEF ${p.base.defense} · SpD ${p.base.sp_defense} · ${window.LANG === 'en' ? 'HP' : 'KP'} ${p.base.hp}</div>
-    </div>
-    <span class="pick-hint">${window.LANG === 'en' ? 'Change' : 'Ändern'}</span>`;
-  updateDefStats(); autoCalc();
-}
-function renderMoveDisplay(m) {
-  const stab = atkPokemon && m.type && atkPokemon.types.includes(m.type);
-  const classMap = { physical:'class-phys', special:'class-spec', status:'class-stat' };
-  const classLabel = window.LANG === 'en'
-    ? { physical:'Physical', special:'Special', status:'Status' }
-    : { physical:'Physisch', special:'Spezial', status:'Status' };
-  document.getElementById('move-display').innerHTML = `
-    <div class="move-name">${m.deName}</div>
-    <div class="move-meta">
-      ${m.type ? typePill(m.type) : ''}
-      ${m.damageClass ? `<span class="${classMap[m.damageClass]||'class-stat'}">${classLabel[m.damageClass]||m.damageClass}</span>` : ''}
-      ${m.power ? `<span class="move-power-badge">${window.LANG === 'en' ? 'Power' : 'Stärke'}: <b>${m.power}</b></span>` : '<span class="move-power-badge">–</span>'}
-      ${stab ? '<span class="stab-tag">STAB</span>' : ''}
-    </div>
-    <span class="pick-hint">${window.LANG === 'en' ? 'Change' : 'Ändern'}</span>`;
-  highlightStats(); autoCalc();
-}
-
-function resetMoveSelection(message = null) {
-  if (!message) message = window.LANG === 'en' ? 'Choose move →' : 'Attacke wählen →';
-  currentMove = null;
-  document.getElementById('move-display').innerHTML =
-    `<span class="move-empty">${message}</span><span class="pick-hint">${window.LANG === 'en' ? 'Click' : 'Klicken'}</span>`;
-  highlightStats();
-}
-
-function validateCurrentMoveForAttacker() {
-  if (!currentMove || !atkPokemon) return;
-  if (!pokemonCanLearnMove(atkPokemon, currentMove.name)) {
-    resetMoveSelection('Attacke wählen →');
-  } else {
-    renderMoveDisplay(currentMove);
-  }
-}
-
-function updateStabInMove() { if (currentMove) renderMoveDisplay(currentMove); }
-
-// ── Stat live display ─────────────────────────────────────────────────────────
-function updateAtkStats() {
-  if (!atkPokemon) return;
-  const lv=+document.getElementById('atk-level').value||50, nat=document.getElementById('atk-nature').value;
-  const a=calcStat(atkPokemon.base.attack,   +document.getElementById('atk-atk-iv').value, +document.getElementById('atk-atk-ev').value, lv, natureMult(nat,'attack'));
-  const s=calcStat(atkPokemon.base.sp_attack,+document.getElementById('atk-spa-iv').value, +document.getElementById('atk-spa-ev').value, lv, natureMult(nat,'sp_attack'));
-  document.getElementById('atk-atk-final').textContent=`→ ${a} ${window.LANG === 'en' ? 'Attack' : 'Angriff'}`;
-  document.getElementById('atk-spa-final').textContent=`→ ${s} ${window.LANG === 'en' ? 'Sp. Attack' : 'Sp. Angriff'}`;
-}
-function updateDefStats() {
-  if (!defPokemon) return;
-  const lv=+document.getElementById('def-level').value||50, nat=document.getElementById('def-nature').value;
-  const hp=calcHP(defPokemon.base.hp,  +document.getElementById('def-hp-iv').value,  +document.getElementById('def-hp-ev').value,  lv);
-  const df=calcStat(defPokemon.base.defense,   +document.getElementById('def-def-iv').value,+document.getElementById('def-def-ev').value, lv, natureMult(nat,'defense'));
-  const sd=calcStat(defPokemon.base.sp_defense,+document.getElementById('def-spd-iv').value,+document.getElementById('def-spd-ev').value, lv, natureMult(nat,'sp_defense'));
-  document.getElementById('def-hp-final').textContent=`→ ${hp} ${window.LANG === 'en' ? 'HP' : 'KP'}`;
-  document.getElementById('def-def-final').textContent=`→ ${df} ${window.LANG === 'en' ? 'Defense' : 'Verteidigung'}`;
-  document.getElementById('def-spd-final').textContent=`→ ${sd} ${window.LANG === 'en' ? 'Sp. Def.' : 'Sp. Vert.'}`;
-}
-function highlightStats() {
-  const ph = currentMove?.damageClass==='physical', sp = currentMove?.damageClass==='special';
-  document.getElementById('atk-atk-row').classList.toggle('active-stat',!!ph);
-  document.getElementById('atk-spa-row').classList.toggle('active-stat',!!sp);
-  document.getElementById('def-def-row').classList.toggle('active-stat',!!ph);
-  document.getElementById('def-spd-row').classList.toggle('active-stat',!!sp);
-}
-
-function applyDefWorstCase() {
-  if (!defPokemon) { showErr(window.LANG === 'en' ? 'Please choose a defender first.' : 'Wähle zuerst einen Verteidiger aus.'); return; }
-  if (!currentMove || !['physical','special'].includes(currentMove.damageClass)) {
-    showErr(window.LANG === 'en' ? 'Please choose a physical or special move first.' : 'Wähle zuerst eine physische oder spezielle Attacke aus.');
-    return;
-  }
-
-  const isSpecial = currentMove.damageClass === 'special';
-  document.getElementById('def-hp-ev').value = 252;
-  document.getElementById('def-hp-iv').value = 31;
-  document.getElementById('def-def-ev').value = isSpecial ? 0 : 252;
-  document.getElementById('def-def-iv').value = 31;
-  document.getElementById('def-spd-ev').value = isSpecial ? 252 : 0;
-  document.getElementById('def-spd-iv').value = 31;
-  document.getElementById('def-nature').value = isSpecial ? 'Calm' : 'Bold';
-  updateDefStats();
-  autoCalc();
-}
-
-// ── Toggles ───────────────────────────────────────────────────────────────────
-document.querySelectorAll('.tog').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const k = btn.id.replace('tog-','');
-    if (k==='weather-sun'  && !tog.weatherSun)  { tog.weatherRain=false; document.getElementById('tog-weather-rain').classList.remove('on'); }
-    if (k==='weather-rain' && !tog.weatherRain) { tog.weatherSun=false;  document.getElementById('tog-weather-sun').classList.remove('on'); }
-    const map = { 'burn':'burn','weather-sun':'weatherSun','weather-rain':'weatherRain','screens':'screens' };
-    tog[map[k]] = !tog[map[k]];
-    btn.classList.toggle('on', tog[map[k]]);
-    autoCalc();
-  });
-});
-
-// ── Calculate ─────────────────────────────────────────────────────────────────
-function getAtkStatValue() {
-  if (!atkPokemon) return null;
-  const lv=+document.getElementById('atk-level').value||50, nat=document.getElementById('atk-nature').value;
-  if (currentMove?.damageClass==='special')
-    return calcStat(atkPokemon.base.sp_attack,+document.getElementById('atk-spa-iv').value,+document.getElementById('atk-spa-ev').value,lv,natureMult(nat,'sp_attack'));
-  return calcStat(atkPokemon.base.attack,+document.getElementById('atk-atk-iv').value,+document.getElementById('atk-atk-ev').value,lv,natureMult(nat,'attack'));
-}
-function getDefStatValue() {
-  if (!defPokemon) return null;
-  const lv=+document.getElementById('def-level').value||50, nat=document.getElementById('def-nature').value;
-  if (currentMove?.damageClass==='special')
-    return calcStat(defPokemon.base.sp_defense,+document.getElementById('def-spd-iv').value,+document.getElementById('def-spd-ev').value,lv,natureMult(nat,'sp_defense'));
-  return calcStat(defPokemon.base.defense,+document.getElementById('def-def-iv').value,+document.getElementById('def-def-ev').value,lv,natureMult(nat,'defense'));
-}
-function getHPValue() {
-  if (!defPokemon) return null;
-  const lv=+document.getElementById('def-level').value||50;
-  return calcHP(defPokemon.base.hp,+document.getElementById('def-hp-iv').value,+document.getElementById('def-hp-ev').value,lv);
-}
-
-function calculate() {
-  const power = +document.getElementById('move-power-override').value || currentMove?.power;
-  if (!atkPokemon||!defPokemon||!currentMove) { showErr(window.LANG === 'en' ? 'Attacker, defender and move are required.' : 'Angreifer, Verteidiger und Attacke benötigt.'); return; }
-  if (!power) { showErr(window.LANG === 'en' ? 'Status moves do not deal direct damage.' : 'Status-Attacken verursachen keinen direkten Schaden.'); return; }
-  const gen=+document.getElementById('gen-select').value, lv=+document.getElementById('atk-level').value||50;
-  const atkStat=getAtkStatValue(), defStat=getDefStatValue(), hp=getHPValue();
-  const eff = currentMove.type ? typeEff(currentMove.type, defPokemon.types) : 1;
-  const stab = currentMove.type ? atkPokemon.types.includes(currentMove.type) : false;
-  const weather = tog.weatherSun?'sun':tog.weatherRain?'rain':null;
-  const opts = { gen, stab, typeEff:eff, burn:tog.burn, screens:tog.screens, weather, moveType:currentMove.type, damageClass:currentMove.damageClass };
-  const rolls = damageRolls(lv,power,atkStat,defStat,{...opts,crit:false});
-  const rollsCrit = damageRolls(lv,power,atkStat,defStat,{...opts,crit:true});
-  renderResults(rolls,rollsCrit,hp,eff,stab,atkStat,defStat,power);
-}
-function autoCalc() { if (atkPokemon&&defPokemon&&currentMove) calculate(); }
-
-// ── Results ───────────────────────────────────────────────────────────────────
-function koHits(rolls, hp) {
-  if (!hp) return null;
-  if (rolls[rolls.length-1]>=hp) return 1;
-  for (let h=2; h<=4; h++) {
-    if (rolls[rolls.length-1]*h>=hp) {
-      return { hits:h, chance:rolls.filter(r=>r*h>=hp).length/rolls.length };
-    }
-  }
-  return null;
-}
-function koLabel(ko) {
-  if (!ko) return { text: window.LANG === 'en' ? 'No KO in 4 hits' : 'Kein KO in 4 Treffern', cls:'ko-color-safe' };
-  if (ko===1) return { text: window.LANG === 'en' ? '1-hit KO (guaranteed)' : '1-Treffer-KO (garantiert)', cls:'ko-color-1' };
-  const pct=(ko.chance*100).toFixed(0);
-  const hitText = window.LANG === 'en' ? `${ko.hits}-hit KO (${pct}% chance)` : `${ko.hits}-Treffer-KO (${pct}% Chance)`;
-  return { text: hitText, cls:ko.hits===2?'ko-color-2':ko.hits===3?'ko-color-3':'ko-color-safe' };
-}
-function effLabel(eff) {
-  if (eff===0)    return [window.LANG === 'en' ? 'No effect' : 'Keine Wirkung','eff-0'];
-  if (eff<=0.25)  return [window.LANG === 'en' ? 'Not very effective (¼×)' : 'Nicht sehr effektiv (¼×)','eff-025'];
-  if (eff<=0.5)   return [window.LANG === 'en' ? 'Not very effective (½×)' : 'Nicht sehr effektiv (½×)','eff-05'];
-  if (eff===1)    return [window.LANG === 'en' ? 'Normal' : 'Normal','eff-1'];
-  if (eff<=2)     return [window.LANG === 'en' ? 'Super effective (2×)' : 'Sehr effektiv (2×)','eff-2'];
-  return [window.LANG === 'en' ? 'Super effective (4×)' : 'Sehr effektiv (4×)','eff-4'];
-}
-function barClr(p) { return p>=100?'#ff4040':p>=50?'#ff8800':p>=25?'#ffda08':'#44cc44'; }
-
-function showErr(msg) { document.getElementById('results-area').innerHTML=`<div class="results-empty">${msg}</div>`; }
-
-function renderResults(rolls, rollsCrit, hp, eff, stab, atkStat, defStat, power) {
-  const mn=rolls[0], mx=rolls[rolls.length-1];
-  const mnP=hp?(mn/hp*100).toFixed(1):null, mxP=hp?(mx/hp*100).toFixed(1):null;
-  const bw=hp?Math.min(100,mx/hp*100):0;
-  const koI=koLabel(koHits(rolls,hp)), koC=koLabel(koHits(rollsCrit,hp));
-  const [et,ec]=effLabel(eff);
-  const en = window.LANG === 'en';
-  document.getElementById('results-area').innerHTML=`
-    <div class="results-grid">
-      <div class="res-box">
-        <div class="res-box-title">${en ? 'Damage (Normal)' : 'Schaden (Normal)'}</div>
-        <div class="res-big">${mn} – ${mx}</div>
-        ${hp?`<div class="res-sub">${mnP}% – ${mxP}% ${en ? 'of' : 'von'} ${hp} ${en ? 'HP' : 'KP'}</div><div class="res-bar"><div class="res-bar-fill" style="width:${bw}%;background:${barClr(bw)}"></div></div>`:''}
-      </div>
-      <div class="res-box">
-        <div class="res-box-title">${en ? 'KO Forecast' : 'KO-Prognose'}</div>
-        <div class="res-big ${koI.cls}" style="font-size:1rem;line-height:1.5">${koI.text}</div>
-      </div>
-      <div class="res-box">
-        <div class="res-box-title">${en ? 'Crit Damage' : 'Krit-Schaden'}</div>
-        <div class="res-big">${rollsCrit[0]} – ${rollsCrit[rollsCrit.length-1]}</div>
-        <div class="res-sub ${koC.cls}">${koC.text}</div>
-      </div>
-      <div class="res-box">
-        <div class="res-box-title">${en ? 'Type Effectiveness' : 'Typ-Effektivität'}</div>
-        <div class="res-big" style="font-size:1.1rem">${eff}×</div>
-        <div class="res-sub"><span class="eff-tag ${ec}">${et}</span>${stab?' · <span class="stab-tag">STAB</span>':''}</div>
-      </div>
-      <div class="res-box">
-        <div class="res-box-title">${en ? 'Stats Used' : 'Verwendete Stats'}</div>
-        <div class="res-sub" style="margin-top:4px;line-height:1.9">
-          ${en ? 'Attack' : 'Angriff'}: <b>${atkStat}</b> &nbsp; ${en ? 'Def' : 'Def'}: <b>${defStat}</b><br>${en ? 'Power' : 'Stärke'}: <b>${power}</b> &nbsp; ${en ? 'Level' : 'Level'}: <b>${document.getElementById('atk-level').value}</b>
-        </div>
-      </div>
-      <div class="res-box">
-        <div class="res-box-title">${en ? 'All 16 Rolls' : 'Alle 16 Würfe'}</div>
-        <div style="font-size:0.7rem;color:var(--color-muted);line-height:1.8;margin-top:2px">${rolls.join(' · ')}</div>
-      </div>
-    </div>`;
-}
-
-// ── Pokémon Modal ─────────────────────────────────────────────────────────────
-const pokeModal = document.getElementById('pokemon-modal');
-const pokeList  = document.getElementById('pokemon-list');
-const pokeLoading = document.getElementById('modal-loading');
-const genSel = document.getElementById('generation-select');
-const pokeSearch = document.getElementById('pokemon-search');
-
-let currentGenList = [];
-let searchDebounce = null;
-
-async function openPokeModal(target) {
-  modalTarget = target;
-  genSel.value = document.getElementById('gen-select').value || genSel.value;
-  document.getElementById('modal-title').textContent = target==='atk'
-    ? (window.LANG === 'en' ? 'Choose Attacker' : 'Angreifer wählen')
-    : (window.LANG === 'en' ? 'Choose Defender' : 'Verteidiger wählen');
-  pokeModal.style.display = 'flex';
-  pokeSearch.value = '';
-  await loadAndRenderGen(+genSel.value);
-  setTimeout(()=>pokeSearch.focus(), 80);
-}
-
-function closePokeModal() { pokeModal.style.display='none'; }
-
-async function loadAndRenderGen(gen) {
-  pokeLoading.style.display='block'; pokeList.innerHTML='';
-  currentGenList = await loadGenList(gen);
-  renderPokeList(currentGenList, { showHeaders:false });
-  pokeLoading.style.display='none';
-  localizePokemonList(currentGenList, () => {
-    if (pokeModal.style.display === 'flex' && !pokeSearch.value.trim()) renderPokeList(currentGenList, { showHeaders:false });
-  });
-  loadAllPokemonBasic().then(() => {
-    localizePokemonList(allPokemonList, () => {
-      if (pokeModal.style.display === 'flex' && pokeSearch.value.trim()) renderPokemonSearch();
-    });
-  });
-}
-
-function renderPokeList(list, opts = {}) {
-  const showHeaders = opts.showHeaders ?? false;
-  pokeList.innerHTML='';
-  if (!list.length) {
-    const li = document.createElement('li');
-    li.className = 'pokemon-empty';
-    li.textContent = window.LANG === 'en' ? 'No Pokémon found.' : 'Kein Pokémon gefunden.';
-    pokeList.appendChild(li);
-    return;
-  }
-  let currentGen = null;
-  list.forEach(p => {
-    if (showHeaders && p.gen !== currentGen) {
-      currentGen = p.gen;
-      const header = document.createElement('li');
-      header.className = 'pokemon-gen-header';
-      header.textContent = GEN_LABELS[p.gen] || `Generation ${p.gen}`;
-      pokeList.appendChild(header);
-    }
-    const li = document.createElement('li');
-    li.innerHTML=`<img src="${p.sprite || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png`}" loading="lazy"><div class="pli-name">${p.displayName || cap(p.name)}</div><div class="pli-id">#${p.id}</div>`;
-    li.addEventListener('click', async () => {
-      closePokeModal();
-      try {
-        const full = await fetchPokemon(p.name);
-        if (modalTarget==='atk') { atkPokemon=full; renderAtkDisplay(full); }
-        else { defPokemon=full; renderDefDisplay(full); }
-      } catch(e) { console.error(e); }
-    });
-    pokeList.appendChild(li);
-  });
-}
-
-genSel.addEventListener('change', () => loadAndRenderGen(+genSel.value));
-
-async function renderPokemonSearch() {
-  const q = pokeSearch.value.trim().toLowerCase();
-  if (!q) {
-    renderPokeList(currentGenList, { showHeaders:false });
-    return;
-  }
-
-  pokeLoading.style.display = 'block';
-  const all = await loadAllPokemonBasic();
-  pokeLoading.style.display = 'none';
-  const filtered = all
-    .filter(p =>
-      p.displayName.toLowerCase().includes(q) ||
-      p.name.toLowerCase().includes(q) ||
-      String(p.id) === q
-    )
-    .sort((a,b) => a.id - b.id);
-
-  renderPokeList(filtered, { showHeaders:true });
-
-  if (!filtered.length && /^\d+$/.test(q)) {
-    pokeLoading.style.display='block';
-    apiFetch(`${BASE_URL}/pokemon/${q}`).then(d => {
-      pokeLoading.style.display='none';
-      const gen = Object.entries(GEN_RANGES).find(([,r]) => d.id > r.offset && d.id <= r.offset + r.limit)?.[0];
-      const entry = {
-        name:d.name,
-        id:d.id,
-        gen: gen ? +gen : null,
-        displayName: cap(d.name),
-        sprite: d.sprites?.front_default || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${d.id}.png`,
-      };
-      renderPokeList([entry], { showHeaders:false });
-      localizePokemonList([entry], () => renderPokeList([entry], { showHeaders:false }));
-    }).catch(()=>{ pokeLoading.style.display='none'; renderPokeList([], { showHeaders:false }); });
-  }
-}
-
-pokeSearch.addEventListener('input', () => {
-  clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(renderPokemonSearch, 180);
-});
-
-document.getElementById('atk-display').addEventListener('click', ()=>openPokeModal('atk'));
-document.getElementById('def-display').addEventListener('click', ()=>openPokeModal('def'));
-document.getElementById('close-modal').addEventListener('click', closePokeModal);
-pokeModal.addEventListener('click', e=>{ if(e.target===pokeModal) closePokeModal(); });
-
-// ── Move Modal ────────────────────────────────────────────────────────────────
-const moveModal = document.getElementById('move-modal');
-const moveList  = document.getElementById('move-list');
-const moveLoading = document.getElementById('move-loading');
-const moveSearch  = document.getElementById('move-search');
-let moveSearchDebounce = null;
-let currentMovePool = [];
-
-async function openMoveModal() {
-  moveModal.style.display='flex'; moveSearch.value=''; moveList.innerHTML='';
-  if (!atkPokemon) {
-    moveLoading.style.display='none';
-    currentMovePool = [];
-    renderMoveList([], window.LANG === 'en' ? 'Choose an attacker first.' : 'Wähle zuerst einen Angreifer aus.');
-    setTimeout(()=>moveSearch.focus(),80);
-    return;
-  }
-  moveLoading.style.display='block';
-  const moves = await getLearnableMovesForAttacker();
-  currentMovePool = moves;
-  await localizeMoveList(currentMovePool);
-  moveLoading.style.display='none';
-  renderMoveList(currentMovePool.slice(0,80));
-  setTimeout(()=>moveSearch.focus(),80);
-}
-function closeMoveModal() { moveModal.style.display='none'; }
-
-function renderMoveList(moves, emptyMessage = null) {
-  if (!emptyMessage) emptyMessage = window.LANG === 'en' ? 'No move found.' : 'Keine Attacke gefunden.';
-  moveList.innerHTML='';
-  if (!moves.length) {
-    const empty = document.createElement('div');
-    empty.className = 'move-list-item';
-    empty.style.cursor = 'default';
-    empty.innerHTML = `<span class="mli-name" style="color:var(--color-muted);text-align:center">${emptyMessage}</span>`;
-    moveList.appendChild(empty);
-    return;
-  }
-  moves.forEach(m => {
-    const item = document.createElement('div');
-    item.className='move-list-item';
-    const classMap = { physical:'class-phys', special:'class-spec', status:'class-stat' };
-    const classLabel = window.LANG === 'en'
-      ? { physical:'Physical', special:'Special', status:'Status' }
-      : { physical:'Physisch', special:'Spezial', status:'Status' };
-    item.innerHTML=`
-      <span class="mli-name">${m.displayName || cap(m.name)}</span>
-      ${m.type ? `<span class="mli-type" style="background:${TYPE_COLORS[m.type]||'#888'};color:${TYPE_TEXT[m.type]||'#fff'}">${cap(m.type)}</span>` : ''}
-      ${m.damageClass ? `<span class="mli-class ${classMap[m.damageClass]||'class-stat'}">${classLabel[m.damageClass]||m.damageClass}</span>` : ''}
-      <span class="mli-power">${m.power || '-'}</span>`;
-    item.addEventListener('click', async ()=>{
-      closeMoveModal();
-      try { currentMove=await fetchMove(m.name); renderMoveDisplay(currentMove); }
-      catch(e){ console.error(e); }
-    });
-    moveList.appendChild(item);
-  });
-}
-
-moveSearch.addEventListener('input', () => {
-  clearTimeout(moveSearchDebounce);
-  moveSearchDebounce = setTimeout(async () => {
-    const q = searchKey(moveSearch.value);
-    if (!atkPokemon) { renderMoveList([], window.LANG === 'en' ? 'Choose an attacker first.' : 'Wähle zuerst einen Angreifer aus.'); return; }
-    if (!q) { renderMoveList(currentMovePool.slice(0,80)); return; }
-    const filtered = currentMovePool.filter(m => {
-      const de = searchKey(m.displayName);
-      const en = searchKey(m.name);
-      return de.startsWith(q) || de.includes(q) || en.startsWith(q) || en.includes(q);
-    }).slice(0,80);
-    if (filtered.length) {
-      renderMoveList(filtered);
-    } else {
-      renderMoveList([]);
-    }
-  }, 250);
-});
-
-document.getElementById('move-display').addEventListener('click', openMoveModal);
-document.getElementById('close-move-modal').addEventListener('click', closeMoveModal);
-moveModal.addEventListener('click', e=>{ if(e.target===moveModal) closeMoveModal(); });
-
-// ── Swap ──────────────────────────────────────────────────────────────────────
-document.getElementById('swap-btn').addEventListener('click', ()=>{
-  [atkPokemon,defPokemon]=[defPokemon,atkPokemon];
-  if (atkPokemon) renderAtkDisplay(atkPokemon);
-  else document.getElementById('atk-display').innerHTML=`<span class="poke-empty">${window.LANG === 'en' ? 'Choose Pokémon →' : 'Pokémon wählen →'}</span><span class="pick-hint">${window.LANG === 'en' ? 'Click to choose' : 'Klicken zum Auswählen'}</span>`;
-  if (defPokemon) renderDefDisplay(defPokemon);
-  else document.getElementById('def-display').innerHTML=`<span class="poke-empty">${window.LANG === 'en' ? 'Choose Pokémon →' : 'Pokémon wählen →'}</span><span class="pick-hint">${window.LANG === 'en' ? 'Click to choose' : 'Klicken zum Auswählen'}</span>`;
-  autoCalc();
-});
-
-// ── Calc button + live inputs ─────────────────────────────────────────────────
-document.getElementById('calc-btn').addEventListener('click', calculate);
-document.getElementById('def-worst-case-btn').addEventListener('click', applyDefWorstCase);
-document.getElementById('gen-select').addEventListener('change', () => { validateCurrentMoveForAttacker(); autoCalc(); });
-document.getElementById('move-power-override').addEventListener('input', autoCalc);
-
-['atk-level','atk-nature','atk-atk-ev','atk-atk-iv','atk-spa-ev','atk-spa-iv'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',()=>{ updateAtkStats(); autoCalc(); });
-});
-['def-level','def-nature','def-hp-ev','def-hp-iv','def-def-ev','def-def-iv','def-spd-ev','def-spd-iv'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',()=>{ updateDefStats(); autoCalc(); });
-});
-
-buildNatureSelects();
-
-// ── i18n ─────────────────────────────────────────────────────────────────────
-function applyLang() {
-  const t = TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    if (t[key] !== undefined) el.textContent = t[key];
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.dataset.i18nPlaceholder;
-    if (t[key] !== undefined) el.placeholder = t[key];
-  });
-  document.querySelectorAll('[data-i18n-title]').forEach(el => {
-    const key = el.dataset.i18nTitle;
-    if (t[key] !== undefined) el.title = t[key];
-  });
-  document.getElementById('lang-toggle').textContent = window.LANG.toUpperCase();
-  // Re-render stat finals if pokemon loaded
-  if (atkPokemon) updateAtkStats();
-  if (defPokemon) updateDefStats();
-  // Re-render move display
-  if (currentMove) renderMoveDisplay(currentMove);
-  else {
-    const moveDisp = document.getElementById('move-display');
-    if (moveDisp.querySelector('.move-empty')) {
-      moveDisp.innerHTML = `<span class="move-empty">${t.moveEmpty}</span><span class="pick-hint">${t.pickHintClick}</span>`;
-    }
-  }
-  // Re-render poke displays if empty
-  const atkDisp = document.getElementById('atk-display');
-  if (!atkPokemon && atkDisp.querySelector('.poke-empty')) {
-    atkDisp.innerHTML = `<span class="poke-empty">${t.pokeEmpty}</span><span class="pick-hint">${t.pickHintPoke}</span>`;
-  } else if (atkPokemon) renderAtkDisplay(atkPokemon);
-  const defDisp = document.getElementById('def-display');
-  if (!defPokemon && defDisp.querySelector('.poke-empty')) {
-    defDisp.innerHTML = `<span class="poke-empty">${t.pokeEmpty}</span><span class="pick-hint">${t.pickHintPoke}</span>`;
-  } else if (defPokemon) renderDefDisplay(defPokemon);
-  // Re-render results if they exist
-  if (atkPokemon && defPokemon && currentMove) calculate();
-}
-
-document.getElementById('lang-toggle').addEventListener('click', () => {
-  window.LANG = window.LANG === 'de' ? 'en' : 'de';
-  localStorage.setItem('hub-lang', window.LANG);
-  document.documentElement.lang = window.LANG;
-  applyLang();
-});
-applyLang();
-</script>
+<script src="mechanics.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

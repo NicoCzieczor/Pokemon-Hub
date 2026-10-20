@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- PWA: Homescreen-App + Offline -->
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0d0f2b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PokéHub">
+  <link rel="apple-touch-icon" href="../icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1320x2868.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1260x2736.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1206x2622.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1290x2796.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1179x2556.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1284x2778.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1170x2532.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1125x2436.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="../icons/splash-1242x2688.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-828x1792.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-750x1334.png">
+  <script src="../pwa.js"></script>
+  <title>Save-Viewer – Pokémon Hub</title>
+  <link rel="stylesheet" href="../Pokelocke/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <nav class="tool-nav" aria-label="Pokémon tools">
+    <a class="tool-nav-link" href="../index.html" data-i18n="nav.home">Home</a>
+    <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav.run">Run</a>
+    <a class="tool-nav-link" href="../Pokelocke/index.html" data-i18n="nav.team">Team</a>
+    <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
+    <a class="tool-nav-link" href="../Trio/index.html" data-i18n="nav.trio">Trio</a>
+    <a class="tool-nav-link" href="../Catchrate/index.html" data-i18n="nav.catchrate">Fangrate</a>
+    <a class="tool-nav-link" href="../DamageCalc/index.html" data-i18n="nav.damage">Schaden</a>
+    <a class="tool-nav-link" href="../Typrechner/index.html" data-i18n="nav.types">Typen</a>
+    <a class="tool-nav-link" href="../PokemonInfo/index.html" data-i18n="nav.info">Dex</a>
+    <a class="tool-nav-link" href="../Karte/index.html" data-i18n="nav.map">Karte</a>
+    <a class="tool-nav-link is-active" href="index.html" aria-current="page" data-i18n="nav.save">Save</a>
+    <a class="tool-nav-link" href="../Rules/index.html" data-i18n="nav.rules">Regeln</a>
+  </nav>
+
+  <header>
+    <div class="header-copy">
+      <h1>Save-<span>Viewer</span></h1>
+      <p data-i18n="subtitle">Lade deinen Platin-Spielstand und sieh dir Team, Boxen und Fangorte an.</p>
+    </div>
+    <button id="lang-toggle" class="lang-toggle" type="button">DE</button>
+  </header>
+
+  <input type="file" id="file-input" hidden>
+
+  <!-- Upload -->
+  <section id="drop-section">
+    <button type="button" class="drop" id="drop">
+      <span class="drop-icon">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 6h20l8 8v26a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3Z"/>
+          <path d="M15 6v9h13V6"/>
+          <rect x="14" y="25" width="20" height="12" rx="2"/>
+          <path d="M19 30h10"/>
+        </svg>
+      </span>
+      <span class="drop-title" data-i18n="drop.title">Spielstand hier reinziehen oder antippen</span>
+      <span class="drop-sub" data-i18n="drop.sub">Pokémon Platin · .sav oder .dsv vom Emulator. Die Datei wird nur auf deinem Gerät gelesen und nirgendwo hochgeladen.</span>
+      <span class="drop-badges">
+        <span class="pill pill--ok" data-i18n="drop.offline">✓ Funktioniert offline</span>
+        <span class="pill">DeSmuME · melonDS · DraStic · Delta</span>
+      </span>
+    </button>
+  </section>
+
+  <div id="error" class="error" hidden></div>
+
+  <!-- Nach dem Laden -->
+  <section id="loaded" hidden>
+    <div class="save-bar" id="save-bar"></div>
+    <div id="notices" style="display:grid;gap:8px;margin-top:12px"></div>
+    <div class="card trainer" id="trainer" style="margin-top:12px"></div>
+
+    <div class="tabs" id="tabs" role="tablist" style="margin-top:16px">
+      <button class="tab is-active" data-tab="team" type="button" data-i18n="tab.team">Team</button>
+      <button class="tab" data-tab="boxes" type="button" data-i18n="tab.boxes">Boxen</button>
+      <button class="tab" data-tab="encounters" type="button" data-i18n="tab.encounters">Fangorte</button>
+      <button class="tab" data-tab="dex" type="button" data-i18n="tab.dex">Pokédex</button>
+      <button class="tab" data-tab="link" type="button" data-i18n="tab.link" hidden>Soul Link</button>
+    </div>
+
+    <div id="panel" style="margin-top:16px"></div>
+  </section>
+
+  <details class="help" id="help">
+    <summary data-i18n="help.title">Wo finde ich meinen Spielstand?</summary>
+    <div class="help-body">
+      <p data-i18n="help.intro">Du brauchst den normalen Spielstand, der beim Speichern im Spiel entsteht – nicht einen Savestate des Emulators. Vorher im Spiel speichern!</p>
+      <div class="help-grid">
+        <div class="help-item"><b>DeSmuME</b><span data-i18n="help.desmume">Ordner <code>Battery</code>, Datei endet auf <code>.dsv</code></span></div>
+        <div class="help-item"><b>melonDS</b><span data-i18n="help.melon">Liegt als <code>.sav</code> neben der ROM-Datei</span></div>
+        <div class="help-item"><b>DraStic</b><span data-i18n="help.drastic">Ordner <code>DraStic/backup</code>, Datei endet auf <code>.dsv</code></span></div>
+        <div class="help-item"><b>Delta (iPhone)</b><span data-i18n="help.delta">Spiel lange drücken → Spielstand exportieren → in Dateien sichern</span></div>
+      </div>
+      <p data-i18n="help.hacks">ROM-Hacks auf Platin-Basis (z. B. Renegade Platinum) lassen sich meist auch lesen – Basiswerte und Typen können dort aber vom Original abweichen.</p>
+    </div>
+  </details>
+
+  <footer class="page-foot">
+    <span data-i18n="foot.local">Alles passiert lokal in deinem Browser. Zuletzt geladene Spielstände bleiben nur auf diesem Gerät gespeichert.</span>
+    <span data-i18n="foot.credits">Speicherformat nach PKHeX · Sprites von PokéAPI</span>
+  </footer>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" id="modal-card"></div>
+</div>
+
+<script src="data-pt.js"></script>
+<script src="pt-save.js"></script>
+<script src="soul-link.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

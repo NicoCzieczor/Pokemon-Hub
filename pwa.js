@@ -17,7 +17,20 @@
     navigator.maxTouchPoints > 0;
 
   /* ── 1. Service Worker ─────────────────────────────────────────────── */
-  if ('serviceWorker' in navigator && scriptUrl && location.protocol !== 'file:') {
+  // Beim Entwickeln (VS Code Live Server, localhost, Heimnetz) kein Offline-Speicher,
+  // sonst sieht man nach dem Speichern erst mal die alte Version.
+  var localDev = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(location.hostname) ||
+    /\.local$/.test(location.hostname);
+  if ('serviceWorker' in navigator && localDev) {
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (r) { r.unregister(); });
+    }).catch(function () {});
+    if (window.caches) {
+      caches.keys().then(function (names) {
+        names.forEach(function (n) { if (n.indexOf('pokehub-') === 0) caches.delete(n); });
+      }).catch(function () {});
+    }
+  } else if ('serviceWorker' in navigator && scriptUrl && location.protocol !== 'file:') {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register(new URL('sw.js', scriptUrl).href).catch(function (err) {
         console.warn('[PokéHub] Service Worker nicht registriert:', err);

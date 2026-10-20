@@ -40,7 +40,7 @@ const TYPE_CHART = {
   ground:   { fire:2, electric:2, poison:2, rock:2, steel:2, grass:0.5, bug:0.5, flying:0 },
   flying:   { grass:2, fighting:2, bug:2, electric:0.5, rock:0.5, steel:0.5 },
   psychic:  { fighting:2, poison:2, psychic:0.5, steel:0.5, dark:0 },
-  bug:      { grass:2, psychic:2, dark:2, fire:0.5, fighting:0.5, flying:0.5, ghost:0.5, steel:0.5, fairy:0.5 },
+  bug:      { grass:2, psychic:2, dark:2, fire:0.5, fighting:0.5, poison:0.5, flying:0.5, ghost:0.5, steel:0.5, fairy:0.5 },
   rock:     { fire:2, ice:2, flying:2, bug:2, fighting:0.5, ground:0.5, steel:0.5 },
   ghost:    { psychic:2, ghost:2, dark:0.5, normal:0 },
   dragon:   { dragon:2, steel:0.5, fairy:0 },
@@ -568,9 +568,10 @@ function renderTeamWeaknessPanel() {
     });
     weaknesses.sort((a,b)=>b.count-a.count);
     immunities.sort((a,b)=>b.count-a.count);
+    const problemTypes = new Set(findTeamProblems(active).map(p => p.type));
     const addRows = (list, countCls) => list.forEach(({ type, count }) => {
       const row = document.createElement('div');
-      row.className = 'weakness-summary-row';
+      row.className = 'weakness-summary-row' + (!countCls && problemTypes.has(type) ? ' is-problem' : '');
       row.appendChild(Object.assign(document.createElement('span'), { className:`weakness-type-label type-bg-${type}`, textContent:window.typeLabel(type) }));
       row.appendChild(Object.assign(document.createElement('span'), { className:`weakness-summary-count ${countCls}`, textContent:`${count}×` }));
       block.appendChild(row);
@@ -593,6 +594,10 @@ function renderTeamWeaknessPanel() {
   if (a1.length) summary.appendChild(buildBlock(a1, 'p1', window.t('player1')));
   if (a2.length) summary.appendChild(buildBlock(a2, 'p2', window.t('player2')));
 
+  // Warnungen nur bei echten Problemen – oben, damit man sie sieht
+  const alerts = renderTeamAlerts(a1, a2);
+  if (alerts) container.appendChild(alerts);
+
   const wrapper = document.createElement('div');
   wrapper.className = 'weakness-wrapper';
   const scroll = document.createElement('div');
@@ -601,125 +606,67 @@ function renderTeamWeaknessPanel() {
   wrapper.appendChild(scroll);
   wrapper.appendChild(summary);
   container.appendChild(wrapper);
-
-  const c1 = renderCoverageSection(a1, 'p1');
-  const c2 = renderCoverageSection(a2, 'p2');
-  if (c1 || c2) {
-    const coverWrapper = document.createElement('div');
-    coverWrapper.className = 'coverage-players-wrapper';
-    if (c1) coverWrapper.appendChild(c1);
-    if (c2) coverWrapper.appendChild(c2);
-    container.appendChild(coverWrapper);
-  }
 }
 
-// ── Coverage recommendations ──────────────────────────────────────────────────
-const TYPE_CARD_RGB = {
-  normal:'168,168,120', fire:'255,60,0',    water:'30,100,255',  electric:'255,210,0',
-  grass:'80,210,30',    ice:'0,220,220',    fighting:'255,100,0', poison:'200,0,200',
-  ground:'210,160,30',  flying:'120,180,255',psychic:'255,0,100', bug:'160,200,0',
-  rock:'140,100,20',    ghost:'112,88,152', dragon:'100,50,240',  dark:'90,70,55',
-  steel:'160,160,175',  fairy:'240,140,170',
-};
-
-function renderCoverageSection(allActive, playerCls) {
-  if (!allActive.length) return null;
-
-  const weakCount = {};
+// ── Team-Warnungen ────────────────────────────────────────────────────────────
+// Eine Schwäche ist erst ein Problem, wenn viele im Team sie teilen (ab 3, bei kleinen Teams ab 2)
+// und weniger Pokémon dagegenhalten (widerstehen oder immun sind) als schwach sind.
+function findTeamProblems(active) {
+  const need = active.length <= 3 ? 2 : 3;
+  const problems = [];
   ALL_TYPES.forEach(atk => {
-    weakCount[atk] = allActive.filter(p => getTypeEffectiveness(atk, p.types||[]) >= 2).length;
+    let weak = 0, weak4 = 0, safe = 0;
+    active.forEach(p => {
+      const m = getTypeEffectiveness(atk, Array.isArray(p.types) ? p.types : []);
+      if (m >= 2) { weak++; if (m >= 4) weak4++; }
+      else if (m < 1) safe++;
+    });
+    if (weak >= need && weak > safe) problems.push({ type: atk, weak, weak4, total: active.length });
   });
+  return problems.sort((a, b) => b.weak - a.weak || b.weak4 - a.weak4);
+}
 
-  const recs = ALL_TYPES.map(defType => {
-    let score = 0;
-    const covers = [];
-    ALL_TYPES.forEach(atk => {
-      if (!weakCount[atk]) return;
-      const m = getTypeEffectiveness(atk, [defType]);
-      if (m < 1) {
-        score += weakCount[atk] * (m === 0 ? 2 : 1);
-        covers.push({ type: atk, weakCount: weakCount[atk], multiplier: m });
-      }
+// Bis zu 3 Typen, die das Problem abfangen. Bevorzugt: immun, deckt weitere Probleme ab, ist selbst nicht anfällig dafür.
+function helpersFor(problem, problems) {
+  return ALL_TYPES.map(def => {
+    const m = getTypeEffectiveness(problem.type, [def]);
+    if (m >= 1) return null;
+    let score = m === 0 ? 3 : 2;
+    const covers = [problem.type];
+    problems.forEach(other => {
+      if (other === problem) return;
+      const mo = getTypeEffectiveness(other.type, [def]);
+      if (mo < 1) { score += 2; covers.push(other.type); }
+      else if (mo >= 2) score -= 2;
     });
-    covers.sort((a, b) => b.weakCount - a.weakCount || a.type.localeCompare(b.type));
-    return { type: defType, score, covers };
-  }).filter(r => r.score > 0).sort((a, b) => b.score - a.score).slice(0, 5);
+    return { type: def, score, covers };
+  }).filter(Boolean)
+    .sort((a, b) => b.score - a.score || ALL_TYPES.indexOf(a.type) - ALL_TYPES.indexOf(b.type))
+    .slice(0, 3);
+}
 
-  if (!recs.length) return null;
-
-  const section = document.createElement('div');
-  section.className = `coverage-section ${playerCls}`;
-
-  const header = document.createElement('div');
-  header.className = 'coverage-header';
-  const titleEl = document.createElement('div');
-  titleEl.className = 'coverage-title';
-  titleEl.innerHTML = `🛡️ ${window.t('recommendations')} <span class="coverage-player-tag ${playerCls}">${playerCls === 'p1' ? window.t('player1') : window.t('player2')}</span>`;
-  header.appendChild(titleEl);
-  header.appendChild(Object.assign(document.createElement('div'), { className:'coverage-subtitle', textContent:window.t('recs-subtitle') }));
-  section.appendChild(header);
-
-  const list = document.createElement('div');
-  list.className = 'coverage-list';
-
-  recs.forEach((rec, i) => {
-    const rgb = TYPE_CARD_RGB[rec.type] || '255,255,255';
-    const item = document.createElement('div');
-    item.className = 'coverage-item';
-    item.style.setProperty('--coverage-rgb', rgb);
-
-    item.appendChild(Object.assign(document.createElement('div'), { className:'coverage-rank', textContent:i+1 }));
-
-    const body = document.createElement('div');
-    body.className = 'coverage-body';
-
-    const main = document.createElement('div');
-    main.className = 'coverage-main';
-    const typePill = Object.assign(document.createElement('div'), {
-      className: 'coverage-type-pill',
-      textContent: window.typeLabel(rec.type),
+function renderTeamAlerts(a1, a2) {
+  const box = document.createElement('div');
+  box.className = 'team-alerts';
+  [[a1, 'p1'], [a2, 'p2']].forEach(([active, cls]) => {
+    if (!active.length) return;
+    const problems = findTeamProblems(active);
+    problems.forEach(problem => {
+      const row = document.createElement('div');
+      row.className = `team-alert ${cls}`;
+      const helpers = helpersFor(problem, problems);
+      const player = cls === 'p1' ? window.t('player1') : window.t('player2');
+      row.innerHTML = `
+        <span class="team-alert-icon" aria-hidden="true">!</span>
+        <span class="team-alert-player ${cls}">${player}</span>
+        <span class="team-alert-text">${window.t('alert-weak', problem.weak, problem.total)}
+          <span class="team-alert-type type-bg-${problem.type}">${window.typeLabel(problem.type)}</span>${problem.weak4 ? `<span class="team-alert-x4">${window.t('alert-x4', problem.weak4)}</span>` : ''}</span>
+        ${helpers.length ? `<span class="team-alert-help"><span class="team-alert-help-label">${window.t('alert-help')}</span>${helpers.map(h =>
+          `<span class="team-alert-helper type-bg-${h.type}" title="${window.t('alert-covers', h.covers.map(window.typeLabel).join(', '))}">${window.typeLabel(h.type)}</span>`).join('')}</span>` : ''}`;
+      box.appendChild(row);
     });
-    typePill.style.setProperty('--coverage-rgb', rgb);
-    main.appendChild(typePill);
-    main.appendChild(Object.assign(document.createElement('div'), {
-      className: 'coverage-count',
-      textContent: window.t('resists', rec.covers.length),
-    }));
-    body.appendChild(main);
-
-    const meta = document.createElement('div');
-    meta.className = 'coverage-meta';
-    meta.appendChild(Object.assign(document.createElement('span'), { className:'coverage-chip-label', textContent:window.t('covers-label') }));
-    const chips = document.createElement('div');
-    chips.className = 'coverage-chips';
-    rec.covers.forEach(({ type, weakCount: count }) => {
-      const chip = Object.assign(document.createElement('span'), { className: 'coverage-chip' });
-      chip.style.setProperty('--chip-rgb', TYPE_CARD_RGB[type] || '255,255,255');
-      chip.appendChild(Object.assign(document.createElement('span'), { textContent: window.typeLabel(type) }));
-      if (count > 1) chip.appendChild(Object.assign(document.createElement('span'), { className:'coverage-chip-weight', textContent:`x${count}` }));
-      chips.appendChild(chip);
-    });
-    meta.appendChild(chips);
-    body.appendChild(meta);
-    item.appendChild(body);
-
-    const toggle = Object.assign(document.createElement('button'), {
-      className: 'coverage-toggle',
-      type: 'button',
-      title: window.t('covers-label'),
-      innerHTML: '<span class="coverage-toggle-icon">▼</span>',
-    });
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.addEventListener('click', () => {
-      const open = item.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', String(open));
-    });
-    item.appendChild(toggle);
-    list.appendChild(item);
   });
-
-  section.appendChild(list);
-  return section;
+  return box.childElementCount ? box : null;
 }
 
 // ── Info panel ────────────────────────────────────────────────────────────────
@@ -1738,54 +1685,60 @@ async function selectPokemon(pokemon) {
   } catch(e) { console.error('Fehler:', e); }
 }
 
-function removePokemon(player, index, type) {
+// Verknüpfter Partner (gleicher Platz beim anderen Spieler) oder null.
+// Team: verknüpft laut linkedTeamSlots. Box: beide Hälften belegt = Paar (wie Kettensymbol und Drag & Drop).
+function linkedPartner(player, index, type) {
+  const other = 3 - player;
+  if (type === 'team') return linkedTeamSlots.has(index) ? teams[other-1][index] : null;
+  if (type === 'box')  return boxes[other-1][index] || null;
+  return null;
+}
+
+// Nimmt ein Pokémon samt verknüpftem Partner aus Team bzw. Box und löst die Verknüpfung.
+// Gibt den Partner zurück (oder null). Speichert nicht – das macht der Aufrufer.
+function clearPokemon(player, index, type) {
+  const partner = linkedPartner(player, index, type);
+  const other = 3 - player;
   if (type === 'team') {
     teams[player-1][index] = null;
     renderTeamSlot(player, index, null);
+    if (partner) {
+      teams[other-1][index] = null;
+      renderTeamSlot(other, index, null);
+    }
     if (linkedTeamSlots.has(index)) {
       linkedTeamSlots.delete(index);
       updateLinkHighlights();
     }
     renderTeamWeaknessPanel();
-    saveState();
-  }
-}
-
-function killPokemon(player, index, type) {
-  let entry = null;
-  if (type === 'team') {
-    entry = teams[player-1][index];
-    if (!entry) return;
-    const partner = linkedTeamSlots.has(index) ? teams[(3-player)-1][index] : null;
-    teams[player-1][index] = null;
-    renderTeamSlot(player, index, null);
-    if (partner) {
-      teams[(3-player)-1][index] = null;
-      renderTeamSlot(3-player, index, null);
-      linkedTeamSlots.delete(index);
-      updateLinkHighlights();
-      const linkId = Date.now();
-      graves[(3-player)-1].push({ ...toDisplayPokemon(partner), killedBy: 0, linkId });
-      graves[player-1].push({ ...toDisplayPokemon(entry), killedBy: 0, linkId });
-      renderGraveyard();
-      saveState();
-      return;
-    } else if (linkedTeamSlots.has(index)) {
-      linkedTeamSlots.delete(index);
-      updateLinkHighlights();
-    }
-    renderTeamWeaknessPanel();
   } else if (type === 'box') {
-    entry = boxes[player-1][index];
-    if (!entry) return;
     boxes[player-1][index] = null;
+    if (partner) boxes[other-1][index] = null;
     if (!boxes[0][index] && !boxes[1][index]) linkedBoxSlots.delete(index);
     updateBoxSlots();
   }
-  if (entry) {
+  return partner;
+}
+
+// „Entfernen“: Pokémon und verknüpfter Partner verschwinden
+function removePokemon(player, index, type) {
+  clearPokemon(player, index, type);
+  saveState();
+}
+
+// „Gestorben“: Pokémon und verknüpfter Partner verschwinden und landen im Friedhof
+function killPokemon(player, index, type) {
+  const entry = type === 'team' ? teams[player-1][index] : type === 'box' ? boxes[player-1][index] : null;
+  if (!entry) return;
+  const partner = clearPokemon(player, index, type);
+  if (partner) {
+    const linkId = Date.now();   // markiert die beiden im Friedhof als Paar
+    graves[(3-player)-1].push({ ...toDisplayPokemon(partner), killedBy: 0, linkId });
+    graves[player-1].push({ ...toDisplayPokemon(entry), killedBy: 0, linkId });
+  } else {
     graves[player-1].push({ ...toDisplayPokemon(entry), killedBy: 0 });
-    renderGraveyard();
   }
+  renderGraveyard();
   saveState();
 }
 
@@ -1810,8 +1763,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCtxMenu(
 document.getElementById('ctx-remove').addEventListener('click', () => {
   if (!ctxTarget) return;
   const { player, index, type } = ctxTarget;
-  if (type === 'team') removePokemon(player, index, 'team');
-  else { boxes[player-1][index] = null; if (!boxes[0][index] && !boxes[1][index]) linkedBoxSlots.delete(index); updateBoxSlots(); saveState(); }
+  removePokemon(player, index, type);
   hideCtxMenu();
 });
 

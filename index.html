@@ -59,6 +59,11 @@
       padding: 48px 20px 72px;
     }
 
+    /* ── DESKTOP (3 Spalten): steht die letzte Karte allein in ihrer Reihe, nimmt sie die volle Breite ── */
+    @media (min-width: 901px) {
+      .tools-grid > .tool-card:last-child:nth-child(3n+1) { grid-column: 1 / -1; }
+    }
+
     /* ── TABLET (601–900px) ── */
     @media (min-width: 601px) and (max-width: 900px) {
       .tools-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -377,7 +382,11 @@
 </head>
 <script>
   (function(){
-    if (window.innerWidth <= 768 && navigator.maxTouchPoints > 0)
+    // Handys & Tablets (Hauptbedienung per Finger) → mobile Startseite.
+    // Laptops mit Touchscreen haben Maus/Touchpad als Hauptbedienung und bleiben hier.
+    var touch = navigator.maxTouchPoints > 0;
+    var finger = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (touch && (finger || window.innerWidth <= 768))
       window.location.replace('mobile.html');
   })();
 </script>
@@ -419,6 +428,26 @@
       </div>
       <div class="tool-name" data-i18n="rundashboard-name">Run-Dashboard</div>
       <div class="tool-desc" data-i18n="rundashboard-desc">Tracke deinen aktuellen Run mit Level Caps, Encounters, Graveyard, Notizen und Schnellzugriffen.</div>
+      <div class="tool-link">
+        <span data-i18n="open">Öffnen</span>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </a>
+
+    <!-- Save-Viewer -->
+    <a href="./SaveViewer/index.html" class="tool-card tool-card--active">
+      <div class="tool-icon" id="icon-saveviewer">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 6h20l8 8v26a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3Z"/>
+          <path d="M15 6v9h13V6"/>
+          <rect x="14" y="25" width="20" height="12" rx="2"/>
+          <path d="M19 30h10"/>
+        </svg>
+      </div>
+      <div class="tool-name" data-i18n="saveviewer-name">Save-Viewer</div>
+      <div class="tool-desc" data-i18n="saveviewer-desc">Lade deinen Platin-Spielstand und sieh dir Team, Boxen, Fangorte und Pokédex an – direkt aus der Speicherdatei.</div>
       <div class="tool-link">
         <span data-i18n="open">Öffnen</span>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -565,6 +594,24 @@
       </div>
     </a>
 
+    <!-- Karte (Platin) -->
+    <a href="./Karte/index.html" class="tool-card tool-card--active">
+      <div class="tool-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8 L12 5 L20 8 L28 5 V24 L20 27 L12 24 L4 27 Z"/>
+          <path d="M12 5 V24M20 8 V27"/>
+        </svg>
+      </div>
+      <div class="tool-name" data-i18n="map-name">Karte (Platin)</div>
+      <div class="tool-desc" data-i18n="map-desc">Interaktive Karte von Sinnoh: Items, versteckte Items, TMs, Trainer und wilde Pokémon an ihrer echten Stelle.</div>
+      <div class="tool-link">
+        <span data-i18n="open">Öffnen</span>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </a>
+
   </div>
 
   <div class="data-actions">
@@ -635,6 +682,8 @@
         'ai-notice':        'Erstellt mit KI-Unterstützung',
         'rundashboard-name':'Run-Dashboard',
         'rundashboard-desc':'Tracke deinen aktuellen Run mit Level Caps, Encounters, Graveyard, Notizen und Schnellzugriffen.',
+        'saveviewer-name':  'Save-Viewer',
+        'saveviewer-desc':  'Lade deinen Platin-Spielstand und sieh dir Team, Boxen, Fangorte und Pokédex an – direkt aus der Speicherdatei.',
         'teambuilder-name': 'Team Builder',
         'teambuilder-desc': 'Stelle dein Team zusammen, analysiere Typ-Deckung und Schwächen, und verwalte deine Box.',
         'duo-name':         'Duo Nuzlocke',
@@ -651,6 +700,8 @@
         'typcalc-desc':     'Berechne Typ-Effektivitäten schnell und vergleiche Matchups für beliebige Kombinationen.',
         'pokedex-name':     'Pokédex',
         'pokedex-desc':     'Vollständige Infos zu jedem Pokémon: Stats, Typ-Effektivität, Attacken, Fundorte, Entwicklung und mehr.',
+        'map-name':         'Karte (Platin)',
+        'map-desc':         'Interaktive Karte von Sinnoh: Items, versteckte Items, TMs, Trainer und wilde Pokémon an ihrer echten Stelle.',
         'open':             'Öffnen',
         'footer':           'Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.',
         'backup-export':    'Daten sichern',
@@ -661,6 +712,8 @@
         'ai-notice':        'Built with AI assistance',
         'rundashboard-name':'Run Dashboard',
         'rundashboard-desc':'Track your current run with level caps, encounters, graveyard, notes and quick access.',
+        'saveviewer-name':  'Save Viewer',
+        'saveviewer-desc':  'Load your Platinum save file and browse your team, boxes, catch locations and Pokédex – straight from the save.',
         'teambuilder-name': 'Team Builder',
         'teambuilder-desc': 'Build your team, analyze type coverage and weaknesses, and manage your box.',
         'duo-name':         'Duo Nuzlocke',
@@ -677,6 +730,8 @@
         'typcalc-desc':     'Calculate type effectiveness quickly and compare matchups for any combination.',
         'pokedex-name':     'Pokédex',
         'pokedex-desc':     'Complete info on every Pokémon: stats, type effectiveness, moves, locations, evolution and more.',
+        'map-name':         'Map (Platinum)',
+        'map-desc':         'Interactive map of Sinnoh: items, hidden items, TMs, trainers and wild Pokémon at their real spot.',
         'open':             'Open',
         'footer':           'Pokémon and all related names are trademarks of Nintendo / Game Freak.',
         'backup-export':    'Back up data',

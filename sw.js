@@ -10,7 +10,7 @@
  *
  * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
  */
-const VERSION = 'v1';
+const VERSION = 'v12';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
 const API_CACHE = `${PREFIX}api`;
@@ -24,6 +24,8 @@ const PRECACHE = [
   './',
   './index.html',
   './mobile.html',
+  './mobile.css',
+  './mobile.js',
   './manifest.json',
   './pwa.js',
   './icons/icon-180.png',
@@ -40,6 +42,8 @@ const PRECACHE = [
   './vendor/leaflet/images/marker-icon-2x.png',
   './vendor/leaflet/images/marker-shadow.png',
   './RunDashboard/index.html',
+  './RunDashboard/style.css',
+  './RunDashboard/app.js',
   './Pokelocke/index.html',
   './Pokelocke/main.js',
   './Pokelocke/pokeapi.js',
@@ -47,16 +51,37 @@ const PRECACHE = [
   './Duo/index.html',
   './Duo/mobile.html',
   './Duo/main.js',
+  './Duo/style.css',
+  './Duo/i18n.js',
+  './Duo/level-caps.js',
   './Trio/index.html',
   './Trio/main.js',
   './Catchrate/index.html',
   './Catchrate/main.js',
+  './Catchrate/style.css',
   './DamageCalc/index.html',
+  './DamageCalc/style.css',
+  './DamageCalc/mechanics.js',
+  './DamageCalc/app.js',
   './Typrechner/index.html',
+  './Typrechner/style.css',
+  './Typrechner/app.js',
   './Typrechner/Types.png',
   './PokemonInfo/index.html',
+  './PokemonInfo/style.css',
+  './PokemonInfo/app.js',
   './Rules/index.html',
   './Karte/index.html',
+  './Karte/style.css',
+  './Karte/app.js',
+  './Karte/platin.json',
+  './Karte/platin-terrain.png',
+  './SaveViewer/index.html',
+  './SaveViewer/style.css',
+  './SaveViewer/data-pt.js',
+  './SaveViewer/pt-save.js',
+  './SaveViewer/soul-link.js',
+  './SaveViewer/main.js',
 ];
 
 // Kleine Bilder, die die Startseite zufällig anzeigt (Bälle). Werden nebenbei mitgeladen;

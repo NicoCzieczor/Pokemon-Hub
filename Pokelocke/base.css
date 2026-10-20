@@ -43,6 +43,12 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Gescrollt wird im body (s. o.). Platz für die Scrollleiste immer freihalten, damit kurze und
+   lange Seiten gleich breit sind und die Navigationsleiste beim Tabwechsel nicht verrutscht. */
+body {
+  scrollbar-gutter: stable;
+}
+
 a {
   color: var(--color-accent);
   text-decoration: none;
@@ -219,4 +225,14 @@ canvas {
     height: 32px;
     padding-inline: 11px;
   }
+}
+
+/* ── Gemeinsames Handy-Layout aller Unterseiten mit Karte (#app) ──
+   Vorher hatte jede Seite eigene Handy-Abstände, dadurch saß die Navigationsleiste je nach Tab
+   woanders (und ragte teils über die Karte hinaus). Die Selektoren sind absichtlich etwas
+   spezifischer als die der einzelnen Seiten, damit hier überall dieselben Werte gelten. */
+@media (max-width: 720px) {
+  body:has(> #app) { padding: 14px 8px 24px; }
+  body > #app { width: 100%; padding: 18px 14px; border-radius: 22px; }
+  body > #app > .tool-nav { margin: -18px -14px 0; padding: 0 18px; border-radius: 22px 22px 0 0; }
 }

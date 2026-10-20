@@ -72,8 +72,11 @@ Sonst werden sie erst gespeichert, wenn du sie einmal online geöffnet hast.
 
 ## 6. Lokal testen
 
-Im Ordner `python -m http.server 8000` starten und `http://localhost:8000` öffnen.
-Der Offline-Modus funktioniert auch auf `localhost`, aber nicht, wenn du die HTML-Datei direkt doppelklickst.
+Wie bisher mit **Live Server** in VS Code (oder `python -m http.server 8000`).
+Lokal (localhost, 127.0.0.1, Heimnetz-IP) ist der Offline-Speicher absichtlich **aus** –
+so siehst du jede Änderung sofort. Offline testest du auf der GitHub-Pages-Adresse.
+
+iPhone-Ansicht am PC: in Chrome **F12** → Handy-Symbol (Gerätesymbolleiste) → z. B. „iPhone 14 Pro Max“.
 
 ---
 
