@@ -1,7 +1,9 @@
 /*
  * Interaktive Karte von Sinnoh (Pokémon Platin).
- * Daten: platin.json + platin-terrain.png – erzeugt von tools/build-platin.js aus pret/pokeplatinum.
+ * Daten: platin.json (tools/build-platin.js) und die Kartenkacheln in tiles/ (tools/render-platin.js +
+ * tools/make-tiles.py) – beides aus pret/pokeplatinum, das Kartenbild aus den 3D-Modellen des Spiels.
  * Koordinaten sind Spiel-Kacheln: x nach rechts, z nach unten. Leaflet (CRS.Simple) bekommt [−z, x].
+ * Das Bild zeigt die Welt aus dem Blickwinkel der Spielkamera: höher gelegene Stellen erscheinen weiter oben.
  */
 window.LANG = localStorage.getItem('hub-lang') || 'de';
 document.documentElement.lang = window.LANG;
@@ -9,12 +11,13 @@ document.documentElement.lang = window.LANG;
 const TRANSLATIONS = {
   de: {
     title: 'Karte von Sinnoh',
+    gameBadge: 'Platin',
     subtitle: 'Items, versteckte Items, TMs, Trainer und wilde Pokémon – an ihrer echten Stelle im Spiel.',
     searchPlaceholder: 'Ort, Item, TM oder Trainer suchen…',
     fItem: 'Items', fHidden: 'Versteckt', fTm: 'TMs', fGift: 'Geschenke', fTrainer: 'Trainer', fEntrance: 'Eingänge',
     loading: 'Karte wird geladen…',
     loadError: 'Die Kartendaten konnten nicht geladen werden.',
-    note: 'Positionen und Inhalte aus dem Spielcode von Platin (pret/pokeplatinum). Unbegehbare Flächen sind vereinfacht dargestellt.',
+    note: 'Karte aus den 3D-Modellen und Texturen von Platin gerendert, Positionen und Inhalte aus dem Spielcode (pret/pokeplatinum).',
     allPlaces: 'Alle Orte', dirHint: 'Tippe auf die Karte oder wähle einen Ort.',
     groupTowns: 'Städte', groupRoutes: 'Routen', groupPlaces: 'Höhlen, Gebäude & Orte',
     back: 'Alle Orte',
@@ -38,15 +41,18 @@ const TRANSLATIONS = {
     noResults: 'Nichts gefunden.',
     countItems: '{n} Items', countHidden: '{n} versteckt', countTm: '{n} TMs', countTrainers: '{n} Trainer',
     areaN: 'Bereich {n}',
+    interiorMaps: 'Innenkarten', showInside: 'In der Innenkarte zeigen', noMap: 'ohne Karte', backToMap: 'Sinnoh-Karte',
+    toPlanner: 'Im Boss-Planer: Team, Attacken und wie dein Team dagegen abschneidet',
   },
   en: {
     title: 'Map of Sinnoh',
+    gameBadge: 'Platinum',
     subtitle: 'Items, hidden items, TMs, trainers and wild Pokémon – at their real spot in the game.',
     searchPlaceholder: 'Search place, item, TM or trainer…',
     fItem: 'Items', fHidden: 'Hidden', fTm: 'TMs', fGift: 'Gifts', fTrainer: 'Trainers', fEntrance: 'Entrances',
     loading: 'Loading map…',
     loadError: 'The map data could not be loaded.',
-    note: 'Positions and contents from the Platinum game code (pret/pokeplatinum). Impassable areas are simplified.',
+    note: 'Map rendered from Platinum\'s own 3D models and textures; positions and contents from the game code (pret/pokeplatinum).',
     allPlaces: 'All places', dirHint: 'Tap the map or choose a place.',
     groupTowns: 'Towns & cities', groupRoutes: 'Routes', groupPlaces: 'Caves, buildings & places',
     back: 'All places',
@@ -70,6 +76,8 @@ const TRANSLATIONS = {
     noResults: 'Nothing found.',
     countItems: '{n} items', countHidden: '{n} hidden', countTm: '{n} TMs', countTrainers: '{n} trainers',
     areaN: 'Area {n}',
+    interiorMaps: 'Inside maps', showInside: 'Show on the inside map', noMap: 'no map', backToMap: 'Sinnoh map',
+    toPlanner: 'In the Boss Planner: team, moves and how your team does against it',
   },
 };
 const tr = () => TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
@@ -83,43 +91,10 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const nm = o => (o ? (isEn() ? o.en || o.de : o.de || o.en) : '');
 
-// ── Trainerklassen (Spiel-Konstanten → deutsch/englisch) ──────────────────────
-// Unsichere deutsche Namen bleiben bewusst englisch.
-const CLASS_NAMES = {
-  YOUNGSTER: ['Knirps', 'Youngster'], LASS: ['Göre', 'Lass'], BUG_CATCHER: ['Käfersammler', 'Bug Catcher'],
-  CAMPER: ['Camper', 'Camper'], PICNICKER: ['Picknicker', 'Picnicker'], HIKER: ['Wanderer', 'Hiker'],
-  FISHERMAN: ['Angler', 'Fisherman'], SAILOR: ['Matrose', 'Sailor'], BLACK_BELT: ['Schwarzgurt', 'Black Belt'],
-  BATTLE_GIRL: ['Kämpferin', 'Battle Girl'], ACE_TRAINER_MALE: ['Ass-Trainer', 'Ace Trainer'], ACE_TRAINER_FEMALE: ['Ass-Trainerin', 'Ace Trainer'],
-  ACE_TRAINER_SNOW_MALE: ['Ass-Trainer', 'Ace Trainer'], ACE_TRAINER_SNOW_FEMALE: ['Ass-Trainerin', 'Ace Trainer'],
-  AROMA_LADY: ['Aroma-Lady', 'Aroma Lady'], ARTIST: ['Künstler', 'Artist'], BEAUTY: ['Schönheit', 'Beauty'],
-  BREEDER_MALE: ['Pokémon-Züchter', 'Pokémon Breeder'], BREEDER_FEMALE: ['Pokémon-Züchterin', 'Pokémon Breeder'],
-  CAMERAMAN: ['Kameramann', 'Cameraman'], COLLECTOR: ['Sammler', 'Collector'], COWGIRL: ['Cowgirl', 'Cowgirl'],
-  CYCLIST_MALE: ['Radler', 'Cyclist'], CYCLIST_FEMALE: ['Radlerin', 'Cyclist'], GENTLEMAN: ['Gentleman', 'Gentleman'],
-  GUITARIST: ['Gitarrist', 'Guitarist'], JOGGER: ['Jogger', 'Jogger'], LADY: ['Lady', 'Lady'], NINJA_BOY: ['Ninjajunge', 'Ninja Boy'],
-  PARASOL_LADY: ['Schirmdame', 'Parasol Lady'], POLICEMAN: ['Polizist', 'Policeman'], POKEFAN_MALE: ['Pokéfan', 'Poké Fan'],
-  POKEFAN_FEMALE: ['Pokéfan', 'Poké Fan'], RANGER_MALE: ['Pokémon-Ranger', 'Pokémon Ranger'], RANGER_FEMALE: ['Pokémon-Ranger', 'Pokémon Ranger'],
-  REPORTER: ['Reporterin', 'Reporter'], RUIN_MANIAC: ['Ruinenmaniac', 'Ruin Maniac'], SCHOOL_KID_MALE: ['Schüler', 'School Kid'],
-  SCHOOL_KID_FEMALE: ['Schülerin', 'School Kid'], SCIENTIST: ['Wissenschaftler', 'Scientist'], SKIER_MALE: ['Skifahrer', 'Skier'],
-  SKIER_FEMALE: ['Skifahrerin', 'Skier'], SWIMMER_MALE: ['Schwimmer', 'Swimmer'], SWIMMER_FEMALE: ['Schwimmerin', 'Swimmer'],
-  TWINS: ['Zwillinge', 'Twins'], VETERAN: ['Veteran', 'Veteran'], WAITRESS: ['Kellnerin', 'Waitress'], WORKER: ['Arbeiter', 'Worker'],
-  GALACTIC_GRUNT_MALE: ['Galaktik-Rüpel', 'Galactic Grunt'], GALACTIC_GRUNT_FEMALE: ['Galaktik-Rüpel', 'Galactic Grunt'],
-  GALACTIC_BOSS: ['Galaktik-Boss', 'Galactic Boss'], RIVAL: ['Rivale', 'Rival'],
-  BIRD_KEEPER: ['Bird Keeper', 'Bird Keeper'], DRAGON_TAMER: ['Dragon Tamer', 'Dragon Tamer'], PI: ['P.I.', 'P.I.'],
-  POKE_KID: ['Poké Kid', 'Poké Kid'], PSYCHIC_MALE: ['Psychic', 'Psychic'], PSYCHIC_FEMALE: ['Psychic', 'Psychic'],
-  RANCHER: ['Rancher', 'Rancher'], RICH_BOY: ['Rich Boy', 'Rich Boy'], SOCIALITE: ['Socialite', 'Socialite'],
-  TUBER_MALE: ['Tuber', 'Tuber'], TUBER_FEMALE: ['Tuber', 'Tuber'], ROUGHNECK: ['Roughneck', 'Roughneck'], MAID: ['Maid', 'Maid'],
-  DOUBLE_TEAM: ['Double Team', 'Double Team'], YOUNG_COUPLE: ['Young Couple', 'Young Couple'], BELLE_AND_PA: ['Belle & Pa', 'Belle & Pa'],
-};
-const FEMALE_LEADERS = new Set(['GARDENIA', 'FANTINA', 'MAYLENE', 'CANDICE']);
-function className(cls) {
-  const L = isEn() ? 1 : 0;
-  if (CLASS_NAMES[cls]) return CLASS_NAMES[cls][L];
-  if (cls.startsWith('LEADER_')) return isEn() ? 'Gym Leader' : (FEMALE_LEADERS.has(cls.slice(7)) ? 'Arenaleiterin' : 'Arenaleiter');
-  if (cls.startsWith('ELITE_FOUR_')) return isEn() ? 'Elite Four' : 'Top Vier';
-  if (cls.startsWith('COMMANDER_')) return 'Commander';
-  if (cls.startsWith('CHAMPION_')) return isEn() ? 'Champion' : 'Champ';
-  return cls.split('_').map(w => w[0] + w.slice(1).toLowerCase()).join(' ');
-}
+// ── Trainerklassen und -namen (gemeinsam mit dem Boss-Planer: trainer-classes.js) ──
+const className = cls => TrainerClasses.className(cls, isEn());
+const trainerName = (name, cls) => TrainerClasses.trainerName(name, isEn(), cls);
+const CLASS_NAMES = TrainerClasses.CLASS_NAMES;
 
 // ── Darstellung der Marker ────────────────────────────────────────────────────
 const KINDS = ['item', 'hidden', 'tm', 'gift', 'trainer', 'entrance'];
@@ -146,21 +121,121 @@ const typeLabel = l => t({ town: 'typeTown', city: 'typeCity', route: 'typeRoute
 
 // ── Zustand ───────────────────────────────────────────────────────────────────
 let D = null;          // Kartendaten
+let TILES = null;      // Kartenblätter + Bodenhöhen (tiles/index.json)
+let ground = null;     // entpackte Bodenhöhen
+let NATIVE_ZOOM = 4;   // Zoomstufe der feinsten Blätter (1 Bildpixel = 1 Spielpixel)
+let MAX_ZOOM = 6;
 let map = null;
 const layers = {};     // Marker je Art
 const shown = new Set(KINDS);
 let selected = -1;
 let currentTab = 'items';
 let selLayer = null, labelLayer = null, focusMarker = null;
+let seaLayer = null, sheetPanes = [], landBounds = null;
+// Innenkarten (Höhlen, Gebäude …): interiors.json wird erst beim ersten Öffnen geladen
+let INT = null;        // Atlanten, Lage jeder Innenkarte, Bodenhöhen
+let inMap = null;      // geöffnete Innenkarte (Schlüssel aus D.maps) – null = Oberwelt
+let inGround = null, inLayer = null;
+const inLayers = {};   // Marker je Art in der Innenkarte
 const ll = (x, z) => L.latLng(-z, x);
+
+// ── Schrägsicht ───────────────────────────────────────────────────────────────
+// Die Karte ist aus dem Blickwinkel der Spielkamera gerendert: eine Stelle in Höhe h (Kacheln) erscheint um
+// shear·h weiter oben. Bodenhöhen je Block: eine Zahl (eben) oder 1024 Bytes (Höhe·4 + 16); bei Brücken
+// stehen alle Ebenen einer Kachel in „multi", die Höhe y aus den Spieldaten wählt die richtige.
+function decodeGround(idx) {
+  const grid = new Map(), median = new Map();
+  for (const [key, v] of Object.entries(idx.ground || {})) {
+    if (typeof v === 'number') { grid.set(key, v); median.set(key, v); continue; }
+    const bin = atob(v), arr = new Float32Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = (bin.charCodeAt(i) - 16) / 4;
+    grid.set(key, arr);
+    median.set(key, [...arr].sort((a, b) => a - b)[arr.length >> 1]);
+  }
+  return { shear: idx.shear || 0, grid, median, multi: idx.multi || {} };
+}
+function groundAt(g, x, z, y) {
+  const CH = D.chunk, tx = Math.floor(x), tz = Math.floor(z);
+  const multi = g.multi[`${tx}_${tz}`];
+  if (multi && y != null) return multi.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a));
+  const r = Math.floor(tz / CH), c = Math.floor(tx / CH);
+  const v = g.grid.get(`${r}:${c}`);
+  if (v == null) return 0;
+  return typeof v === 'number' ? v : v[(tz - r * CH) * CH + (tx - c * CH)];
+}
+// Bodenhöhen der gerade gezeigten Karte (Oberwelt oder Innenkarte)
+const liftAt = (x, z, y) => { const g = inMap ? inGround : ground; return g ? g.shear * groundAt(g, x, z, y) : 0; };
+const chunkLift = (r, c) => (ground ? ground.shear * (ground.median.get(`${r}:${c}`) ?? 0) : 0);
+// Spielkachel (x, z, Höhe y) → Punkt auf dem Bild
+const llg = (x, z, y) => ll(x, z - liftAt(x, z, y));
+// Punkt auf dem Bild → Spielkachel (Verschiebung rückwärts auflösen)
+function tileAt(latlng) {
+  const x = latlng.lng, sz = -latlng.lat;
+  let z = sz;
+  for (let i = 0; i < 4; i++) z = sz + liftAt(x, z);
+  return { x, z };
+}
+const parsePos = s => s.split(',').map(v => (v === '' ? undefined : +v));
+
+// Kartenbild: wenige große Blätter je Detailstufe (tiles/<z>/<x>_<y>.webp, 2^z Pixel pro Spielkachel).
+// Die Übersicht (kleinste Stufe) liegt immer ganz unten; darüber nur die Blätter, die gerade zu sehen sind –
+// die gröbere Stufe bleibt drunter, bis die feinere geladen ist.
+function setupSheets() {
+  const W = D.width, H = D.height;
+  const levels = [...TILES.levels].sort((a, b) => a.z - b.z).map((lv, i) => {
+    const pane = map.createPane(`sheets${lv.z}`);
+    pane.style.zIndex = 210 + i;
+    pane.style.pointerEvents = 'none';
+    const span = lv.size / Math.pow(2, lv.z), px = 1 / Math.pow(2, lv.z); // Spielkacheln je Blatt / je Pixel
+    const sheets = lv.sheets.map(key => {
+      const [sx, sy] = key.split('_').map(Number);
+      const x0 = sx * span, z0 = sy * span;
+      // 1 Pixel Überlappung nach rechts/unten, damit bei Zwischen-Zoomstufen keine Fuge durchscheint
+      const x1 = Math.min(W, x0 + span) + px, z1 = Math.min(H, z0 + span) + px;
+      return { url: `tiles/${lv.z}/${key}.webp`, bounds: L.latLngBounds(ll(x0, z1), ll(x1, z0)), layer: null };
+    });
+    return { z: lv.z, pane: `sheets${lv.z}`, sheets };
+  });
+  sheetPanes = levels.map(lv => map.getPane(lv.pane));
+  const show = (lv, s, on) => {
+    if (on && !s.layer) s.layer = L.imageOverlay(s.url, s.bounds, { pane: lv.pane, className: 'game-sheet', interactive: false }).addTo(map);
+    else if (!on && s.layer) { map.removeLayer(s.layer); s.layer = null; }
+  };
+  const update = () => {
+    if (inMap) return; // in einer Innenkarte bleibt die Oberwelt, wie sie ist
+    const zoom = map.getZoom(), view = map.getBounds().pad(0.3);
+    levels.forEach((lv, i) => {
+      // Stufe ab etwa 1¼ Zoomstufen unter ihrer vollen Auflösung zeigen; die gröbste immer
+      const on = i === 0 || zoom >= lv.z - 1.25;
+      for (const s of lv.sheets) show(lv, s, on && (i === 0 || view.intersects(s.bounds)));
+    });
+  };
+  map.on('moveend zoomend', update);
+  map.on('overworld', update);
+  update();
+}
+// Offenes Meer: Wassermuster aus dem Spiel (tiles/sea.png), an den Weltkoordinaten ausgerichtet
+const SeaLayer = L.GridLayer.extend({
+  createTile(coords) {
+    const el = document.createElement('div');
+    el.className = 'sea-tile';
+    const size = this.options.pattern * Math.pow(2, coords.z - this.options.nativeZoom);
+    if (size >= 2) el.style.backgroundSize = `${size}px ${size}px`;
+    else el.style.backgroundImage = 'none';
+    return el;
+  },
+});
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 async function init() {
   applyLang();
   try {
-    const r = await fetch('platin.json');
-    if (!r.ok) throw new Error(r.status);
-    D = await r.json();
+    const [r1, r2] = await Promise.all([fetch('platin.json'), fetch('tiles/index.json')]);
+    if (!r1.ok || !r2.ok) throw new Error(r1.ok ? r2.status : r1.status);
+    [D, TILES] = await Promise.all([r1.json(), r2.json()]);
+    ground = decodeGround(TILES);
+    NATIVE_ZOOM = Math.max(...TILES.levels.map(lv => lv.z));
+    MAX_ZOOM = NATIVE_ZOOM + 2;
   } catch (e) {
     $('map-loading').textContent = t('loadError');
     return;
@@ -168,20 +243,24 @@ async function init() {
   setupMap();
   buildMarkers();
   buildSearchIndex();
+  setupInteriorBar();
   $('map-loading').hidden = true;
   const fromHash = locationFromHash();
-  if (fromHash >= 0) selectLocation(fromHash, { fly: true });
-  else renderDirectory();
+  if (fromHash.li >= 0) {
+    selectLocation(fromHash.li, { fly: !fromHash.map });
+    if (fromHash.map) openInterior(fromHash.map);
+  } else renderDirectory();
 }
 
 function setupMap() {
-  const W = D.width, H = D.height, CH = D.chunk;
+  const CH = D.chunk;
   map = L.map('map', {
-    crs: L.CRS.Simple, minZoom: -1.5, maxZoom: 4, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 90,
+    crs: L.CRS.Simple, minZoom: -1.5, maxZoom: MAX_ZOOM, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 90,
     // SVG statt Canvas: base.css zwingt jedes <canvas> auf 100 % Breite, das würde Leaflets Zeichenfläche verzerren
     attributionControl: false, preferCanvas: false, zoomControl: true,
   });
-  L.imageOverlay('platin-terrain.png', L.latLngBounds(ll(0, H), ll(W, 0)), { className: 'terrain-img', interactive: false }).addTo(map);
+  if (TILES.sea) seaLayer = new SeaLayer({ pattern: TILES.sea, nativeZoom: NATIVE_ZOOM, minZoom: -2, maxZoom: MAX_ZOOM }).addTo(map);
+  map.createPane('interior').style.zIndex = 230;
 
   // Ausschnitt: alle Blöcke, die zu einem Ort gehören
   let minR = 99, maxR = 0, minC = 99, maxC = 0;
@@ -190,14 +269,16 @@ function setupMap() {
     minR = Math.min(minR, r); maxR = Math.max(maxR, r); minC = Math.min(minC, c); maxC = Math.max(maxC, c);
   }));
   const land = L.latLngBounds(ll(minC * CH, (maxR + 1) * CH), ll((maxC + 1) * CH, minR * CH));
+  landBounds = land.pad(0.35);
   map.fitBounds(land, { padding: [10, 10] });
-  map.setMaxBounds(land.pad(0.35));
+  map.setMaxBounds(landBounds);
+  setupSheets();
 
   // Ortsnamen
   labelLayer = L.layerGroup().addTo(map);
   D.locations.forEach((l, li) => {
     if (!l.label || !l.chunks) return;
-    const m = L.marker(ll(l.label[0], l.label[1]), {
+    const m = L.marker(llg(l.label[0], l.label[1]), {
       icon: L.divIcon({ className: `loc-label loc-label--${l.type}`, html: `<span>${esc(locName(l))}</span>`, iconSize: null }),
       interactive: false, keyboard: false,
     });
@@ -211,11 +292,11 @@ function setupMap() {
 
   // Ort unter dem Mauszeiger bzw. Finger
   const chunkAt = latlng => {
-    const x = Math.floor(latlng.lng / CH), z = Math.floor(-latlng.lat / CH);
-    return D.chunks[z]?.[x] ?? -1;
+    const { x, z } = tileAt(latlng);
+    return D.chunks[Math.floor(z / CH)]?.[Math.floor(x / CH)] ?? -1;
   };
   map.on('mousemove', e => {
-    if (matchMedia('(pointer: coarse)').matches) return;
+    if (inMap || matchMedia('(pointer: coarse)').matches) return;
     const li = chunkAt(e.latlng);
     const box = $('hover-name');
     if (li < 0) { box.hidden = true; map.getContainer().style.cursor = ''; return; }
@@ -225,6 +306,7 @@ function setupMap() {
   });
   map.on('mouseout', () => { $('hover-name').hidden = true; });
   map.on('click', e => {
+    if (inMap) return;
     const li = chunkAt(e.latlng);
     if (li >= 0) selectLocation(li, { fromMap: true });
   });
@@ -236,8 +318,10 @@ function onZoom() {
   el.classList.toggle('z-far', z < 0);
   el.classList.toggle('z-mid', z >= 0 && z < 1.5);
   el.classList.toggle('z-near', z >= 1.5);
-  const scale = z >= 2.5 ? 1.6 : z >= 1.5 ? 1.3 : z >= 0.5 ? 1 : 0.75;
-  for (const kind of KINDS) layers[kind]?.eachLayer(m => m.setRadius(STYLE[kind].radius * scale));
+  // Über der Auflösung der Kacheln: Pixel scharf vergrößern statt verschwimmen lassen
+  el.classList.toggle('z-pixel', z >= NATIVE_ZOOM + 0.75);
+  const scale = z >= 4.5 ? 2.1 : z >= 2.5 ? 1.6 : z >= 1.5 ? 1.3 : z >= 0.5 ? 1 : 0.75;
+  for (const kind of KINDS) for (const g of [layers[kind], inLayers[kind]]) g?.eachLayer(m => m.setRadius(STYLE[kind].radius * scale));
 }
 
 // ── Marker ────────────────────────────────────────────────────────────────────
@@ -249,11 +333,11 @@ function entryOf(m) {
 }
 function markerText(m) {
   const { loc, entry } = entryOf(m);
-  if (m.k === 'entrance') return `${t('kEntrance')}: ${locName(loc)}`;
+  if (m.k === 'entrance') return `${t('kEntrance')}: ${D.maps?.[m.to] ? mapTitle(m.to) : locName(loc)}`;
   if (m.k === 'trainer') {
     const lv = entry.party.map(p => p.lv);
     const lvText = lv.length ? ` · ${t('level')} ${Math.min(...lv)}${Math.max(...lv) !== Math.min(...lv) ? '–' + Math.max(...lv) : ''}` : '';
-    return `${className(entry.cls)} ${entry.name}${lvText}`;
+    return `${className(entry.cls)} ${trainerName(entry.name, entry.cls)}${lvText}`;
   }
   const kind = entry.kind === 'hidden' ? t('kHiddenOne') : entry.kind === 'gift' ? t('kGiftOne') : t('kBallOne');
   return `${kind}: ${itemName(entry)}${entry.qty > 1 ? ' ×' + entry.qty : ''}`;
@@ -264,41 +348,185 @@ function buildMarkers() {
   for (const kind of KINDS) layers[kind] = L.layerGroup().addTo(map);
   const counts = Object.fromEntries(KINDS.map(k => [k, 0]));
   for (const m of D.markers) {
-    const marker = L.circleMarker(ll(m.x + 0.5, m.z + 0.5), { ...STYLE[m.k], renderer, bubblingMouseEvents: false });
+    const marker = L.circleMarker(llg(m.x + 0.5, m.z + 0.5, m.y), { ...STYLE[m.k], renderer, bubblingMouseEvents: false });
     marker.bindTooltip(() => esc(markerText(m)), { direction: 'top', offset: [0, -6], className: 'map-tip' });
     marker.on('click', () => {
-      if (m.k === 'entrance') selectLocation(m.l, { fly: false });
+      // Eingänge führen – wenn es dazu eine Innenkarte gibt – gleich hinein
+      if (m.k === 'entrance') { selectLocation(m.l, { fly: false }); if (D.maps?.[m.to]) openInterior(m.to); }
       else selectLocation(m.l, { tab: m.k === 'trainer' ? 'trainers' : 'items', focus: `${m.k === 'trainer' ? 't' : 'i'}${m.i}` });
     });
     layers[m.k].addLayer(marker);
     counts[m.k]++;
   }
+  // Innen liegen nochmal so viele Marker – die Zahl auf den Chips zählt beide
+  for (const im of Object.values(D.maps || {})) for (const m of im.markers) counts[m.k]++;
   document.querySelectorAll('#filter-chips .chip').forEach(chip => {
     const kind = chip.dataset.kind;
     chip.querySelector('b').textContent = counts[kind];
     chip.addEventListener('click', () => {
       const on = !shown.has(kind);
-      if (on) { shown.add(kind); layers[kind].addTo(map); } else { shown.delete(kind); map.removeLayer(layers[kind]); }
+      if (on) shown.add(kind); else shown.delete(kind);
+      syncKinds();
       chip.classList.toggle('is-on', on);
       chip.setAttribute('aria-pressed', String(on));
     });
   });
   onZoom();
 }
+// Marker-Ebenen passend zu Filtern und Ansicht (Oberwelt oder Innenkarte) zeigen
+function syncKinds() {
+  for (const kind of KINDS) {
+    const wantOw = !inMap && shown.has(kind), wantIn = !!inMap && shown.has(kind);
+    if (layers[kind]) { if (wantOw) layers[kind].addTo(map); else map.removeLayer(layers[kind]); }
+    if (inLayers[kind]) { if (wantIn) inLayers[kind].addTo(map); else map.removeLayer(inLayers[kind]); }
+  }
+}
 
 // Kurz aufleuchtender Ring an einer Stelle
-function pulseAt(x, z) {
+function pulseAt(x, z, y) {
   if (focusMarker) map.removeLayer(focusMarker);
-  focusMarker = L.marker(ll(x + 0.5, z + 0.5), {
+  focusMarker = L.marker(llg(x + 0.5, z + 0.5, y), {
     icon: L.divIcon({ className: 'focus-ring', html: '<span></span>', iconSize: [36, 36] }),
     interactive: false, keyboard: false,
   }).addTo(map);
   const ref = focusMarker;
   setTimeout(() => { if (focusMarker === ref) { map.removeLayer(ref); focusMarker = null; } }, 2600);
 }
-function flyToTile(x, z, minZoom = 2.5) {
-  map.flyTo(ll(x + 0.5, z + 0.5), Math.max(map.getZoom(), minZoom), { duration: 0.6 });
-  pulseAt(x, z);
+function flyToTile(x, z, y, minZoom = 2.5) {
+  map.flyTo(llg(x + 0.5, z + 0.5, y), Math.max(map.getZoom(), minZoom), { duration: 0.6 });
+  pulseAt(x, z, y);
+}
+
+// ── Innenkarten ───────────────────────────────────────────────────────────────
+// Jede Innenkarte ist ein Ausschnitt aus einem Atlas-Bild (tiles/in/<n>.webp), in eigenen Spielkacheln.
+const imageKey = m => `${m.matrix}__${m.areaData}`;
+const mapTitle = key => { const m = D.maps[key]; return m.area ? `${locName(D.locations[m.l])} · ${areaName(m.area)}` : locName(D.locations[m.l]); };
+const mapsOf = li => Object.keys(D.maps || {}).filter(k => D.maps[k].l === li)
+  .sort((a, b) => areaName(D.maps[a].area || '').localeCompare(areaName(D.maps[b].area || ''), window.LANG, { numeric: true }));
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+async function openInterior(key, opts = {}) {
+  const m = D.maps?.[key];
+  if (!m) return;
+  try {
+    if (!INT) { const r = await fetch('tiles/interiors.json'); if (!r.ok) throw new Error(r.status); INT = await r.json(); }
+  } catch (e) { return; }
+  const img = INT.images[imageKey(m)];
+  if (!img) return;
+  if (inLayer) map.removeLayer(inLayer);
+  for (const kind of KINDS) if (inLayers[kind]) map.removeLayer(inLayers[kind]);
+  if (!inMap) {
+    // Oberwelt ausblenden
+    sheetPanes.forEach(p => { p.style.display = 'none'; });
+    if (seaLayer) map.removeLayer(seaLayer);
+    map.removeLayer(labelLayer);
+    map.removeLayer(selLayer);
+    if (focusMarker) { map.removeLayer(focusMarker); focusMarker = null; }
+    $('hover-name').hidden = true;
+    map.getContainer().style.cursor = '';
+    map.getContainer().classList.add('is-interior');
+  }
+  inMap = key;
+  inGround = decodeGround({ ...INT.ground[imageKey(m)], shear: INT.shear });
+
+  // Bild: Ausschnitt des Atlas per SVG-viewBox, auf die Lage der Karte gespannt
+  const [aw, ah] = INT.atlases[img.a];
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', `${img.x} ${img.y} ${img.w} ${img.h}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  const image = document.createElementNS(SVGNS, 'image');
+  image.setAttribute('href', `tiles/in/${img.a}.webp`);
+  image.setAttribute('width', aw);
+  image.setAttribute('height', ah);
+  svg.appendChild(image);
+  const px = INT.px, x0 = img.ox, z0 = img.oz, x1 = x0 + img.w / px, z1 = z0 + img.h / px;
+  const bounds = L.latLngBounds(ll(x0, z1), ll(x1, z0));
+  inLayer = L.layerGroup([L.svgOverlay(svg, bounds, { pane: 'interior', className: 'game-sheet', interactive: false })]).addTo(map);
+
+  // Marker: Items, Trainer … und die Ausgänge (Treppen, Türen)
+  const renderer = L.svg({ padding: 0.3 });
+  for (const kind of KINDS) inLayers[kind] = L.layerGroup();
+  for (const mk of m.markers) {
+    const mm = { ...mk, l: m.l };
+    const marker = L.circleMarker(llg(mk.x + 0.5, mk.z + 0.5, mk.y), { ...STYLE[mk.k], renderer, bubblingMouseEvents: false });
+    marker.bindTooltip(() => esc(markerText(mm)), { direction: 'top', offset: [0, -6], className: 'map-tip' });
+    marker.on('click', () => selectLocation(m.l, { keepInterior: true, tab: mk.k === 'trainer' ? 'trainers' : 'items', focus: `${mk.k === 'trainer' ? 't' : 'i'}${mk.i}` }));
+    inLayers[mk.k].addLayer(marker);
+  }
+  for (const e of m.exits) {
+    const marker = L.circleMarker(llg(e.x + 0.5, e.z + 0.5), { ...STYLE.entrance, renderer, bubblingMouseEvents: false, className: e.to || e.ow ? 'exit-mark' : 'exit-mark is-dead' });
+    marker.bindTooltip(() => esc(exitText(e)), { direction: 'top', offset: [0, -6], className: 'map-tip' });
+    marker.on('click', () => {
+      if (e.to) openInterior(e.to);
+      else if (e.ow) { closeInterior({ to: e.ow }); selectLocation(e.l, { fly: false }); }
+    });
+    inLayers.entrance.addLayer(marker);
+  }
+  syncKinds();
+  onZoom();
+
+  map.setMaxBounds(bounds.pad(0.6));
+  if (opts.focus) {
+    const [x, z, y] = opts.focus;
+    map.setView(llg(x + 0.5, z + 0.5, y), Math.max(map.getZoom(), 3), { animate: false });
+    pulseAt(x, z, y);
+  } else map.fitBounds(bounds, { padding: [24, 24], maxZoom: 3.5, animate: false });
+  renderInteriorBar();
+  if (selected === m.l) renderLocation(selected, opts.ref);
+  history.replaceState(null, '', `#${slug(D.locations[m.l].en)}~${key.toLowerCase()}`);
+}
+
+function closeInterior(opts = {}) {
+  if (!inMap) return;
+  const back = D.maps[inMap];
+  if (inLayer) map.removeLayer(inLayer);
+  for (const kind of KINDS) if (inLayers[kind]) { map.removeLayer(inLayers[kind]); delete inLayers[kind]; }
+  inLayer = null; inMap = null; inGround = null;
+  if (focusMarker) { map.removeLayer(focusMarker); focusMarker = null; }
+  sheetPanes.forEach(p => { p.style.display = ''; });
+  if (seaLayer) seaLayer.addTo(map);
+  labelLayer.addTo(map);
+  selLayer.addTo(map);
+  map.getContainer().classList.remove('is-interior');
+  map.setMaxBounds(landBounds);
+  syncKinds();
+  onZoom();
+  renderInteriorBar();
+  if (opts.to) {
+    map.setView(llg(opts.to[0] + 0.5, opts.to[1] + 0.5), 3, { animate: false });
+    pulseAt(opts.to[0], opts.to[1]);
+  } else if (opts.fly !== false) {
+    const li = selected >= 0 ? selected : back.l, l = D.locations[li];
+    const b = locationBounds(l.chunks || l.entrances ? li : l.via);
+    if (b) map.fitBounds(b, { padding: [40, 40], maxZoom: 2, animate: false });
+  }
+  map.fire('overworld');
+  if (selected >= 0) {
+    renderLocation(selected);
+    history.replaceState(null, '', `#${slug(D.locations[selected].en)}`);
+  }
+}
+
+function exitText(e) {
+  if (e.to) return `→ ${mapTitle(e.to)}`;
+  if (e.ow) return `→ ${t('outside')}: ${locName(D.locations[e.l])}`;
+  return `→ ${locName(D.locations[e.l])}${e.a ? ' · ' + areaName(e.a) : ''} (${t('noMap')})`;
+}
+
+// Leiste über der Innenkarte: zurück zur Oberwelt + Wechsel zwischen den Bereichen des Ortes
+function setupInteriorBar() {
+  $('interior-back').addEventListener('click', () => closeInterior());
+  $('interior-select').addEventListener('change', e => openInterior(e.target.value));
+}
+function renderInteriorBar() {
+  const bar = $('interior-bar');
+  bar.hidden = !inMap;
+  if (!inMap) return;
+  const m = D.maps[inMap];
+  $('interior-title').textContent = locName(D.locations[m.l]);
+  const keys = mapsOf(m.l);
+  $('interior-select').innerHTML = keys.map(k => `<option value="${esc(k)}"${k === inMap ? ' selected' : ''}>${esc(areaName(D.maps[k].area) || locName(D.locations[m.l]))}</option>`).join('');
+  $('interior-select').hidden = keys.length < 2;
 }
 
 // ── Ort auswählen ─────────────────────────────────────────────────────────────
@@ -310,9 +538,11 @@ function drawSelection(li) {
   const segments = [];
   D.chunks.forEach((row, r) => row.forEach((v, c) => {
     if (v !== li) return;
-    selLayer.addLayer(L.rectangle(L.latLngBounds(ll(c * CH, (r + 1) * CH), ll((c + 1) * CH, r * CH)),
+    // Block um seine typische Bodenhöhe nach oben versetzt, wie im Bild
+    const up = chunkLift(r, c);
+    const x0 = c * CH, x1 = (c + 1) * CH, z0 = r * CH - up, z1 = (r + 1) * CH - up;
+    selLayer.addLayer(L.rectangle(L.latLngBounds(ll(x0, z1), ll(x1, z0)),
       { stroke: false, fillColor: '#57d2ff', fillOpacity: 0.12, interactive: false }));
-    const x0 = c * CH, x1 = (c + 1) * CH, z0 = r * CH, z1 = (r + 1) * CH;
     if (!own(r - 1, c)) segments.push([ll(x0, z0), ll(x1, z0)]);
     if (!own(r + 1, c)) segments.push([ll(x0, z1), ll(x1, z1)]);
     if (!own(r, c - 1)) segments.push([ll(x0, z0), ll(x0, z1)]);
@@ -321,7 +551,7 @@ function drawSelection(li) {
   if (segments.length) selLayer.addLayer(L.polyline(segments, { color: '#57d2ff', weight: 2, opacity: 0.95, interactive: false }));
   // Höhlen und Gebäude: Eingänge hervorheben
   for (const [x, z] of D.locations[li].entrances || []) {
-    selLayer.addLayer(L.circleMarker(ll(x + 0.5, z + 0.5), { radius: 11, color: '#b48cff', weight: 2, fill: false, interactive: false }));
+    selLayer.addLayer(L.circleMarker(llg(x + 0.5, z + 0.5), { radius: 11, color: '#b48cff', weight: 2, fill: false, interactive: false }));
   }
   labelLayer.eachLayer(m => m.getElement()?.classList.toggle('is-selected', m.locIndex === li));
 }
@@ -329,30 +559,36 @@ function drawSelection(li) {
 function locationBounds(li) {
   const l = D.locations[li], CH = D.chunk;
   const pts = [];
-  D.chunks.forEach((row, r) => row.forEach((v, c) => { if (v === li) { pts.push(ll(c * CH, r * CH), ll((c + 1) * CH, (r + 1) * CH)); } }));
-  for (const [x, z] of l.entrances || []) pts.push(ll(x, z));
+  D.chunks.forEach((row, r) => row.forEach((v, c) => {
+    if (v === li) { const up = chunkLift(r, c); pts.push(ll(c * CH, r * CH - up), ll((c + 1) * CH, (r + 1) * CH - up)); }
+  }));
+  for (const [x, z] of l.entrances || []) pts.push(llg(x + 0.5, z + 0.5));
   return pts.length ? L.latLngBounds(pts) : null;
 }
 
 function selectLocation(li, opts = {}) {
+  // Ein anderer Ort aus Liste, Suche oder Karte: zurück auf die Oberwelt
+  if (inMap && !opts.keepInterior) closeInterior({ fly: false });
   selected = li;
   const l = D.locations[li];
   if (opts.tab) currentTab = opts.tab;
   else if (!opts.keepTab) currentTab = l.items.length ? 'items' : l.trainers.length ? 'trainers' : 'wild';
   drawSelection(l.chunks || l.entrances ? li : (l.via ?? -1));
   renderLocation(li, opts.focus);
-  history.replaceState(null, '', `#${slug(l.en)}`);
-  if (opts.fly) {
+  history.replaceState(null, '', `#${slug(l.en)}${inMap ? '~' + inMap.toLowerCase() : ''}`);
+  if (opts.fly && !inMap) {
     const b = locationBounds(l.chunks || l.entrances ? li : l.via);
     if (b) map.flyToBounds(b, { padding: [40, 40], maxZoom: 2, duration: 0.6 });
   }
   if (opts.fromMap && matchMedia('(max-width: 900px)').matches) showMobileChip(li);
 }
 const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// #ort oder #ort~innenkarte
 function locationFromHash() {
-  const h = decodeURIComponent(location.hash.slice(1));
-  if (!h) return -1;
-  return D.locations.findIndex(l => slug(l.en) === h);
+  const [h, inner] = decodeURIComponent(location.hash.slice(1)).split('~');
+  if (!h) return { li: -1 };
+  const map = inner && Object.keys(D.maps || {}).find(k => k.toLowerCase() === inner);
+  return { li: D.locations.findIndex(l => slug(l.en) === h), map };
 }
 
 // Am Handy: kleine Leiste über der Karte mit Sprung zum Panel
@@ -366,6 +602,7 @@ function showMobileChip(li) {
 
 // ── Seitenleiste ──────────────────────────────────────────────────────────────
 function renderDirectory() {
+  if (inMap) closeInterior({ fly: false });
   selected = -1;
   drawSelection(-1);
   history.replaceState(null, '', location.pathname);
@@ -407,6 +644,11 @@ function renderLocation(li, focus) {
   const ents = (l.entrances || []).length
     ? `<div class="ent-row"><span>${esc(t('entrances'))}:</span>${l.entrances.map(([x, z], n) => `<button type="button" class="mini-btn" data-goto="${x},${z}">📍 ${esc(t('entranceN', { n: n + 1 }))}</button>`).join('')}</div>`
     : '';
+  // Innenkarten des Ortes (Stockwerke, Räume, Gebäude)
+  const mapKeys = mapsOf(li);
+  const inside = mapKeys.length
+    ? `<div class="ent-row map-row"><span>${esc(t('interiorMaps'))}:</span>${mapKeys.map(k => `<button type="button" class="mini-btn map-btn${k === inMap ? ' is-on' : ''}" data-map="${esc(k)}">🗺️ ${esc(areaName(D.maps[k].area) || locName(l))}</button>`).join('')}</div>`
+    : '';
   const tab = (key, label, count, disabled) => `<button type="button" class="tab${currentTab === key ? ' is-active' : ''}" data-tab="${key}"${disabled ? ' disabled' : ''}>${esc(label)}${count != null ? ` <small>${count}</small>` : ''}</button>`;
   const wildCount = l.wild.length;
   $('side-content').innerHTML = `
@@ -415,7 +657,7 @@ function renderLocation(li, focus) {
       <h2>${esc(locName(l))}</h2>
       <p class="loc-sub">${esc(sub)}</p>
       ${stats.length ? `<div class="stat-chips">${stats.map(s => `<span>${esc(s)}</span>`).join('')}</div>` : ''}
-      ${via}${ents}
+      ${via}${ents}${inside}
     </div>
     <div class="tabs">
       ${tab('items', t('tabItems'), l.items.length, !l.items.length)}
@@ -425,7 +667,12 @@ function renderLocation(li, focus) {
     <div class="tab-body" id="tab-body"></div>`;
   $('back-btn').addEventListener('click', renderDirectory);
   $('side-content').querySelector('.via-link')?.addEventListener('click', e => selectLocation(+e.currentTarget.dataset.loc, { fly: true }));
-  $('side-content').querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => { const [x, z] = b.dataset.goto.split(',').map(Number); flyToTile(x, z, 2); }));
+  $('side-content').querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => {
+    const [x, z] = b.dataset.goto.split(',').map(Number);
+    if (inMap) closeInterior({ fly: false });
+    flyToTile(x, z, undefined, 2);
+  }));
+  $('side-content').querySelectorAll('.map-btn').forEach(b => b.addEventListener('click', () => openInterior(b.dataset.map)));
   $('side-content').querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { currentTab = b.dataset.tab; renderLocation(li); }));
   // Leeren Tab vermeiden
   if ((currentTab === 'items' && !l.items.length) || (currentTab === 'trainers' && !l.trainers.length) || (currentTab === 'wild' && !wildCount)) {
@@ -434,21 +681,28 @@ function renderLocation(li, focus) {
   }
   const body = $('tab-body');
   body.innerHTML = currentTab === 'items' ? itemsHTML(l) : currentTab === 'trainers' ? trainersHTML(l) : wildHTML(l);
-  body.querySelectorAll('[data-pos]').forEach(b => b.addEventListener('click', () => { const [x, z] = b.dataset.pos.split(',').map(Number); flyToTile(x, z); }));
+  // 📍: auf der Oberwelt hinfliegen bzw. die Innenkarte öffnen, in der das Item oder der Trainer steht
+  body.querySelectorAll('[data-pos]').forEach(b => b.addEventListener('click', () => {
+    const [x, z, y] = parsePos(b.dataset.pos), inside = b.dataset.map;
+    if (inside && inside === inMap) flyToTile(x, z, y, 3);
+    else if (inside) openInterior(inside, { focus: [x, z, y], ref: b.closest('[data-ref]')?.dataset.ref });
+    else { if (inMap) closeInterior({ fly: false }); flyToTile(x, z, y); }
+  }));
   if (focus) {
     const row = body.querySelector(`[data-ref="${focus}"]`);
     if (row) {
       row.classList.add('is-flash');
       row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      const pos = row.querySelector('[data-pos]')?.dataset.pos;
-      if (pos) { const [x, z] = pos.split(',').map(Number); pulseAt(x, z); }
+      const pin = row.querySelector('[data-pos]');
+      if (pin && (pin.dataset.map ?? null) === inMap) { const [x, z, y] = parsePos(pin.dataset.pos); pulseAt(x, z, y); }
     }
   }
 }
 
-const posBtn = pos => (pos ? `<button type="button" class="pin" data-pos="${pos[0]},${pos[1]}" title="${esc(t('showOnMap'))}" aria-label="${esc(t('showOnMap'))}">📍</button>` : '');
+const posBtn = e => (e.pos ? `<button type="button" class="pin" data-pos="${e.pos[0]},${e.pos[1]},${e.pos[2] ?? ''}"${e.map ? ` data-map="${esc(e.map)}"` : ''} title="${esc(t(e.map ? 'showInside' : 'showOnMap'))}" aria-label="${esc(t(e.map ? 'showInside' : 'showOnMap'))}">📍</button>` : '');
 // Bereiche wie im Großmoor heißen nur „1"–„6"
-const areaName = area => (/^\d+$/.test(area) ? t('areaN', { n: area }) : area);
+// Bereichsnamen stehen in platin.json auf Deutsch, die englischen in D.areaEn
+const areaName = area => (/^\d+$/.test(area) ? t('areaN', { n: area }) : (isEn() && D.areaEn?.[area]) || area);
 const areaTag = area => (area ? `<span class="area">${esc(areaName(area))}</span>` : '');
 
 function itemsHTML(l) {
@@ -467,7 +721,7 @@ function itemsHTML(l) {
               <span class="row-title">${esc(nm(it))}${it.qty > 1 ? ` <small>×${it.qty}</small>` : ''}</span>
               ${it.tm && it.move ? `<span class="row-sub">${esc(isEn() ? it.move.en : it.move.de)}</span>` : ''}
             </div>
-            ${areaTag(it.area)}${posBtn(it.pos)}
+            ${areaTag(it.area)}${posBtn(it)}
           </div>`).join('')}
       </div>`;
   }).join('');
@@ -494,9 +748,10 @@ function trainersHTML(l) {
   });
   return `<div class="list-group">${rows.map(({ tr, i, variants }) => {
     const head = `<div class="tr-head">
-        <span class="row-title">${esc(className(tr.cls))} ${esc(tr.name)}</span>
+        <span class="row-title">${esc(className(tr.cls))} ${esc(trainerName(tr.name, tr.cls))}</span>
         ${tr.double ? `<span class="badge">${esc(t('double'))}</span>` : ''}
-        ${areaTag(tr.area)}${posBtn(tr.pos)}
+        ${areaTag(tr.area)}${posBtn(tr)}
+        <a class="pin" href="../Bosse/index.html#${esc(tr.id)}" title="${esc(t('toPlanner'))}" aria-label="${esc(t('toPlanner'))}">⚔️</a>
       </div>`;
     if (variants && variants.length > 1) {
       return `<div class="row row--trainer" data-ref="t${i}">${head}
@@ -555,7 +810,7 @@ function buildSearchIndex() {
   D.locations.forEach((l, li) => {
     searchIndex.push({ type: 'loc', li, keys: [l.de, l.en].map(norm) });
     l.items.forEach((it, i) => searchIndex.push({ type: 'item', li, i, keys: [it.de, it.en, it.move?.de, it.move?.en].filter(Boolean).map(norm) }));
-    l.trainers.forEach((tr, i) => searchIndex.push({ type: 'trainer', li, i, keys: [tr.name, CLASS_NAMES[tr.cls]?.[0], CLASS_NAMES[tr.cls]?.[1]].filter(Boolean).map(norm) }));
+    l.trainers.forEach((tr, i) => searchIndex.push({ type: 'trainer', li, i, keys: [TrainerClasses.trainerName(tr.name, true, tr.cls), TrainerClasses.trainerName(tr.name, false, tr.cls), CLASS_NAMES[tr.cls]?.[0], CLASS_NAMES[tr.cls]?.[1]].filter(Boolean).map(norm) }));
   });
 }
 function runSearch(q) {
@@ -580,7 +835,7 @@ function runSearch(q) {
       return `<button type="button" class="sr" data-n="${n}"><img class="sr-ico" src="${itemSprite(it)}" alt="" onerror="this.style.visibility='hidden'"><span class="sr-main">${esc(itemName(it))}</span><small>${esc(kind)} · ${esc(locName(l))}</small></button>`;
     }
     const tr = l.trainers[e.i];
-    return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">👤</span><span class="sr-main">${esc(className(tr.cls))} ${esc(tr.name)}</span><small>${esc(locName(l))}</small></button>`;
+    return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">👤</span><span class="sr-main">${esc(className(tr.cls))} ${esc(trainerName(tr.name, tr.cls))}</span><small>${esc(locName(l))}</small></button>`;
   }).join('');
   box.hidden = false;
   box.querySelectorAll('.sr').forEach(b => b.addEventListener('click', () => pickResult(top[+b.dataset.n].e)));
@@ -591,8 +846,11 @@ function pickResult(e) {
   if (e.type === 'loc') { selectLocation(e.li, { fly: true }); return; }
   const l = D.locations[e.li];
   const entry = e.type === 'item' ? l.items[e.i] : l.trainers[e.i];
-  selectLocation(e.li, { tab: e.type === 'item' ? 'items' : 'trainers', focus: `${e.type === 'item' ? 'i' : 't'}${e.i}`, fly: !entry.pos });
-  if (entry.pos) flyToTile(entry.pos[0], entry.pos[1]);
+  const ref = `${e.type === 'item' ? 'i' : 't'}${e.i}`;
+  selectLocation(e.li, { tab: e.type === 'item' ? 'items' : 'trainers', focus: ref, fly: !entry.pos });
+  // In einer Höhle oder einem Gebäude: dessen Innenkarte öffnen
+  if (entry.map && D.maps?.[entry.map]) openInterior(entry.map, { focus: entry.pos, ref });
+  else if (entry.pos) flyToTile(entry.pos[0], entry.pos[1], entry.pos[2]);
   if (matchMedia('(max-width: 900px)').matches) $('side').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 let searchTimer = null;
@@ -612,12 +870,16 @@ function applyLang() {
   if (!D) return;
   labelLayer?.eachLayer(m => { const el = m.getElement()?.querySelector('span'); if (el) el.textContent = locName(D.locations[m.locIndex]); });
   if (selected >= 0) renderLocation(selected); else renderDirectory();
+  renderInteriorBar();
 }
-// Direktlinks wie …/Karte/#route-206 auch ohne Neuladen
+// Direktlinks wie …/Karte/#route-206 oder #mt-coronet~mt_coronet_2f auch ohne Neuladen
 window.addEventListener('hashchange', () => {
   if (!D) return;
-  const li = locationFromHash();
-  if (li >= 0 && li !== selected) selectLocation(li, { fly: true });
+  const { li, map: inner } = locationFromHash();
+  if (li < 0) return;
+  if (li !== selected) selectLocation(li, { fly: !inner });
+  if (inner && inner !== inMap) openInterior(inner);
+  else if (!inner && inMap) closeInterior();
 });
 
 $('lang-toggle').addEventListener('click', () => {

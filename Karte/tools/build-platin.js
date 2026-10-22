@@ -1,9 +1,10 @@
 /*
- * Baut die Daten für die Platin-Karte (Karte/platin-terrain.png + Karte/platin.json).
+ * Baut die Daten für die Platin-Karte (Karte/platin.json). Das Kartenbild selbst rendern
+ * render-platin.js und make-tiles.py aus den 3D-Modellen des Spiels.
  *
  * Quellen:
- *  - pret/pokeplatinum (Quellcode-Nachbau von Pokémon Platin): Kartenkacheln, Item-Bälle, versteckte Items,
- *    Trainer samt Teams, Item-Geschenke, wilde Pokémon – mit echten Koordinaten aus dem Spiel.
+ *  - pret/pokeplatinum (Quellcode-Nachbau von Pokémon Platin): Kartenaufteilung, Item-Bälle, versteckte Items,
+ *    Trainer samt Teams, Item-Geschenke, wilde Pokémon – mit echten Koordinaten (x, z und Höhe y) aus dem Spiel.
  *  - PokeAPI-CSV-Dateien: deutsche Namen für Pokémon, Items, Attacken und Orte.
  *
  * Aufruf (Node 18+):  node build-platin.js <ausgabe-ordner> [cache-ordner]
@@ -12,7 +13,6 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const zlib = require('zlib');
 
 const OUT = path.resolve(process.argv[2] || '.');
 const CACHE = path.resolve(process.argv[3] || path.join(os.tmpdir(), 'platin-karte-cache'));
@@ -46,14 +46,6 @@ async function get(url, { binary = false, optional = false } = {}) {
   }
 }
 const getJSON = async (p, opt) => { const t = await get(RAW + p, opt); return t == null ? null : JSON.parse(t); };
-async function pool(items, n, fn) {
-  const out = new Array(items.length);
-  let i = 0;
-  await Promise.all(Array.from({ length: n }, async () => {
-    while (i < items.length) { const k = i++; out[k] = await fn(items[k], k); }
-  }));
-  return out;
-}
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(Boolean);
   const head = lines.shift().split(',');
@@ -70,90 +62,101 @@ function parseCSV(text) {
 }
 const norm = s => String(s || '').toLowerCase().replace(/é/g, 'e').replace(/[^a-z0-9]/g, '');
 
-// ── PNG mit Farbpalette schreiben ────────────────────────────────────────────
-const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-function crc32(buf) { let c = 0xffffffff; for (const b of buf) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
-function chunk(type, data) {
-  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
-  const td = Buffer.concat([Buffer.from(type), data]);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td));
-  return Buffer.concat([len, td, crc]);
-}
-function writePalettePNG(file, w, h, idx, palette) {
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 3; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
-  const plte = Buffer.from(palette.flat());
-  const raw = Buffer.alloc((w + 1) * h);
-  for (let y = 0; y < h; y++) { raw[y * (w + 1)] = 0; idx.copy ? idx.copy(raw, y * (w + 1) + 1, y * w, y * w + w) : raw.set(idx.subarray(y * w, y * w + w), y * (w + 1) + 1); }
-  const png = Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', ihdr), chunk('PLTE', plte), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0)),
-  ]);
-  fs.writeFileSync(file, png);
-  return png.length;
-}
-
-// ── Gelände-Klassen (Index = Farbe in der Palette, gleiche Reihenfolge in app.js) ──
-const T = { VOID: 0, SEA: 1, WATER: 2, SHALLOW: 3, WATERFALL: 4, GROUND: 5, GRASS: 6, TREE: 7, BUILDING: 8, SAND: 9,
-  SNOW: 10, ICE: 11, ROCKFLOOR: 12, MUD: 13, BRIDGE: 14, DOOR: 15, LEDGE: 16, ROCKCLIMB: 17, ROCK: 18, SNOWROCK: 19, SANDROCK: 20 };
-const PALETTE = [
-  [17, 31, 64],    // VOID   – offenes Meer außerhalb der Karte
-  [38, 84, 158],   // SEA
-  [52, 112, 190],  // WATER  – Fluss/See
-  [96, 152, 212],  // SHALLOW
-  [150, 205, 240], // WATERFALL
-  [176, 199, 128], // GROUND
-  [93, 156, 74],   // GRASS  – hohes Gras
-  [44, 88, 52],    // TREE   – Hindernis (Bäume, Felsen, Zäune)
-  [138, 142, 170], // BUILDING
-  [228, 208, 150], // SAND
-  [238, 243, 248], // SNOW
-  [190, 230, 242], // ICE
-  [164, 142, 110], // ROCKFLOOR – Berg-/Höhlenboden
-  [125, 90, 60],   // MUD
-  [185, 134, 78],  // BRIDGE
-  [232, 166, 88],  // DOOR
-  [150, 170, 104], // LEDGE
-  [122, 112, 104], // ROCKCLIMB
-  [94, 82, 72],    // ROCK   – Hindernis im Gebirge
-  [112, 126, 146], // SNOWROCK
-  [150, 118, 76],  // SANDROCK
-];
-
-function classify(v) {
-  const b = v & 0xff, blocked = (v & 0x8000) !== 0;
-  if (b === 0x15) return T.SEA;
-  if (b === 0x10) return T.WATER;
-  if (b === 0x13) return T.WATERFALL;
-  if (b === 0x16 || b === 0x17 || b === 0x1d) return T.SHALLOW;
-  if (b >= 0x70 && b <= 0x7d) return T.BRIDGE;
-  if ([0x5e, 0x5f, 0x62, 0x63, 0x64, 0x65, 0x67, 0x69, 0x6c, 0x6d, 0x6e, 0x6f].includes(b)) return T.DOOR;
-  if (blocked) return T.TREE;
-  if (b === 0x02 || b === 0x03 || b === 0xa6 || b === 0xa7) return T.GRASS;
-  if (b === 0x21) return T.SAND;
-  if ([0xa1, 0xa2, 0xa3, 0xa8, 0xa9].includes(b)) return T.SNOW;
-  if (b === 0x20) return T.ICE;
-  if (b === 0xa4 || b === 0xa5 || b === 0xa0) return T.MUD;
-  if (b === 0x08 || b === 0x0b || b === 0x0c) return T.ROCKFLOOR;
-  if ((b >= 0x38 && b <= 0x3b) || (b >= 0x5a && b <= 0x5d)) return T.LEDGE;
-  if (b === 0x4b || b === 0x4c) return T.ROCKCLIMB;
-  return T.GROUND;
-}
-
-// ── Kleine Helfer für Namen ──────────────────────────────────────────────────
-const AREA_DE = { house: 'Haus', pokecenter: 'Pokémon-Center', mart: 'Pokémon-Markt', gym: 'Arena', gate: 'Tor', north: 'Nord',
-  south: 'Süd', east: 'Ost', west: 'West', northeast: 'Nordost', northwest: 'Nordwest', southeast: 'Südost', southwest: 'Südwest',
-  room: 'Raum', outside: 'außen', inside: 'innen', building: 'Gebäude', lobby: 'Lobby', hall: 'Halle', tower: 'Turm',
-  elevator: 'Aufzug', entrance: 'Eingang', middle: 'Mitte', back: 'hinten', front: 'vorne', left: 'links', right: 'rechts',
-  library: 'Bibliothek', store: 'Kaufhaus', museum: 'Museum', school: 'Schule', cafe: 'Café', restaurant: 'Restaurant',
-  lighthouse: 'Leuchtturm', market: 'Markt', shop: 'Laden', cave: 'Höhle', forest: 'Wald', lakefront: 'Seeufer', pillar: 'Säule' };
-function prettyArea(rest) {
-  return rest.split('_').filter(Boolean).map(w => {
-    const l = w.toLowerCase();
-    if (/^b?\d+f$/.test(l)) return l.toUpperCase();
-    if (/^\d+$/.test(l)) return l;
-    return AREA_DE[l] || (l[0].toUpperCase() + l.slice(1));
-  }).join(' ');
+// ── Bereichsnamen aus dem Header-Namen, z. B. MT_CORONET_1F_SOUTH → „1F Süd“ / „1F South“ ──────────────
+// Karten aus Diamant/Perl, die in Platin noch in den Daten stehen, aber im Spiel nicht erreichbar sind
+const SKIP_HEADER = /UNUSED|UNK_|UNKNOWN_|EVERYWHERE|NOTHING|_DP_/;
+// Wörter: [deutsch, englisch, Art]. 'm' = Lage (steht im Deutschen hinter dem Hauptwort: „Haus Nordost“), 'n' = Hauptwort
+const AREA_WORDS = {
+  north: ['Nord', 'North', 'm'], south: ['Süd', 'South', 'm'], east: ['Ost', 'East', 'm'], west: ['West', 'West', 'm'],
+  northeast: ['Nordost', 'Northeast', 'm'], northwest: ['Nordwest', 'Northwest', 'm'], southeast: ['Südost', 'Southeast', 'm'],
+  southwest: ['Südwest', 'Southwest', 'm'], middle: ['Mitte', 'Middle', 'm'], back: ['hinten', 'Back', 'm'], front: ['vorne', 'Front', 'm'],
+  left: ['links', 'Left', 'm'], right: ['rechts', 'Right', 'm'],
+  house: ['Haus', 'House', 'n'], room: ['Raum', 'Room', 'n'], rooms: ['Räume', 'Rooms', 'n'], gate: ['Tor', 'Gate', 'n'],
+  pokecenter: ['Pokémon-Center', 'Pokémon Center', 'n'], mart: ['Pokémon-Markt', 'Poké Mart', 'n'], building: ['Gebäude', 'Building', 'n'],
+  deadend: ['Sackgasse', 'Dead End', 'n'], elevator: ['Aufzug', 'Elevator', 'n'], lobby: ['Lobby', 'Lobby', 'n'], hall: ['Halle', 'Hall', 'n'],
+  entrance: ['Eingang', 'Entrance', 'n'], gym: ['Arena', 'Gym', 'n'], cave: ['Höhle', 'Cave', 'n'], forest: ['Wald', 'Forest', 'n'],
+  tower: ['Turm', 'Tower', 'n'], shop: ['Laden', 'Shop', 'n'],
+  and: ['und', 'and'], outside: ['Außenbereich', 'Outside'], pillar: ['Säule', 'Pillar'], gallery: ['Galerie', 'Gallery'],
+  office: ['Büro', 'Office'], corridor: ['Flur', 'Corridor'], laboratory: ['Labor', 'Laboratory'], distorted: ['Verzerrt', 'Distorted'],
+  drained: ['Ausgetrocknet', 'Drained'], dialga: ['Dialga', 'Dialga'], palkia: ['Palkia', 'Palkia'],
+};
+// Wendungen aus mehreren Wörtern gehen vor
+const AREA_PHRASES = {
+  TEAM_GALACTIC_ETERNA_BUILDING: ['', ''],
+  GYM_LEADER_ROOM: ['Arenaleiter-Raum', 'Gym Leader Room'], GYM_TRAINER_ROOM: ['Arena-Trainerraum', 'Gym Trainer Room'],
+  GYM_ENTRANCE_ROOM: ['Arena-Eingang', 'Gym Entrance'], GYM_ROOM: ['Arenaraum', 'Gym Room'],
+  NORTH_GATE: ['Nordtor', 'North Gate'], SOUTH_GATE: ['Südtor', 'South Gate'], EAST_GATE: ['Osttor', 'East Gate'], WEST_GATE: ['Westtor', 'West Gate'],
+  CYCLING_ROAD: ['Radweg', 'Cycling Road'], DEAD_END: ['Sackgasse', 'Dead End', 'n'],
+  HALLWAY_TO_HALL_OF_FAME: ['Gang zur Ruhmeshalle', 'Hallway to the Hall of Fame'], HALL_OF_FAME: ['Ruhmeshalle', 'Hall of Fame'],
+  AARON_ROOM: ['Raum von Herbaro', 'Aaron’s Room'], BERTHA_ROOM: ['Raum von Teresa', 'Bertha’s Room'],
+  FLINT_ROOM: ['Raum von Ignaz', 'Flint’s Room'], LUCIAN_ROOM: ['Raum von Lucian', 'Lucian’s Room'], CHAMPION_ROOM: ['Raum des Champs', 'Champion’s Room'],
+  CONDOMINIUMS: ['Wohnanlage', 'Condominiums'], HARBOR_INN: ['Hafenherberge', 'Harbor Inn'],
+  SAILOR_ELDRITCH_HOUSE: ['Haus von Seemann Eldritch', 'Sailor Eldritch’s House'], HERB_SHOP: ['Kräuterladen', 'Herb Shop'],
+  UNDERGROUND_MAN_HOUSE: ['Haus des Untergrundmanns', 'Underground Man’s House'],
+  STAGE_NO_CONTEST: ['Bühne (ohne Wettbewerb)', 'Stage (no contest)'], STAGE_ONGOING_CONTEST: ['Bühne (Wettbewerb läuft)', 'Stage (contest running)'],
+  CONTROL_ROOM: ['Kontrollraum', 'Control Room'], TUNNEL_ROOM: ['Tunnelraum', 'Tunnel Room'], PILLAR_ROOM: ['Säulenraum', 'Pillar Room'],
+  GIRATINA_ROOM: ['Giratinas Raum', 'Giratina’s Room'], WIFI_PLAZA_ENTRANCE: ['Eingang zur Wi-Fi-Plaza', 'Wi-Fi Plaza Entrance'],
+  GLOBAL_RANKING_ROOM: ['Raum der weltweiten Rangliste', 'Global Ranking Room'], GROUP_RANKING_ROOM: ['Raum der Gruppen-Rangliste', 'Group Ranking Room'],
+  LOW_WATER: ['Niedrigwasser', 'Low Water'], DINING_AREA: ['Speisesaal', 'Dining Area'], SIDE_ROOMS: ['Nebenräume', 'Side Rooms'],
+  MAIDS_ROOM: ['Raum der Dienstmädchen', 'Maids’ Room'], RIBBON_SYNDICATE: ['Band-Syndikat', 'Ribbon Syndicate'],
+  GRANDMA_WILMA_HOUSE: ['Haus von Oma Wilma', 'Grandma Wilma’s House'], COUNTERPART_HOUSE: ['Haus von Lucas/Lucia', 'Lucas/Dawn’s House'],
+  PLAYER_HOUSE: ['Dein Haus', 'Your House'], RIVAL_HOUSE: ['Barrys Haus', 'Barry’s House'],
+  POKEMON_FAN_CLUB: ['Pokémon-Fanclub', 'Pokémon Fan Club'], POKEMON_NEWS_PRESS: ['Pokémon-Presse', 'Pokémon News Press'],
+  POKEMON_RESEARCH_LAB: ['Pokémon-Forschungslabor', 'Pokémon Research Lab'], PRIZE_EXCHANGE: ['Preisausgabe', 'Prize Exchange'],
+  GALACTIC_WAREHOUSE: ['Galaktik-Lager', 'Galactic Warehouse'], OBSERVATORY_GATE: ['Aussichtsgebäude', 'Observatory Gate'],
+  MANIAC_TUNNEL_ROOM: ['Durchgang zum Maniac-Tunnel', 'Passage to the Maniac Tunnel'],
+  LONG: ['Lang (später)', 'Long (later)'], SHORT: ['Kurz (am Anfang)', 'Short (at first)'],
+  MULTI_BATTLE_ROOM: ['Multi-Kampfraum', 'Multi Battle Room'], BATTLE_ROOM: ['Kampfraum', 'Battle Room'],
+  BATTLE_SALON: ['Kampfsalon', 'Battle Salon'], CORRIDOR_MULTI: ['Flur (Multi)', 'Corridor (Multi)'],
+};
+const unknownAreaWords = new Set();
+// places: norm(englischer Ortsname) → { de, en } (Orte wie in GATE_TO_HEARTHOME_CITY), here: norm(Name des eigenen Ortes)
+function areaNames(rest, places, here) {
+  const t = rest.split('_').filter(Boolean);
+  const segs = [];
+  for (let i = 0; i < t.length;) {
+    let k = Math.min(6, t.length - i);
+    for (; k > 0 && !AREA_PHRASES[t.slice(i, i + k).join('_')]; k--);
+    if (k) {
+      const [de, en, kind] = AREA_PHRASES[t.slice(i, i + k).join('_')];
+      if (de) segs.push({ de, en, kind });
+      i += k;
+      continue;
+    }
+    for (k = Math.min(4, t.length - i); k > 1 && !places.has(norm(t.slice(i, i + k).join(''))); k--);
+    if (k > 1) {
+      const key = norm(t.slice(i, i + k).join(''));
+      if (key !== here) segs.push({ ...places.get(key), kind: 'loc' });
+      i += k;
+      continue;
+    }
+    const w = t[i++].toLowerCase();
+    if (/^b?\d+f$/.test(w)) segs.push({ de: w.toUpperCase(), en: w.toUpperCase(), kind: 'floor' });
+    else if (/^\d+$/.test(w)) segs.push({ de: w, en: w, kind: 'num' });
+    else if (w === 'to') segs.push({ de: 'nach', en: 'to', kind: 'to' });
+    else if (AREA_WORDS[w]) { const [de, en, kind] = AREA_WORDS[w]; segs.push({ de, en, kind }); }
+    else { unknownAreaWords.add(w); const cap = w[0].toUpperCase() + w.slice(1); segs.push({ de: cap, en: cap }); }
+  }
+  // Deutsch: „nach Herzhofen“, „zur Route 226“, „zum Kampfareal“ / „zum Raum von …“; Lage hinter das Hauptwort
+  const de = [];
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i];
+    if (s.kind === 'to') {
+      const n = segs[i + 1];
+      de.push(!n || n.kind !== 'loc' ? 'zum' : /(City|Town)$/.test(n.en) ? 'nach' : /^Route/.test(n.en) ? 'zur' : 'zum');
+      continue;
+    }
+    let j = i;
+    while (segs[j]?.kind === 'm') j++;
+    if (j > i && segs[j]?.kind === 'n' && segs[j + 1]?.kind !== 'num') {
+      de.push(segs[j].de, ...segs.slice(i, j).map(x => x.de));
+      i = j;
+      continue;
+    }
+    de.push(s.de);
+  }
+  const cap = s => (s ? s[0].toUpperCase() + s.slice(1) : s);
+  return { de: cap(de.join(' ')), en: cap(segs.map(s => s.en).join(' ')) };
 }
 
 (async () => {
@@ -194,6 +197,14 @@ function prettyArea(rest) {
   const locEnRows = locNamesCsv.filter(r => r.local_language_id === EN && sinnohLocs.has(r.location_id));
   const locDeRows = new Map(locNamesCsv.filter(r => r.local_language_id === DE).map(r => [r.location_id, r.name]));
   for (const r of locEnRows) if (locDeRows.has(r.location_id)) locDeByEn.set(norm(r.name), locDeRows.get(r.location_id));
+  // Orte, die in Bereichsnamen vorkommen (Tor nach …); „Sea Route 226“ heißt in den Spieldaten ROUTE_226
+  const places = new Map();
+  for (const r of locEnRows) {
+    const p = { de: locDeRows.get(r.location_id) || r.name, en: r.name };
+    places.set(norm(r.name), p);
+    if (/^Sea /.test(r.name)) places.set(norm(r.name.slice(4)), { de: p.de, en: r.name.slice(4) });
+  }
+  const areaEn = {};
 
   const ITEM_ALIAS = { parlyzheal: 'paralyzeheal', xspdef: 'xspdef', xspecial: 'xspatk', thunderstone: 'thunderstone' };
   const missingItems = new Set();
@@ -215,98 +226,11 @@ function prettyArea(rest) {
     return { id, de: speciesDe.get(id) || constName, en: speciesEn.get(id) || constName };
   }
 
-  // ── Gelände: Matrix 000 = Oberwelt von Sinnoh (30 × 30 Blöcke à 32 × 32 Kacheln) ──
-  console.log('Lade Oberwelt-Kacheln …');
+  // ── Matrix 000 = Oberwelt von Sinnoh (30 × 30 Blöcke à 32 × 32 Kacheln) ──
   const matrix = await getJSON('res/field/matrices/map_matrix_000.json');
   const ROWS = matrix.maps.length, COLS = matrix.maps[0].length, CH = 32;
   const W = COLS * CH, H = ROWS * CH;
-  const terrain = new Uint8Array(W * H).fill(T.VOID);
-  const mapIds = [...new Set(matrix.maps.flat().filter(m => m !== 'MAP_NONE'))];
-  const bins = new Map();
-  await pool(mapIds, 8, async id => {
-    const n = String(parseInt(id.replace('MAP_', ''), 10)).padStart(3, '0');
-    bins.set(id, await get(`${RAW}res/field/maps/data/map_data_${n}.bin`, { binary: true }));
-  });
-  // Blöcke ohne Kartendaten: zum Rand hin offenes Meer, ringsum von Land umschlossen = Gebirge (z. B. Kraterberg)
-  const openSea = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
-  const stackSea = [];
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    if ((r === 0 || c === 0 || r === ROWS - 1 || c === COLS - 1) && matrix.maps[r][c] === 'MAP_NONE') { openSea[r][c] = true; stackSea.push([r, c]); }
-  }
-  while (stackSea.length) {
-    const [r, c] = stackSea.pop();
-    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nr = r + dr, nc = c + dc;
-      if (nr < 0 || nc < 0 || nr >= ROWS || nc >= COLS || openSea[nr][nc] || matrix.maps[nr][nc] !== 'MAP_NONE') continue;
-      openSea[nr][nc] = true; stackSea.push([nr, nc]);
-    }
-  }
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    const id = matrix.maps[r][c];
-    if (id === 'MAP_NONE') {
-      // Umschlossene Lücke: wie ein Hindernis behandeln, die Art kommt unten vom nächsten Boden
-      if (!openSea[r][c]) for (let ty = 0; ty < CH; ty++) terrain.fill(T.TREE, (r * CH + ty) * W + c * CH, (r * CH + ty) * W + c * CH + CH);
-      continue;
-    }
-    const b = bins.get(id);
-    for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
-      const v = b.readUInt16LE(16 + (ty * CH + tx) * 2);
-      terrain[(r * CH + ty) * W + c * CH + tx] = classify(v);
-    }
-  }
-  // Gebäude: Hindernisse direkt über Türen, solange die zusammenhängende Fläche klein bleibt (sonst ist es Wald/Berg)
-  const seen = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) {
-    if (terrain[i] !== T.DOOR) continue;
-    const start = i - W;
-    if (start < 0 || terrain[start] !== T.TREE || seen[start]) continue;
-    const comp = [], stack = [start]; seen[start] = 1;
-    while (stack.length && comp.length <= 420) {
-      const k = stack.pop(); comp.push(k);
-      const x = k % W;
-      for (const nb of [k - W, k + W, x > 0 ? k - 1 : -1, x < W - 1 ? k + 1 : -1]) {
-        if (nb >= 0 && nb < W * H && !seen[nb] && terrain[nb] === T.TREE) { seen[nb] = 1; stack.push(nb); }
-      }
-    }
-    if (comp.length <= 420) for (const k of comp) terrain[k] = T.BUILDING;
-  }
-  // Unbegehbare Flächen sind im Spiel nur „blockiert" – ob dort Meer, Wald oder Fels ist, steht nicht in den Daten.
-  // Daher bekommt jede blockierte Kachel die Art des nächstgelegenen begehbaren Bodens (Breitensuche von allen
-  // Nicht-Hindernissen aus): an der Küste Meer, neben Wegen Wald, im Gebirge Fels, im Schnee verschneiter Fels.
-  // Drei Entfernungen je Kachel: zum nächsten Land, zum nächsten Meer-Feld einer Route und zum offenen Meer.
-  // Meer zählt 2,5-fach, damit kleine Wasserflächen nicht ganze Wälder fluten.
-  const LAND_CLASS = {
-    [T.SNOW]: T.SNOWROCK, [T.ICE]: T.SNOWROCK, [T.SAND]: T.SANDROCK, [T.ROCKFLOOR]: T.ROCK, [T.ROCKCLIMB]: T.ROCK, [T.WATERFALL]: T.ROCK,
-  };
-  function bfs(isSource, carry) {
-    const dist = new Int32Array(W * H).fill(-1);
-    const cls = carry ? new Int8Array(W * H) : null;
-    const queue = new Int32Array(W * H);
-    let qh = 0, qt = 0;
-    for (let i = 0; i < W * H; i++) if (isSource(terrain[i])) { dist[i] = 0; if (cls) cls[i] = LAND_CLASS[terrain[i]] ?? T.TREE; queue[qt++] = i; }
-    while (qh < qt) {
-      const k = queue[qh++], x = k % W;
-      for (const nb of [k - W, k + W, x > 0 ? k - 1 : -1, x < W - 1 ? k + 1 : -1]) {
-        if (nb < 0 || nb >= W * H || dist[nb] !== -1) continue;
-        dist[nb] = dist[k] + 1;
-        if (cls) cls[nb] = cls[k];
-        queue[qt++] = nb;
-      }
-    }
-    return { dist, cls };
-  }
-  const land = bfs(t => t !== T.TREE && t !== T.VOID && t !== T.SEA, true);
-  const sea = bfs(t => t === T.SEA, false);
-  const open = bfs(t => t === T.VOID, false);
-  const far = d => (d < 0 ? 1e9 : d);
-  for (let i = 0; i < W * H; i++) {
-    if (terrain[i] !== T.TREE) continue;
-    const dl = far(land.dist[i]), ds = far(sea.dist[i]) * 2.5, dv = far(open.dist[i]);
-    terrain[i] = dl <= ds && dl <= dv ? land.cls[i] : ds <= dv ? T.SEA : T.VOID;
-  }
   fs.mkdirSync(OUT, { recursive: true });
-  const pngSize = writePalettePNG(path.join(OUT, 'platin-terrain.png'), W, H, terrain, PALETTE);
-  console.log(`  Gelände ${W}×${H} → platin-terrain.png (${Math.round(pngSize / 1024)} KB)`);
 
   // ── Orte ──────────────────────────────────────────────────────────────────
   const locations = [];
@@ -457,13 +381,21 @@ function prettyArea(rest) {
   const OVERWORLD = 'map_matrix_000';
   const headerNames = Object.keys(headers);
   const eventsCache = new Map();
+  const events = async key => {
+    if (!eventsCache.has(key)) eventsCache.set(key, await getJSON(`res/field/events/${key}.json`, { optional: true }));
+    return eventsCache.get(key);
+  };
   const doneEvents = new Set();
+  // Innenkarten (Höhlen, Gebäude, Wälder …): eigene Marker und Ausgänge, Schlüssel = Header ohne MAP_HEADER_
+  const interiors = new Map();
+  const mapKey = hn => hn.replace(/^MAP_HEADER_/, '');
+  const doors = [];
   let scriptLinkSamples = 0;
   const warpSources = new Map(); // Ziel-Ort → Orte, von denen ein Warp dorthin führt
   for (const hn of headerNames) {
     const h = headers[hn];
     // Nicht verwendete Karten aus der Entwicklung des Spiels weglassen
-    if (/UNUSED|UNK_|UNKNOWN_|EVERYWHERE|NOTHING/.test(hn) || /MysteryZone/.test(h.mapLabelTextID || '')) continue;
+    if (SKIP_HEADER.test(hn) || /MysteryZone/.test(h.mapLabelTextID || '')) continue;
     const li = locFor(h.mapLabelTextID);
     if (li < 0) continue;
     const loc = locations[li];
@@ -474,18 +406,31 @@ function prettyArea(rest) {
     let rest = rawName;
     const parts = rawName.split('_');
     for (let k = parts.length; k > 0; k--) { if (norm(parts.slice(0, k).join('')) === locWords) { rest = parts.slice(k).join('_'); break; } }
-    if (rest === rawName && !overworld) rest = rawName; // eigener Name
-    const area = overworld ? '' : prettyArea(rest === rawName ? rest : rest);
+    // Ohne Treffer bleibt der ganze Name (eigener Name des Bereichs); Deutsch ist der Schlüssel, Englisch steht in areaEn
+    let area = '';
+    if (!overworld) {
+      const names = areaNames(rest, places, locWords);
+      area = names.de;
+      if (area && names.en !== area) {
+        if (areaEn[area] && areaEn[area] !== names.en) console.log(`  Bereichsname doppelt: ${area} = ${areaEn[area]} / ${names.en}`);
+        areaEn[area] = names.en;
+      }
+    }
 
     // Events (jede Datei nur einmal)
     const evKey = h.eventsArchiveID;
     if (!evKey || doneEvents.has(evKey)) continue;
     doneEvents.add(evKey);
-    const ev = eventsCache.get(evKey) || await getJSON(`res/field/events/${evKey}.json`, { optional: true });
+    const ev = await events(evKey);
     if (!ev) continue;
     if (area && !loc.areas.includes(area)) loc.areas.push(area);
     const scripts = await parseScripts(h.scriptsArchiveID);
-    const pos = (x, z) => (overworld ? [x, z] : null);
+    // Position: Kachel x, z und Höhe y (in Kacheln; wichtig bei Brücken). Innen zusätzlich die Innenkarte.
+    const pos = (x, z, y) => [x, z, y ?? 0];
+    const inner = overworld ? null : { l: li, area, matrix: h.mapMatrixID, areaData: h.areaDataArchiveID, markers: [], warps: ev.warp_events || [] };
+    if (inner) interiors.set(mapKey(hn), inner);
+    const onMap = overworld ? {} : { map: mapKey(hn) };
+    const addMarker = m => (overworld ? markers.push({ ...m, l: li }) : inner.markers.push(m));
     const linkedLabels = new Set();
 
     for (const o of ev.object_events || []) {
@@ -493,8 +438,8 @@ function prettyArea(rest) {
       if (typeof o.script === 'string' && o.script.startsWith('TRAINER_')) {
         const t = await trainer(o.script);
         if (t) {
-          const idx = loc.trainers.push({ ...t, area, pos: pos(o.x, o.z) }) - 1;
-          if (overworld) markers.push({ k: 'trainer', x: o.x, z: o.z, l: li, i: idx });
+          const idx = loc.trainers.push({ ...t, area, pos: pos(o.x, o.z, o.y), ...onMap }) - 1;
+          addMarker({ k: 'trainer', x: o.x, z: o.z, y: o.y ?? 0, i: idx });
         }
         continue;
       }
@@ -503,8 +448,8 @@ function prettyArea(rest) {
         const v = visibleItems[+o.script - 7000];
         if (v) {
           const info = itemInfo(v.item);
-          const idx = loc.items.push({ kind: 'ball', ...info, qty: v.qty, area, pos: pos(o.x, o.z) }) - 1;
-          if (overworld) markers.push({ k: info.tm ? 'tm' : 'item', x: o.x, z: o.z, l: li, i: idx });
+          const idx = loc.items.push({ kind: 'ball', ...info, qty: v.qty, area, pos: pos(o.x, o.z, o.y), ...onMap }) - 1;
+          addMarker({ k: info.tm ? 'tm' : 'item', x: o.x, z: o.z, y: o.y ?? 0, i: idx });
         }
         continue;
       }
@@ -518,15 +463,15 @@ function prettyArea(rest) {
         for (const g of found.gifts) {
           const info = itemInfo(g.item);
           if (loc.items.some(x => x.kind === 'gift' && x.id === info.id && x.area === area)) continue;
-          const idx = loc.items.push({ kind: 'gift', ...info, qty: g.qty, area, pos: pos(o.x, o.z) }) - 1;
-          if (overworld) markers.push({ k: info.tm ? 'tm' : 'gift', x: o.x, z: o.z, l: li, i: idx });
+          const idx = loc.items.push({ kind: 'gift', ...info, qty: g.qty, area, pos: pos(o.x, o.z, o.y), ...onMap }) - 1;
+          addMarker({ k: info.tm ? 'tm' : 'gift', x: o.x, z: o.z, y: o.y ?? 0, i: idx });
         }
         for (const tid of [...new Set(found.battles)]) {
           if (loc.trainers.some(t => t.id === tid)) continue;
           const t = await trainer(tid);
           if (!t) continue;
-          const idx = loc.trainers.push({ ...t, area, pos: pos(o.x, o.z) }) - 1;
-          if (overworld) markers.push({ k: 'trainer', x: o.x, z: o.z, l: li, i: idx });
+          const idx = loc.trainers.push({ ...t, area, pos: pos(o.x, o.z, o.y), ...onMap }) - 1;
+          addMarker({ k: 'trainer', x: o.x, z: o.z, y: o.y ?? 0, i: idx });
         }
       }
     }
@@ -536,8 +481,8 @@ function prettyArea(rest) {
       const hi = hiddenItems[b.script - 8000];
       if (!hi) continue;
       const info = itemInfo(hi.item);
-      const idx = loc.items.push({ kind: 'hidden', ...info, qty: hi.qty, area, pos: pos(b.x, b.z) }) - 1;
-      if (overworld) markers.push({ k: 'hidden', x: b.x, z: b.z, l: li, i: idx });
+      const idx = loc.items.push({ kind: 'hidden', ...info, qty: hi.qty, area, pos: pos(b.x, b.z, b.y), ...onMap }) - 1;
+      addMarker({ k: 'hidden', x: b.x, z: b.z, y: b.y ?? 0, i: idx });
     }
     // Geschenke aus Skripten ohne Objekt (z. B. beim Betreten)
     for (const label of scripts.entries) {
@@ -557,28 +502,61 @@ function prettyArea(rest) {
     // Welche Orte sind von hier aus erreichbar? (für Orte ohne eigenen Kartenzugang)
     for (const w of ev.warp_events || []) {
       const dest = headers[w.dest_header_id];
-      if (!dest || /UNUSED/.test(w.dest_header_id)) continue;
+      if (!dest || SKIP_HEADER.test(w.dest_header_id)) continue;
       const dli = locFor(dest.mapLabelTextID);
       if (dli < 0 || dli === li) continue;
       if (!warpSources.has(dli)) warpSources.set(dli, new Set());
       warpSources.get(dli).add(li);
     }
-    // Eingänge in andere Orte (Höhlen, Wälder …)
+    // Eingänge in andere Orte (Höhlen, Wälder …); Türen in Gebäude desselben Ortes merken (nur solche mit Inhalt bleiben)
     if (overworld) {
       for (const w of ev.warp_events || []) {
         const dest = headers[w.dest_header_id];
-        if (!dest) continue;
+        if (!dest || SKIP_HEADER.test(w.dest_header_id)) continue;
         const dli = locFor(dest.mapLabelTextID);
+        if (dli === li && dest.mapMatrixID !== OVERWORLD) doors.push({ k: 'entrance', x: w.x, z: w.z, l: li, to: mapKey(w.dest_header_id) });
         if (dli < 0 || dli === li) continue;
         const d = locations[dli];
         if (d.entrances.some(([x, z]) => Math.abs(x - w.x) + Math.abs(z - w.z) < 4)) continue;
         d.entrances.push([w.x, w.z]);
-        markers.push({ k: 'entrance', x: w.x, z: w.z, l: dli, from: li });
+        markers.push({ k: 'entrance', x: w.x, z: w.z, l: dli, from: li, to: mapKey(w.dest_header_id) });
       }
     }
     // Wilde Pokémon
     const w = await wild(h.wildEncountersArchiveID);
     if (w) loc.wild.push({ area, ...w });
+  }
+
+  // ── Innenkarten: nur solche mit Markern. Ausgänge führen zu anderen Innenkarten, zurück auf die Oberwelt
+  // (mit Zielstelle) oder – nicht anklickbar – in Bereiche ohne eigene Karte. ──
+  const maps = {};
+  for (const [key, m] of interiors) if (m.markers.length) maps[key] = m;
+  for (const [key, m] of Object.entries(maps)) {
+    const exits = [];
+    for (const w of m.warps) {
+      const dest = headers[w.dest_header_id];
+      if (!dest || SKIP_HEADER.test(w.dest_header_id)) continue;
+      const dk = mapKey(w.dest_header_id);
+      if (dk === key) continue;
+      const e = { x: w.x, z: w.z, l: locFor(dest.mapLabelTextID) };
+      if (maps[dk]) e.to = dk;
+      else if (dest.mapMatrixID === OVERWORLD) {
+        const dw = (await events(dest.eventsArchiveID))?.warp_events?.[w.dest_warp_id];
+        if (dw) e.ow = [dw.x, dw.z];
+      } else e.a = interiors.get(dk)?.area ?? '';
+      // Doppeltüren und breite Treppen nur einmal
+      const target = x => x.to ?? (x.ow ? `ow${x.l}` : `${x.l}|${x.a}`);
+      if (exits.some(x => target(x) === target(e) && Math.abs(x.x - e.x) + Math.abs(x.z - e.z) <= 3)) continue;
+      exits.push(e);
+    }
+    m.exits = exits;
+    delete m.warps;
+  }
+  // Eingänge auf der Oberwelt führen direkt in ihre Innenkarte; Türen nur zu Gebäuden mit Inhalt, je Gebäude eine
+  for (const m of markers) if (m.k === 'entrance' && !maps[m.to]) delete m.to;
+  for (const d of doors) {
+    if (!maps[d.to] || markers.some(m => m.k === 'entrance' && m.to === d.to)) continue;
+    markers.push(d);
   }
 
   // Orte ohne Kartenzugang: über welchen Ort mit Position erreicht man sie? (Suche über bis zu 3 Warps)
@@ -610,17 +588,24 @@ function prettyArea(rest) {
     if (!l.entrances.length) delete l.entrances;
     if (l.via != null) { if (remap.has(l.via)) l.via = remap.get(l.via); else delete l.via; }
   }
+  for (const m of Object.values(maps)) {
+    m.l = remap.get(m.l);
+    m.exits = m.exits.filter(e => remap.has(e.l)).map(e => ({ ...e, l: remap.get(e.l) }));
+  }
 
-  const data = { version: 1, source: 'pret/pokeplatinum + PokeAPI', width: W, height: H, chunk: CH, chunks: finalChunks, locations: finalLocs, markers: finalMarkers };
+  const data = { version: 2, source: 'pret/pokeplatinum + PokeAPI', width: W, height: H, chunk: CH, chunks: finalChunks, locations: finalLocs, markers: finalMarkers, maps, areaEn };
   const json = JSON.stringify(data);
   fs.writeFileSync(path.join(OUT, 'platin.json'), json);
   const count = k => finalMarkers.filter(m => m.k === k).length;
   console.log(`Fertig: ${finalLocs.length} Orte, ${finalLocs.reduce((s, l) => s + l.items.length, 0)} Items, ${finalLocs.reduce((s, l) => s + l.trainers.length, 0)} Trainer`);
   console.log(`  Marker auf der Oberwelt: Items ${count('item')}, TMs ${count('tm')}, versteckt ${count('hidden')}, Geschenke ${count('gift')}, Trainer ${count('trainer')}, Eingänge ${count('entrance')}`);
+  const mapList = Object.values(maps);
+  console.log(`  Innenkarten: ${mapList.length} (${new Set(mapList.map(m => `${m.matrix}|${m.areaData}`)).size} verschiedene Bilder), Marker innen: ${mapList.reduce((s, m) => s + m.markers.length, 0)}, Ausgänge: ${mapList.reduce((s, m) => s + m.exits.length, 0)}`);
   console.log(`  platin.json ${Math.round(json.length / 1024)} KB`);
   if (missingItems.size) console.log('  Items ohne PokeAPI-Treffer:', [...missingItems].join(', '));
   if (missingSpecies.size) console.log('  Pokémon ohne Treffer:', [...missingSpecies].join(', '));
   if (missingTrainers.size) console.log(`  Trainer ohne Datei (${missingTrainers.size}):`, [...missingTrainers].slice(0, 20).join(', '));
+  if (unknownAreaWords.size) console.log('  Bereichswörter ohne Übersetzung:', [...unknownAreaWords].sort().join(', '));
   const classes = [...new Set(finalLocs.flatMap(l => l.trainers.map(t => t.cls)))].sort();
   console.log('  Trainerklassen:', classes.join(', '));
 })().catch(e => { console.error(e); process.exit(1); });

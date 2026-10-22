@@ -34,12 +34,13 @@
   <a class="tool-nav-link" href="../Typrechner/index.html">Typen</a>
   <a class="tool-nav-link" href="../PokemonInfo/index.html">Dex</a>
   <a class="tool-nav-link is-active" href="index.html" aria-current="page">Karte</a>
+  <a class="tool-nav-link" href="../Bosse/index.html">Bosse</a>
   <a class="tool-nav-link" href="../SaveViewer/index.html">Save</a>
   <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
 </nav>
 
 <header>
-  <h1><span data-i18n="title">Karte von Sinnoh</span> <span class="game-badge">Platin</span></h1>
+  <h1><span data-i18n="title">Karte von Sinnoh</span> <span class="game-badge" data-i18n="gameBadge">Platin</span></h1>
   <p data-i18n="subtitle">Items, versteckte Items, TMs, Trainer und wilde Pokémon – an ihrer echten Stelle im Spiel.</p>
 </header>
 
@@ -62,9 +63,14 @@
     <div class="map-wrap">
       <div id="map"></div>
       <div id="hover-name" class="hover-name" hidden></div>
+      <div id="interior-bar" class="interior-bar" hidden>
+        <button type="button" id="interior-back" class="ib-back">← <span data-i18n="backToMap">Sinnoh-Karte</span></button>
+        <span id="interior-title" class="ib-title"></span>
+        <select id="interior-select" class="ib-select" aria-label="Bereich"></select>
+      </div>
       <div id="map-loading" class="map-loading" data-i18n="loading">Karte wird geladen…</div>
     </div>
-    <p class="map-note" data-i18n="note">Positionen und Inhalte aus dem Spielcode von Platin (pret/pokeplatinum). Unbegehbare Flächen sind vereinfacht dargestellt.</p>
+    <p class="map-note" data-i18n="note">Karte aus den 3D-Modellen und Texturen von Platin gerendert, Positionen und Inhalte aus dem Spielcode (pret/pokeplatinum).</p>
   </section>
 
   <aside class="side-card" id="side">
@@ -75,6 +81,7 @@
 </div>
 
 <script src="../vendor/leaflet/leaflet.js"></script>
+<script src="trainer-classes.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

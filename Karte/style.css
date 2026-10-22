@@ -27,6 +27,7 @@ body {
   --c-gift: #3ddc84;
   --c-trainer: #ffaa3c;
   --c-entrance: #b48cff;
+  --c-sea: #3880e9; /* Durchschnittsfarbe von tiles/sea.png */
 }
 
 #app {
@@ -147,8 +148,48 @@ header p { margin: 0; color: var(--color-muted); }
 .dot--entrance { background: var(--c-entrance); box-shadow: 0 0 0 1.5px #fff inset; }
 
 .map-wrap { position: relative; height: var(--map-h); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
-#map { width: 100%; height: 100%; background: #111f40; }
-.terrain-img { image-rendering: pixelated; image-rendering: crisp-edges; }
+#map { width: 100%; height: 100%; background: var(--c-sea); }
+/* Offenes Meer: Wassermuster aus dem Spiel, die Größe setzt app.js je Zoomstufe */
+.sea-tile { background: var(--c-sea) url('tiles/sea.png') repeat 0 0; }
+/* base.css rundet alle Bilder ab – bei Kartenblättern ergäbe das Rauten an jeder Blattecke */
+.leaflet-container img { border-radius: 0; }
+/* Stark vergrößert: Spielgrafik pixelgenau statt verschwommen */
+.z-pixel .game-sheet, .z-pixel .sea-tile { image-rendering: pixelated; }
+/* Innenkarte: drumherum dunkel wie im Spiel */
+#map.is-interior { background: #0b0c18; }
+
+/* Leiste über einer Innenkarte */
+.interior-bar {
+  position: absolute;
+  top: 10px;
+  left: 56px;
+  right: 10px;
+  z-index: 850;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+.interior-bar > * { pointer-events: auto; }
+.ib-back, .ib-select, .ib-title {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(13,15,43,0.9);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  backdrop-filter: blur(6px);
+}
+.ib-back { cursor: pointer; color: var(--color-accent-strong); border-color: rgba(87,210,255,0.4); }
+.ib-back:hover { background: rgba(87,210,255,0.16); }
+.ib-title { white-space: nowrap; }
+.ib-select { cursor: pointer; max-width: 100%; }
+.ib-select option { background: #16193f; color: #fff; }
+/* Ausgänge ohne eigene Innenkarte: nur zur Info */
+.exit-mark.is-dead { cursor: default; opacity: 0.55; }
 .map-note { margin: 0; font-size: 0.74rem; color: var(--color-muted); opacity: 0.8; }
 
 .map-loading {
@@ -193,7 +234,7 @@ header p { margin: 0; color: var(--color-muted); }
 }
 
 /* Leaflet im Hub-Look */
-.leaflet-container { font-family: var(--font-main); background: #111f40; }
+.leaflet-container { font-family: var(--font-main); background: var(--c-sea); }
 .leaflet-bar { border: 1px solid rgba(255,255,255,0.14) !important; border-radius: 10px !important; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.35) !important; }
 .leaflet-bar a { background: rgba(22,25,63,0.95) !important; color: var(--color-text) !important; border-bottom: 1px solid rgba(255,255,255,0.1) !important; }
 .leaflet-bar a:hover { background: rgba(87,210,255,0.16) !important; }
@@ -278,6 +319,8 @@ header p { margin: 0; color: var(--color-muted); }
   cursor: pointer;
 }
 .ent-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--color-muted); }
+.map-btn { border-color: rgba(87,210,255,0.35); background: rgba(87,210,255,0.08); color: #bfefff; }
+.map-btn.is-on { background: rgba(87,210,255,0.28); color: #fff; border-color: var(--color-accent-strong); }
 
 .dir-group { margin-bottom: 14px; }
 .dir-group h3 { margin: 0 0 8px; font-size: 0.74rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--color-muted); }
