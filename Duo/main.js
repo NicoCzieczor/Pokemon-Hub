@@ -706,7 +706,7 @@ async function renderInfoPanel() {
   abilitiesList.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:4px';
   abilitiesRaw.forEach((a, i) => {
     const tag = document.createElement('span');
-    tag.style.cssText = `padding:3px 10px;border-radius:20px;font-size:0.82rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);${a.isHidden?'opacity:0.6;font-style:italic':''}`;
+    tag.style.cssText = `padding:3px 10px;border-radius:20px;font-size:0.82rem;background:rgba(var(--t-ink),0.07);border:1px solid rgba(var(--t-ink),0.15);${a.isHidden?'opacity:0.6;font-style:italic':''}`;
     tag.textContent = abilityDataArr[i]?.name || formatLabel(a.name);
     if (a.isHidden) tag.title = window.t('hidden-ability');
     const aData = abilityDataArr[i];
@@ -839,7 +839,7 @@ async function renderInfoPanel() {
     moveItems.forEach(m => {
       const el = Object.assign(document.createElement('div'), { className:'info-move' });
       const typeColor = m.moveType ? TYPE_MOVE_COLORS[m.moveType] : null;
-      if (typeColor) el.style.background = `linear-gradient(to right, ${typeColor} 0%, rgba(255,255,255,0.04) 60%)`;
+      if (typeColor) el.style.background = `linear-gradient(to right, ${typeColor} 0%, rgba(var(--t-ink),0.04) 60%)`;
       el.innerHTML = `<strong>${m.name}</strong> <span class="learn-method-tag ${m.methodClass}" style="font-size:.9rem;opacity:.9">${m.learnInfo}</span>`;
       if (m.data) attachTooltip(el, () => buildMoveTooltip(m.data));
       movesList.appendChild(el);
@@ -881,18 +881,30 @@ function syncUpdateCount(connected, total) {
   }
 }
 
+// Wer gerade online ist, kommt aus Realtime-Presence: jedes offene Fenster meldet seinen Platz an.
+// Verlässt ein Spieler die Session oder schließt die Seite/App, sieht der andere das sofort.
+// (Die Zeilen in „players“ regeln nur, wer zur Session gehört; slot=1 hält den Spielstand.)
+function syncRenderPresence() {
+  if (!syncChannel || !sessionMySlot) return;
+  const online = new Set([sessionMySlot]);
+  for (const metas of Object.values(syncChannel.presenceState())) {
+    for (const m of metas) if (m.slot === 1 || m.slot === 2) online.add(m.slot);
+  }
+  const other = sessionMySlot === 1 ? 2 : 1;
+  if (online.has(other)) syncUpdateStatus('Beide Spieler verbunden ✓', 'connected');
+  else syncUpdateStatus(`Spieler ${sessionMySlot} – warte auf Spieler ${other}…`, 'waiting');
+  syncUpdateCount(online.size, 2);
+}
+
 function syncSubscribe() {
   if (syncChannel) { sb.removeChannel(syncChannel); syncChannel = null; }
-  syncChannel = sb.channel('duo-sync-' + syncSessionId)
+  const channel = sb.channel('duo-sync-' + syncSessionId, { config: { presence: { key: MY_CLIENT_ID } } });
+  syncChannel = channel
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players' }, payload => {
       const row = payload.new;
       if (!row || row.session_id !== syncSessionId) return;
-      if (row.slot === 2 && sessionMySlot === 1) {
-        syncUpdateStatus('Beide Spieler verbunden ✓', 'connected');
-        syncUpdateCount(2, 2);
-        // Aktuellen Stand sofort pushen, damit P2 ihn sieht
-        setTimeout(onAfterSave, 200);
-      }
+      // Aktuellen Stand sofort pushen, damit P2 ihn sieht
+      if (row.slot === 2 && sessionMySlot === 1) setTimeout(onAfterSave, 200);
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, payload => {
       const row = payload.new;
@@ -901,16 +913,13 @@ function syncSubscribe() {
       if (row.team?.lastWriter === MY_CLIENT_ID) return; // eigenes Echo ignorieren
       applySharedState(row.team);
     })
-    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'players' }, payload => {
-      const row = payload.old;
-      if (!row || row.session_id !== syncSessionId) return;
-      if (row.slot === 2 && sessionMySlot === 1) {
-        syncUpdateStatus('Spieler 1 – warte auf Spieler 2…', 'waiting');
-        syncUpdateCount(1, 2);
-      }
-    })
+    .on('presence', { event: 'sync' }, syncRenderPresence)
+    // Wird nach jedem (Wieder-)Verbinden aufgerufen, z. B. wenn das Handy aus dem Hintergrund zurückkommt
     .subscribe(status => {
-      if (status === 'SUBSCRIBED') { syncUpdateStatus(`Spieler ${sessionMySlot} – verbunden ✓`, 'connected'); syncUpdateCount(sessionMySlot, 2); }
+      if (status === 'SUBSCRIBED' && syncChannel === channel) {
+        syncRenderPresence();
+        channel.track({ slot: sessionMySlot }).catch(e => console.error('Presence-Fehler:', e));
+      }
     });
 }
 
@@ -932,8 +941,7 @@ async function syncCreate() {
     document.getElementById('sync-join-area').style.display  = 'none';
     document.getElementById('sync-leave-btn').style.display  = 'inline-flex';
     localStorage.setItem('sync-session', JSON.stringify({ id: sess.id, slot: 1, code }));
-    syncUpdateStatus('Spieler 1 – warte auf Spieler 2…', 'waiting');
-    syncUpdateCount(1, 2);
+    syncRenderPresence();
   } catch(e) {
     console.error(e);
     syncUpdateStatus('Fehler beim Erstellen.', 'error');
@@ -958,8 +966,7 @@ async function syncJoin(code) {
     document.getElementById('sync-create-btn').style.display  = 'none';
     document.getElementById('sync-leave-btn').style.display   = 'inline-flex';
     localStorage.setItem('sync-session', JSON.stringify({ id: sess.id, slot: 2, code: code.toUpperCase() }));
-    syncUpdateStatus('Beide Spieler verbunden ✓', 'connected');
-    syncUpdateCount(2, 2);
+    syncRenderPresence();
     // Geteilten Spielstand laden
     const { data: stateRow } = await sb.from('players').select('team').eq('session_id', sess.id).eq('slot', 1).maybeSingle();
     if (stateRow?.team) applySharedState(stateRow.team);
@@ -1009,9 +1016,7 @@ async function syncRestore() {
     // Geteilten Spielstand von slot=1 laden — Supabase ist Quelle der Wahrheit
     const { data: stateRow } = await sb.from('players').select('team').eq('session_id', id).eq('slot', 1).maybeSingle();
     if (stateRow?.team) applySharedState(stateRow.team);
-    // Echte Spieleranzahl aus DB ermitteln
-    const { data: playerRows } = await sb.from('players').select('slot').eq('session_id', id);
-    syncUpdateCount(playerRows?.length ?? 1, 2);
+    syncRenderPresence();
   } catch(e) { localStorage.removeItem('sync-session'); }
 }
 
@@ -1403,7 +1408,7 @@ function initTouchDrag() {
         srcEl.classList.add('dragging');
         const r = srcEl.getBoundingClientRect();
         ghost = srcEl.cloneNode(true);
-        ghost.style.cssText = `position:fixed;pointer-events:none;z-index:9999;opacity:0.78;width:${r.width}px;height:${r.height}px;left:${t.clientX - r.width/2}px;top:${t.clientY - r.height/2}px;border-radius:12px;transform:scale(1.1);box-shadow:0 8px 28px rgba(0,0,0,0.45);transition:none`;
+        ghost.style.cssText = `position:fixed;pointer-events:none;z-index:9999;opacity:0.78;width:${r.width}px;height:${r.height}px;left:${t.clientX - r.width/2}px;top:${t.clientY - r.height/2}px;border-radius:12px;transform:scale(1.1);box-shadow:0 8px 28px rgba(var(--t-shade),0.45);transition:none`;
         document.body.appendChild(ghost);
       }
     }

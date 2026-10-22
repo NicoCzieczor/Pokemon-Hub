@@ -168,7 +168,7 @@ function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function updateSliderStyle(v) {
   const pct  = (v - 1) / 99 * 100;
   const fill = v > 50 ? '#50e880' : v > 20 ? '#e8b820' : '#f05050';
-  const empty = 'rgba(255,255,255,0.07)';
+  const empty = 'rgba(var(--t-ink), 0.07)';
   document.getElementById('hp-slider').style.background =
     `linear-gradient(to right, ${fill} ${pct}%, ${empty} ${pct}%)`;
 }
@@ -362,11 +362,11 @@ function throwsNeeded(p, target) {
 
 function probColor(p) {
   if (p === null) return 'var(--color-muted)';
-  if (p >= 1)   return '#50e880';
-  if (p >= 0.5) return '#80e060';
-  if (p >= 0.2) return '#ffda08';
-  if (p >= 0.05)return '#f09040';
-  return '#f05050';
+  if (p >= 1)   return 'rgb(var(--t-c-50e880))';
+  if (p >= 0.5) return 'rgb(var(--t-c-80e060))';
+  if (p >= 0.2) return 'rgb(var(--t-c-ffda08))';
+  if (p >= 0.05)return 'rgb(var(--t-c-f09040))';
+  return 'rgb(var(--t-c-f05050))';
 }
 
 function formatProb(p) {
@@ -730,7 +730,7 @@ async function pickPokemon(p) {
     console.error(e);
     const trErr = TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
     document.getElementById('poke-card').innerHTML =
-      `<p class="poke-empty-hint" style="color:#f05050">${trErr.pokeLoadError}</p>`;
+      `<p class="poke-empty-hint" style="color:rgb(var(--t-c-f05050))">${trErr.pokeLoadError}</p>`;
   }
 }
 

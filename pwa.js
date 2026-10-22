@@ -7,9 +7,25 @@
  *  3. Langes Drücken = Rechtsklick (Team-Slots, Box, Graveyard, Runs … löschen)
  *  4. Speicherstand sichern / laden (Buttons auf der Startseite)
  *  5. Navigationsleiste der Tools: aktiver Tab sichtbar, Sprachknopf in der Leiste statt darüber
+ *  6. Design (Theme): Klassik, Papier, Graphit – Farben in theme.css, Knopf neben dem Sprachknopf
  */
 (function () {
   'use strict';
+
+  /* ── 6a. Theme sofort setzen (vor dem ersten Zeichnen, sonst blitzt das alte Design auf) ── */
+  var THEMES = ['classic', 'paper', 'graphite'];
+  var THEME_BG = { classic: '#0d0f2b', paper: '#e4ded3', graphite: '#171716' };
+  function storedTheme() {
+    var t = 'classic';
+    try { t = localStorage.getItem('hub-theme') || 'classic'; } catch (e) {}
+    return THEMES.indexOf(t) < 0 ? 'classic' : t;
+  }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEME_BG[t]);
+  }
+  applyTheme(storedTheme());
 
   var scriptUrl = document.currentScript && document.currentScript.src;
   var standalone = window.navigator.standalone === true ||
@@ -273,8 +289,77 @@
     var imp = document.getElementById('backup-import');
     if (exp) exp.addEventListener('click', exportData);
     if (imp) imp.addEventListener('click', importData);
+    applyTheme(storedTheme()); // meta theme-color steht erst jetzt sicher im DOM
+    setupThemeButton();
     setupToolNav();
   });
+
+  /* ── 6b. Theme-Knopf ───────────────────────────────────────────────── */
+  var THEME_NAMES = {
+    de: { classic: 'Klassik', paper: 'Papier', graphite: 'Graphit', label: 'Design' },
+    en: { classic: 'Classic', paper: 'Paper', graphite: 'Graphite', label: 'Theme' }
+  };
+  function themeNames() {
+    var l = 'de';
+    try { l = localStorage.getItem('hub-lang') || 'de'; } catch (e) {}
+    return THEME_NAMES[l] || THEME_NAMES.de;
+  }
+  // Knopf und Sprachknopf kommen in einen gemeinsamen Halter (.hub-controls). Lag der Sprachknopf
+  // fest oben rechts, liegt der Halter genau dort; stand er im Seitenkopf, steht der Halter dort.
+  function setupThemeButton() {
+    if (document.querySelector('.theme-toggle')) return;
+    var lang = document.getElementById('lang-toggle') || document.getElementById('lang-btn');
+    var box = document.createElement('div');
+    box.className = 'hub-controls';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-toggle';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>';
+    box.appendChild(btn);
+    if (lang) {
+      var cs = getComputedStyle(lang);
+      if (cs.position === 'fixed') {
+        var r = lang.getBoundingClientRect();
+        box.classList.add('is-fixed');
+        box.style.top = r.top + 'px';
+        box.style.right = Math.max(0, document.documentElement.clientWidth - r.right) + 'px';
+      }
+      lang.parentNode.insertBefore(box, lang);
+      box.appendChild(lang);
+    } else {
+      box.classList.add('is-fixed', 'is-alone');
+      document.body.appendChild(box);
+    }
+    function label() {
+      var n = themeNames(), t = storedTheme();
+      btn.title = n.label + ': ' + n[t];
+      btn.setAttribute('aria-label', n.label + ': ' + n[t]);
+    }
+    label();
+    btn.addEventListener('click', function () {
+      var next = THEMES[(THEMES.indexOf(storedTheme()) + 1) % THEMES.length];
+      try { localStorage.setItem('hub-theme', next); } catch (e) {}
+      applyTheme(next);
+      label();
+      showThemeToast(themeNames()[next]);
+    });
+    // Sprachwechsel ändert die Beschriftung
+    if (lang) lang.addEventListener('click', function () { setTimeout(label, 0); });
+  }
+  var toastTimer = null;
+  function showThemeToast(text) {
+    var el = document.querySelector('.theme-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'theme-toast';
+      el.setAttribute('role', 'status');
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+    el.classList.add('is-on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('is-on'); }, 1400);
+  }
 
   /* ── 5. Navigationsleiste der Tools ────────────────────────────────── */
   // Am Handy passt die Leiste nicht ganz auf den Bildschirm und scrollt seitlich (ohne sichtbare
@@ -289,7 +374,8 @@
     while (nav.firstChild) track.appendChild(nav.firstChild);
     nav.appendChild(track);
     nav.classList.add('has-track');
-    var btn = document.getElementById('lang-toggle');
+    // Halter mit Theme- und Sprachknopf (s. setupThemeButton), sonst der Sprachknopf allein
+    var btn = document.querySelector('.hub-controls') || document.getElementById('lang-toggle');
     var home = null; // merkt sich den ursprünglichen Platz des Knopfs
 
     // Die Spur reicht bis an die Ränder der Leiste und übernimmt deren Innenabstand, damit die

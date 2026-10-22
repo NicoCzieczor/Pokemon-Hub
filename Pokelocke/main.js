@@ -671,7 +671,7 @@ async function renderInfoPanel() {
   abilitiesList.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:4px';
   abilitiesRaw.forEach((a, i) => {
     const tag = document.createElement('span');
-    tag.style.cssText = `padding:3px 10px;border-radius:20px;font-size:0.82rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);${a.isHidden?'opacity:0.6;font-style:italic':''}`;
+    tag.style.cssText = `padding:3px 10px;border-radius:20px;font-size:0.82rem;background:rgba(var(--t-ink),0.07);border:1px solid rgba(var(--t-ink),0.15);${a.isHidden?'opacity:0.6;font-style:italic':''}`;
     tag.textContent = abilityDataArr[i]?.name || formatLabel(a.name);
     if (a.isHidden) tag.title = window.t('hidden-ability');
     const aData = abilityDataArr[i];
@@ -810,7 +810,7 @@ async function renderInfoPanel() {
     moveItems.forEach(m => {
       const el = Object.assign(document.createElement('div'), { className:'info-move' });
       const typeColor = m.moveType ? TYPE_MOVE_COLORS[m.moveType] : null;
-      if (typeColor) el.style.background = `linear-gradient(to right, ${typeColor} 0%, rgba(255,255,255,0.04) 60%)`;
+      if (typeColor) el.style.background = `linear-gradient(to right, ${typeColor} 0%, rgba(var(--t-ink),0.04) 60%)`;
       el.innerHTML = `<strong>${m.name}</strong> <span class="learn-method-tag ${m.methodClass}" style="font-size:.9rem;opacity:.9">${m.learnInfo}</span>`;
       if (m.data) attachTooltip(el, () => buildMoveTooltip(m.data));
       movesList.appendChild(el);
@@ -1068,7 +1068,7 @@ function initTouchDrag() {
         srcEl.classList.add('dragging');
         const r = srcEl.getBoundingClientRect();
         ghost = srcEl.cloneNode(true);
-        ghost.style.cssText = `position:fixed;pointer-events:none;z-index:9999;opacity:0.78;width:${r.width}px;height:${r.height}px;left:${t.clientX - r.width/2}px;top:${t.clientY - r.height/2}px;border-radius:12px;transform:scale(1.1);box-shadow:0 8px 28px rgba(0,0,0,0.45);transition:none`;
+        ghost.style.cssText = `position:fixed;pointer-events:none;z-index:9999;opacity:0.78;width:${r.width}px;height:${r.height}px;left:${t.clientX - r.width/2}px;top:${t.clientY - r.height/2}px;border-radius:12px;transform:scale(1.1);box-shadow:0 8px 28px rgba(var(--t-shade),0.45);transition:none`;
         document.body.appendChild(ghost);
       }
     }

@@ -1,0 +1,495 @@
+/*
+ * Themes für den ganzen Hub: Klassik, Papier (hell) und Graphit (dunkel, neutral).
+ *
+ * Alle Seiten benutzen statt fester Farben diese Bausteine. Sie sind RGB-Werte ohne Klammern,
+ * damit auch Transparenz geht: rgba(var(--t-ink), 0.08) bzw. rgb(var(--t-acc)).
+ * pwa.js setzt <html data-theme="…"> aus localStorage 'hub-theme' und baut den Theme-Knopf.
+ *
+ * Bedeutung der Bausteine (Werte im Klassik-Theme = die ursprünglichen Farben):
+ *  --t-ink        halbtransparente Überlagerungen (Flächen, Ränder, Schrift mit Transparenz)
+ *  --t-white      deckendes Weiß (Überschriften, helle Schrift, helle Knöpfe)
+ *  --t-acc        Akzent 1 (Gelb), --t-acc2 Akzent 2 (Cyan)
+ *  --t-…-glow     dieselben Farben in Leuchteffekten und Lichtflecken – in den ruhigen Themes unsichtbar
+ *  --t-hl         Glanzkanten (weiß in Schatten)
+ *  --t-shade      Schattenfarbe
+ *  --t-on-acc     Schrift auf Akzent- und hellen Flächen
+ *  --t-n-…        dunkle Flächen (Hintergründe, Karten), Name = ursprüngliche Farbe
+ *  --t-g-…        helle Grautöne (Schrift, Linien), Name = ursprüngliche Farbe
+ */
+
+/* ── Klassik ─────────────────────────────────────────────────────────────── */
+:root {
+  /* Akzente */
+  --t-acc: 255, 218, 8;
+  --t-acc-glow: 255, 218, 8;
+  --t-acc2: 87, 210, 255;
+  --t-acc2-glow: 87, 210, 255;
+  /* Leuchten (Schatten, Lichtflecken) */
+  --t-hl: 255, 255, 255;
+  /* Weiß und Überlagerungen */
+  --t-ink: 255, 255, 255;
+  --t-white: 255, 255, 255;
+  /* Schatten */
+  --t-shade: 0, 0, 0;
+  /* Text auf Akzentflächen */
+  --t-on-acc: 17, 24, 39;
+  /* Flächen (dunkel) */
+  --t-n-050614: 5, 6, 20;
+  --t-n-080a1e: 8, 10, 30;
+  --t-n-0b0c18: 11, 12, 24;
+  --t-n-0d0f2b: 13, 15, 43;
+  --t-n-0f172a: 15, 23, 42;
+  --t-n-101230: 16, 18, 48;
+  --t-n-101322: 16, 19, 34;
+  --t-n-12143a: 18, 20, 58;
+  --t-n-12153a: 18, 21, 58;
+  --t-n-141634: 20, 22, 52;
+  --t-n-161838: 22, 24, 56;
+  --t-n-16193f: 22, 25, 63;
+  --t-n-191b3a: 25, 27, 58;
+  --t-n-1b1d40: 27, 29, 64;
+  --t-n-20244a: 32, 36, 74;
+  --t-n-262952: 38, 41, 82;
+  --t-n-303258: 48, 50, 88;
+  /* Schrift und Linien (hell) */
+  --t-g-7882aa: 120, 130, 170;
+  --t-g-8899cc: 136, 153, 204;
+  --t-g-8a8aa0: 138, 138, 160;
+  --t-g-9a9ab0: 154, 154, 176;
+  --t-g-a0a0b4: 160, 160, 180;
+  --t-g-a9abc2: 169, 171, 194;
+  --t-g-b0b0b0: 176, 176, 176;
+  --t-g-b1b3cc: 177, 179, 204;
+  --t-g-b4b4b4: 180, 180, 180;
+  --t-g-b8b8c8: 184, 184, 200;
+  --t-g-bec8e6: 190, 200, 230;
+  --t-g-cbd5e1: 203, 213, 225;
+  --t-g-e2e8f0: 226, 232, 240;
+  --t-g-edf2f7: 237, 242, 247;
+  --t-g-f8fafc: 248, 250, 252;
+  /* Weitere helle Schrift/Linien */
+  --t-g-bfefff: 191, 239, 255;
+  --t-g-c8b9ff: 200, 185, 255;
+  --t-g-d7c4ff: 215, 196, 255;
+  --t-g-dfe5f5: 223, 229, 245;
+  --t-g-e0e8f9: 224, 232, 249;
+  --t-g-e6ecf8: 230, 236, 248;
+  --t-g-f0f4ff: 240, 244, 255;
+  --t-g-ffb3b3: 255, 179, 179;
+  --t-g-ffb3b8: 255, 179, 184;
+  --t-g-ffc2ca: 255, 194, 202;
+  --t-g-ffd0d0: 255, 208, 208;
+  /* Bunte Schriftfarben (Status, Hinweise …) */
+  --t-c-3ddc84: 61, 220, 132;
+  --t-c-40c8cc: 64, 200, 204;
+  --t-c-4ec864: 78, 200, 100;
+  --t-c-50c060: 80, 192, 96;
+  --t-c-50d282: 80, 210, 130;
+  --t-c-50dc50: 80, 220, 80;
+  --t-c-50e870: 80, 232, 112;
+  --t-c-50e880: 80, 232, 128;
+  --t-c-60d8e0: 96, 216, 224;
+  --t-c-62dc96: 98, 220, 150;
+  --t-c-666666: 102, 102, 102;
+  --t-c-68b0f5: 104, 176, 245;
+  --t-c-6ad07a: 106, 208, 122;
+  --t-c-6cb6ff: 108, 182, 255;
+  --t-c-6dd8d8: 109, 216, 216;
+  --t-c-70d8e8: 112, 216, 232;
+  --t-c-70e890: 112, 232, 144;
+  --t-c-7fdcff: 127, 220, 255;
+  --t-c-82b1ff: 130, 177, 255;
+  --t-c-888888: 136, 136, 136;
+  --t-c-8ef0b4: 142, 240, 180;
+  --t-c-8ff0a4: 143, 240, 164;
+  --t-c-90b0f0: 144, 176, 240;
+  --t-c-90b0ff: 144, 176, 255;
+  --t-c-90e880: 144, 232, 128;
+  --t-c-9fe2ff: 159, 226, 255;
+  --t-c-a78bfa: 167, 139, 250;
+  --t-c-a9c4ff: 169, 196, 255;
+  --t-c-b48fff: 180, 143, 255;
+  --t-c-b6e35a: 182, 227, 90;
+  --t-c-b9f5d2: 185, 245, 210;
+  --t-c-e070e0: 224, 112, 224;
+  --t-c-e080f8: 224, 128, 248;
+  --t-c-f07060: 240, 112, 96;
+  --t-c-f09060: 240, 144, 96;
+  --t-c-f1e3b8: 241, 227, 184;
+  --t-c-f87171: 248, 113, 113;
+  --t-c-f8d860: 248, 216, 96;
+  --t-c-fc8181: 252, 129, 129;
+  --t-c-ff4030: 255, 64, 48;
+  --t-c-ff4a35: 255, 74, 53;
+  --t-c-ff5050: 255, 80, 80;
+  --t-c-ff5555: 255, 85, 85;
+  --t-c-ff5a4f: 255, 90, 79;
+  --t-c-ff5a6e: 255, 90, 110;
+  --t-c-ff5f6d: 255, 95, 109;
+  --t-c-ff6450: 255, 100, 80;
+  --t-c-ff6a50: 255, 106, 80;
+  --t-c-ff7060: 255, 112, 96;
+  --t-c-ff7070: 255, 112, 112;
+  --t-c-ff7aa8: 255, 122, 168;
+  --t-c-ff8080: 255, 128, 128;
+  --t-c-ff826e: 255, 130, 110;
+  --t-c-ff8a80: 255, 138, 128;
+  --t-c-ff8a93: 255, 138, 147;
+  --t-c-ff9060: 255, 144, 96;
+  --t-c-ff9944: 255, 153, 68;
+  --t-c-ff9a3c: 255, 154, 60;
+  --t-c-ff9b8e: 255, 155, 142;
+  --t-c-ffa060: 255, 160, 96;
+  --t-c-ffaa3c: 255, 170, 60;
+  --t-c-ffb070: 255, 176, 112;
+  --t-c-ffb08a: 255, 176, 138;
+  --t-c-ffb84d: 255, 184, 77;
+  --t-c-ffc94d: 255, 201, 77;
+  --t-c-ffd23f: 255, 210, 63;
+  --t-c-ffe27a: 255, 226, 122;
+  --t-c-ffe2a3: 255, 226, 163;
+  --t-c-fff1b0: 255, 241, 176;
+  /* Fangchance-Skala (Catchrate/main.js) */
+  --t-c-80e060: 128, 224, 96;
+  --t-c-ffda08: 255, 218, 8;
+  --t-c-f09040: 240, 144, 64;
+  --t-c-f05050: 240, 80, 80;
+}
+
+/* @@themes-start – erzeugt aus den Klassik-Werten, siehe Kommentar oben */
+/* ── Papier (hell) ───────────────────────────────────────────────────────────── */
+html[data-theme="paper"] {
+  --t-acc: 176, 48, 36;
+  --t-acc-glow: 228, 222, 211;
+  --t-acc2: 104, 80, 58;
+  --t-acc2-glow: 228, 222, 211;
+  --t-hl: 255, 255, 255;
+  --t-ink: 52, 42, 30;
+  --t-white: 36, 31, 25;
+  --t-shade: 92, 76, 56;
+  --t-on-acc: 250, 246, 238;
+  --t-n-050614: 214, 207, 194;
+  --t-n-080a1e: 214, 207, 194;
+  --t-n-0b0c18: 222, 215, 203;
+  --t-n-0d0f2b: 228, 222, 211;
+  --t-n-0f172a: 244, 240, 232;
+  --t-n-101230: 241, 237, 230;
+  --t-n-101322: 244, 240, 232;
+  --t-n-12143a: 243, 239, 232;
+  --t-n-12153a: 243, 239, 232;
+  --t-n-141634: 242, 239, 231;
+  --t-n-161838: 243, 240, 233;
+  --t-n-16193f: 244, 241, 234;
+  --t-n-191b3a: 244, 240, 234;
+  --t-n-1b1d40: 245, 242, 236;
+  --t-n-20244a: 245, 242, 237;
+  --t-n-262952: 236, 231, 222;
+  --t-n-303258: 201, 192, 176;
+  --t-g-7882aa: 85, 95, 135;
+  --t-g-8899cc: 70, 94, 164;
+  --t-g-8a8aa0: 115, 108, 100;
+  --t-g-9a9ab0: 115, 108, 100;
+  --t-g-a0a0b4: 115, 108, 100;
+  --t-g-a9abc2: 115, 108, 100;
+  --t-g-b0b0b0: 115, 108, 100;
+  --t-g-b1b3cc: 115, 108, 100;
+  --t-g-b4b4b4: 115, 108, 100;
+  --t-g-b8b8c8: 115, 108, 100;
+  --t-g-bec8e6: 66, 93, 172;
+  --t-g-cbd5e1: 86, 82, 75;
+  --t-g-e2e8f0: 61, 57, 53;
+  --t-g-edf2f7: 49, 46, 42;
+  --t-g-f8fafc: 38, 36, 33;
+  --t-g-bfefff: 17, 105, 134;
+  --t-g-c8b9ff: 99, 63, 231;
+  --t-g-d7c4ff: 112, 55, 230;
+  --t-g-dfe5f5: 59, 56, 52;
+  --t-g-e0e8f9: 56, 53, 49;
+  --t-g-e6ecf8: 53, 50, 46;
+  --t-g-f0f4ff: 41, 39, 36;
+  --t-g-ffb3b3: 192, 24, 24;
+  --t-g-ffb3b8: 192, 24, 35;
+  --t-g-ffc2ca: 191, 24, 45;
+  --t-g-ffd0d0: 192, 24, 24;
+  --t-c-3ddc84: 20, 110, 60;
+  --t-c-40c8cc: 29, 106, 108;
+  --t-c-4ec864: 34, 111, 48;
+  --t-c-50c060: 40, 111, 50;
+  --t-c-50d282: 28, 111, 60;
+  --t-c-50dc50: 22, 112, 22;
+  --t-c-50e870: 15, 113, 36;
+  --t-c-50e880: 15, 112, 45;
+  --t-c-60d8e0: 22, 107, 113;
+  --t-c-62dc96: 25, 110, 61;
+  --t-c-666666: 97, 97, 97;
+  --t-c-68b0f5: 21, 97, 171;
+  --t-c-6ad07a: 35, 110, 47;
+  --t-c-6cb6ff: 22, 98, 174;
+  --t-c-6dd8d8: 28, 106, 106;
+  --t-c-70d8e8: 19, 106, 119;
+  --t-c-70e890: 18, 112, 43;
+  --t-c-7fdcff: 17, 104, 136;
+  --t-c-82b1ff: 25, 91, 202;
+  --t-c-888888: 97, 97, 97;
+  --t-c-8ef0b4: 15, 112, 52;
+  --t-c-8ff0a4: 15, 113, 36;
+  --t-c-90b0f0: 28, 89, 210;
+  --t-c-90b0ff: 28, 84, 223;
+  --t-c-90e880: 34, 112, 20;
+  --t-c-9fe2ff: 18, 104, 142;
+  --t-c-a78bfa: 104, 61, 231;
+  --t-c-a9c4ff: 27, 86, 216;
+  --t-c-b48fff: 113, 55, 230;
+  --t-c-b6e35a: 77, 106, 18;
+  --t-c-b9f5d2: 16, 112, 56;
+  --t-c-e070e0: 164, 36, 164;
+  --t-c-e080f8: 160, 24, 194;
+  --t-c-f07060: 185, 41, 23;
+  --t-c-f09060: 163, 68, 20;
+  --t-c-f1e3b8: 118, 94, 23;
+  --t-c-f87171: 192, 24, 24;
+  --t-c-f8d860: 116, 95, 14;
+  --t-c-fc8181: 192, 24, 24;
+  --t-c-ff4030: 188, 36, 23;
+  --t-c-ff4a35: 185, 40, 23;
+  --t-c-ff5050: 192, 24, 24;
+  --t-c-ff5555: 192, 24, 24;
+  --t-c-ff5a4f: 189, 34, 23;
+  --t-c-ff5a6e: 192, 24, 44;
+  --t-c-ff5f6d: 192, 24, 39;
+  --t-c-ff6450: 185, 41, 23;
+  --t-c-ff6a50: 182, 46, 22;
+  --t-c-ff7060: 185, 39, 23;
+  --t-c-ff7070: 192, 24, 24;
+  --t-c-ff7aa8: 189, 23, 81;
+  --t-c-ff8080: 192, 24, 24;
+  --t-c-ff826e: 183, 45, 23;
+  --t-c-ff8a80: 187, 36, 23;
+  --t-c-ff8a93: 192, 24, 37;
+  --t-c-ff9060: 167, 65, 21;
+  --t-c-ff9944: 149, 78, 18;
+  --t-c-ff9a3c: 146, 80, 18;
+  --t-c-ff9b8e: 185, 42, 23;
+  --t-c-ffa060: 156, 74, 19;
+  --t-c-ffaa3c: 137, 85, 17;
+  --t-c-ffb070: 149, 77, 18;
+  --t-c-ffb08a: 163, 67, 20;
+  --t-c-ffb84d: 134, 87, 17;
+  --t-c-ffc94d: 125, 92, 15;
+  --t-c-ffd23f: 118, 94, 15;
+  --t-c-ffe27a: 116, 94, 14;
+  --t-c-ffe2a3: 125, 91, 15;
+  --t-c-fff1b0: 113, 95, 14;
+  --t-c-80e060: 44, 111, 22;
+  --t-c-ffda08: 111, 96, 14;
+  --t-c-f09040: 149, 78, 18;
+  --t-c-f05050: 192, 24, 24;
+}
+
+/* ── Graphit (dunkel, neutral) ───────────────────────────────────────────────── */
+html[data-theme="graphite"] {
+  --t-acc: 226, 170, 72;
+  --t-acc-glow: 23, 23, 22;
+  --t-acc2: 150, 178, 204;
+  --t-acc2-glow: 23, 23, 22;
+  --t-hl: 255, 255, 255;
+  --t-ink: 250, 246, 238;
+  --t-white: 238, 235, 228;
+  --t-shade: 0, 0, 0;
+  --t-on-acc: 28, 24, 18;
+  --t-n-050614: 13, 12, 12;
+  --t-n-080a1e: 17, 17, 16;
+  --t-n-0b0c18: 16, 16, 15;
+  --t-n-0d0f2b: 24, 23, 22;
+  --t-n-0f172a: 28, 24, 18;
+  --t-n-101230: 27, 26, 25;
+  --t-n-101322: 28, 24, 18;
+  --t-n-12143a: 31, 30, 29;
+  --t-n-12153a: 31, 30, 29;
+  --t-n-141634: 30, 29, 27;
+  --t-n-161838: 32, 31, 29;
+  --t-n-16193f: 34, 34, 32;
+  --t-n-191b3a: 34, 33, 31;
+  --t-n-1b1d40: 37, 36, 34;
+  --t-n-20244a: 42, 41, 39;
+  --t-n-262952: 47, 46, 44;
+  --t-n-303258: 53, 52, 49;
+  --t-g-7882aa: 131, 137, 159;
+  --t-g-8899cc: 151, 161, 189;
+  --t-g-8a8aa0: 155, 151, 143;
+  --t-g-9a9ab0: 170, 167, 160;
+  --t-g-a0a0b4: 175, 172, 165;
+  --t-g-a9abc2: 186, 183, 177;
+  --t-g-b0b0b0: 181, 178, 171;
+  --t-g-b1b3cc: 194, 192, 187;
+  --t-g-b4b4b4: 185, 182, 176;
+  --t-g-b8b8c8: 196, 193, 188;
+  --t-g-bec8e6: 199, 205, 221;
+  --t-g-cbd5e1: 216, 215, 212;
+  --t-g-e2e8f0: 234, 233, 232;
+  --t-g-edf2f7: 243, 242, 241;
+  --t-g-f8fafc: 250, 250, 250;
+  --t-g-bfefff: 205, 232, 241;
+  --t-g-c8b9ff: 209, 201, 239;
+  --t-g-d7c4ff: 220, 209, 242;
+  --t-g-dfe5f5: 235, 234, 233;
+  --t-g-e0e8f9: 238, 237, 235;
+  --t-g-e6ecf8: 240, 239, 238;
+  --t-g-f0f4ff: 248, 248, 247;
+  --t-g-ffb3b3: 238, 196, 196;
+  --t-g-ffb3b8: 238, 196, 199;
+  --t-g-ffc2ca: 241, 208, 212;
+  --t-g-ffd0d0: 244, 219, 219;
+  --t-c-3ddc84: 83, 198, 134;
+  --t-c-40c8cc: 84, 182, 184;
+  --t-c-4ec864: 95, 183, 111;
+  --t-c-50c060: 96, 176, 107;
+  --t-c-50d282: 98, 192, 134;
+  --t-c-50dc50: 100, 200, 100;
+  --t-c-50e870: 101, 211, 124;
+  --t-c-50e880: 101, 211, 136;
+  --t-c-60d8e0: 114, 200, 206;
+  --t-c-62dc96: 115, 203, 153;
+  --t-c-666666: 102, 102, 102;
+  --t-c-68b0f5: 124, 176, 225;
+  --t-c-6ad07a: 120, 194, 132;
+  --t-c-6cb6ff: 129, 182, 234;
+  --t-c-6dd8d8: 124, 201, 201;
+  --t-c-70d8e8: 129, 204, 215;
+  --t-c-70e890: 129, 215, 152;
+  --t-c-7fdcff: 145, 212, 237;
+  --t-c-82b1ff: 147, 181, 238;
+  --t-c-888888: 136, 136, 136;
+  --t-c-8ef0b4: 156, 226, 183;
+  --t-c-8ff0a4: 157, 226, 172;
+  --t-c-90b0f0: 157, 180, 227;
+  --t-c-90b0ff: 160, 183, 239;
+  --t-c-90e880: 154, 217, 143;
+  --t-c-9fe2ff: 172, 221, 242;
+  --t-c-a78bfa: 175, 155, 234;
+  --t-c-a9c4ff: 181, 200, 243;
+  --t-c-b48fff: 185, 159, 239;
+  --t-c-b6e35a: 175, 208, 109;
+  --t-c-b9f5d2: 193, 237, 211;
+  --t-c-e070e0: 208, 128, 208;
+  --t-c-e080f8: 214, 145, 231;
+  --t-c-f07060: 220, 128, 116;
+  --t-c-f09060: 220, 151, 116;
+  --t-c-f1e3b8: 233, 223, 192;
+  --t-c-f87171: 229, 132, 132;
+  --t-c-f8d860: 227, 204, 117;
+  --t-c-fc8181: 235, 146, 146;
+  --t-c-ff4030: 226, 89, 77;
+  --t-c-ff4a35: 227, 96, 81;
+  --t-c-ff5050: 230, 105, 105;
+  --t-c-ff5555: 231, 109, 109;
+  --t-c-ff5a4f: 230, 112, 104;
+  --t-c-ff5a6e: 232, 113, 128;
+  --t-c-ff5f6d: 233, 117, 127;
+  --t-c-ff6450: 230, 119, 105;
+  --t-c-ff6a50: 230, 123, 105;
+  --t-c-ff7060: 233, 130, 118;
+  --t-c-ff7070: 235, 132, 132;
+  --t-c-ff7aa8: 236, 141, 174;
+  --t-c-ff8080: 237, 146, 146;
+  --t-c-ff826e: 235, 145, 130;
+  --t-c-ff8a80: 237, 153, 146;
+  --t-c-ff8a93: 239, 154, 161;
+  --t-c-ff9060: 233, 153, 118;
+  --t-c-ff9944: 229, 155, 94;
+  --t-c-ff9a3c: 228, 155, 87;
+  --t-c-ff9b8e: 239, 167, 158;
+  --t-c-ffa060: 233, 164, 118;
+  --t-c-ffaa3c: 228, 167, 87;
+  --t-c-ffb070: 235, 178, 132;
+  --t-c-ffb08a: 239, 182, 154;
+  --t-c-ffb84d: 230, 179, 102;
+  --t-c-ffc94d: 230, 191, 102;
+  --t-c-ffd23f: 228, 196, 90;
+  --t-c-ffe27a: 236, 216, 141;
+  --t-c-ffe2a3: 242, 221, 176;
+  --t-c-fff1b0: 244, 234, 187;
+  --t-c-80e060: 137, 206, 114;
+  --t-c-ffda08: 220, 194, 43;
+  --t-c-f09040: 215, 146, 89;
+  --t-c-f05050: 218, 102, 102;
+}
+/* @@themes-end */
+
+/* ── Papier und Graphit: ruhiger als Klassik ─────────────────────────────── */
+html[data-theme="paper"] { color-scheme: light; }
+html[data-theme="graphite"] { color-scheme: dark; }
+
+/* Flacher Seitenhintergrund statt farbiger Lichtflecken */
+html[data-theme="paper"], html[data-theme="paper"] body,
+html[data-theme="graphite"], html[data-theme="graphite"] body {
+  background: rgb(var(--t-n-0d0f2b));
+}
+
+/* Überschriften-Wort in Akzentfarbe statt Farbverlauf */
+html[data-theme="paper"] :is(.hero h1, .topbar h1, .page-title h1, .header-copy h1) span,
+html[data-theme="graphite"] :is(.hero h1, .topbar h1, .page-title h1, .header-copy h1) span {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: rgb(var(--t-acc));
+}
+
+/* Aktiver Tab: schlichte Linie */
+html[data-theme="paper"] .tool-nav-link.is-active::after,
+html[data-theme="graphite"] .tool-nav-link.is-active::after {
+  background: rgb(var(--t-acc));
+  box-shadow: none;
+}
+
+/* ── Theme-Knopf (pwa.js), neben dem Sprachknopf ─────────────────────────── */
+.hub-controls {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.hub-controls.is-fixed { position: fixed; z-index: 100; }
+.hub-controls.is-alone { top: 16px; right: 16px; }
+.hub-controls .lang-toggle,
+.hub-controls .lang-btn { position: static; margin: 0; }
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--t-n-303258));
+  background: rgba(var(--t-n-191b3a), 0.92);
+  color: rgb(var(--t-g-b1b3cc));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.2s, color 0.2s;
+}
+.theme-toggle:hover { border-color: rgba(var(--t-acc), 0.4); color: rgb(var(--t-acc)); }
+.theme-toggle svg { width: 15px; height: 15px; display: block; }
+.topbar .theme-toggle { border-radius: 999px; min-width: 2rem; }
+/* Handy-Startseite: mit dem zusätzlichen Knopf würde „Pokémon Hub“ auf sehr schmalen Geräten umbrechen */
+.topbar h1 { white-space: nowrap; }
+.tool-nav .hub-controls { flex: 0 0 auto; position: static; }
+.tool-nav .theme-toggle { min-width: 26px; min-height: 26px; }
+
+/* Kurzer Hinweis mit dem Namen des neuen Designs */
+.theme-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 3000;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--t-ink), 0.12);
+  background: rgb(var(--t-n-191b3a));
+  color: rgb(var(--t-white));
+  font: 600 0.85rem/1.2 var(--font-main, 'Segoe UI', sans-serif);
+  box-shadow: 0 6px 20px rgba(var(--t-shade), 0.25);
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+.theme-toast.is-on { opacity: 1; transform: translate(-50%, 0); }

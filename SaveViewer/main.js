@@ -476,7 +476,7 @@
     if (t.coins) meta.push('<span>' + l.coins + ' <b>' + num(t.coins) + '</b></span>');
     var started = gameDate(t.started);
     if (started) meta.push('<span>' + l.started + ' <b>' + started + '</b></span>');
-    if (t.gameClear) meta.push('<span class="pill" style="color:var(--color-accent);border-color:rgba(255,218,8,0.35)">🏆 ' + l.champion + '</span>');
+    if (t.gameClear) meta.push('<span class="pill" style="color:var(--color-accent);border-color:rgba(var(--t-acc),0.35)">🏆 ' + l.champion + '</span>');
 
     var badges = BADGES.map(function (b, i) {
       var on = t.badges[b.bit];
@@ -609,7 +609,7 @@
     }).join('');
     var count = box.slots.filter(Boolean).length;
 
-    var search = '<input type="search" id="box-search" placeholder="' + esc(l.search) + '" value="' + esc(state.search) + '" style="max-width:280px;color:var(--color-text);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:8px 12px;outline:none;width:100%">';
+    var search = '<input type="search" id="box-search" placeholder="' + esc(l.search) + '" value="' + esc(state.search) + '" style="max-width:280px;color:var(--color-text);background:rgba(var(--t-ink),0.07);border:1px solid rgba(var(--t-ink),0.14);border-radius:12px;padding:8px 12px;outline:none;width:100%">';
     var results = '';
     if (state.search.trim()) {
       var q = state.search.trim().toLowerCase();
@@ -700,7 +700,7 @@
       var all = allMons(sv);
       var dead = all.filter(function (e) { return e.tag === 'dead'; }).length;
       return '<div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between">' +
-        '<div><b style="color:#fff">' + esc(sv.data.trainer.name) + '</b> <span class="muted">· ' + l.encSummary(groups[i].groups.length, all.length) +
+        '<div><b style="color:rgb(var(--t-white))">' + esc(sv.data.trainer.name) + '</b> <span class="muted">· ' + l.encSummary(groups[i].groups.length, all.length) +
         (dead ? ' · ' + l.encDead(dead) : '') + '</span></div>' + graveSelect(sv, i) + '</div>';
     }).join('');
 
@@ -737,7 +737,7 @@
       ['sinnoh', 'national'].map(function (k) {
         return '<button type="button" data-act="dexmode" data-k="' + k + '" class="' + (state.dexMode === k ? 'is-active' : '') + '">' + l.dexMode[k] + '</button>';
       }).join('') + '</div>' +
-      '<div class="legend"><span><i style="background:#62dc96"></i>' + c + ' ' + l.legendCaught + '</span><span><i style="background:#8a8aa0"></i>' + (s - c) + ' ' + l.legendSeen + '</span><span><i style="background:rgba(255,255,255,0.12)"></i>' + (list.length - s) + ' ' + l.legendUnseen + '</span></div></div>' +
+      '<div class="legend"><span><i style="background:#62dc96"></i>' + c + ' ' + l.legendCaught + '</span><span><i style="background:#8a8aa0"></i>' + (s - c) + ' ' + l.legendSeen + '</span><span><i style="background:rgba(var(--t-ink),0.12)"></i>' + (list.length - s) + ' ' + l.legendUnseen + '</span></div></div>' +
       '<div class="dex-grid">' + cells + '</div>';
   }
 

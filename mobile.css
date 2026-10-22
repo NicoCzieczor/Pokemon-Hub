@@ -5,14 +5,14 @@ html {
   font-size: clamp(16px, min(100vw / 30, 100dvh / 53.75), 32px);
 }
 :root {
-  --color-bg: #0d0f2b;
-  --color-surface: rgba(25,27,58,0.92);
-  --color-text: #e0e8f9;
-  --color-accent: #ffda08;
-  --color-accent-strong: #57d2ff;
-  --color-muted: #b1b3cc;
-  --color-border: #303258;
-  --color-line: rgba(255,255,255,0.08);
+  --color-bg: rgb(var(--t-n-0d0f2b));
+  --color-surface: rgba(var(--t-n-191b3a), 0.92);
+  --color-text: rgb(var(--t-g-e0e8f9));
+  --color-accent: rgb(var(--t-acc));
+  --color-accent-strong: rgb(var(--t-acc2));
+  --color-muted: rgb(var(--t-g-b1b3cc));
+  --color-border: rgb(var(--t-n-303258));
+  --color-line: rgba(var(--t-ink), 0.08);
   /* Füllt hohe Displays: wächst ab 45rem (720px) Bildschirmhöhe bis max. 9.375rem (150px).
      Größen unten rechnen „Grundwert + --grow × Faktor“. Die Faktoren ergeben zusammen knapp 2 →
      Inhalt wächst etwas langsamer als das Display, es entsteht nie ein Scrollbalken. */
@@ -23,8 +23,8 @@ html {
   min-height: 100%;
   font-family: 'Segoe UI', sans-serif;
   background:
-    radial-gradient(circle at 15% 20%, rgba(87,210,255,0.12), transparent 30%),
-    radial-gradient(circle at 85% 80%, rgba(255,218,8,0.10), transparent 28%),
+    radial-gradient(circle at 15% 20%, rgba(var(--t-acc2-glow), 0.12), transparent 30%),
+    radial-gradient(circle at 85% 80%, rgba(var(--t-acc-glow), 0.10), transparent 28%),
     var(--color-bg);
   color: var(--color-text);
 }
@@ -64,8 +64,8 @@ body {
   width: calc(2.375rem + var(--grow) * 0.1);
   height: calc(2.375rem + var(--grow) * 0.1);
   border-radius: 50%;
-  background: rgba(255,218,8,0.12);
-  border: 2px solid rgba(255,218,8,0.35);
+  background: rgba(var(--t-acc), 0.12);
+  border: 2px solid rgba(var(--t-acc), 0.35);
   color: var(--color-accent);
   flex-shrink: 0;
 }
@@ -75,7 +75,7 @@ h1 {
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: #fff;
+  color: rgb(var(--t-white));
 }
 h1 span {
   background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
@@ -99,7 +99,7 @@ h1 span {
   -webkit-tap-highlight-color: transparent;
   transition: border-color 0.15s ease, color 0.15s ease;
 }
-.lang-btn:active { border-color: rgba(255,218,8,0.45); color: var(--color-accent); }
+.lang-btn:active { border-color: rgba(var(--t-acc), 0.45); color: var(--color-accent); }
 
 /* ── KATEGORIEN ── */
 .group + .group { margin-top: calc(1.125rem + var(--grow) * 0.1); }
@@ -130,18 +130,18 @@ h1 span {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: calc(1.125rem + var(--grow) * 0.04);
-  color: #fff;
+  color: rgb(var(--t-white));
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
 }
 .tile:active {
   transform: scale(0.95);
-  border-color: rgba(87,210,255,0.35);
-  background: rgba(32,36,74,0.95);
+  border-color: rgba(var(--t-acc2), 0.35);
+  background: rgba(var(--t-n-20244a), 0.95);
 }
 @media (hover: hover) {
-  .tile:hover { border-color: rgba(87,210,255,0.3); }
+  .tile:hover { border-color: rgba(var(--t-acc2), 0.3); }
 }
 /* Breite Kachel: Icon links, Name rechts */
 .tile--wide {
@@ -160,8 +160,8 @@ h1 span {
   width: calc(2.875rem + var(--grow) * 0.14);
   height: calc(2.875rem + var(--grow) * 0.14);
   border-radius: calc(0.875rem + var(--grow) * 0.03);
-  background: rgba(87,210,255,0.10);
-  border: 1px solid rgba(87,210,255,0.22);
+  background: rgba(var(--t-acc2), 0.10);
+  border: 1px solid rgba(var(--t-acc2), 0.22);
   color: var(--color-accent-strong);
   flex-shrink: 0;
 }
@@ -169,7 +169,7 @@ h1 span {
 .tile-icon img {
   width: 70%; height: 70%;
   object-fit: contain;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 1px 3px rgba(var(--t-shade), 0.4));
 }
 #icon-pokedex img { width: 61%; height: 61%; }
 #hub-type-icon span { display: block; width: 56%; height: 56%; }
@@ -202,7 +202,7 @@ h1 span {
   padding: 0 0.625rem;
   border-radius: 0.875rem;
   border: 1px solid var(--color-line);
-  background: rgba(25,27,58,0.6);
+  background: rgba(var(--t-n-191b3a), 0.6);
   color: var(--color-muted);
   font: inherit;
   font-size: 0.78rem;
@@ -211,7 +211,7 @@ h1 span {
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
-.data-btn:active { transform: scale(0.97); border-color: rgba(87,210,255,0.35); }
+.data-btn:active { transform: scale(0.97); border-color: rgba(var(--t-acc2), 0.35); }
 .data-btn svg { width: 1rem; height: 1rem; color: var(--color-accent-strong); flex-shrink: 0; }
 
 /* ── FUSSZEILE (sitzt immer am unteren Rand) ── */
@@ -230,8 +230,8 @@ footer {
   gap: 0.3125rem;
   padding: 0.1875rem 0.625rem;
   border-radius: 999px;
-  border: 1px solid rgba(87,210,255,0.22);
-  background: rgba(87,210,255,0.06);
+  border: 1px solid rgba(var(--t-acc2), 0.22);
+  background: rgba(var(--t-acc2), 0.06);
   color: var(--color-muted);
   font-size: 0.65rem;
   font-weight: 600;

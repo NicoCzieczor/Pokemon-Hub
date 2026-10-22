@@ -617,8 +617,7 @@ function listEntries() {
     return Object.entries(B.trainers)
       .map(([id, tt]) => ({ id: +id, t: tt }))
       .filter(({ t }) => !q || `${fightTitle(t)} ${locText(t)} ${t.n}`.toLowerCase().includes(q))
-      .sort((a, b) => capOf(a.t) - capOf(b.t) || a.id - b.id)
-      .slice(0, 120);
+      .sort((a, b) => capOf(a.t) - capOf(b.t) || a.id - b.id);
   }
   return B[state.list].map((g, i) => ({ id: groupId(g), t: trainerOf(groupId(g)), i }));
 }
@@ -672,6 +671,9 @@ function renderFight() {
   const tag = tt.tag != null && trainerOf(tt.tag) ? `<button type="button" class="tag-link" data-fight="${tt.tag}">${esc(t.tagWith(fightTitle(trainerOf(tt.tag))))}</button>` : '';
   const heals = tt.it.length ? `<span class="pill">${esc(t.heals)}: ${countItems(tt.it)}</span>` : '';
   const rival = tt.c === 'RIVAL' && tt.k.match(/_(TURTWIG|CHIMCHAR|PIPLUP)$/) ? `<span class="pill">${esc(t.rivalBy(T().species[t.starters[state.starter]]))}</span>` : '';
+  // Trainer-Sprite(s) aus dem Spiel (tools/build-sprites.py), bei Doppelkämpfen mit Partner beide
+  const sprites = [tt, tt.tag != null ? trainerOf(tt.tag) : null].filter(Boolean)
+    .map((x, i) => `<img class="fight-sprite${i ? ' is-partner' : ''}" src="sprites/${x.c.toLowerCase()}.png" alt="" width="80" height="80">`).join('');
 
   // Hinweise: Level-Cap und Treffer, die eins deiner Pokémon sofort besiegen
   const warnings = [];
@@ -686,6 +688,7 @@ function renderFight() {
   }).filter(Boolean);
 
   $('fight').innerHTML = `
+    <div class="fight-sprites" aria-hidden="true">${sprites}</div>
     <div class="fight-head">
       <div>
         <div class="kicker">${story >= 0 ? esc(t.fightNo(story + 1, B.story.length)) : esc(locName(tt))}</div>
