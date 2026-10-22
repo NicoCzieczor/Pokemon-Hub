@@ -58,6 +58,8 @@ Das geht auch vom PC aufs Handy und ist gleichzeitig dein Backup, falls mal was 
 | Pokémon, die du noch nie geöffnet hast | ❌ brauchen einmal Internet |
 | Duo-Sync (Supabase) | ❌ läuft immer live |
 | Kanto-Karte | ✅ wenn sie einmal online geöffnet wurde |
+| Sinnoh-Karte | ✅ Marker, Listen und alle Bereiche und Innenkarten, die du schon einmal angesehen hast (Kartenbild wird beim Ansehen gespeichert) |
+| Boss-Planer | ✅ (nur die Pokémon-Bilder brauchen einmal Internet) |
 
 ## 5. Änderungen an der Seite
 

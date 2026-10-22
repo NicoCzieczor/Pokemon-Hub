@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- PWA: Homescreen-App + Offline -->
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0d0f2b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PokéHub">
+  <link rel="apple-touch-icon" href="../icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+  <script src="../pwa.js"></script>
+  <title>Boss-Planer (Platin) – Pokémon Hub</title>
+  <link rel="stylesheet" href="../Pokelocke/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+<button class="lang-toggle" id="lang-toggle">DE</button>
+
+<nav class="tool-nav" aria-label="Pokemon tools">
+  <a class="tool-nav-link" href="../index.html">Home</a>
+  <a class="tool-nav-link" href="../RunDashboard/index.html">Run</a>
+  <a class="tool-nav-link" href="../Pokelocke/index.html">Team</a>
+  <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
+  <a class="tool-nav-link" href="../Trio/index.html">Trio</a>
+  <a class="tool-nav-link" href="../Catchrate/index.html">Fangrate</a>
+  <a class="tool-nav-link" href="../DamageCalc/index.html">Schaden</a>
+  <a class="tool-nav-link" href="../Typrechner/index.html">Typen</a>
+  <a class="tool-nav-link" href="../PokemonInfo/index.html">Dex</a>
+  <a class="tool-nav-link" href="../Karte/index.html">Karte</a>
+  <a class="tool-nav-link is-active" href="index.html" aria-current="page">Bosse</a>
+  <a class="tool-nav-link" href="../SaveViewer/index.html">Save</a>
+  <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
+</nav>
+
+<header>
+  <h1><span data-i18n="title">Boss-Planer</span> <span class="game-badge" data-i18n="gameBadge">Platin</span></h1>
+  <p data-i18n="subtitle">Jeder Kampf mit dem kompletten Gegner-Team – und wie dein Team aus dem Spielstand dagegen abschneidet.</p>
+</header>
+
+<!-- Dein Team: Spielstand, Starter (für die Rivalen-Teams), Wetter -->
+<section class="team-bar" id="team-bar">
+  <div class="team-source">
+    <div id="save-tabs" class="save-tabs"></div>
+    <button type="button" class="btn-ghost" id="load-save" data-i18n="loadSave">Spielstand laden</button>
+    <input type="file" id="file-input" accept=".sav,.dsv,.bin" hidden>
+  </div>
+  <div class="team-opts">
+    <label class="opt"><span data-i18n="starter">Dein Starter</span>
+      <select id="starter-select">
+        <option value="turtwig"></option>
+        <option value="chimchar"></option>
+        <option value="piplup"></option>
+      </select>
+    </label>
+    <label class="opt"><span data-i18n="weather">Wetter</span>
+      <select id="weather-select">
+        <option value="" data-i18n="wNone">Kein Wetter</option>
+        <option value="sun" data-i18n="wSun">Sonne</option>
+        <option value="rain" data-i18n="wRain">Regen</option>
+        <option value="sand" data-i18n="wSand">Sandsturm</option>
+      </select>
+    </label>
+  </div>
+  <div id="team-strip" class="team-strip"></div>
+  <p id="save-error" class="save-error" hidden></p>
+</section>
+
+<main class="boss-layout">
+  <!-- Kämpfe -->
+  <aside class="fight-list-card">
+    <div class="list-tabs" role="tablist">
+      <button type="button" class="list-tab is-active" data-list="story" data-i18n="tabStory">Story</button>
+      <button type="button" class="list-tab" data-list="post" data-i18n="tabPost">Nach der Liga</button>
+      <button type="button" class="list-tab" data-list="all" data-i18n="tabAll">Alle Trainer</button>
+    </div>
+    <input id="trainer-search" class="trainer-search" type="search" autocomplete="off" spellcheck="false" placeholder="Trainer oder Ort suchen…" data-i18n-placeholder="searchPlaceholder" hidden>
+    <select id="fight-select" class="fight-select" aria-label="Kampf"></select>
+    <div id="fight-list" class="fight-list"></div>
+  </aside>
+
+  <!-- Gewählter Kampf -->
+  <section class="fight-card" id="fight"></section>
+</main>
+
+<p class="foot-note" data-i18n="footNote">Teams, Attacken, DVs, Wesen und Fähigkeiten aus dem Spielcode von Platin (pret/pokeplatinum), berechnet wie im Spiel. Schaden nach der Gen-4-Formel des Schadens-Rechners – ohne Statusänderungen im Kampf. ROM-Hacks wie Renegade Platinum haben andere Teams.</p>
+
+</div>
+
+<!-- Pokémon aus der Box dazunehmen -->
+<div id="box-picker" class="picker" hidden>
+  <div class="picker-dialog" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+    <div class="picker-head">
+      <h2 id="picker-title" data-i18n="pickTitle">Pokémon aus der Box</h2>
+      <button type="button" class="picker-close" id="picker-close" aria-label="Schließen">×</button>
+    </div>
+    <input id="picker-search" type="search" autocomplete="off" placeholder="Suchen…" data-i18n-placeholder="pickSearch">
+    <div id="picker-list" class="picker-list"></div>
+  </div>
+</div>
+
+<script src="../SaveViewer/data-pt.js"></script>
+<script src="../SaveViewer/pt-save.js"></script>
+<script src="../DamageCalc/mechanics.js"></script>
+<script src="../Karte/trainer-classes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

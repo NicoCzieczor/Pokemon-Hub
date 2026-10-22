@@ -6,6 +6,7 @@
  *  2. App-Gefühl: kein Text-Markieren, kein Zoom, kein „Link-Vorschau“-Popup
  *  3. Langes Drücken = Rechtsklick (Team-Slots, Box, Graveyard, Runs … löschen)
  *  4. Speicherstand sichern / laden (Buttons auf der Startseite)
+ *  5. Navigationsleiste der Tools: aktiver Tab sichtbar, Sprachknopf in der Leiste statt darüber
  */
 (function () {
   'use strict';
@@ -272,5 +273,88 @@
     var imp = document.getElementById('backup-import');
     if (exp) exp.addEventListener('click', exportData);
     if (imp) imp.addEventListener('click', importData);
+    setupToolNav();
   });
+
+  /* ── 5. Navigationsleiste der Tools ────────────────────────────────── */
+  // Am Handy passt die Leiste nicht ganz auf den Bildschirm und scrollt seitlich (ohne sichtbare
+  // Scrollleiste, s. base.css). Darum: beim Öffnen zum aktiven Tab springen und an den Rändern
+  // ausblenden, wo es weitergeht. Die Tabs kommen dafür in eine eigene Scroll-Spur. Der Sprachknopf
+  // liegt sonst fest oben rechts über der Leiste – dann steht er rechts neben der Spur.
+  function setupToolNav() {
+    var nav = document.querySelector('.tool-nav');
+    if (!nav || nav.querySelector('.tool-nav-track')) return;
+    var track = document.createElement('div');
+    track.className = 'tool-nav-track';
+    while (nav.firstChild) track.appendChild(nav.firstChild);
+    nav.appendChild(track);
+    nav.classList.add('has-track');
+    var btn = document.getElementById('lang-toggle');
+    var home = null; // merkt sich den ursprünglichen Platz des Knopfs
+
+    // Die Spur reicht bis an die Ränder der Leiste und übernimmt deren Innenabstand, damit die
+    // Tabs erst am Kartenrand ausblenden – rechts nur, wenn dort nicht der Sprachknopf steht.
+    function fitTrack() {
+      var cs = getComputedStyle(nav);
+      var pl = parseFloat(cs.paddingLeft) || 0;
+      var pr = btn && btn.parentNode === nav ? 0 : parseFloat(cs.paddingRight) || 0;
+      track.style.marginLeft = -pl + 'px';
+      track.style.paddingLeft = pl + 'px';
+      track.style.marginRight = -pr + 'px';
+      track.style.paddingRight = pr + 'px';
+    }
+    function overlaps(a, b) {
+      return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    }
+    // Liegt der (feste) Knopf über den Tabs? Gemessen wie ganz oben auf der Seite.
+    // Nur feste Knöpfe – der auf Duo/mobile.html steht schon neben dem Titel.
+    function placeToggle() {
+      if (!btn) return;
+      if (!home) {
+        if (nav.contains(btn) || getComputedStyle(btn).position !== 'fixed') return;
+        home = document.createComment('lang-toggle');
+        btn.parentNode.insertBefore(home, btn);
+      }
+      var scrolled = track.scrollLeft;
+      if (btn.parentNode === nav) home.parentNode.insertBefore(btn, home);
+      fitTrack();
+      var b = btn.getBoundingClientRect();
+      // Gescrollt wird je nach Seite das Fenster oder der body (base.css)
+      var dy = (window.scrollY || 0) + (document.body ? document.body.scrollTop : 0);
+      var hit = track.scrollWidth > track.clientWidth + 1;
+      for (var i = 0; !hit && i < track.children.length; i++) {
+        var r = track.children[i].getBoundingClientRect();
+        hit = overlaps(b, { left: r.left, right: r.right, top: r.top + dy, bottom: r.bottom + dy });
+      }
+      if (hit) { nav.appendChild(btn); fitTrack(); }
+      track.scrollLeft = scrolled;
+    }
+    function updateFade() {
+      var max = track.scrollWidth - track.clientWidth;
+      track.classList.toggle('nav-fade', max > 1);
+      track.style.setProperty('--nav-fade-l', track.scrollLeft > 2 ? '28px' : '0px');
+      track.style.setProperty('--nav-fade-r', track.scrollLeft < max - 2 ? '28px' : '0px');
+    }
+    function showActive() {
+      var active = track.querySelector('.is-active');
+      if (!active || track.scrollWidth <= track.clientWidth + 1) return;
+      var a = active.getBoundingClientRect(), t = track.getBoundingClientRect();
+      var left = a.left - t.left + track.scrollLeft;
+      track.scrollLeft = Math.max(0, left - (track.clientWidth - a.width) / 2);
+    }
+    function refresh() { fitTrack(); placeToggle(); updateFade(); }
+
+    refresh();
+    showActive();
+    updateFade();
+    track.addEventListener('scroll', updateFade, { passive: true });
+    var resizeTimer = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(refresh, 100);
+    });
+    // Texte der Leiste ändern sich beim Sprachwechsel und wenn Schriften nachladen
+    window.addEventListener('load', function () { refresh(); showActive(); updateFade(); });
+    if (btn) btn.addEventListener('click', function () { setTimeout(refresh, 0); });
+  }
 })();

@@ -6,17 +6,22 @@
  *    Danach kommen sie sofort aus dem Speicher; im Hintergrund wird nachgeschaut,
  *    ob es eine neuere Version gibt (die ist dann beim nächsten Öffnen da).
  *  - Antworten der PokeAPI und Sprites werden gespeichert, sobald sie einmal geladen wurden.
+ *  - Kartenblätter der Sinnoh-Karte (Karte/tiles/) ebenso – sie ändern sich nur, wenn die Karte neu gerendert wird.
  *  - Supabase (Duo-Sync) läuft nie über den Speicher, sondern immer live.
  *
  * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
+ * Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v12';
+const VERSION = 'v16';
+const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
 const API_CACHE = `${PREFIX}api`;
 const IMG_CACHE = `${PREFIX}img`;
+const TILE_CACHE = `${PREFIX}tiles-${TILE_VERSION}`;
 const API_MAX_ENTRIES = 600;
 const IMG_MAX_ENTRIES = 3000;
+const TILE_MAX_ENTRIES = 200;
 
 // Alles, was ohne Internet funktionieren soll. Neue Dateien können hier ergänzt werden –
 // sonst werden sie einfach beim ersten Öffnen gespeichert.
@@ -75,7 +80,14 @@ const PRECACHE = [
   './Karte/style.css',
   './Karte/app.js',
   './Karte/platin.json',
-  './Karte/platin-terrain.png',
+  './Karte/trainer-classes.js',
+  './Bosse/index.html',
+  './Bosse/style.css',
+  './Bosse/app.js',
+  './Bosse/bosses.json',
+  './Karte/tiles/index.json',
+  './Karte/tiles/interiors.json',
+  './Karte/tiles/sea.png',
   './SaveViewer/index.html',
   './SaveViewer/style.css',
   './SaveViewer/data-pt.js',
@@ -103,7 +115,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
-    const keep = new Set([STATIC_CACHE, API_CACHE, IMG_CACHE]);
+    const keep = new Set([STATIC_CACHE, API_CACHE, IMG_CACHE, TILE_CACHE]);
     for (const name of await caches.keys()) {
       if (name.startsWith(PREFIX) && !keep.has(name)) await caches.delete(name);
     }
@@ -117,7 +129,9 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
 
-  if (url.origin === self.location.origin) {
+  if (url.origin === self.location.origin && /\/Karte\/tiles\/(\d+|in)\//.test(url.pathname)) {
+    event.respondWith(cacheFirst(event, TILE_CACHE, TILE_MAX_ENTRIES, false));
+  } else if (url.origin === self.location.origin) {
     event.respondWith(staleWhileRevalidate(event));
   } else if (url.hostname === 'pokeapi.co') {
     event.respondWith(cacheFirst(event, API_CACHE, API_MAX_ENTRIES, false));
