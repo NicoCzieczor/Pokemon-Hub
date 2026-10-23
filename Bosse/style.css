@@ -420,3 +420,19 @@ header p { margin: 0; color: var(--color-muted); }
   .fight-sprite.is-partner { display: none; }
   .fight-head > div:first-child { padding-right: 46px; }
 }
+
+/* ── Randomisierte ROM ── */
+.rando-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 6px 5px 12px; border-radius: 999px;
+  border: 1px solid rgba(var(--t-acc), 0.45); background: rgba(var(--t-acc), 0.1);
+  font-size: 0.78rem; color: var(--color-muted);
+}
+.rando-chip[hidden] { display: none; }
+.rando-chip b { color: rgb(var(--t-white)); font-weight: 800; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rando-chip button {
+  border: 0; background: transparent; color: var(--color-muted); cursor: pointer;
+  width: 22px; height: 22px; border-radius: 50%; font-size: 1rem; line-height: 1;
+}
+.rando-chip button:hover { background: rgba(var(--t-ink), 0.08); color: rgb(var(--t-white)); }
+.pill.pill-rando { border-color: rgba(var(--t-acc), 0.45); background: rgba(var(--t-acc), 0.1); color: rgb(var(--t-white)); }

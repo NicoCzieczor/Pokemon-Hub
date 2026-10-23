@@ -22,7 +22,7 @@ const _item=n=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites
 const TR={
   de:{
     'group-run':'Dein Run','group-team':'Team Builder','group-calc':'Rechner','group-ref':'Nachschlagen',
-    'rundashboard-name':'Dashboard','saveviewer-name':'Save-Viewer','pokedex-name':'Pokédex','rules-name':'Regelwerk','map-name':'Karte','bosses-name':'Bosse',
+    'rundashboard-name':'Dashboard','saveviewer-name':'Save-Viewer','pokedex-name':'Pokédex','rules-name':'Regelwerk','map-name':'Karte','bosses-name':'Bosse','candy-name':'Bonbons','rando-name':'Randomizer',
     'solo-name':'Solo','duo-name':'Duo','trio-name':'Trio',
     'catchrate-name':'Fangrate','damage-name':'Schaden','typcalc-name':'Typen',
     'backup-export':'Daten sichern','backup-import':'Daten laden',
@@ -31,7 +31,7 @@ const TR={
   },
   en:{
     'group-run':'Your run','group-team':'Team Builder','group-calc':'Calculators','group-ref':'Reference',
-    'rundashboard-name':'Dashboard','saveviewer-name':'Save Viewer','pokedex-name':'Pokédex','rules-name':'Rulebook','map-name':'Map','bosses-name':'Bosses',
+    'rundashboard-name':'Dashboard','saveviewer-name':'Save Viewer','pokedex-name':'Pokédex','rules-name':'Rulebook','map-name':'Map','bosses-name':'Bosses','candy-name':'Candies','rando-name':'Randomizer',
     'solo-name':'Solo','duo-name':'Duo','trio-name':'Trio',
     'catchrate-name':'Catch Rate','damage-name':'Damage','typcalc-name':'Types',
     'backup-export':'Back up data','backup-import':'Restore data',

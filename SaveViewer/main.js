@@ -58,11 +58,23 @@
     de: {
       'nav.home': 'Home', 'nav.run': 'Run', 'nav.team': 'Team', 'nav.trio': 'Trio', 'nav.catchrate': 'Fangrate',
       'nav.damage': 'Schaden', 'nav.types': 'Typen', 'nav.info': 'Dex', 'nav.map': 'Karte', 'nav.save': 'Save', 'nav.rules': 'Regeln',
-      'subtitle': 'Lade deinen Platin-Spielstand und sieh dir Team, Boxen und Fangorte an.',
+      'subtitle': 'Lade deinen Platin-Spielstand, sieh dir Team, Boxen und Fangorte an – und füll den Beutel auf.',
       'drop.title': 'Spielstand hier reinziehen oder antippen',
       'drop.sub': 'Pokémon Platin · .sav oder .dsv vom Emulator. Die Datei wird nur auf deinem Gerät gelesen und nirgendwo hochgeladen.',
       'drop.offline': '✓ Funktioniert offline',
-      'tab.team': 'Team', 'tab.boxes': 'Boxen', 'tab.encounters': 'Fangorte', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link',
+      'tab.team': 'Team', 'tab.boxes': 'Boxen', 'tab.encounters': 'Fangorte', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link', 'tab.bag': 'Beutel',
+      bag: {
+        pockets: ['Items', 'Basis-Items', 'TM & VM', 'Briefe', 'Medizin', 'Beeren', 'Bälle', 'Kampf-Items'],
+        candyTitle: 'Sonderbonbons', candyNone: 'noch keine', candyFull: 'Die Medizin-Tasche ist voll – entferne erst ein anderes Item.',
+        candyMax: 'Auf 999',
+        empty: 'In dieser Tasche ist nichts.', add: 'Hinzufügen', pick: 'Item wählen …', amount: 'Anzahl', remove: 'Entfernen',
+        full: 'Diese Tasche ist voll.', keyNote: 'Basis-Items lassen sich hier nur ansehen – sie hängen an Ereignissen im Spiel.',
+        changes: function (n) { return n === 0 ? 'Keine Änderungen' : n + (n === 1 ? ' Änderung' : ' Änderungen'); },
+        discard: 'Verwerfen', save: 'Spielstand speichern',
+        saveNote: 'Lädt den geänderten Spielstand herunter (gleicher Name, gleiches Format). Emulator schließen, alte Datei damit ersetzen, Spiel starten. Deine Originaldatei bleibt unverändert, bis du sie ersetzt.',
+        saved: function (f) { return 'Gespeichert als „' + f + '“ – jetzt die alte Datei im Emulator-Ordner damit ersetzen.'; },
+        failed: 'Speichern fehlgeschlagen: '
+      },
       'help.title': 'Wo finde ich meinen Spielstand?',
       'help.intro': 'Du brauchst den normalen Spielstand, der beim Speichern im Spiel entsteht – nicht einen Savestate des Emulators. Also vorher im Spiel speichern!',
       'help.desmume': 'Ordner <code>Battery</code>, Datei endet auf <code>.dsv</code>',
@@ -130,11 +142,23 @@
     en: {
       'nav.home': 'Home', 'nav.run': 'Run', 'nav.team': 'Team', 'nav.trio': 'Trio', 'nav.catchrate': 'Catch Rate',
       'nav.damage': 'Damage', 'nav.types': 'Types', 'nav.info': 'Dex', 'nav.map': 'Map', 'nav.save': 'Save', 'nav.rules': 'Rules',
-      'subtitle': 'Load your Platinum save file and browse your team, boxes and catch locations.',
+      'subtitle': 'Load your Platinum save file, browse your team, boxes and catch locations – and top up your bag.',
       'drop.title': 'Drop your save file here or tap',
       'drop.sub': 'Pokémon Platinum · .sav or .dsv from your emulator. The file is only read on your device and never uploaded.',
       'drop.offline': '✓ Works offline',
-      'tab.team': 'Team', 'tab.boxes': 'Boxes', 'tab.encounters': 'Encounters', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link',
+      'tab.team': 'Team', 'tab.boxes': 'Boxes', 'tab.encounters': 'Encounters', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link', 'tab.bag': 'Bag',
+      bag: {
+        pockets: ['Items', 'Key Items', 'TMs & HMs', 'Mail', 'Medicine', 'Berries', 'Poké Balls', 'Battle Items'],
+        candyTitle: 'Rare Candies', candyNone: 'none yet', candyFull: 'The Medicine pocket is full – remove another item first.',
+        candyMax: 'Set to 999',
+        empty: 'This pocket is empty.', add: 'Add', pick: 'Choose item …', amount: 'Amount', remove: 'Remove',
+        full: 'This pocket is full.', keyNote: 'Key items are view-only here – they are tied to in-game events.',
+        changes: function (n) { return n === 0 ? 'No changes' : n + (n === 1 ? ' change' : ' changes'); },
+        discard: 'Discard', save: 'Save file',
+        saveNote: 'Downloads the edited save (same name, same format). Close the emulator, replace the old file with it, start the game. Your original file stays untouched until you replace it.',
+        saved: function (f) { return 'Saved as “' + f + '” – now replace the old file in your emulator folder with it.'; },
+        failed: 'Saving failed: '
+      },
       'help.title': 'Where do I find my save file?',
       'help.intro': 'You need the regular save file the game writes when you save in-game – not an emulator save state. So save in the game first!',
       'help.desmume': 'Folder <code>Battery</code>, file ends with <code>.dsv</code>',
@@ -204,7 +228,7 @@
   /* ── Zustand ───────────────────────────────────────────────────── */
   var lang = 'de';
   try { lang = localStorage.getItem('hub-lang') === 'en' ? 'en' : 'de'; } catch (e) {}
-  var state = { saves: [], active: 0, tab: 'team', dexMode: 'sinnoh', search: '', pendingSlot: null, link: null };
+  var state = { saves: [], active: 0, tab: 'team', dexMode: 'sinnoh', search: '', pendingSlot: null, link: null, bag: null };
 
   var $ = function (id) { return document.getElementById(id); };
   function L() { return I18N[lang]; }
@@ -511,9 +535,10 @@
       boxes: boxCount(data),
       encounters: encounterGroups(cur()).groups.length,
       dex: (state.dexMode === 'sinnoh' ? data.dex.sinnohCaught : data.dex.caught.length),
-      link: state.link && state.link.ok ? state.link.result.pairs.length : '–'
+      link: state.link && state.link.ok ? state.link.result.pairs.length : '–',
+      bag: bagDraft().pockets.reduce(function (n, p) { return n + p.length; }, 0)
     };
-    $('tabs').style.setProperty('--n', two ? 5 : 4);
+    $('tabs').style.setProperty('--n', two ? 6 : 5);
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
       var k = b.dataset.tab;
       b.hidden = k === 'link' && !two;
@@ -529,7 +554,142 @@
     else if (state.tab === 'boxes') p.innerHTML = boxesHtml();
     else if (state.tab === 'encounters') p.innerHTML = encountersHtml();
     else if (state.tab === 'link') p.innerHTML = linkHtml();
+    else if (state.tab === 'bag') p.innerHTML = bagHtml();
     else p.innerHTML = dexHtml();
+  }
+
+  /* Beutel (bearbeiten, z. B. Sonderbonbons) – Lesen/Schreiben in pt-bag.js */
+  // Entwurf für den aktiven Spielstand; wird beim Wechsel des Spielstands neu angelegt
+  function bagDraft() {
+    var sv = cur();
+    var key = sv.slot + ':' + sv.loadedAt;
+    if (!state.bag || state.bag.key !== key) {
+      var orig = PtBag.read(sv.bytes) || PtBag.POCKETS.map(function () { return []; });
+      state.bag = {
+        key: key,
+        orig: JSON.stringify(orig),
+        pockets: orig.map(function (l) { return l.map(function (e) { return { id: e.id, count: e.count }; }); }),
+        pocket: state.bag ? state.bag.pocket : 4,
+        message: null
+      };
+    }
+    return state.bag;
+  }
+  // Anzahl geänderter Einträge (neu, entfernt oder andere Anzahl)
+  function bagChanges(d) {
+    var orig = JSON.parse(d.orig), n = 0;
+    d.pockets.forEach(function (list, pi) {
+      var before = {};
+      orig[pi].forEach(function (e) { before[e.id] = e.count; });
+      list.forEach(function (e) { if (before[e.id] !== e.count) n++; delete before[e.id]; });
+      n += Object.keys(before).length;
+    });
+    return n;
+  }
+  function bagHtml() {
+    var d = bagDraft(), l = L().bag, t = T();
+    var P = PtBag.POCKETS;
+    var med = d.pockets[4];
+    var candy = med.filter(function (e) { return e.id === PtBag.RARE_CANDY; })[0];
+    var candyFull = !candy && med.length >= P[4].slots;
+    var quick = '<div class="card bag-candy">' + itemImg(PtBag.RARE_CANDY, 'bag-candy-img') +
+      '<div class="bag-candy-txt"><b>' + esc(l.candyTitle) + '</b><span>' + (candy ? '× ' + num(candy.count) : esc(l.candyNone)) + '</span></div>' +
+      '<div class="bag-candy-btns">' + [10, 50, 100].map(function (n) {
+        return '<button type="button" class="ghost-btn" data-act="bag-candy" data-n="' + n + '"' + (candyFull ? ' disabled' : '') + '>+' + n + '</button>';
+      }).join('') + '<button type="button" class="ghost-btn is-strong" data-act="bag-candy" data-n="max"' + (candyFull ? ' disabled' : '') + '>' + esc(l.candyMax) + '</button></div>' +
+      (candyFull ? '<p class="bag-hint">' + esc(l.candyFull) + '</p>' : '') + '</div>';
+
+    var chips = '<div class="bag-pockets" role="tablist">' + P.map(function (p, i) {
+      return '<button type="button" class="bag-pocket' + (i === d.pocket ? ' is-active' : '') + '" data-act="bag-pocket" data-p="' + i + '">' +
+        esc(l.pockets[i]) + ' <span class="count">' + d.pockets[i].length + '</span></button>';
+    }).join('') + '</div>';
+
+    var pi = d.pocket, list = d.pockets[pi], max = P[pi].max, readOnly = pi === 1;
+    var rows = list.length ? list.map(function (e, i) {
+      return '<div class="bag-row">' + itemImg(e.id, 'bag-img') + '<span class="bag-name">' + esc(t.items[e.id] || ('#' + e.id)) + '</span>' +
+        (readOnly ? '<span class="bag-qty-ro">× ' + e.count + '</span>'
+          : '<input type="number" class="bag-qty" min="1" max="' + max + '" value="' + e.count + '" data-bag-i="' + i + '" aria-label="' + esc(l.amount) + '">' +
+            '<button type="button" class="bag-x" data-act="bag-remove" data-i="' + i + '" aria-label="' + esc(l.remove) + '" title="' + esc(l.remove) + '">×</button>') +
+        '</div>';
+    }).join('') : '<p class="muted bag-empty">' + esc(l.empty) + '</p>';
+
+    var add = '';
+    if (readOnly) add = '<p class="bag-hint">' + esc(l.keyNote) + '</p>';
+    else if (list.length >= P[pi].slots) add = '<p class="bag-hint">' + esc(l.full) + '</p>';
+    else {
+      var have = {};
+      list.forEach(function (e) { have[e.id] = true; });
+      var opts = PtBag.itemsOf(pi).filter(function (id) { return !have[id] && t.items[id]; })
+        .map(function (id) { return { id: id, name: t.items[id] }; })
+        .sort(function (a, b) { return pi === 2 ? a.id - b.id : a.name.localeCompare(b.name, lang); })
+        .map(function (o) { return '<option value="' + o.id + '">' + esc(o.name) + '</option>'; }).join('');
+      add = '<div class="bag-add"><select id="bag-add-item"><option value="">' + esc(l.pick) + '</option>' + opts + '</select>' +
+        '<input type="number" id="bag-add-qty" min="1" max="' + max + '" value="1" aria-label="' + esc(l.amount) + '">' +
+        '<button type="button" class="ghost-btn" data-act="bag-add">' + esc(l.add) + '</button></div>';
+    }
+
+    var n = bagChanges(d);
+    var foot = '<div class="card bag-save">' +
+      '<div class="bag-save-row"><span class="bag-changes" id="bag-changes">' + esc(l.changes(n)) + '</span>' +
+      '<button type="button" class="ghost-btn" data-act="bag-reset"' + (n ? '' : ' disabled') + '>' + esc(l.discard) + '</button>' +
+      '<button type="button" class="ghost-btn is-strong" data-act="bag-save" id="bag-save"' + (n ? '' : ' disabled') + '>' + esc(l.save) + '</button></div>' +
+      (d.message ? '<p class="bag-msg' + (d.message.error ? ' is-error' : '') + '">' + esc(d.message.text) + '</p>' : '<p class="bag-hint">' + esc(l.saveNote) + '</p>') +
+      '</div>';
+
+    return '<div class="bag">' + quick + chips + '<div class="card bag-list">' + rows + add + '</div>' + foot + '</div>';
+  }
+  function bagAction(act, ds) {
+    var d = bagDraft(), P = PtBag.POCKETS;
+    d.message = null;
+    if (act === 'bag-pocket') d.pocket = +ds.p;
+    else if (act === 'bag-candy') {
+      var med = d.pockets[4];
+      var e = med.filter(function (x) { return x.id === PtBag.RARE_CANDY; })[0];
+      if (!e) {
+        if (med.length >= P[4].slots) return;
+        e = { id: PtBag.RARE_CANDY, count: 0 };
+        med.push(e);
+      }
+      e.count = ds.n === 'max' ? P[4].max : Math.min(P[4].max, e.count + (+ds.n));
+    } else if (act === 'bag-remove') d.pockets[d.pocket].splice(+ds.i, 1);
+    else if (act === 'bag-add') {
+      var id = +($('bag-add-item') || {}).value;
+      var qty = Math.round(+($('bag-add-qty') || {}).value) || 1;
+      if (!id) return;
+      d.pockets[d.pocket].push({ id: id, count: Math.max(1, Math.min(P[d.pocket].max, qty)) });
+    } else if (act === 'bag-reset') state.bag = null;
+    else if (act === 'bag-save') { saveBag(); return; }
+    renderTabs();
+    renderPanel();
+  }
+  // Geänderte Datei schreiben, im Viewer übernehmen und herunterladen
+  function saveBag() {
+    var sv = cur(), d = bagDraft(), l = L().bag;
+    try {
+      var out = PtBag.write(sv.bytes, d.pockets);
+      var rec = { slot: sv.slot, fileName: sv.fileName, loadedAt: Date.now(), bytes: out.buffer };
+      var nsv = makeSave(rec);
+      if (nsv.error) throw new Error(errorText(nsv.error));
+      nsv.box = sv.box;
+      nsv.grave = sv.grave;
+      state.saves[state.active] = nsv;
+      Store.put(rec);
+      downloadFile(out, sv.fileName);
+      state.bag = null;
+      bagDraft().message = { text: l.saved(sv.fileName) };
+    } catch (err) {
+      d.message = { text: l.failed + err.message, error: true };
+    }
+    render();
+  }
+  function downloadFile(bytes, name) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+    a.download = name;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   }
 
   /* Team */
@@ -1179,6 +1339,7 @@
       if (act === 'box') { cur().box = +a.dataset.i; renderPanel(); return; }
       if (act === 'dexmode') { state.dexMode = a.dataset.k; renderTabs(); renderPanel(); return; }
       if (act === 'close') { closeModal(); return; }
+      if (act.indexOf('bag-') === 0) { bagAction(act, a.dataset); return; }
       if (act.charAt(0) === 'l' && linkAction(act, a.dataset)) return;
       return;
     }
@@ -1190,6 +1351,7 @@
   });
 
   document.addEventListener('change', function (e) {
+    if (e.target.dataset && e.target.dataset.bagI != null) { renderTabs(); renderPanel(); return; }
     var s = e.target.closest('select[data-act="grave"]');
     if (!s) return;
     var sv = state.saves[+s.dataset.i];
@@ -1200,6 +1362,17 @@
   });
 
   document.addEventListener('input', function (e) {
+    // Anzahl im Beutel: Entwurf anpassen, ohne neu zu zeichnen (sonst springt der Cursor)
+    if (e.target.dataset && e.target.dataset.bagI != null) {
+      var d = bagDraft(), entry = d.pockets[d.pocket][+e.target.dataset.bagI];
+      var max = PtBag.POCKETS[d.pocket].max, v = Math.round(+e.target.value);
+      if (entry && v >= 1) entry.count = Math.min(max, v);
+      var n = bagChanges(d);
+      $('bag-changes').textContent = L().bag.changes(n);
+      $('bag-save').disabled = !n;
+      document.querySelector('[data-act="bag-reset"]').disabled = !n;
+      return;
+    }
     if (e.target.id !== 'box-search') return;
     state.search = e.target.value;
     var pos = e.target.selectionStart;

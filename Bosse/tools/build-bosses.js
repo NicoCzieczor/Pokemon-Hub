@@ -3,7 +3,7 @@
  *
  * Für jeden Trainer, der auch auf der Karte vorkommt, das vollständige Team so, wie das Spiel es erzeugt:
  *  - Attacken: eigene aus den Trainerdaten oder – wie im Spiel – die letzten vier Level-Attacken
- *  - DVs: iv_scale · 31 / 255 für alle Werte, keine FP (EVs)
+ *  - DVs: iv_scale · 31 / 255 für alle Werte (ab 32 würfelt das Spiel sie, s. u.), keine FP (EVs)
  *  - Wesen und Fähigkeit aus der PID: Startwert = DV-Stufe + Level + Art + Trainer-Nummer, dann so viele
  *    LCRNG-Schritte wie die Trainerklassen-Nummer, PID = (Zufall << 8) + 120 (weibliche Klasse) bzw. 136
  *    (src/trainer_data.c: TrainerData_BuildParty). Wesen = PID mod 25, Fähigkeit = Bit 0 der PID.
@@ -120,8 +120,15 @@ function lcrng(seed) {
       const per = PT.personal[sp] || [];
       const ability = (pid & 1) && per[11] ? per[11] : per[10] || 0;
       const moves = (p.moves && p.moves.length ? p.moves : await defaultMoves(p.species, p.level)) || [];
+      // DVs: ab 32 würfelt das Spiel (Pokemon_InitWith): erst eine nicht schillernde Trainer-ID, dann zwei Zufallszahlen
+      let ivs = Math.floor(p.iv_scale * 31 / 255);
+      if (ivs >= 32) {
+        for (;;) { const lo = next(), hi = next(); if (((hi ^ lo ^ (pid >>> 16) ^ (pid & 0xFFFF)) >>> 0) >= 8) break; }
+        const a = next(), b = next();
+        ivs = [a & 31, (a >>> 5) & 31, (a >>> 10) & 31, b & 31, (b >>> 5) & 31, (b >>> 10) & 31];
+      }
       party.push([sp, p.form || 0, p.level, itemId.get(p.item) || 0, moves.map(m => moveId.get(m) || 0).filter(Boolean),
-        pid % 25, ability, Math.floor(p.iv_scale * 31 / 255)]);
+        pid % 25, ability, ivs]);
     }
     const w = where.get(key);
     trainers[id] = {
@@ -180,7 +187,9 @@ function lcrng(seed) {
   // Englische Bereichsnamen (nur die, die bei Trainern vorkommen)
   const usedAreas = new Set(Object.values(trainers).map(t => t.a).filter(Boolean));
   const areaEn = Object.fromEntries(Object.entries(MAP.areaEn || {}).filter(([de]) => usedAreas.has(de)));
-  const data = { version: 1, source: 'pret/pokeplatinum', locs, story, post, trainers, moveExtra, weight, areaEn };
+  // Nummern weiblicher Trainerklassen (für die PID-Berechnung beim Lesen randomisierter ROMs, rando.js)
+  const fem = [...female].map(c => classId.get(c)).filter(x => x != null).sort((a, b) => a - b);
+  const data = { version: 1, source: 'pret/pokeplatinum', locs, story, post, trainers, moveExtra, weight, areaEn, fem };
   fs.mkdirSync(OUT, { recursive: true });
   const json = JSON.stringify(data);
   fs.writeFileSync(path.join(OUT, 'bosses.json'), json);

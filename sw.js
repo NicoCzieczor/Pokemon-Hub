@@ -12,7 +12,7 @@
  * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
  * Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v19';
+const VERSION = 'v22';
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -85,6 +85,7 @@ const PRECACHE = [
   './Bosse/index.html',
   './Bosse/style.css',
   './Bosse/app.js',
+  './Bosse/rando.js',
   './Bosse/bosses.json',
   './Karte/tiles/index.json',
   './Karte/tiles/interiors.json',
@@ -93,8 +94,16 @@ const PRECACHE = [
   './SaveViewer/style.css',
   './SaveViewer/data-pt.js',
   './SaveViewer/pt-save.js',
+  './SaveViewer/pt-bag.js',
   './SaveViewer/soul-link.js',
   './SaveViewer/main.js',
+  './Sonderbonbons/index.html',
+  './Sonderbonbons/style.css',
+  './Sonderbonbons/app.js',
+  './Randomizer/index.html',
+  './Randomizer/style.css',
+  './Randomizer/app.js',
+  './Randomizer/settings.rnqs',
 ];
 
 // Kleine Bilder, die die Startseite zufällig anzeigt (Bälle). Werden nebenbei mitgeladen;
@@ -129,6 +138,9 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+
+  // Teil-Anfragen (Range) und das Randomizer-Jar holt CheerpJ selbst stückweise vom Server – nicht anfassen
+  if (url.origin === self.location.origin && (req.headers.has('range') || /\.jar$/.test(url.pathname))) return;
 
   if (url.origin === self.location.origin && /\/Karte\/tiles\/(\d+|in)\//.test(url.pathname)) {
     event.respondWith(cacheFirst(event, TILE_CACHE, TILE_MAX_ENTRIES, false));

@@ -1,0 +1,14 @@
+PokeRandoZX.jar
+===============
+
+Unveränderte Version 4.6.1 des Universal Pokémon Randomizer ZX.
+
+  Lizenz:     GNU General Public License v3.0
+              https://github.com/Ajarmar/universal-pokemon-randomizer-zx/blob/master/LICENSE.txt
+  Quellcode:  https://github.com/Ajarmar/universal-pokemon-randomizer-zx/tree/v4.6.1
+
+Die Datei wird im Browser mit CheerpJ (Leaning Technologies, https://cheerpj.com/) ausgeführt.
+CheerpJ selbst ist nicht Teil dieses Projekts, sondern wird beim Würfeln von
+https://cjrtnc.leaningtech.com/ geladen.
+
+settings.rnqs sind die Randomizer-Einstellungen, mit denen bisher gewürfelt wurde.

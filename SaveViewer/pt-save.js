@@ -426,10 +426,28 @@
     };
   }
 
+  /* ── Für den Editor (pt-bag.js) ────────────────────────────────── */
+  // Aktueller General-Block: bytes ist eine Sicht auf die 512 KB innerhalb der Datei (Änderungen
+  // landen also direkt in der Datei, auch bei .dsv mit DeSmuME-Anhang).
+  function generalBlock(buffer) {
+    var b = normalize(buffer);
+    if (!b || detect(b) !== 'pt') return null;
+    var g = pickBlock(b, 0, PT.generalSize);
+    return { bytes: b, offset: g.offset, size: PT.generalSize, valid: g.valid };
+  }
+  // Prüfsumme eines Blocks neu berechnen (CRC16 über die Daten ohne Footer, steht in den letzten 2 Byte)
+  function writeChecksum(b, start, length) {
+    var c = crc16(b, start, start + length - 0x14);
+    b[start + length - 2] = c & 0xFF;
+    b[start + length - 1] = c >>> 8;
+  }
+
   return {
     parse: parse,
     calcStats: calcStats,
     levelFromExp: levelFromExp,
+    generalBlock: generalBlock,
+    writeChecksum: writeChecksum,
     // für Tests
     _internal: { crypt: crypt, crc16: crc16, decryptPK4: decryptPK4, BLOCK_POSITION: BLOCK_POSITION, normalize: normalize, detect: detect }
   };

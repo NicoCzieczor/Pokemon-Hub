@@ -36,6 +36,8 @@
   <a class="tool-nav-link" href="../Karte/index.html">Karte</a>
   <a class="tool-nav-link is-active" href="index.html" aria-current="page">Bosse</a>
   <a class="tool-nav-link" href="../SaveViewer/index.html">Save</a>
+  <a class="tool-nav-link" href="../Sonderbonbons/index.html">Bonbons</a>
+  <a class="tool-nav-link" href="../Randomizer/index.html">Randomizer</a>
   <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
 </nav>
 
@@ -50,6 +52,9 @@
     <div id="save-tabs" class="save-tabs"></div>
     <button type="button" class="btn-ghost" id="load-save" data-i18n="loadSave">Spielstand laden</button>
     <input type="file" id="file-input" accept=".sav,.dsv,.bin" hidden>
+    <button type="button" class="btn-ghost" id="load-rom" data-i18n="loadRom" data-i18n-title="romHint" title="Für Randomizer-Runs: Lade deine randomisierte ROM (.nds)">Randomizer-ROM laden</button>
+    <input type="file" id="rom-input" accept=".nds" hidden>
+    <span class="rando-chip" id="rando-chip" hidden></span>
   </div>
   <div class="team-opts">
     <label class="opt"><span data-i18n="starter">Dein Starter</span>
@@ -80,7 +85,7 @@
       <button type="button" class="list-tab" data-list="post" data-i18n="tabPost">Nach der Liga</button>
       <button type="button" class="list-tab" data-list="all" data-i18n="tabAll">Alle Trainer</button>
     </div>
-    <input id="trainer-search" class="trainer-search" type="search" autocomplete="off" spellcheck="false" placeholder="Trainer oder Ort suchen…" data-i18n-placeholder="searchPlaceholder" hidden>
+    <input id="trainer-search" class="trainer-search" type="search" autocomplete="off" spellcheck="false" placeholder="Trainer, Ort oder Pokémon suchen…" data-i18n-placeholder="searchPlaceholder" hidden>
     <select id="fight-select" class="fight-select" aria-label="Kampf"></select>
     <div id="fight-list" class="fight-list"></div>
   </aside>
@@ -109,6 +114,7 @@
 <script src="../SaveViewer/pt-save.js"></script>
 <script src="../DamageCalc/mechanics.js"></script>
 <script src="../Karte/trainer-classes.js"></script>
+<script src="rando.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -18,10 +18,14 @@ const TEXT = {
     gameBadge: 'Platin',
     subtitle: 'Jeder Kampf mit dem kompletten Gegner-Team – und wie dein Team aus dem Spielstand dagegen abschneidet.',
     loadSave: 'Spielstand laden', starter: 'Dein Starter', weather: 'Wetter',
+    loadRom: 'Randomizer-ROM laden', romActive: 'Randomisiert:', romRemove: 'Randomizer-Daten entfernen – wieder die Original-Teams',
+    romReading: 'Lese ROM …', romError: 'Das ist keine Pokémon-Platin-ROM (.nds).',
+    romHint: 'Für Randomizer-Runs: Lade deine randomisierte ROM (.nds) – dann zeigt der Planer die echten Teams deines Spiels. Gelesen werden nur die Trainerdaten (ca. 120 KB), die Datei bleibt auf deinem Gerät.',
+    randoTag: '🎲 Randomizer',
     wNone: 'Kein Wetter', wSun: 'Sonne', wRain: 'Regen', wSand: 'Sandsturm',
     tabStory: 'Story', tabPost: 'Nach der Liga', tabAll: 'Alle Trainer',
-    searchPlaceholder: 'Trainer oder Ort suchen…',
-    footNote: 'Teams, Attacken, DVs, Wesen und Fähigkeiten aus dem Spielcode von Platin (pret/pokeplatinum), berechnet wie im Spiel. Schaden nach der Gen-4-Formel des Schadens-Rechners – ohne Statusänderungen im Kampf. ROM-Hacks wie Renegade Platinum haben andere Teams.',
+    searchPlaceholder: 'Trainer, Ort oder Pokémon suchen…',
+    footNote: 'Teams, Attacken, DVs, Wesen und Fähigkeiten aus dem Spielcode von Platin (pret/pokeplatinum) oder aus deiner randomisierten ROM, berechnet wie im Spiel. Schaden nach der Gen-4-Formel des Schadens-Rechners – ohne Statusänderungen im Kampf. ROM-Hacks wie Renegade Platinum haben andere Teams.',
     pickTitle: 'Pokémon aus der Box', pickSearch: 'Suchen…',
     loadError: 'Die Kampfdaten konnten nicht geladen werden.',
     saveError: 'Das ist kein Platin-Spielstand (.sav/.dsv aus dem Emulator, im Spiel gespeichert).',
@@ -64,10 +68,14 @@ const TEXT = {
     gameBadge: 'Platinum',
     subtitle: 'Every battle with the full enemy team – and how your team from your save file does against it.',
     loadSave: 'Load save file', starter: 'Your starter', weather: 'Weather',
+    loadRom: 'Load randomizer ROM', romActive: 'Randomized:', romRemove: 'Remove randomizer data – back to the original teams',
+    romReading: 'Reading ROM …', romError: 'This is not a Pokémon Platinum ROM (.nds).',
+    romHint: 'For randomizer runs: load your randomized ROM (.nds) and the planner shows the real teams of your game. Only the trainer data is read (about 120 KB); the file stays on your device.',
+    randoTag: '🎲 Randomizer',
     wNone: 'No weather', wSun: 'Sun', wRain: 'Rain', wSand: 'Sandstorm',
     tabStory: 'Story', tabPost: 'Post-game', tabAll: 'All trainers',
-    searchPlaceholder: 'Search trainer or place…',
-    footNote: 'Teams, moves, IVs, natures and abilities from the Platinum game code (pret/pokeplatinum), generated like in the game. Damage uses the Gen 4 formula of the Damage Calculator – without stat changes during battle. ROM hacks such as Renegade Platinum have different teams.',
+    searchPlaceholder: 'Search trainer, place or Pokémon…',
+    footNote: 'Teams, moves, IVs, natures and abilities from the Platinum game code (pret/pokeplatinum) or from your randomized ROM, generated like in the game. Damage uses the Gen 4 formula of the Damage Calculator – without stat changes during battle. ROM hacks such as Renegade Platinum have different teams.',
     pickTitle: 'Pokémon from your boxes', pickSearch: 'Search…',
     loadError: 'The battle data could not be loaded.',
     saveError: 'This is not a Platinum save file (.sav/.dsv from your emulator, saved in-game).',
@@ -156,15 +164,31 @@ let B = null;                 // bosses.json
 const state = {
   list: 'story', fight: null, search: '', weather: '', starter: localStorage.getItem('bosse-starter') || 'turtwig',
   saves: [], save: 0, team: [], open: new Set(),
+  rando: loadRando(),         // Teams aus einer randomisierten ROM (rando.js), sonst null
 };
 
+// Randomizer-Daten bleiben auf dem Gerät (localStorage, damit sie auch im Backup landen)
+function loadRando() {
+  try { return JSON.parse(localStorage.getItem('bosse-rando') || 'null'); } catch (e) { return null; }
+}
+
 // ── Kämpfer ───────────────────────────────────────────────────────────────────
+// Basiswerte, Typen, Fähigkeiten: aus der randomisierten ROM, falls dort geändert; Formen wie im Spiel
+function personalOf(sp, form) {
+  const over = (state.rando && state.rando.personal) || {};
+  const get = i => over[i] || PT.personal[i];
+  const p = get(sp);
+  return (p && form > 0 && form < p[12] && p[13] > 0 ? get(p[13] + form - 1) : null) || p || [];
+}
+const starterSpecies = key => (state.rando && state.rando.starters
+  ? state.rando.starters[['turtwig', 'chimchar', 'piplup'].indexOf(key)] : tr().starters[key]);
+
 // Gemeinsame Form für Gegner und eigene Pokémon
 function foeMon(p) {
   const [sp, form, level, item, moves, nature, ability, iv] = p;
-  const per = PT.personal[sp] || [];
+  const per = personalOf(sp, form);
   const base = per.slice(0, 6);
-  const ivs = [iv, iv, iv, iv, iv, iv];
+  const ivs = Array.isArray(iv) ? iv : [iv, iv, iv, iv, iv, iv]; // Liste = vom Spiel gewürfelte DVs
   return {
     side: 'foe', species: sp, form, level, item, moves, nature, ability, ivs, friendship: 70,
     types: per[6] === per[7] ? [per[6]] : [per[6], per[7]],
@@ -173,9 +197,19 @@ function foeMon(p) {
   };
 }
 function ownMon(m) {
+  // Hat der Randomizer Typen/Basiswerte geändert, gelten die (Team-Werte stehen schon richtig im Spielstand)
+  let types = m.types, stats = m.stats;
+  const over = state.rando && state.rando.personal;
+  if (over && Object.keys(over).length) {
+    const per = personalOf(m.species, m.form);
+    if (per.length) {
+      types = per[6] === per[7] ? [per[6]] : [per[6], per[7]];
+      if (m.where && m.where.area !== 'party') stats = PtSave.calcStats(per.slice(0, 6), m.iv, m.ev, m.level, m.nature, m.species);
+    }
+  }
   return {
     side: 'me', species: m.species, form: m.form, level: m.level, item: m.item, moves: (m.moves || []).filter(Boolean),
-    nature: m.nature, ability: m.ability, ivs: m.iv, friendship: m.friendship, types: m.types, stats: m.stats,
+    nature: m.nature, ability: m.ability, ivs: m.iv, friendship: m.friendship, types, stats,
     name: m.isNicknamed && m.nickname ? m.nickname : (T().species[m.species] || `#${m.species}`), key: monKey(m),
   };
 }
@@ -441,7 +475,11 @@ function duel(me, foe) {
 }
 
 // ── Kämpfe ────────────────────────────────────────────────────────────────────
-const trainerOf = id => B.trainers[id];
+// Trainer mit Team: aus der randomisierten ROM, falls geladen (Name, Ort, Klasse bleiben aus bosses.json)
+const trainerOf = id => {
+  const t = B.trainers[id], r = state.rando && state.rando.trainers[id];
+  return t && r ? { ...t, d: r.d, it: r.it, p: r.p } : t;
+};
 // Gruppe → passende Trainer-ID (Rivale je nach Starter)
 const groupId = g => g.ids.all ?? g.ids[state.starter] ?? Object.values(g.ids)[0];
 function fightTitle(t) {
@@ -516,6 +554,9 @@ async function loadFile(file) {
     state.saves = state.saves.filter(s => s.slot !== slot).concat(sv).sort((a, b) => a.slot - b.slot);
   } else state.saves = state.saves.filter(s => s.slot !== 0).concat(sv); // beide Plätze belegt: nur für diese Sitzung
   state.save = state.saves.indexOf(sv);
+  // Neuer Spielstand: zum nächsten Kampf dieses Spielstands springen
+  history.replaceState(null, '', location.pathname + location.search);
+  state.fight = null;
   applySave();
 }
 function showSaveError(msg) { $('save-error').hidden = !msg; $('save-error').textContent = msg; }
@@ -528,10 +569,13 @@ function applySave() {
   state.team = [];
   if (sv) {
     // Starter aus dem Spielstand: eigenes Pokémon aus einer Starter-Familie, das früheste zählt
-    const own = allOwn(sv).filter(m => m.tid === sv.data.trainer.tid && m.sid === sv.data.trainer.sid && m.species >= 387 && m.species <= 395);
+    // (randomisiert: eins der drei Starter-Pokémon aus der ROM, solange es sich nicht entwickelt hat)
+    const rs = state.rando && state.rando.starters;
+    const slotOf = m => (rs ? rs.indexOf(m.species) : m.species >= 387 && m.species <= 395 ? Math.floor((m.species - 387) / 3) : -1);
+    const own = allOwn(sv).filter(m => m.tid === sv.data.trainer.tid && m.sid === sv.data.trainer.sid && slotOf(m) >= 0);
     const dateNum = d => (d ? d[0] * 10000 + d[1] * 100 + d[2] : 99999999);
     own.sort((a, b) => dateNum(a.metDate) - dateNum(b.metDate));
-    if (own.length) setStarter(['turtwig', 'chimchar', 'piplup'][Math.floor((own[0].species - 387) / 3)]);
+    if (own.length) setStarter(['turtwig', 'chimchar', 'piplup'][slotOf(own[0])]);
     // Gemerkte Auswahl, sonst das Team
     const pool = new Map(allOwn(sv).map(m => [monKey(m), m]));
     let keys = null;
@@ -607,16 +651,46 @@ function renderTeamBar() {
   document.querySelectorAll('[data-drop]').forEach(b => b.addEventListener('click', () => { state.team.splice(+b.dataset.drop, 1); saveTeamChoice(); render(); }));
   $('add-box')?.addEventListener('click', openPicker);
   $('reset-team')?.addEventListener('click', () => { localStorage.removeItem(teamKey(currentSave())); applySave(); });
-  [...$('starter-select').options].forEach(o => { o.textContent = T().species[t.starters[o.value]]; });
+  [...$('starter-select').options].forEach(o => { o.textContent = T().species[starterSpecies(o.value)]; });
   $('starter-select').value = state.starter;
+  // Randomizer-ROM: Name anzeigen, entfernen
+  const rd = state.rando;
+  $('rando-chip').hidden = !rd;
+  $('rando-chip').innerHTML = rd ? `${esc(t.romActive)} <b>${esc(rd.name)}</b><button type="button" id="rando-remove" title="${esc(t.romRemove)}" aria-label="${esc(t.romRemove)}">×</button>` : '';
+  $('rando-remove')?.addEventListener('click', removeRando);
+}
+
+// ── Randomisierte ROM ─────────────────────────────────────────────────────────
+async function loadRom(file) {
+  const t = tr();
+  showSaveError('');
+  $('load-rom').disabled = true;
+  $('load-rom').textContent = t.romReading;
+  try {
+    const read = (s, e) => file.slice(s, e).arrayBuffer().then(b => new Uint8Array(b));
+    const res = await Rando.readRom(read, Object.keys(B.trainers).map(Number), B.fem, PT.personal);
+    state.rando = { name: file.name, loadedAt: Date.now(), ...res };
+    try { localStorage.setItem('bosse-rando', JSON.stringify(state.rando)); } catch (e) { /* voll: gilt nur für diese Sitzung */ }
+    applySave();
+  } catch (e) {
+    showSaveError(e && e.message === 'notPlatinum' ? t.romError : `${t.romError} (${e && e.message})`);
+  } finally {
+    $('load-rom').disabled = false;
+    $('load-rom').textContent = t.loadRom;
+  }
+}
+function removeRando() {
+  state.rando = null;
+  localStorage.removeItem('bosse-rando');
+  applySave();
 }
 
 function listEntries() {
   if (state.list === 'all') {
     const q = state.search.toLowerCase();
-    return Object.entries(B.trainers)
-      .map(([id, tt]) => ({ id: +id, t: tt }))
-      .filter(({ t }) => !q || `${fightTitle(t)} ${locText(t)} ${t.n}`.toLowerCase().includes(q))
+    return Object.keys(B.trainers)
+      .map(id => ({ id: +id, t: trainerOf(+id) }))
+      .filter(({ t }) => !q || `${fightTitle(t)} ${locText(t)} ${t.n} ${t.p.map(p => T().species[p[0]]).join(' ')}`.toLowerCase().includes(q))
       .sort((a, b) => capOf(a.t) - capOf(b.t) || a.id - b.id);
   }
   return B[state.list].map((g, i) => ({ id: groupId(g), t: trainerOf(groupId(g)), i }));
@@ -670,7 +744,7 @@ function renderFight() {
   const link = mapLink(tt);
   const tag = tt.tag != null && trainerOf(tt.tag) ? `<button type="button" class="tag-link" data-fight="${tt.tag}">${esc(t.tagWith(fightTitle(trainerOf(tt.tag))))}</button>` : '';
   const heals = tt.it.length ? `<span class="pill">${esc(t.heals)}: ${countItems(tt.it)}</span>` : '';
-  const rival = tt.c === 'RIVAL' && tt.k.match(/_(TURTWIG|CHIMCHAR|PIPLUP)$/) ? `<span class="pill">${esc(t.rivalBy(T().species[t.starters[state.starter]]))}</span>` : '';
+  const rival = tt.c === 'RIVAL' && tt.k.match(/_(TURTWIG|CHIMCHAR|PIPLUP)$/) ? `<span class="pill">${esc(t.rivalBy(T().species[starterSpecies(state.starter)]))}</span>` : '';
   // Trainer-Sprite(s) aus dem Spiel (tools/build-sprites.py), bei Doppelkämpfen mit Partner beide
   const sprites = [tt, tt.tag != null ? trainerOf(tt.tag) : null].filter(Boolean)
     .map((x, i) => `<img class="fight-sprite${i ? ' is-partner' : ''}" src="sprites/${x.c.toLowerCase()}.png" alt="" width="80" height="80">`).join('');
@@ -697,7 +771,7 @@ function renderFight() {
       </div>
       <div class="cap-box"><span>${esc(t.levelCap)}</span><b>${cap}</b></div>
     </div>
-    <div class="fight-tags">${tt.d ? `<span class="pill">${esc(t.double)}</span>` : ''}${tag}${heals}${rival}</div>
+    <div class="fight-tags">${state.rando ? `<span class="pill pill-rando" title="${esc(state.rando.name)}">${esc(t.randoTag)}</span>` : ''}${tt.d ? `<span class="pill">${esc(t.double)}</span>` : ''}${tag}${heals}${rival}</div>
     ${me.length ? `<div class="alerts">
         ${warnings.map(w => `<p class="alert is-cap">${esc(w)}</p>`).join('')}
         ${threats.length ? threats.map(w => `<p class="alert is-danger">☠ ${esc(w)}</p>`).join('') : `<p class="alert is-ok">✓ ${esc(t.noThreats)}</p>`}
@@ -740,7 +814,7 @@ function foeCard(f, raw, row, fi) {
         <dt>${esc(t.ability)}</dt><dd>${esc(T().abilities[f.ability] || '—')}</dd>
         <dt>${esc(t.item)}</dt><dd>${f.item ? `${itemImg(f.item)}${esc(T().items[f.item])}` : esc(t.noItem)}</dd>
         <dt>${esc(t.nature)}</dt><dd>${esc(natureText(f.nature))}</dd>
-        <dt>${esc(t.ivs)}</dt><dd>${f.ivs[0]}</dd>
+        <dt>${esc(t.ivs)}</dt><dd>${f.ivs.every(v => v === f.ivs[0]) ? f.ivs[0] : order.map(i => f.ivs[i]).join(' / ')}</dd>
       </dl>
       <div class="stat-grid">${order.map(i => `<span><small>${esc(t.stat[i])}</small><b>${s[i]}</b></span>`).join('')}</div>
       <ul class="move-list">${f.moves.map(mid => moveRow(mid)).join('')}</ul>
@@ -822,6 +896,7 @@ function applyLang() {
   const t = tr();
   document.querySelectorAll('[data-i18n]').forEach(el => { const v = t[el.dataset.i18n]; if (typeof v === 'string') el.textContent = v; });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const v = t[el.dataset.i18nPlaceholder]; if (typeof v === 'string') el.placeholder = v; });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { const v = t[el.dataset.i18nTitle]; if (typeof v === 'string') el.title = v; });
   $('lang-toggle').textContent = window.LANG.toUpperCase();
   // Team neu benennen (Artnamen hängen an der Sprache)
   const sv = currentSave();
@@ -854,6 +929,8 @@ $('lang-toggle').addEventListener('click', () => {
   applyLang();
 });
 $('load-save').addEventListener('click', () => $('file-input').click());
+$('load-rom').addEventListener('click', () => $('rom-input').click());
+$('rom-input').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) loadRom(f); });
 $('file-input').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) loadFile(f).catch(() => showSaveError(tr().saveError)); });
 $('starter-select').addEventListener('change', e => {
   setStarter(e.target.value);

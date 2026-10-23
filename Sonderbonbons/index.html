@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- PWA: Homescreen-App + Offline -->
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0d0f2b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PokéHub">
+  <link rel="apple-touch-icon" href="../icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+  <script src="../pwa.js"></script>
+  <link rel="stylesheet" href="../theme.css">
+  <title>Sonderbonbons – Pokémon Hub</title>
+  <link rel="stylesheet" href="../Pokelocke/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+<button class="lang-toggle" id="lang-toggle" type="button">DE</button>
+
+<nav class="tool-nav" aria-label="Pokemon tools">
+  <a class="tool-nav-link" href="../index.html">Home</a>
+  <a class="tool-nav-link" href="../RunDashboard/index.html">Run</a>
+  <a class="tool-nav-link" href="../Pokelocke/index.html">Team</a>
+  <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
+  <a class="tool-nav-link" href="../Trio/index.html">Trio</a>
+  <a class="tool-nav-link" href="../Catchrate/index.html">Fangrate</a>
+  <a class="tool-nav-link" href="../DamageCalc/index.html">Schaden</a>
+  <a class="tool-nav-link" href="../Typrechner/index.html">Typen</a>
+  <a class="tool-nav-link" href="../PokemonInfo/index.html">Dex</a>
+  <a class="tool-nav-link" href="../Karte/index.html">Karte</a>
+  <a class="tool-nav-link" href="../Bosse/index.html">Bosse</a>
+  <a class="tool-nav-link" href="../SaveViewer/index.html">Save</a>
+  <a class="tool-nav-link is-active" href="index.html" aria-current="page">Bonbons</a>
+  <a class="tool-nav-link" href="../Randomizer/index.html">Randomizer</a>
+  <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
+</nav>
+
+<header class="page-head">
+  <h1><span data-i18n="title1">Sonder</span><span class="accent" data-i18n="title2">bonbons</span></h1>
+  <p data-i18n="subtitle">Gib dir Sonderbonbons in deinen Platin-Spielstand – drei Schritte, ohne extra Programm.</p>
+</header>
+
+<input type="file" id="file-input" accept=".sav,.dsv,.bin" hidden>
+
+<ol class="steps">
+  <!-- 1 -->
+  <li class="step is-done" id="step-prepare">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <h2 data-i18n="s1Title">Im Spiel speichern, Emulator schließen</h2>
+      <p data-i18n="s1Text">Speichere ganz normal im Spiel (Menü → Bericht). Schließe danach den Emulator komplett – sonst überschreibt er deine Datei gleich wieder.</p>
+    </div>
+  </li>
+
+  <!-- 2 -->
+  <li class="step is-current" id="step-file">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <h2 data-i18n="s2Title">Spielstand auswählen</h2>
+      <button type="button" class="drop" id="drop">
+        <img class="drop-candy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png" alt="">
+        <span class="drop-title" data-i18n="dropTitle">Spielstand hier reinziehen oder antippen</span>
+        <span class="drop-sub" data-i18n="dropSub">Datei endet auf .sav oder .dsv. Sie bleibt auf deinem Gerät und wird nirgendwo hochgeladen.</span>
+      </button>
+      <div class="save-card" id="save-card" hidden></div>
+      <p class="msg msg-error" id="file-error" hidden></p>
+      <details class="where">
+        <summary data-i18n="whereTitle">Wo liegt mein Spielstand?</summary>
+        <div class="where-grid">
+          <div class="where-item"><b>DeSmuME</b><span data-i18n="whereDesmume">Im Ordner <code>Battery</code> neben DeSmuME. Die Datei heißt wie dein Spiel und endet auf <code>.dsv</code>.</span></div>
+          <div class="where-item"><b>melonDS</b><span data-i18n="whereMelon">Direkt neben der Spiel-Datei (<code>.nds</code>), gleicher Name, endet auf <code>.sav</code>.</span></div>
+          <div class="where-item"><b>DraStic</b><span data-i18n="whereDrastic">Ordner <code>DraStic/backup</code>, endet auf <code>.dsv</code>.</span></div>
+          <div class="where-item"><b>Delta (iPhone)</b><span data-i18n="whereDelta">Spiel lange drücken → Spielstand exportieren. Danach dort wieder importieren.</span></div>
+        </div>
+        <p class="where-note" data-i18n="whereNote">Wichtig: Nimm den normalen Spielstand – keinen Savestate („Schnellspeichern“ im Emulator).</p>
+      </details>
+    </div>
+  </li>
+
+  <!-- 3 -->
+  <li class="step" id="step-give">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <h2 data-i18n="s3Title">Sonderbonbons geben</h2>
+      <p class="step-hint" id="give-hint" data-i18n="s3Wait">Erst den Spielstand auswählen.</p>
+      <div class="give" id="give" hidden>
+        <div class="amounts" id="amounts" role="group">
+          <button type="button" class="amount" data-add="10">+10</button>
+          <button type="button" class="amount" data-add="25">+25</button>
+          <button type="button" class="amount" data-add="50">+50</button>
+          <button type="button" class="amount" data-add="100">+100</button>
+          <button type="button" class="amount" data-add="max" data-i18n="amountMax">Voll (999)</button>
+        </div>
+        <p class="give-preview" id="give-preview"></p>
+        <button type="button" class="big-btn" id="apply" disabled>
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png" alt="">
+          <span id="apply-label" data-i18n="apply">Sonderbonbons geben</span>
+        </button>
+      </div>
+      <div class="result" id="result" hidden></div>
+    </div>
+  </li>
+</ol>
+
+<p class="foot-note" data-i18n="footNote">Geändert wird nur der Beutel im aktuellen Spielstand, die Prüfsumme wird neu berechnet – wie bei PKHeX. Die Datei behält Namen und Format.</p>
+
+</div>
+
+<script src="../SaveViewer/data-pt.js"></script>
+<script src="../SaveViewer/pt-save.js"></script>
+<script src="../SaveViewer/pt-bag.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

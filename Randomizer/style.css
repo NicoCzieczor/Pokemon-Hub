@@ -1,0 +1,75 @@
+/* Randomizer – nur das, was nicht schon in ../Sonderbonbons/style.css steht */
+.game-badge {
+  display: inline-block; vertical-align: middle;
+  margin-left: 6px; padding: 3px 10px; border-radius: 999px;
+  border: 1px solid rgba(var(--t-acc2), 0.35); background: rgba(var(--t-acc2), 0.10);
+  color: var(--color-accent-strong); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.02em;
+}
+.step-body h2 small { color: var(--color-muted); font-weight: 600; font-size: 0.82em; }
+
+/* ── gespeicherte ROM ── */
+.rom-card {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 16px; border-radius: 18px;
+  background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08);
+}
+.rom-card-icon {
+  width: 44px; height: 44px; flex: 0 0 auto; border-radius: 14px;
+  display: grid; place-items: center;
+  background: rgba(98, 220, 150, 0.12); border: 1px solid rgba(98, 220, 150, 0.35); color: rgb(var(--t-c-8ef0b4));
+  font-size: 1.25rem; font-weight: 900;
+}
+.rom-card-main { display: grid; gap: 2px; min-width: 0; flex: 1 1 160px; }
+.rom-card-name { font-weight: 800; color: rgb(var(--t-white)); overflow-wrap: anywhere; }
+.rom-card-meta { color: var(--color-muted); font-size: 0.84rem; overflow-wrap: anywhere; }
+
+/* ── Fortschritt ── */
+.big-btn .dice { width: 28px; height: 28px; }
+.big-btn.is-busy .dice { animation: dice-roll 0.9s ease-in-out infinite; }
+@keyframes dice-roll { 0% { transform: rotate(0); } 50% { transform: rotate(180deg) scale(0.9); } 100% { transform: rotate(360deg); } }
+.run-status { display: grid; gap: 8px; }
+.run-bar { position: relative; height: 8px; border-radius: 999px; overflow: hidden; background: rgba(var(--t-ink), 0.08); }
+.run-bar span {
+  position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
+  animation: run-slide 1.3s ease-in-out infinite;
+}
+@keyframes run-slide { from { left: -40%; } to { left: 100%; } }
+.run-text { color: var(--color-text); font-size: 0.93rem; }
+.run-time { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .big-btn.is-busy .dice { animation: none; }
+  .run-bar span { animation-duration: 3s; }
+}
+
+/* ── Ergebnis ── */
+.play { display: grid; gap: 14px; }
+.play-title { font-weight: 900; font-size: 1.15rem; color: rgb(var(--t-c-8ef0b4)); }
+.starters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.starter {
+  display: grid; justify-items: center; gap: 2px; padding: 8px 6px 10px;
+  border-radius: 16px; background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08);
+  text-align: center; min-width: 0;
+}
+.starter img { width: 80px; height: 80px; image-rendering: pixelated; }
+.starter b { color: rgb(var(--t-white)); font-size: 0.92rem; overflow-wrap: anywhere; }
+.starters-label { color: var(--color-muted); font-size: 0.86rem; }
+.play ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 0.93rem; color: var(--color-text); }
+.play code { color: var(--color-accent-strong); font-size: 0.86em; overflow-wrap: anywhere; }
+.play .big-btn { text-decoration: none; }
+.play .big-btn:hover { text-decoration: none; color: rgb(var(--t-on-acc)); }
+.play-file { color: var(--color-muted); font-size: 0.84rem; text-align: center; overflow-wrap: anywhere; margin-top: -6px; }
+.play-boss { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--color-muted); font-size: 0.88rem; }
+
+@media (max-width: 560px) {
+  .starter img { width: 64px; height: 64px; }
+  .starter b { font-size: 0.82rem; }
+}
+
+.run-details { margin-top: 8px; }
+.run-details summary { cursor: pointer; font-weight: 700; }
+.run-details pre {
+  margin-top: 6px; padding: 10px 12px; border-radius: 12px; max-height: 220px; overflow: auto;
+  background: rgba(var(--t-shade), 0.25); color: var(--color-muted);
+  font-size: 0.75rem; white-space: pre-wrap; overflow-wrap: anywhere;
+}
