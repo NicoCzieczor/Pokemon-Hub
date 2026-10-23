@@ -17,20 +17,21 @@
   var MAX = PtBag.POCKETS[MEDICINE].max;             // 999
   // Handy/Tablet: kein direktes Ersetzen (gibt es dort nicht zuverlässig), Anleitung für Emulator-Apps
   var PHONE = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  var ANDROID = /Android/i.test(navigator.userAgent);
 
   var I18N = {
     de: {
       title1: 'Sonder', title2: 'bonbons',
       subtitle: 'Gib dir Sonderbonbons in deinen Platin-Spielstand – drei Schritte, ohne extra Programm.',
       s1Title: 'Im Spiel speichern, Emulator schließen',
-      s1Text: 'Speichere ganz normal im Spiel (Menü → Bericht). Schließe danach den Emulator komplett – sonst überschreibt er deine Datei gleich wieder.',
+      s1Text: 'Speichere ganz normal im Spiel (Menü → Bericht). Schließe danach den Emulator komplett – am Handy auch aus der App-Übersicht wegwischen. Sonst überschreibt er deine Datei gleich wieder.',
       s2Title: 'Spielstand auswählen',
       dropTitle: 'Spielstand hier reinziehen oder antippen',
       dropSub: 'Datei endet auf .sav oder .dsv. Sie bleibt auf deinem Gerät und wird nirgendwo hochgeladen.',
       dropOther: 'Anderen Spielstand wählen',
       whereTitle: 'Wo liegt mein Spielstand?',
       whereDesmume: 'Im Ordner <code>Battery</code> neben DeSmuME. Die Datei heißt wie dein Spiel und endet auf <code>.dsv</code>.',
-      whereMelon: 'Direkt neben der Spiel-Datei (<code>.nds</code>), gleicher Name, endet auf <code>.sav</code>.',
+      whereMelon: 'Am PC und am Handy direkt neben der Spiel-Datei (<code>.nds</code>): gleicher Name, endet auf <code>.sav</code>. Außer du hast in melonDS einen eigenen Speicherordner eingestellt.',
       whereDrastic: 'Ordner <code>DraStic/backup</code>, endet auf <code>.dsv</code>.',
       whereDelta: 'Spiel lange drücken → Spielstand exportieren. Danach dort wieder importieren.',
       whereNote: 'Wichtig: Nimm den normalen Spielstand – keinen Savestate („Schnellspeichern“ im Emulator).',
@@ -62,11 +63,15 @@
           'Emulator starten, Spiel laden – die Bonbons sind in der Medizin-Tasche.'
         ];
       },
-      okStepsPhone: function (f) {
-        return [
-          'Die Datei <code>' + f + '</code> liegt in deinen Downloads (iPhone: App „Dateien“ → Downloads).',
+      okStepsPhone: function (f, android) {
+        return android ? [
+          'Die neue Datei <code>' + f + '</code> liegt im Ordner „Download“ (App „Dateien“ bzw. „Eigene Dateien“).',
+          '<b>melonDS:</b> Verschieb sie in den Ordner mit deinem Spiel – dort liegt die alte <code>' + f + '</code> neben der .nds-Datei – und ersetze die alte.',
+          'Der Name muss genau gleich bleiben. Hat Android „ (1)“ angehängt, lösch das wieder.',
+          'melonDS öffnen und das Spiel normal starten (nicht über einen Savestate fortsetzen) – die Bonbons sind in der Medizin-Tasche.'
+        ] : [
+          'Die Datei <code>' + f + '</code> liegt in der App „Dateien“ → Downloads.',
           '<b>Delta:</b> Spiel lange drücken → „Spielstand importieren“ → diese Datei wählen.',
-          '<b>DraStic:</b> Datei in den Ordner <code>DraStic/backup</code> kopieren und die alte ersetzen (Name muss gleich bleiben).',
           'Spiel starten – die Bonbons sind in der Medizin-Tasche.'
         ];
       },
@@ -82,14 +87,14 @@
       title1: 'Rare ', title2: 'Candies',
       subtitle: 'Put Rare Candies into your Platinum save file – three steps, no extra program.',
       s1Title: 'Save in the game, close the emulator',
-      s1Text: 'Save normally in the game (menu → Save). Then close the emulator completely – otherwise it will overwrite your file again.',
+      s1Text: 'Save normally in the game (menu → Save). Then close the emulator completely – on a phone, also swipe it away from the recent apps. Otherwise it will overwrite your file again.',
       s2Title: 'Choose your save file',
       dropTitle: 'Drop your save file here or tap',
       dropSub: 'The file ends with .sav or .dsv. It stays on your device and is never uploaded.',
       dropOther: 'Choose another save file',
       whereTitle: 'Where is my save file?',
       whereDesmume: 'In the <code>Battery</code> folder next to DeSmuME. Named like your game, ends with <code>.dsv</code>.',
-      whereMelon: 'Right next to the game file (<code>.nds</code>), same name, ends with <code>.sav</code>.',
+      whereMelon: 'On PC and phone right next to the game file (<code>.nds</code>): same name, ends with <code>.sav</code>. Unless you set your own save folder in melonDS.',
       whereDrastic: 'Folder <code>DraStic/backup</code>, ends with <code>.dsv</code>.',
       whereDelta: 'Long-press the game → export save file. Import it there again afterwards.',
       whereNote: 'Important: use the normal save file – not a save state (the emulator\'s quick save).',
@@ -121,11 +126,15 @@
           'Start the emulator, load your game – the candies are in the Medicine pocket.'
         ];
       },
-      okStepsPhone: function (f) {
-        return [
-          'The file <code>' + f + '</code> is in your downloads (iPhone: Files app → Downloads).',
+      okStepsPhone: function (f, android) {
+        return android ? [
+          'The new file <code>' + f + '</code> is in the "Download" folder (Files app).',
+          '<b>melonDS:</b> move it into the folder with your game – the old <code>' + f + '</code> is there next to the .nds file – and replace the old one.',
+          'The name must stay exactly the same. If Android added " (1)", delete it again.',
+          'Open melonDS and start the game normally (don\'t resume from a save state) – the candies are in the Medicine pocket.'
+        ] : [
+          'The file <code>' + f + '</code> is in the Files app → Downloads.',
           '<b>Delta:</b> long-press the game → "Import Save File" → choose this file.',
-          '<b>DraStic:</b> copy the file into the <code>DraStic/backup</code> folder and replace the old one (the name must stay the same).',
           'Start the game – the candies are in the Medicine pocket.'
         ];
       },
@@ -337,7 +346,7 @@
           '<div class="btn-row">' + undoBtn + '</div>';
       case 'download':
         return '<div class="result-title">' + l.okDownload(num(r.count)) + '</div><ol>' +
-          (PHONE ? l.okStepsPhone(name) : l.okSteps(name)).map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' + note +
+          (PHONE ? l.okStepsPhone(name, ANDROID) : l.okSteps(name)).map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' + note +
           '<div class="btn-row"><button type="button" class="small-btn" data-act="download">⭳ ' + l.downloadAgain + '</button>' + undoBtn + '</div>';
       case 'writeFailed':
         return '<div class="result-title">' + l.writeFailed + '</div>' +

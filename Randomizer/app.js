@@ -24,6 +24,7 @@
   const OUT = '/files/randomizer-out.nds';
   const ORIGINAL_STARTERS = [387, 390, 393];
   const PHONE = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  const ANDROID = /Android/i.test(navigator.userAgent);
 
   const I18N = {
     de: {
@@ -67,8 +68,10 @@
           'Die alte ROM und ihren Spielstand kannst du löschen, wenn ihr den alten Run nicht mehr braucht.'
         ];
       },
-      playPhone: function (f) {
-        return 'Die Datei <code>' + f + '</code> landet in deinen Downloads (iPhone: App „Dateien“ → Downloads). Von dort in deine Emulator-App holen – bei <b>Delta</b>: + → Dateien → die Datei wählen.';
+      playPhone: function (f, android) {
+        return android
+          ? 'Die Datei <code>' + f + '</code> landet im Ordner „Download“. <b>melonDS:</b> Verschieb sie in deinen Spiele-Ordner – oder füg in den Einstellungen von melonDS einmalig den Ordner „Download“ als ROM-Ordner hinzu, dann taucht jedes neue Spiel von selbst auf.'
+          : 'Die Datei <code>' + f + '</code> landet in der App „Dateien“ → Downloads. Von dort in deine Emulator-App holen – bei <b>Delta</b>: + → Dateien → die Datei wählen.';
       },
       bossReady: '✓ Der Boss-Planer kennt die Teams aus diesem Spiel schon.',
       bossOpen: 'Boss-Planer öffnen',
@@ -122,8 +125,10 @@
           'You can delete the old ROM and its save once you no longer need the old run.'
         ];
       },
-      playPhone: function (f) {
-        return 'The file <code>' + f + '</code> ends up in your downloads (iPhone: Files app → Downloads). Add it to your emulator app from there – in <b>Delta</b>: + → Files → choose the file.';
+      playPhone: function (f, android) {
+        return android
+          ? 'The file <code>' + f + '</code> ends up in the "Download" folder. <b>melonDS:</b> move it into your games folder – or add the "Download" folder once as a ROM folder in the melonDS settings, then every new game shows up by itself.'
+          : 'The file <code>' + f + '</code> ends up in the Files app → Downloads. Add it to your emulator app from there – in <b>Delta</b>: + → Files → choose the file.';
       },
       bossReady: '✓ The Boss Planner already knows the teams from this game.',
       bossOpen: 'Open Boss Planner',
@@ -421,7 +426,7 @@
         '<svg class="dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>' +
         '<span>' + esc(l.download) + '</span></a>' +
       '<p class="play-file">' + esc(r.fileName) + ' · ' + mb(r.size) + '</p>' +
-      '<ol>' + l.playSteps(esc(r.fileName)).map((s, i) => i === 0 && PHONE ? l.playPhone(esc(r.fileName)) : s).map(s => '<li>' + s + '</li>').join('') + '</ol>' +
+      '<ol>' + l.playSteps(esc(r.fileName)).map((s, i) => i === 0 && PHONE ? l.playPhone(esc(r.fileName), ANDROID) : s).map(s => '<li>' + s + '</li>').join('') + '</ol>' +
       '<div class="play-boss">' +
         (r.boss ? '<span>' + esc(l.bossReady) + '</span><a class="small-btn" href="../Bosse/index.html">' + esc(l.bossOpen) + '</a>' : '') +
         (r.logUrl ? '<a class="small-btn" href="' + r.logUrl + '" download="' + esc(r.fileName.replace(/\.nds$/, '')) + '-Log.txt">' + esc(l.log) + '</a>' : '') +
