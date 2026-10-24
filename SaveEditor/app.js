@@ -691,26 +691,44 @@
       });
     }
     if (!(p.kind === 'bag' && p.pocket === TMS)) {
-      out.sort(function (a, b) { return a.top ? -1 : b.top ? 1 : a.name.localeCompare(b.name, lang); });
+      var cmp = new Intl.Collator(lang).compare;
+      out.sort(function (a, b) { return a.top ? -1 : b.top ? 1 : cmp(a.name, b.name); });
     }
     return out;
+  }
+
+  // Die Zeilen entstehen einmal beim Öffnen (und nach einem Sprachwechsel). Beim Tippen werden sie nur
+  // noch gefiltert und umsortiert – nicht bei jedem Buchstaben neu gebaut, so bleiben auch die Bilder geladen.
+  function buildPickerRows(p) {
+    var list = $('picker-list'), opts = pickerOptions(p);
+    list.innerHTML = opts.map(function (o) {
+      return '<button type="button" class="ed-pick' + (o.off ? ' is-off' : '') + '" data-pick="' + o.id + '"' + (o.off ? ' disabled' : '') + '>' + o.html +
+        (o.off ? '<em>' + esc(L().known) + '</em>' : '') + '</button>';
+    }).join('');
+    p.rows = opts.map(function (o, i) { return { el: list.children[i], key: o.name.toLocaleLowerCase(lang) }; });
+    p.shown = p.rows;
+    p.lang = lang;
   }
 
   function renderPickerList() {
     var p = state.picker;
     if (!p) return;
+    if (p.lang !== lang) buildPickerRows(p);
     var q = $('picker-q').value.trim().toLocaleLowerCase(lang);
-    var list = pickerOptions(p).filter(function (o) { return !q || o.name.toLocaleLowerCase(lang).indexOf(q) >= 0; });
+    var hits = p.rows.filter(function (r) { return !q || r.key.indexOf(q) >= 0; });
     // Treffer am Wortanfang zuerst
     if (q) {
-      list.sort(function (a, b) {
-        return (a.name.toLocaleLowerCase(lang).indexOf(q) === 0 ? 0 : 1) - (b.name.toLocaleLowerCase(lang).indexOf(q) === 0 ? 0 : 1);
-      });
+      hits.sort(function (a, b) { return (a.key.indexOf(q) === 0 ? 0 : 1) - (b.key.indexOf(q) === 0 ? 0 : 1); });
     }
-    $('picker-list').innerHTML = list.length ? list.map(function (o) {
-      return '<button type="button" class="ed-pick' + (o.off ? ' is-off' : '') + '" data-pick="' + o.id + '"' + (o.off ? ' disabled' : '') + '>' + o.html +
-        (o.off ? '<em>' + esc(L().known) + '</em>' : '') + '</button>';
-    }).join('') : '<p class="muted ed-nothing">' + esc(L().nothing) + '</p>';
+    if (hits.length === p.shown.length && hits.every(function (r, i) { return r === p.shown[i]; })) return;
+    p.shown = hits;
+    var list = $('picker-list');
+    if (!hits.length) { list.innerHTML = '<p class="muted ed-nothing">' + esc(L().nothing) + '</p>'; return; }
+    var frag = document.createDocumentFragment();
+    hits.forEach(function (r) { frag.appendChild(r.el); });
+    list.textContent = '';
+    list.appendChild(frag);
+    list.scrollTop = 0;
   }
 
   function renderPicker() {

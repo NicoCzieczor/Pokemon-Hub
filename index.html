@@ -23,811 +23,151 @@
   <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1242x2688.png">
   <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash-828x1792.png">
   <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash-750x1334.png">
-  <script src="pwa.js"></script>
-  <link rel="stylesheet" href="theme.css">
   <title>Pokémon Hub</title>
-  <style>
-    :root {
-      --color-bg: rgb(var(--t-n-0d0f2b));
-      --color-surface: rgb(var(--t-n-191b3a));
-      --color-text: rgb(var(--t-g-e0e8f9));
-      --color-accent: rgb(var(--t-acc));
-      --color-accent-strong: rgb(var(--t-acc2));
-      --color-muted: rgb(var(--t-g-b1b3cc));
-      --color-border: rgb(var(--t-n-303258));
-      --radius: 12px;
-      --font-main: 'Segoe UI', sans-serif;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    html {
-      min-height: 100%;
-      font-family: var(--font-main);
-      background:
-        radial-gradient(circle at 15% 20%, rgba(var(--t-acc2-glow), 0.12), transparent 30%),
-        radial-gradient(circle at 85% 80%, rgba(var(--t-acc-glow), 0.10), transparent 28%),
-        radial-gradient(circle at 50% 50%, rgba(112, 56, 248, 0.06), transparent 60%),
-        rgb(var(--t-n-0d0f2b));
-      color: var(--color-text);
-      line-height: 1.6;
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 48px 20px 72px;
-    }
-
-    /* ── DESKTOP (3 Spalten): steht die letzte Karte allein in ihrer Reihe, nimmt sie die volle Breite ── */
-    @media (min-width: 901px) {
-      .tools-grid > .tool-card:last-child:nth-child(3n+1) { grid-column: 1 / -1; }
-    }
-
-    /* ── TABLET (601–900px) ── */
-    @media (min-width: 601px) and (max-width: 900px) {
-      .tools-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
-      .tool-card { padding: 22px 20px; }
-      .hero { margin-bottom: 40px; }
-    }
-
-    /* ── MOBILE (≤600px) ── */
-    @media (max-width: 600px) {
-      body { padding: 20px 12px 32px; }
-
-      .hero { margin-bottom: 20px; }
-      .hero-logo { width: 48px; height: 48px; margin-bottom: 10px; }
-      .hero-logo svg { width: 26px; height: 26px; }
-      .hero h1 { font-size: 1.9rem; margin-bottom: 6px; }
-      .hero p { font-size: 0.82rem; }
-
-      .tools-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-      }
-
-      .tool-card {
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 18px 12px 14px;
-        gap: 8px;
-        border-radius: 18px;
-        min-height: 0;
-      }
-
-      .tool-icon {
-        width: 46px;
-        height: 46px;
-        border-radius: 14px;
-        font-size: 1.3rem;
-        flex-shrink: 0;
-      }
-      .tool-icon svg { width: 24px; height: 24px; }
-      .tool-icon img.poke-card-img { width: 40px; height: 40px; }
-      #icon-pokedex img.poke-card-img { width: 34px; height: 34px; }
-
-      .tool-name { font-size: 0.82rem; font-weight: 700; }
-
-      .tool-desc { display: none; }
-      .tool-link  { display: none; }
-
-      .tool-badge {
-        top: 8px;
-        right: 8px;
-        font-size: 0.58rem;
-        padding: 2px 6px;
-      }
-
-      footer { margin-top: 32px; }
-    }
-
-    /* ── LANG BUTTON ── */
-    .lang-btn {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      padding: 6px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--color-border);
-      background: rgba(var(--t-n-191b3a), 0.92);
-      color: var(--color-muted);
-      font-size: 0.78rem;
-      font-weight: 700;
-      font-family: var(--font-main);
-      cursor: pointer;
-      letter-spacing: 0.06em;
-      backdrop-filter: blur(8px);
-      transition: border-color 0.2s, color 0.2s;
-      z-index: 100;
-    }
-    .lang-btn:hover {
-      border-color: rgba(var(--t-acc), 0.4);
-      color: var(--color-accent);
-    }
-
-    /* ── HERO ── */
-    .hero {
-      text-align: center;
-      max-width: 640px;
-      margin-bottom: 56px;
-    }
-
-    .hero-logo {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: rgba(var(--t-acc), 0.12);
-      border: 2px solid rgba(var(--t-acc), 0.35);
-      margin-bottom: 24px;
-      color: var(--color-accent);
-    }
-
-    .hero-logo svg { width: 44px; height: 44px; }
-
-    .hero h1 {
-      font-size: clamp(2.4rem, 5vw, 3.4rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      color: rgb(var(--t-white));
-      margin-bottom: 12px;
-    }
-
-    .hero h1 span {
-      background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero p {
-      font-size: 1.1rem;
-      color: var(--color-muted);
-      margin: 0;
-    }
-
-    .ai-notice {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 14px;
-      padding: 4px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(var(--t-acc2), 0.22);
-      background: rgba(var(--t-acc2), 0.06);
-      color: var(--color-muted);
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      opacity: 0.7;
-    }
-
-    /* ── GRID ── */
-    .tools-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 20px;
-      width: 100%;
-      max-width: 900px;
-    }
-
-    /* ── CARDS ── */
-    .tool-card {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 28px 24px;
-      background: rgba(var(--t-n-191b3a), 0.92);
-      border: 1px solid rgba(var(--t-ink), 0.08);
-      border-radius: 24px;
-      text-decoration: none;
-      color: var(--color-text);
-      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-      overflow: hidden;
-    }
-
-    .tool-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 24px;
-      opacity: 0;
-      transition: opacity 0.25s ease;
-      pointer-events: none;
-    }
-
-    .tool-card--active::before  { background: radial-gradient(circle at 30% 40%, rgba(var(--t-acc2-glow), 0.10), transparent 65%); }
-    .tool-card--soon::before    { background: radial-gradient(circle at 30% 40%, rgba(var(--t-acc-glow), 0.07), transparent 65%); }
-
-    .tool-card--active:hover {
-      transform: translateY(-4px);
-      border-color: rgba(var(--t-acc2), 0.45);
-      box-shadow: 0 16px 40px rgba(var(--t-acc2-glow), 0.12);
-    }
-    .tool-card--active:hover::before { opacity: 1; }
-
-    .tool-card--soon {
-      cursor: default;
-      opacity: 0.65;
-    }
-
-    .tool-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      font-size: 1.6rem;
-      flex-shrink: 0;
-    }
-
-    .tool-card--active .tool-icon {
-      background: rgba(var(--t-acc2), 0.12);
-      border: 1px solid rgba(var(--t-acc2), 0.25);
-      color: var(--color-accent-strong);
-    }
-
-    .tool-icon svg {
-      width: 30px;
-      height: 30px;
-    }
-
-    .tool-icon img.poke-card-img {
-      width: 52px;
-      height: 52px;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 8px rgba(var(--t-shade), 0.45));
-      transition: transform 0.25s ease;
-    }
-    .tool-card--active:hover .poke-card-img { transform: scale(1.12) translateY(-2px); }
-    #icon-pokedex img.poke-card-img { width: 44px; height: 44px; }
-
-    .tool-card--soon .tool-icon {
-      background: rgba(var(--t-acc), 0.08);
-      border: 1px solid rgba(var(--t-acc), 0.20);
-    }
-
-    .tool-badge {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      background: rgba(var(--t-acc), 0.14);
-      color: var(--color-accent);
-      border: 1px solid rgba(var(--t-acc), 0.25);
-    }
-
-    .tool-name {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: rgb(var(--t-white));
-    }
-
-    .tool-desc {
-      font-size: 0.88rem;
-      color: var(--color-muted);
-      line-height: 1.5;
-      flex: 1;
-    }
-
-    .tool-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--color-accent-strong);
-      margin-top: 4px;
-    }
-
-    .tool-link svg {
-      transition: transform 0.2s ease;
-    }
-
-    .tool-card--active:hover .tool-link svg {
-      transform: translateX(3px);
-    }
-
-    /* ── DATEN SICHERN / LADEN ── */
-    .data-actions {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 56px;
-      flex-wrap: wrap;
-    }
-    .data-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border-radius: 12px;
-      border: 1px solid rgba(var(--t-ink), 0.08);
-      background: rgba(var(--t-n-191b3a), 0.6);
-      color: rgb(var(--t-g-b1b3cc));
-      font: inherit;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: border-color 0.2s ease, color 0.2s ease;
-    }
-    .data-btn:hover { border-color: rgba(var(--t-acc2), 0.35); color: rgb(var(--t-g-e0e8f9)); }
-    .data-btn svg { width: 16px; height: 16px; color: rgb(var(--t-acc2)); }
-    .data-actions + footer { margin-top: 32px; }
-
-    /* ── FOOTER ── */
-    footer {
-      margin-top: 72px;
-      color: var(--color-muted);
-      font-size: 0.82rem;
-      text-align: center;
-      opacity: 0.6;
-    }
-
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { display: none; }
-    * { scrollbar-width: none; }
-  </style>
+  <!-- Erst die Styles, dann die Skripte: pwa.js richtet sich beim Theme-Knopf nach der Position des Sprachknopfs -->
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="home.css">
+  <script src="pwa.js"></script>
+  <script src="home.js"></script>
 </head>
-<script>
-  (function(){
-    // Handys & Tablets (Hauptbedienung per Finger) → mobile Startseite.
-    // Laptops mit Touchscreen haben Maus/Touchpad als Hauptbedienung und bleiben hier.
-    var touch = navigator.maxTouchPoints > 0;
-    var finger = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    if (touch && (finger || window.innerWidth <= 768))
-      window.location.replace('mobile.html');
-  })();
-</script>
 <body>
 
-  <button class="lang-btn" id="lang-btn">EN</button>
+  <button class="lang-btn" id="lang-btn" type="button">DE</button>
 
-  <section class="hero">
-    <div class="hero-logo">
-      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="3"/>
-        <path d="M3 24 H45" stroke="currentColor" stroke-width="3"/>
-        <circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="3" fill="var(--color-bg)"/>
-        <circle cx="24" cy="24" r="4" fill="currentColor"/>
-      </svg>
-    </div>
-    <h1>Pokémon <span>Hub</span></h1>
-    <p data-i18n="hero-desc">Dein zentraler Anlaufpunkt für Pokémon-Tools &amp; Hilfsmittel.</p>
-    <div class="ai-notice">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5Z"/>
-      </svg>
-      <span data-i18n="ai-notice">Erstellt mit KI-Unterstützung</span>
-    </div>
-  </section>
-
-  <div class="tools-grid">
-
-    <!-- Run Dashboard -->
-    <a href="./RunDashboard/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-rundashboard">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="5" y="4" width="22" height="25" rx="3"/>
-          <path d="M11 4V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/>
-          <path d="M10 13l2.5 2.5L17 11"/>
-          <path d="M10 19l2.5 2.5L17 17"/>
-          <path d="M21 13h1M21 19h1"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="rundashboard-name">Run-Dashboard</div>
-      <div class="tool-desc" data-i18n="rundashboard-desc">Tracke deinen aktuellen Run mit Level Caps, Encounters, Graveyard, Notizen und Schnellzugriffen.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Save-Viewer -->
-    <a href="./SaveViewer/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-saveviewer">
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10 6h20l8 8v26a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3Z"/>
-          <path d="M15 6v9h13V6"/>
-          <rect x="14" y="25" width="20" height="12" rx="2"/>
-          <path d="M19 30h10"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="saveviewer-name">Save-Viewer</div>
-      <div class="tool-desc" data-i18n="saveviewer-desc">Lade deinen Platin-Spielstand und sieh dir Team, Boxen, Fangorte und Pokédex an – oder gib dir Sonderbonbons und andere Items.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Team Builder -->
-    <a href="./Pokelocke/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-teambuilder">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M16 3 L28 8 V18 C28 25 16 30 16 30 C16 30 4 25 4 18 V8 Z"/>
-          <path d="M16 10l1.5 3.5 3.5.5-2.5 2.5.5 3.5L16 18l-3 2 .5-3.5L11 14l3.5-.5Z"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="teambuilder-name">Team Builder</div>
-      <div class="tool-desc" data-i18n="teambuilder-desc">Stelle dein Team zusammen, analysiere Typ-Deckung und Schwächen, und verwalte deine Box.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Duo -->
-    <a href="./Duo/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-Duo">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="4"/>
-          <circle cx="21" cy="11" r="4"/>
-          <path d="M3 28c0-4.4 3.6-8 8-8"/>
-          <path d="M29 28c0-4.4-3.6-8-8-8"/>
-          <path d="M11 20c1.3-.6 2.7-.9 4.2-1 .6 0 1.2.1 1.8.1"/>
-          <path d="M22 18l2 2-2 2M26 20h-4" stroke-width="1.8"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="duo-name">Duo</div>
-      <div class="tool-desc" data-i18n="duo-desc">Duo-Builder mit Echtzeit-Sync – Teams automatisch zwischen zwei Spielern synchronisieren.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Catch Rate Calculator -->
-    <a href="./Catchrate/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-catchrate"></div>
-      <div class="tool-name" data-i18n="catchrate-name">Fangrate-Rechner</div>
-      <div class="tool-desc" data-i18n="catchrate-desc">Berechne die Fangwahrscheinlichkeit für jeden Ball je nach Pokémon und Kampfsituation.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Trio Nuzlocke -->
-    <a href="./Trio/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-trio">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="16" cy="8" r="4"/>
-          <circle cx="7" cy="22" r="4"/>
-          <circle cx="25" cy="22" r="4"/>
-          <path d="M13.5 12 L9.5 18"/>
-          <path d="M18.5 12 L22.5 18"/>
-          <path d="M11 22 h10"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="trio-name">Trio Nuzlocke</div>
-      <div class="tool-desc" data-i18n="trio-desc">Team Builder für drei Spieler – je 6 Slots, gemeinsame Box und Typ-Analyse für alle.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Regelwerk -->
-    <a href="./Rules/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-rules">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 5 C6 5 10 4 16 4 C22 4 26 5 26 5 L26 27 C26 27 22 26 16 26 C10 26 6 27 6 27 Z"/>
-          <path d="M16 4 L16 26"/>
-          <path d="M10 10 h4M10 14 h4M10 18 h3"/>
-          <path d="M18 10 h4M18 14 h4M18 18 h3"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="rules-name">Regelwerk</div>
-      <div class="tool-desc" data-i18n="rules-desc">Grundregeln, Klauseln und Varianten aller gängigen Nuzlocke-Modi — plus eigene Regeln speichern.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Damage Calculator -->
-    <a href="./DamageCalc/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-damage">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 3 L8 18 H16 L14 29 L24 14 H16 Z"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="damage-name">Schadens-Rechner</div>
-      <div class="tool-desc" data-i18n="damage-desc">Berechne Schaden, KO-Chancen und Krit-Werte für beliebige Pokémon und Attacken mit EV/IV/Natur.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Typ-Rechner -->
-    <a href="./Typrechner/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="hub-type-icon"></div>
-      <div class="tool-name" data-i18n="typcalc-name">Typ-Rechner</div>
-      <div class="tool-desc" data-i18n="typcalc-desc">Berechne Typ-Effektivitäten schnell und vergleiche Matchups für beliebige Kombinationen.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Pokédex -->
-    <a href="./PokemonInfo/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon" id="icon-pokedex"></div>
-      <div class="tool-name" data-i18n="pokedex-name">Pokédex</div>
-      <div class="tool-desc" data-i18n="pokedex-desc">Vollständige Infos zu jedem Pokémon: Stats, Typ-Effektivität, Attacken, Fundorte, Entwicklung und mehr.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Karte (Platin) -->
-    <a href="./Karte/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 8 L12 5 L20 8 L28 5 V24 L20 27 L12 24 L4 27 Z"/>
-          <path d="M12 5 V24M20 8 V27"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="map-name">Karte (Platin)</div>
-      <div class="tool-desc" data-i18n="map-desc">Interaktive Karte von Sinnoh: Items, versteckte Items, TMs, Trainer und wilde Pokémon an ihrer echten Stelle.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Boss-Planer (Platin) -->
-    <a href="./Bosse/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 26 L20 12M20 12 l3-6 3-1-1 3-6 3"/>
-          <path d="M26 26 L12 12M12 12 l-3-6-3-1 1 3 6 3"/>
-          <path d="M9 23 l-2 2M23 23 l2 2"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="bosses-name">Boss-Planer (Platin)</div>
-      <div class="tool-desc" data-i18n="bosses-desc">Jeder Kampf mit dem kompletten Gegner-Team – Attacken, Items, Wesen – und wie dein Team aus dem Spielstand dagegen abschneidet.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Save-Editor (früher Sonderbonbons) -->
-    <a href="./SaveEditor/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M16 27H7V4h12l6 6v6"/>
-          <path d="M19 4v6h6"/>
-          <path d="m20 28 1-4 7-7 3 3-7 7z"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="editor-name">Save-Editor</div>
-      <div class="tool-desc" data-i18n="editor-desc">Ändere deinen Platin-Spielstand: Sonderbonbons, Attacken, Items, Beutel und Geld – ohne extra Programm.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
-    <!-- Randomizer -->
-    <a href="./Randomizer/index.html" class="tool-card tool-card--active">
-      <div class="tool-icon">
-        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="5" y="5" width="22" height="22" rx="5"/>
-          <circle cx="11" cy="11" r="1.4" fill="currentColor"/><circle cx="21" cy="11" r="1.4" fill="currentColor"/>
-          <circle cx="16" cy="16" r="1.4" fill="currentColor"/>
-          <circle cx="11" cy="21" r="1.4" fill="currentColor"/><circle cx="21" cy="21" r="1.4" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="tool-name" data-i18n="rando-name">Randomizer (Platin)</div>
-      <div class="tool-desc" data-i18n="rando-desc">Verloren? Würfel dir direkt im Browser ein neues zufälliges Platin – die Einstellungen kannst du vorher anpassen.</div>
-      <div class="tool-link">
-        <span data-i18n="open">Öffnen</span>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </a>
-
+  <!-- Bühne im Hintergrund: Himmel, Berge, hohes Gras mit wilden Pokémon (Gras und Pokémon setzt home.js ein) -->
+  <div class="scene" aria-hidden="true">
+    <div class="sky"></div>
+    <div class="moon"></div>
+    <svg class="range" viewBox="0 0 1600 400" preserveAspectRatio="none">
+      <path class="range-far" d="M0,290 L110,236 L210,262 L330,190 L440,228 L540,160 L650,96 L740,52 L800,22 L860,58 L950,112 L1060,150 L1150,128 L1260,196 L1370,170 L1480,232 L1600,206 V400 H0 Z"/>
+      <path class="range-snow" d="M740,52 L800,22 L860,58 L838,66 L818,52 L800,64 L780,54 L760,66 Z"/>
+      <path class="range-near" d="M0,330 C140,282 260,286 400,318 C540,350 660,300 800,296 C960,292 1060,334 1220,316 C1380,298 1480,288 1600,310 V400 H0 Z"/>
+    </svg>
+    <div class="mons mons--far" id="mons-far"></div>
+    <svg class="grass grass--back"></svg>
+    <div class="mons mons--near" id="mons-near"></div>
+    <svg class="grass grass--front"></svg>
   </div>
 
-  <div class="data-actions">
-    <button type="button" class="data-btn" id="backup-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-export">Daten sichern</span></button>
-    <button type="button" class="data-btn" id="backup-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-import">Daten laden</span></button>
-  </div>
+  <!-- Menüfenster wie im Spiel -->
+  <main class="win">
 
-  <footer data-i18n="footer">
-    Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.
-  </footer>
+    <header class="win-head">
+      <div class="home-logo">
+        <svg viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="3"/>
+          <path d="M3 24 H45" stroke="currentColor" stroke-width="3"/>
+          <circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="3"/>
+          <circle cx="24" cy="24" r="4" fill="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Pokémon <span>Hub</span></h1>
+        <p data-i18n="hero-desc">Dein zentraler Anlaufpunkt für Pokémon-Tools &amp; Hilfsmittel.</p>
+      </div>
+    </header>
 
-  <script>
-    // ── Typ-Rechner Icon (Sprite-Sheet) ──
-    const _TYPES = ['Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
-    const _SPRITE = {
-      Grass:[0,0], Fire:[1,0], Water:[2,0], Electric:[3,0], Normal:[4,0],
-      Fighting:[0,1], Dark:[1,1], Steel:[2,1], Dragon:[3,1], Fairy:[4,1],
-      Bug:[0,2], Flying:[1,2], Ghost:[2,2], Poison:[3,2], Psychic:[4,2],
-      Ground:[0,3], Rock:[1,3], Ice:[3,3],
-    };
-    const _CENTER = {
-      Grass:[115,109], Fire:[103.5,111], Water:[115,110.5], Electric:[112,111], Normal:[104.5,110],
-      Fighting:[114,108], Dark:[106,107], Steel:[113.5,108], Dragon:[112,108], Fairy:[104,108],
-      Bug:[111,102.5], Flying:[105,102], Ghost:[114,101.5], Poison:[113,103], Psychic:[105,105],
-      Ground:[108,96.5], Rock:[104,94], Ice:[116,95.5],
-    };
-    const _t = _TYPES[Math.floor(Math.random() * _TYPES.length)];
-    const [_col, _row] = _SPRITE[_t];
-    const [_cx, _cy]   = _CENTER[_t] ?? [108, 119];
-    const _iconSize = 40, _half = _iconSize / 2, _ICON = 144;
-    const _bsW = Math.round(1080 * _iconSize / _ICON);
-    const _bsH = Math.round(956  * _iconSize / _ICON);
-    const _rx = _bsW / 1080;
-    const _ry = _bsH / 956;
-    const _bpX = _half - (_col * 216 + _cx) * _rx;
-    const _bpY = _half - (_row * 239 + _cy) * _ry;
-    const _el = document.getElementById('hub-type-icon');
-    if (_el) {
-      const _s = document.createElement('span');
-      _s.style.cssText = `display:block;width:${_iconSize}px;height:${_iconSize}px;background:url('./Typrechner/Types.png') ${_bpX}px ${_bpY}px / ${_bsW}px ${_bsH}px no-repeat`;
-      _el.appendChild(_s);
-    }
+    <div class="menu">
 
-    // ── Fangrate-Ball & Pokédex ──
-    const _ITEM = name => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${name}.png`;
-    const BALLS = ['poke-ball','great-ball','ultra-ball','master-ball','safari-ball','net-ball','dive-ball','nest-ball','repeat-ball','timer-ball','luxury-ball','premier-ball','dusk-ball','heal-ball','quick-ball','moon-ball','dream-ball','beast-ball','friend-ball','love-ball','lure-ball','level-ball','fast-ball','heavy-ball','sport-ball','cherish-ball'];
+      <section class="grp">
+        <h2 data-i18n="group-run">Dein Run</h2>
+        <div class="list">
+          <a href="./RunDashboard/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/journal.png" alt=""></span>
+            <span class="txt"><b data-i18n="rundashboard-name">Run-Dashboard</b><small data-i18n="rundashboard-desc">Level-Caps, Begegnungen, Friedhof und Notizen deines Runs.</small></span>
+          </a>
+          <a href="./SaveViewer/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/vs-recorder.png" alt=""></span>
+            <span class="txt"><b data-i18n="saveviewer-name">Save-Viewer</b><small data-i18n="saveviewer-desc">Team, Boxen, Fangorte und Pokédex aus deinem Spielstand.</small></span>
+          </a>
+          <a href="./SaveEditor/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png" alt=""></span>
+            <span class="txt"><b data-i18n="editor-name">Save-Editor</b><small data-i18n="editor-desc">Sonderbonbons, Attacken, Items und Geld im Spielstand ändern.</small></span>
+          </a>
+          <a href="./Randomizer/index.html" class="btn">
+            <span class="spr-box"><img class="spr spr--mon" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum/132.png" alt=""></span>
+            <span class="txt"><b data-i18n="rando-name">Randomizer</b><small data-i18n="rando-desc">Ein neues zufälliges Platin würfeln – direkt im Browser.</small></span>
+          </a>
+        </div>
+      </section>
 
-    const CARD_ICONS = {
-      'catchrate': _ITEM(BALLS[Math.floor(Math.random() * BALLS.length)]),
-      'pokedex':   './img/dp-pokedex.png',
-    };
+      <section class="grp">
+        <h2 data-i18n="group-team">Team &amp; Kämpfe</h2>
+        <div class="list">
+          <a href="./Pokelocke/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt=""></span>
+            <span class="txt"><b data-i18n="teambuilder-name">Team Builder</b><small data-i18n="teambuilder-desc">Team zusammenstellen, Typ-Abdeckung und Schwächen prüfen.</small></span>
+          </a>
+          <a href="./Duo/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png" alt=""></span>
+            <span class="txt"><b data-i18n="duo-name">Duo Nuzlocke</b><small data-i18n="duo-desc">Zwei Spieler – die Teams gleichen sich in Echtzeit ab.</small></span>
+          </a>
+          <a href="./Trio/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png" alt=""></span>
+            <span class="txt"><b data-i18n="trio-name">Trio Nuzlocke</b><small data-i18n="trio-desc">Drei Spieler mit gemeinsamer Box und Typ-Analyse.</small></span>
+          </a>
+          <a href="./Bosse/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/vs-seeker.png" alt=""></span>
+            <span class="txt"><b data-i18n="bosses-name">Boss-Planer</b><small data-i18n="bosses-desc">Jeder Bosskampf mit Gegner-Team – und wie dein Team abschneidet.</small></span>
+          </a>
+        </div>
+      </section>
 
-    Object.entries(CARD_ICONS).forEach(([key, src]) => {
-      const el = document.getElementById('icon-' + key);
-      if (!el) return;
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = '';
-      img.className = 'poke-card-img';
-      img.loading = 'lazy';
-      el.appendChild(img);
-    });
+      <section class="grp">
+        <h2 data-i18n="group-calc">Rechner</h2>
+        <div class="list">
+          <a href="./Catchrate/index.html" class="btn">
+            <span class="spr-box" id="icon-catchrate"></span>
+            <span class="txt"><b data-i18n="catchrate-name">Fangrate</b><small data-i18n="catchrate-desc">Fangchance für jeden Ball je nach Pokémon und Lage.</small></span>
+          </a>
+          <a href="./DamageCalc/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/life-orb.png" alt=""></span>
+            <span class="txt"><b data-i18n="damage-name">Schaden</b><small data-i18n="damage-desc">Schaden, KO-Chancen und Volltreffer berechnen.</small></span>
+          </a>
+          <a href="./Typrechner/index.html" class="btn">
+            <span class="spr-box" id="hub-type-icon"></span>
+            <span class="txt"><b data-i18n="typcalc-name">Typen</b><small data-i18n="typcalc-desc">Typ-Effektivität für jede Kombination.</small></span>
+          </a>
+        </div>
+      </section>
 
-    // ── Translation ──
-    const TRANSLATIONS = {
-      de: {
-        'hero-desc':        'Dein zentraler Anlaufpunkt für Pokémon-Tools &amp; Hilfsmittel.',
-        'ai-notice':        'Erstellt mit KI-Unterstützung',
-        'rundashboard-name':'Run-Dashboard',
-        'rundashboard-desc':'Tracke deinen aktuellen Run mit Level Caps, Encounters, Graveyard, Notizen und Schnellzugriffen.',
-        'saveviewer-name':  'Save-Viewer',
-        'saveviewer-desc':  'Lade deinen Platin-Spielstand und sieh dir Team, Boxen, Fangorte und Pokédex an – oder gib dir Sonderbonbons und andere Items.',
-        'teambuilder-name': 'Team Builder',
-        'teambuilder-desc': 'Stelle dein Team zusammen, analysiere Typ-Deckung und Schwächen, und verwalte deine Box.',
-        'duo-name':         'Duo Nuzlocke',
-        'duo-desc':         'Duo-Builder mit Echtzeit-Sync – Teams automatisch zwischen zwei Spielern synchronisieren.',
-        'catchrate-name':   'Fangrate-Rechner',
-        'catchrate-desc':   'Berechne die Fangwahrscheinlichkeit für jeden Ball je nach Pokémon und Kampfsituation.',
-        'trio-name':        'Trio Nuzlocke',
-        'trio-desc':        'Team Builder für drei Spieler – je 6 Slots, gemeinsame Box und Typ-Analyse für alle.',
-        'rules-name':       'Regelwerk',
-        'rules-desc':       'Grundregeln, Klauseln und Varianten aller gängigen Nuzlocke-Modi — plus eigene Regeln speichern.',
-        'damage-name':      'Schadens-Rechner',
-        'damage-desc':      'Berechne Schaden, KO-Chancen und Krit-Werte für beliebige Pokémon und Attacken mit EV/IV/Natur.',
-        'typcalc-name':     'Typ-Rechner',
-        'typcalc-desc':     'Berechne Typ-Effektivitäten schnell und vergleiche Matchups für beliebige Kombinationen.',
-        'pokedex-name':     'Pokédex',
-        'pokedex-desc':     'Vollständige Infos zu jedem Pokémon: Stats, Typ-Effektivität, Attacken, Fundorte, Entwicklung und mehr.',
-        'map-name':         'Karte (Platin)',
-        'map-desc':         'Interaktive Karte von Sinnoh: Items, versteckte Items, TMs, Trainer und wilde Pokémon an ihrer echten Stelle.',
-        'bosses-name':      'Boss-Planer (Platin)',
-        'bosses-desc':      'Jeder Kampf mit dem kompletten Gegner-Team – Attacken, Items, Wesen – und wie dein Team aus dem Spielstand dagegen abschneidet.',
-        'editor-name':      'Save-Editor',
-        'editor-desc':      'Ändere deinen Platin-Spielstand: Sonderbonbons, Attacken, Items, Beutel und Geld – ohne extra Programm.',
-        'rando-name':       'Randomizer (Platin)',
-        'rando-desc':       'Verloren? Würfel dir direkt im Browser ein neues zufälliges Platin – die Einstellungen kannst du vorher anpassen.',
-        'open':             'Öffnen',
-        'footer':           'Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.',
-        'backup-export':    'Daten sichern',
-        'backup-import':    'Daten laden',
-      },
-      en: {
-        'hero-desc':        'Your central hub for Pokémon tools &amp; utilities.',
-        'ai-notice':        'Built with AI assistance',
-        'rundashboard-name':'Run Dashboard',
-        'rundashboard-desc':'Track your current run with level caps, encounters, graveyard, notes and quick access.',
-        'saveviewer-name':  'Save Viewer',
-        'saveviewer-desc':  'Load your Platinum save file and browse your team, boxes, catch locations and Pokédex – or give yourself Rare Candies and other items.',
-        'teambuilder-name': 'Team Builder',
-        'teambuilder-desc': 'Build your team, analyze type coverage and weaknesses, and manage your box.',
-        'duo-name':         'Duo Nuzlocke',
-        'duo-desc':         'Duo builder with real-time sync – teams automatically synchronized between two players.',
-        'catchrate-name':   'Catch Rate Calculator',
-        'catchrate-desc':   'Calculate the catch probability for each ball depending on the Pokémon and battle situation.',
-        'trio-name':        'Trio Nuzlocke',
-        'trio-desc':        'Team Builder for three players – 6 slots each, shared box and type analysis for all.',
-        'rules-name':       'Rulebook',
-        'rules-desc':       'Core rules, clauses and variants of all common Nuzlocke modes — plus save your own rules.',
-        'damage-name':      'Damage Calculator',
-        'damage-desc':      'Calculate damage, KO chances and crit values for any Pokémon and moves with EV/IV/Nature.',
-        'typcalc-name':     'Type Calculator',
-        'typcalc-desc':     'Calculate type effectiveness quickly and compare matchups for any combination.',
-        'pokedex-name':     'Pokédex',
-        'pokedex-desc':     'Complete info on every Pokémon: stats, type effectiveness, moves, locations, evolution and more.',
-        'map-name':         'Map (Platinum)',
-        'map-desc':         'Interactive map of Sinnoh: items, hidden items, TMs, trainers and wild Pokémon at their real spot.',
-        'bosses-name':      'Boss Planner (Platinum)',
-        'bosses-desc':      'Every battle with the full enemy team – moves, items, natures – and how your team from your save file does against it.',
-        'editor-name':      'Save Editor',
-        'editor-desc':      'Change your Platinum save file: Rare Candies, moves, items, bag and money – no extra program.',
-        'rando-name':       'Randomizer (Platinum)',
-        'rando-desc':       'Lost? Roll a new random Platinum right in your browser – you can adjust the settings first.',
-        'open':             'Open',
-        'footer':           'Pokémon and all related names are trademarks of Nintendo / Game Freak.',
-        'backup-export':    'Back up data',
-        'backup-import':    'Restore data',
-      },
-    };
+      <section class="grp">
+        <h2 data-i18n="group-ref">Nachschlagen</h2>
+        <div class="list">
+          <a href="./PokemonInfo/index.html" class="btn">
+            <span class="spr-box"><img class="spr spr--smooth" src="./img/dp-pokedex.png" alt=""></span>
+            <span class="txt"><b data-i18n="pokedex-name">Pokédex</b><small data-i18n="pokedex-desc">Werte, Attacken, Fundorte und Entwicklungen.</small></span>
+          </a>
+          <a href="./Karte/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/town-map.png" alt=""></span>
+            <span class="txt"><b data-i18n="map-name">Karte</b><small data-i18n="map-desc">Sinnoh mit Items, Trainern und wilden Pokémon.</small></span>
+          </a>
+          <a href="./Rules/index.html" class="btn">
+            <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/pal-pad.png" alt=""></span>
+            <span class="txt"><b data-i18n="rules-name">Regelwerk</b><small data-i18n="rules-desc">Nuzlocke-Regeln, Klauseln und eigene Varianten.</small></span>
+          </a>
+        </div>
+      </section>
 
-    let lang = localStorage.getItem('hub-lang') || 'de';
-    const langBtn = document.getElementById('lang-btn');
+    </div>
 
-    function applyLang(l) {
-      lang = l;
-      localStorage.setItem('hub-lang', l);
-      document.documentElement.lang = l;
-      langBtn.textContent = l.toUpperCase();
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.dataset.i18n;
-        if (TRANSLATIONS[l][key] !== undefined) el.innerHTML = TRANSLATIONS[l][key];
-      });
-    }
+    <footer class="win-foot">
+      <div class="data-actions">
+        <button type="button" class="data-btn" id="backup-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-export">Daten sichern</span></button>
+        <button type="button" class="data-btn" id="backup-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-import">Daten laden</span></button>
+      </div>
+      <div class="win-notes">
+        <span class="ai-notice">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5Z"/>
+          </svg>
+          <span data-i18n="ai-notice">Erstellt mit KI-Unterstützung</span>
+        </span>
+        <span class="trademark" data-i18n="footer">Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.</span>
+      </div>
+    </footer>
 
-    langBtn.addEventListener('click', () => applyLang(lang === 'de' ? 'en' : 'de'));
-
-    applyLang(lang);
-  </script>
+  </main>
 
 </body>
 </html>

@@ -72,8 +72,8 @@ header p  { margin: 0; color: var(--color-muted); }
 .lcp-toggle-btn:hover { border-color: rgba(var(--t-acc), 0.35); }
 /* Aufgeklappt (Panel ohne .lcp-collapsed) → Schalter hervorheben */
 #app:has(#level-cap-panel:not(.lcp-collapsed)) .lcp-toggle-btn {
-  border-color: rgba(var(--t-acc), 0.45);
-  background: rgba(var(--t-acc), 0.08);
+  border-color: rgb(var(--t-acc));
+  background: rgba(var(--t-ink), 0.06);
 }
 
 #level-cap-panel {
@@ -261,7 +261,7 @@ header p  { margin: 0; color: var(--color-muted); }
 
 .lcp-has-team { cursor: pointer; }
 .lcp-has-team:hover { background: rgba(var(--t-ink), 0.07); }
-.lcp-team-open { background: rgba(var(--t-acc2), 0.07) !important; }
+.lcp-team-open { background: rgba(var(--t-ink), 0.06) !important; }
 .lcp-team-panel {
   display: flex; flex-wrap: wrap; gap: 2px 6px;
   padding: 8px 8px 10px 28px;
@@ -370,8 +370,8 @@ header p  { margin: 0; color: var(--color-muted); }
   color: rgba(var(--t-ink), 0.18);
   transition: color 0.2s;
 }
-.p1 .pokemon-slot:hover { background: rgba(var(--t-acc2), 0.10); border-color: rgba(var(--t-acc2), 0.35); transform: translateY(-2px); }
-.p2 .pokemon-slot:hover { background: rgba(var(--t-acc), 0.10);  border-color: rgba(var(--t-acc), 0.35);  transform: translateY(-2px); }
+.p1 .pokemon-slot:hover { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); transform: translateY(-2px); }
+.p2 .pokemon-slot:hover { background: rgba(var(--t-ink), 0.06);  border-color: rgb(var(--t-acc));  transform: translateY(-2px); }
 .p1 .pokemon-slot:not([data-filled]):hover::before { color: var(--color-accent-strong); }
 .p2 .pokemon-slot:not([data-filled]):hover::before { color: var(--color-accent); }
 
@@ -424,7 +424,7 @@ header p  { margin: 0; color: var(--color-muted); }
   gap: 10px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  background: color-mix(in srgb, rgb(var(--t-n-0d0f2b)) 72%, rgba(var(--t-acc2), 0.18));
+  background: color-mix(in srgb, rgb(var(--t-n-0d0f2b)) 72%, rgba(var(--t-ink), 0.18));
   border: 1px solid rgba(var(--t-acc2), 0.22);
   border-radius: 14px;
   flex-wrap: wrap;
@@ -447,14 +447,14 @@ header p  { margin: 0; color: var(--color-muted); }
 #modal-skip-link {
   display: none;
   padding: 12px 22px;
-  background: rgba(var(--t-acc), 0.08);
+  background: rgba(var(--t-ink), 0.06);
   color: var(--color-accent);
   border: 1px solid rgba(var(--t-acc), 0.25);
   border-radius: 14px;
   cursor: pointer;
   transition: transform 0.2s, background-color 0.2s;
 }
-#modal-skip-link:hover { background: rgba(var(--t-acc), 0.14); transform: translateY(-1px); }
+#modal-skip-link:hover { background: rgba(var(--t-ink), 0.06); transform: translateY(-1px); }
 .modal-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
 
 /* ── INFO SECTION: eine Karte – Auswahlfeld links, Infos rechts, Generation im Kopf ── */
@@ -499,8 +499,8 @@ header p  { margin: 0; color: var(--color-muted); }
 }
 .info-slot[data-filled] {
   border-style: solid;
-  border-color: rgba(var(--t-acc2), 0.3);
-  background: rgba(var(--t-acc2), 0.06);
+  border-color: rgb(var(--t-acc2));
+  background: rgba(var(--t-ink), 0.06);
   color: var(--color-text);
 }
 .info-slot:hover { background: rgba(var(--t-ink), 0.08); border-color: rgba(var(--t-acc2), 0.35); transform: translateY(-2px); }
@@ -516,7 +516,7 @@ header p  { margin: 0; color: var(--color-muted); }
 #info-content { display: grid; gap: 14px; }
 .info-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--color-text); }
 .info-types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.info-type { padding: 5px 10px; border-radius: 999px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(var(--t-acc2), 0.12); color: rgb(var(--t-g-e2e8f0)); }
+.info-type { padding: 5px 10px; border-radius: 999px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
 .info-stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
 .info-stat { background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08); border-radius: 14px; padding: 10px 12px; text-align: center; font-size: 0.92rem; }
 .info-stat.stat-hp         { background: rgba(100,210, 90,0.15); border-color: rgba(100,210, 90,0.55); color: rgb(var(--t-c-90e880)); }
@@ -530,9 +530,9 @@ header p  { margin: 0; color: var(--color-muted); }
 .evo-path  { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .evo-stage { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 10px; border-radius: 14px; background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08); min-width: 64px; transition: transform 0.18s, background 0.18s, border-color 0.18s; }
 .evo-stage img { image-rendering: pixelated; }
-.evo-stage-active { background: rgba(var(--t-acc2), 0.15); border-color: rgba(var(--t-acc2), 0.5); }
+.evo-stage-active { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); }
 .evo-stage-clickable { cursor: pointer; }
-.evo-stage-clickable:hover { background: rgba(var(--t-acc2), 0.10); border-color: rgba(var(--t-acc2), 0.35); transform: translateY(-2px); }
+.evo-stage-clickable:hover { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); transform: translateY(-2px); }
 .evo-name { font-size: 0.78rem; text-align: center; max-width: 72px; line-height: 1.2; }
 .evo-arrow { display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .evo-arrow-icon { color: var(--color-muted); font-size: 1.1rem; line-height: 1; }
@@ -592,7 +592,7 @@ header p  { margin: 0; color: var(--color-muted); }
   background: rgba(var(--t-ink), 0.04); min-height: 140px; text-align: center;
   transition: background-color 0.2s, transform 0.2s, border-color 0.2s; color: var(--color-text);
 }
-#pokemon-list li:hover { background: rgba(var(--t-acc2), 0.14); border-color: rgba(var(--t-acc2), 0.4); transform: translateY(-2px); }
+#pokemon-list li:hover { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); transform: translateY(-2px); }
 #pokemon-list li img { width: 72px; height: 72px; margin-bottom: 10px; }
 #pokemon-list li div { font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; padding: 0 4px; color: var(--color-text); }
 button { font: inherit; }
@@ -609,7 +609,7 @@ button { font: inherit; }
   padding: 10px 26px; border: 1px solid rgba(var(--t-ink), 0.16); border-radius: 14px;
   cursor: pointer; font-size: 0.9rem; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   font: inherit;
-  background: linear-gradient(135deg, rgba(var(--t-acc2), 0.14), rgba(var(--t-acc), 0.10));
+  background: rgba(var(--t-ink), 0.06);
   color: var(--color-text);
 }
 .btn-box-shared:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(var(--t-acc2-glow), 0.14); border-color: rgba(var(--t-ink), 0.28); }
@@ -628,10 +628,10 @@ button { font: inherit; }
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   border-radius: 8px; overflow: hidden; font-size: 0.58rem; color: var(--color-muted); text-align: center;
 }
-.box-slot-half.p1-half { background: rgba(var(--t-acc2), 0.05); border: 1px dashed rgba(var(--t-acc2), 0.22); }
-.box-slot-half.p2-half { background: rgba(var(--t-acc), 0.05); border: 1px dashed rgba(var(--t-acc), 0.22); }
-.box-slot-half.filled.p1-half { border-style: solid; border-color: rgba(var(--t-acc2), 0.38); background: rgba(var(--t-acc2), 0.10); }
-.box-slot-half.filled.p2-half { border-style: solid; border-color: rgba(var(--t-acc), 0.38); background: rgba(var(--t-acc), 0.10); }
+.box-slot-half.p1-half { background: rgba(var(--t-ink), 0.06); border: 1px dashed rgba(var(--t-acc2), 0.22); }
+.box-slot-half.p2-half { background: rgba(var(--t-ink), 0.06); border: 1px dashed rgba(var(--t-acc), 0.22); }
+.box-slot-half.filled.p1-half { border-style: solid; border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
+.box-slot-half.filled.p2-half { border-style: solid; border-color: rgb(var(--t-acc)); background: rgba(var(--t-ink), 0.06); }
 .box-slot-half img { image-rendering: pixelated; }
 .box-slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; margin-top: 2px; }
 .box-slot-empty { font-size: 0.9rem; opacity: 0.22; line-height: 1; }
@@ -645,10 +645,10 @@ button { font: inherit; }
 .weakness-table-scroll { overflow-x: auto; flex: 1 1 auto; }
 .weakness-table { display: flex; flex-direction: column; gap: 3px; }
 .weakness-row { display: flex; gap: 3px; align-items: center; }
-.weakness-type-label { width: 72px; min-width: 72px; height: 28px; padding: 0 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; text-align: center; color: rgb(var(--t-white)); text-shadow: 0 1px 2px rgba(var(--t-shade), 0.6); display: flex; align-items: center; justify-content: center; }
+.weakness-type-label { width: 72px; min-width: 72px; height: 28px; padding: 0 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; text-align: center; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; }
 .weakness-player-label { height: 22px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 1px; flex-shrink: 0; }
-.weakness-player-label.p1-label { background: rgba(var(--t-acc2), 0.15); color: var(--color-accent-strong); }
-.weakness-player-label.p2-label { background: rgba(var(--t-acc), 0.12);  color: var(--color-accent); }
+.weakness-player-label.p1-label { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
+.weakness-player-label.p2-label { background: rgb(var(--t-acc));  color: rgb(var(--t-on-acc)); }
 .weakness-pokemon-header { width: 64px; min-width: 64px; text-align: center; font-size: 0.65rem; color: var(--color-muted); display: flex; flex-direction: column; align-items: center; gap: 2px; padding-bottom: 6px; }
 .weakness-pokemon-header.p1-col { border-bottom: 2px solid rgba(var(--t-acc2), 0.4); }
 .weakness-pokemon-header.p2-col { border-bottom: 2px solid rgba(var(--t-acc), 0.4); }
@@ -711,7 +711,7 @@ button { font: inherit; }
 }
 #poke-tooltip .tt-title { font-weight: 700; font-size: 0.92rem; color: rgb(var(--t-white)); margin-bottom: 5px; }
 #poke-tooltip .tt-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
-#poke-tooltip .tt-type { padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+#poke-tooltip .tt-type { padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
 #poke-tooltip .tt-cat { font-size: 0.78rem; color: var(--color-muted); }
 #poke-tooltip .tt-stats { display: flex; gap: 10px; font-size: 0.8rem; color: var(--color-muted); margin-bottom: 6px; flex-wrap: wrap; }
 #poke-tooltip .tt-desc { font-size: 0.8rem; color: var(--color-muted); line-height: 1.45; }
@@ -736,22 +736,22 @@ button { font: inherit; }
 
 /* ── DRAG & DROP ── */
 .pokemon-slot.drag-over {
-  border-color: rgba(var(--t-acc2), 0.85) !important;
-  background: rgba(var(--t-acc2), 0.14) !important;
+  border-color: rgb(var(--t-acc2)) !important;
+  background: rgba(var(--t-ink), 0.06) !important;
   box-shadow: 0 0 16px rgba(var(--t-acc2-glow), 0.28) !important;
   transform: translateY(-2px) !important;
 }
 .box-slot-half.drag-over {
   border-style: solid !important;
-  border-color: rgba(var(--t-acc2), 0.85) !important;
-  background: rgba(var(--t-acc2), 0.18) !important;
+  border-color: rgb(var(--t-acc2)) !important;
+  background: rgba(var(--t-ink), 0.06) !important;
 }
 .dragging { opacity: 0.35; }
 /* Prevent inner content from intercepting drag/click events */
 .pokemon-slot > * { pointer-events: none; }
 .info-slot.drag-over {
-  border-color: rgba(var(--t-acc2), 0.8) !important;
-  background: rgba(var(--t-acc2), 0.12) !important;
+  border-color: rgb(var(--t-acc2)) !important;
+  background: rgba(var(--t-ink), 0.06) !important;
   box-shadow: 0 0 16px rgba(var(--t-acc2-glow), 0.25) !important;
   transform: translateY(-2px) !important;
 }
@@ -760,7 +760,7 @@ button { font: inherit; }
   box-shadow: 0 0 20px rgba(var(--t-acc2-glow), 0.16);
 }
 #box-section.drag-over-section .box-toggle-btn {
-  background: rgba(var(--t-acc2), 0.10);
+  background: rgba(var(--t-ink), 0.06);
   color: var(--color-accent-strong);
 }
 
@@ -792,8 +792,8 @@ button { font: inherit; }
   font-weight: 900;
 }
 .team-alert-player { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
-.team-alert-player.p1 { background: rgba(var(--t-acc2), 0.15); color: var(--color-accent-strong); }
-.team-alert-player.p2 { background: rgba(var(--t-acc), 0.12); color: var(--color-accent); }
+.team-alert-player.p1 { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
+.team-alert-player.p2 { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
 .team-alert-text { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; }
 .team-alert-type, .team-alert-helper {
   display: inline-flex;
@@ -803,8 +803,8 @@ button { font: inherit; }
   border-radius: 999px;
   font-size: 0.74rem;
   font-weight: 700;
-  color: rgb(var(--t-white));
-  text-shadow: 0 1px 2px rgba(var(--t-shade), 0.5);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .team-alert-x4 { font-size: 0.74rem; font-weight: 700; color: rgb(var(--t-c-ff6a50)); }
 .team-alert-help { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-left: auto; }
@@ -825,8 +825,8 @@ button { font: inherit; }
   .info-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
 @media (hover: none) {
-  .p1 .pokemon-slot:active { background: rgba(var(--t-acc2), 0.10); border-color: rgba(var(--t-acc2), 0.35); transform: translateY(-2px); }
-  .p2 .pokemon-slot:active { background: rgba(var(--t-acc), 0.10);  border-color: rgba(var(--t-acc), 0.35);  transform: translateY(-2px); }
+  .p1 .pokemon-slot:active { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); transform: translateY(-2px); }
+  .p2 .pokemon-slot:active { background: rgba(var(--t-ink), 0.06);  border-color: rgb(var(--t-acc));  transform: translateY(-2px); }
   .box-slot-half:active { filter: brightness(1.15); }
 }
 
@@ -869,10 +869,10 @@ button { font: inherit; }
   border-radius: 999px;
 }
 .sync-status-idle     { color: rgba(var(--t-g-cbd5e1), 0.55); background: rgba(var(--t-ink), 0.05); }
-.sync-status-loading  { color: rgba(var(--t-acc), 0.9);    background: rgba(var(--t-acc), 0.1); }
-.sync-status-waiting  { color: rgba(var(--t-acc), 0.9);    background: rgba(var(--t-acc), 0.1); }
-.sync-status-connected{ color: rgba(var(--t-c-50d282), 0.95);  background: rgba(80,210,130,0.12); }
-.sync-status-error    { color: rgba(var(--t-c-ff6450), 0.95);  background: rgba(255,100,80,0.12); }
+.sync-status-loading  { color: rgb(var(--t-on-acc));    background: rgb(var(--t-acc)); }
+.sync-status-waiting  { color: rgb(var(--t-on-acc));    background: rgb(var(--t-acc)); }
+.sync-status-connected{ color: rgb(var(--t-on-acc));  background: rgb(var(--t-c-50d282)); }
+.sync-status-error    { color: rgb(var(--t-on-acc));  background: rgb(var(--t-c-ff6450)); }
 .sync-player-count {
   font-size: 0.82rem;
   font-weight: 800;
@@ -882,8 +882,8 @@ button { font: inherit; }
   font-variant-numeric: tabular-nums;
 }
 .sync-player-count-hidden  { display: none; }
-.sync-player-count-partial { color: rgba(var(--t-acc), 0.9);   background: rgba(var(--t-acc), 0.1); }
-.sync-player-count-full    { color: rgba(var(--t-c-50d282), 0.95); background: rgba(80,210,130,0.12); }
+.sync-player-count-partial { color: rgb(var(--t-on-acc));   background: rgb(var(--t-acc)); }
+.sync-player-count-full    { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-50d282)); }
 .session-actions {
   display: flex;
   align-items: center;
@@ -910,8 +910,8 @@ button { font: inherit; }
   white-space: nowrap;
 }
 .sync-btn:hover { background: rgba(var(--t-ink), 0.12); }
-.sync-btn-primary { border-color: rgba(var(--t-acc), 0.35); background: rgba(var(--t-acc), 0.10); color: var(--color-accent); }
-.sync-btn-primary:hover { background: rgba(var(--t-acc), 0.16); }
+.sync-btn-primary { border-color: rgb(var(--t-acc)); background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
+.sync-btn-primary:hover { background: rgb(var(--t-acc)); filter: brightness(1.1); }
 .sync-btn-danger  { border-color: rgba(255,100,80,0.35); color: rgba(var(--t-c-ff826e), 0.9); }
 .sync-btn-danger:hover  { background: rgba(255,100,80,0.1); }
 .sync-btn-icon { padding: 6px 10px; }
@@ -1068,8 +1068,8 @@ button { font: inherit; }
   color: var(--color-muted);
   letter-spacing: 0.04em;
 }
-.grave-killer-1 { background: rgba(var(--t-acc2), 0.18); color: var(--color-accent-strong); }
-.grave-killer-2 { background: rgba(var(--t-acc), 0.18); color: var(--color-accent); }
+.grave-killer-1 { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
+.grave-killer-2 { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
 
 /* ── Auswahllisten: eigener Pfeil (appearance: none blendet den Standardpfeil aus).
    Steht absichtlich am Ende, damit es die background-Kurzschreibweise der einzelnen Listen ergänzt. */

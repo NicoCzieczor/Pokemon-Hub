@@ -21,7 +21,7 @@ const _item=n=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites
 // ── i18n ──
 const TR={
   de:{
-    'group-run':'Dein Run','group-team':'Team Builder','group-calc':'Rechner','group-ref':'Nachschlagen',
+    'group-run':'Dein Run','group-team':'Team & Kämpfe','group-calc':'Rechner','group-ref':'Nachschlagen',
     'rundashboard-name':'Dashboard','saveviewer-name':'Save-Viewer','pokedex-name':'Pokédex','rules-name':'Regelwerk','map-name':'Karte','bosses-name':'Bosse','editor-name':'Save-Editor','rando-name':'Randomizer',
     'solo-name':'Solo','duo-name':'Duo','trio-name':'Trio',
     'catchrate-name':'Fangrate','damage-name':'Schaden','typcalc-name':'Typen',
@@ -30,7 +30,7 @@ const TR={
     'footer':'Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.',
   },
   en:{
-    'group-run':'Your run','group-team':'Team Builder','group-calc':'Calculators','group-ref':'Reference',
+    'group-run':'Your run','group-team':'Team & battles','group-calc':'Calculators','group-ref':'Reference',
     'rundashboard-name':'Dashboard','saveviewer-name':'Save Viewer','pokedex-name':'Pokédex','rules-name':'Rulebook','map-name':'Map','bosses-name':'Bosses','editor-name':'Save Editor','rando-name':'Randomizer',
     'solo-name':'Solo','duo-name':'Duo','trio-name':'Trio',
     'catchrate-name':'Catch Rate','damage-name':'Damage','typcalc-name':'Types',

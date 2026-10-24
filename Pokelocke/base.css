@@ -170,31 +170,19 @@ canvas {
   color: rgb(var(--t-g-f8fafc));
   text-decoration: none;
 }
+/* Home: deckendes Schild in der Akzentfarbe (wie ein Label), Schrift in --t-on-acc.
+   Kein halbdurchsichtiger Akzent-Hintergrund mehr – der wirkte auf dunklem Grund bräunlich. */
 .tool-nav-link:first-child {
-  gap: 7px;
-  height: 34px;
-  margin-right: 2px;
-  padding: 0 12px 2px;
-  color: rgb(var(--t-white));
-  border: 1px solid rgba(var(--t-acc), 0.34);
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(var(--t-acc), 0.18), rgba(var(--t-acc2), 0.10));
-  box-shadow: 0 0 18px rgba(var(--t-acc-glow), 0.10), inset 0 1px 0 rgba(var(--t-hl), 0.08);
-  transition: color 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
-}
-.tool-nav-link:first-child::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--color-accent);
-  box-shadow: 0 0 10px rgba(var(--t-acc-glow), 0.55);
+  height: 30px;
+  padding: 0 12px;
+  color: rgb(var(--t-on-acc));
+  border-radius: 8px;
+  background: rgb(var(--t-acc));
+  transition: filter 0.2s;
 }
 .tool-nav-link:first-child:hover {
-  border-color: rgba(var(--t-acc), 0.58);
-  background: linear-gradient(135deg, rgba(var(--t-acc), 0.24), rgba(var(--t-acc2), 0.15));
-  box-shadow: 0 0 22px rgba(var(--t-acc-glow), 0.16), inset 0 1px 0 rgba(var(--t-hl), 0.12);
-  transform: translateY(-1px);
+  color: rgb(var(--t-on-acc));
+  filter: brightness(1.1);
 }
 .tool-nav-link.is-active {
   color: rgb(var(--t-white));
@@ -222,8 +210,8 @@ canvas {
     letter-spacing: 0.06em;
   }
   .tool-nav-link:first-child {
-    height: 32px;
-    padding-inline: 11px;
+    height: 28px;
+    padding: 0 10px;
   }
 }
 

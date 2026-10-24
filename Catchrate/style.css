@@ -172,9 +172,9 @@ section h2 {
 }
 .gen-filter-btn:hover { background: rgba(var(--t-ink), 0.1); color: var(--color-text); }
 .gen-filter-btn.active {
-  background: rgba(var(--t-acc2), 0.18);
-  border-color: rgba(var(--t-acc2), 0.5);
-  color: var(--color-accent-strong);
+  background: rgb(var(--t-acc2));
+  border-color: rgb(var(--t-acc2));
+  color: rgb(var(--t-on-acc));
 }
 
 /* ── GAME WARNING ── */
@@ -262,7 +262,35 @@ section h2 {
   color: var(--color-muted);
   font-size: 0.92rem;
   padding: 8px 0;
+  margin: 0 0 10px;
 }
+/* Pokémon wählen (Hauptaktion, solange keins gewählt ist) und wechseln (rechts in der Karte, gut sichtbar) */
+.poke-pick-btn, .poke-change-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s, filter 0.15s;
+}
+.poke-pick-btn {
+  border: 1px solid rgb(var(--t-acc));
+  background: rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
+}
+.poke-pick-btn:hover { filter: brightness(1.1); }
+.poke-change-btn {
+  margin-left: auto;
+  border: 1px solid rgb(var(--t-acc));
+  background: rgba(var(--t-ink), 0.06);
+  color: var(--color-accent);
+}
+.poke-change-btn:hover { background: rgba(var(--t-ink), 0.12); }
+.poke-change-btn svg { width: 17px; height: 17px; flex: 0 0 auto; }
 .poke-info {
   display: flex;
   align-items: center;
@@ -281,6 +309,13 @@ section h2 {
   flex: 1;
   min-width: 0;
 }
+.poke-info-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
 .poke-info-name {
   font-size: 1.3rem;
   font-weight: 700;
@@ -296,15 +331,17 @@ section h2 {
   gap: 6px;
   flex-wrap: wrap;
 }
+/* Typ-Schild in fester Typfarbe (--c aus main.js) wie im Save-Viewer – Schrift daher fest weiß */
 .poke-type {
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(var(--t-acc2), 0.15);
-  color: rgb(var(--t-g-e2e8f0));
+  background: var(--c, rgb(var(--t-acc2)));
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 .poke-info-stats {
   display: flex;
@@ -319,9 +356,9 @@ section h2 {
 }
 .catch-rate-badge {
   display: inline-block;
-  background: rgba(var(--t-acc), 0.16);
-  border: 1px solid rgba(var(--t-acc), 0.35);
-  color: var(--color-accent);
+  background: rgb(var(--t-acc));
+  border: 1px solid rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
   border-radius: 8px;
   padding: 2px 9px;
   font-size: 0.8rem;
@@ -365,9 +402,9 @@ section h2 {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  background: rgba(var(--t-acc), 0.13);
-  color: var(--color-accent);
-  border: 1px solid rgba(var(--t-acc), 0.28);
+  background: rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
+  border: 1px solid rgb(var(--t-acc));
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -493,19 +530,18 @@ section h2 {
   background: var(--st, var(--color-muted));
   box-shadow: 0 0 0 2px rgba(var(--t-shade), 0.15);
 }
+/* Statusfarben fest wie im Spiel (und wie im Save-Viewer) – nicht aus den Design-Akzenten, sonst wäre
+   z. B. Eis im Papier-Design braun und Paralyse rot. Schlaf blau statt grau, damit es sich von „Keins“ abhebt. */
 .status-btn[data-status="none"]      { --st: rgba(var(--t-ink), 0.35); }
-.status-btn[data-status="sleep"]     { --st: rgb(var(--t-c-90b0ff)); }
-.status-btn[data-status="freeze"]    { --st: rgb(var(--t-acc2)); }
-.status-btn[data-status="paralysis"] { --st: rgb(var(--t-acc)); }
-.status-btn[data-status="poison"]    { --st: rgb(var(--t-c-e080f8)); }
-.status-btn[data-status="burn"]      { --st: rgb(var(--t-c-ff9060)); }
-.status-row .status-btn.active::before { box-shadow: 0 0 8px var(--st); }
-.status-btn[data-status="none"].active    { background: rgba(var(--t-ink), 0.12); border-color: rgba(var(--t-ink), 0.4); color: rgb(var(--t-g-f0f4ff)); }
-.status-btn[data-status="sleep"].active   { background: rgba(80,120,230,0.25); border-color: rgba(80,120,230,0.6); color: rgb(var(--t-c-90b0ff)); }
-.status-btn[data-status="freeze"].active  { background: rgba(0,220,220,0.18); border-color: rgba(0,220,220,0.5); color: var(--color-accent-strong); }
-.status-btn[data-status="paralysis"].active { background: rgba(var(--t-acc), 0.18); border-color: rgba(var(--t-acc), 0.5); color: var(--color-accent); }
-.status-btn[data-status="poison"].active  { background: rgba(200,60,220,0.22); border-color: rgba(200,60,220,0.55); color: rgb(var(--t-c-e080f8)); }
-.status-btn[data-status="burn"].active    { background: rgba(255,110,30,0.22); border-color: rgba(255,110,30,0.55); color: rgb(var(--t-c-ff9060)); }
+.status-btn[data-status="sleep"]     { --st: #6f8fe0; }
+.status-btn[data-status="freeze"]    { --st: #5fb8c8; }
+.status-btn[data-status="paralysis"] { --st: #d4a91a; }
+.status-btn[data-status="poison"]    { --st: #a040a0; }
+.status-btn[data-status="burn"]      { --st: #e8742e; }
+/* Gewählter Status: deckend in seiner festen Farbe (--st), Schrift und Punkt daher fest weiß */
+.status-btn[data-status="none"].active { background: rgba(var(--t-ink), 0.12); border-color: rgba(var(--t-ink), 0.4); color: rgb(var(--t-g-f0f4ff)); }
+.status-btn.active:not([data-status="none"]) { background: var(--st); border-color: var(--st); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+.status-row .status-btn.active:not([data-status="none"])::before { background: #fff; box-shadow: none; }
 
 /* Sonderbedingungen als Schalter-Kacheln mit Ball-Sprite.
    Die Checkbox bleibt (für main.js und Tastatur), ist aber unsichtbar; der Zustand kommt über :has(). */
@@ -560,8 +596,8 @@ section h2 {
 .tog:hover { border-color: rgba(var(--t-ink), 0.22); color: var(--color-text); }
 .tog:hover img { filter: grayscale(0.4) opacity(0.85); }
 .tog:has(input:checked) {
-  border-color: rgba(var(--t-acc2), 0.55);
-  background: rgba(var(--t-acc2), 0.10);
+  border-color: rgb(var(--t-acc2));
+  background: rgba(var(--t-ink), 0.06);
   color: rgb(var(--t-white));
 }
 .tog:has(input:checked) img { filter: none; transform: scale(1.08); }
@@ -654,7 +690,7 @@ section h2 {
 .ball-card.selected {
   border-color: var(--color-accent-strong);
   box-shadow: 0 0 0 2px rgba(var(--t-acc2-glow), 0.25), 0 8px 24px rgba(var(--t-acc2-glow), 0.14);
-  background: rgba(var(--t-acc2), 0.07);
+  background: rgba(var(--t-ink), 0.06);
 }
 .ball-card img {
   width: 36px; height: 36px;
@@ -693,7 +729,7 @@ section h2 {
 /* ── SELECTED BALL DETAIL ── */
 #selected-ball-detail {
   display: none;
-  background: rgba(var(--t-acc2), 0.06);
+  background: rgba(var(--t-ink), 0.06);
   border: 1px solid rgba(var(--t-acc2), 0.18);
   border-radius: 18px;
   padding: 18px 20px;

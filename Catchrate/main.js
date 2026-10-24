@@ -39,7 +39,7 @@ const TRANSLATIONS = {
     genFilterAll: 'Alle',
     pokeEmptyHint: 'Noch kein Pokémon ausgewählt.',
     pokePickBtn: 'Pokémon wählen',
-    pokeChangeBtn: 'Ändern',
+    pokeChangeBtn: 'Pokémon wechseln',
     pokeLoadingHint: 'Lade…',
     pokeLoadError: 'Fehler beim Laden – bitte erneut versuchen.',
     pokeListLoading: 'Lade Pokémon…',
@@ -115,7 +115,7 @@ const TRANSLATIONS = {
     genFilterAll: 'All',
     pokeEmptyHint: 'No Pokémon selected yet.',
     pokePickBtn: 'Choose Pokémon',
-    pokeChangeBtn: 'Change',
+    pokeChangeBtn: 'Change Pokémon',
     pokeLoadingHint: 'Loading…',
     pokeLoadError: 'Error loading – please try again.',
     pokeListLoading: 'Loading Pokémon…',
@@ -164,6 +164,22 @@ const POKE_SPRITE_URL  = 'https://raw.githubusercontent.com/PokeAPI/sprites/mast
 
 // ── Helper functions ──────────────────────────────────────────────────────
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// Typfarben und -namen wie im restlichen Hub (Save-Viewer, Team, Duo): [Farbe, Deutsch, Englisch]
+const TYPES = {
+  normal: ['#bbbbaa', 'Normal', 'Normal'],   fire: ['#ff421c', 'Feuer', 'Fire'],         water: ['#2c9be3', 'Wasser', 'Water'],
+  electric: ['#ffdc00', 'Elektro', 'Electric'], grass: ['#62bc5a', 'Pflanze', 'Grass'],   ice: ['#74cfc0', 'Eis', 'Ice'],
+  fighting: ['#bb5544', 'Kampf', 'Fighting'], poison: ['#9553cd', 'Gift', 'Poison'],      ground: ['#a67439', 'Boden', 'Ground'],
+  flying: ['#96caff', 'Flug', 'Flying'],      psychic: ['#ff6380', 'Psycho', 'Psychic'],  bug: ['#92c12a', 'Käfer', 'Bug'],
+  rock: ['#bbaa66', 'Gestein', 'Rock'],       ghost: ['#6e4370', 'Geist', 'Ghost'],       dragon: ['#5670be', 'Drache', 'Dragon'],
+  dark: ['#4e4545', 'Unlicht', 'Dark'],       steel: ['#aaaabb', 'Stahl', 'Steel'],       fairy: ['#ec8fe6', 'Fee', 'Fairy'],
+};
+function typeBadge(t) {
+  const d = TYPES[t];
+  if (!d) return `<span class="poke-type">${capitalize(t)}</span>`;
+  return `<span class="poke-type" style="--c:${d[0]}">${window.LANG === 'en' ? d[2] : d[1]}</span>`;
+}
+const SWAP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 3 8l4 4"/><path d="M3 8h13a4 4 0 0 1 4 4"/><path d="m17 20 4-4-4-4"/><path d="M21 16H8a4 4 0 0 1-4-4"/></svg>';
 
 function updateSliderStyle(v) {
   const pct  = (v - 1) / 99 * 100;
@@ -526,21 +542,20 @@ function renderPokemonCard() {
   const tr = TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
   if (!selectedPokemon) {
     card.innerHTML = `
-      <p class="poke-empty-hint" style="margin:0 0 10px">${tr.pokeEmptyHint}</p>
-      <button id="btn-pick-pokemon" class="status-btn" style="font-size:0.88rem;padding:7px 18px">${tr.pokePickBtn}</button>`;
+      <p class="poke-empty-hint">${tr.pokeEmptyHint}</p>
+      <button type="button" id="btn-pick-pokemon" class="poke-pick-btn">${tr.pokePickBtn}</button>`;
     document.getElementById('btn-pick-pokemon').addEventListener('click', openModal);
     return;
   }
   const p = selectedPokemon;
-  const typeHtml = (p.types || []).map(t => `<span class="poke-type">${capitalize(t)}</span>`).join('');
+  const typeHtml = (p.types || []).map(typeBadge).join('');
   card.innerHTML = `
     <div class="poke-info">
       <img class="poke-info-sprite" src="${p.sprite}" alt="${p.germanName}">
       <div class="poke-info-body">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+        <div class="poke-info-head">
           <span class="poke-info-name">${p.germanName}</span>
           <span class="poke-info-id">#${p.id}</span>
-          <button id="btn-pick-pokemon" class="status-btn" style="font-size:0.75rem;padding:3px 12px">${tr.pokeChangeBtn}</button>
         </div>
         <div class="poke-info-types">${typeHtml}</div>
         <div class="poke-info-stats">
@@ -549,6 +564,7 @@ function renderPokemonCard() {
           <span>${tr.speedLabel} <b>${p.baseSpeed}</b></span>
         </div>
       </div>
+      <button type="button" id="btn-pick-pokemon" class="poke-change-btn">${SWAP_ICON}${tr.pokeChangeBtn}</button>
     </div>`;
   document.getElementById('btn-pick-pokemon').addEventListener('click', openModal);
 }

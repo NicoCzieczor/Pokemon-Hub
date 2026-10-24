@@ -100,9 +100,9 @@ main { display: flex; flex-direction: column; gap: 16px; }
 }
 .gen-chip:hover { border-color: rgba(var(--t-ink), 0.25); color: rgb(var(--t-white)); }
 .gen-chip.is-active {
-  background: rgba(var(--t-acc2), 0.16);
-  border-color: rgba(var(--t-acc2), 0.6);
-  color: rgb(var(--t-white));
+  background: rgb(var(--t-acc2));
+  border-color: rgb(var(--t-acc2));
+  color: rgb(var(--t-on-acc));
   box-shadow: 0 0 0 3px rgba(var(--t-acc2-glow), 0.10);
 }
 .gen-chip:focus-visible { outline: 2px solid var(--color-accent-strong); outline-offset: 2px; }
@@ -159,7 +159,7 @@ main { display: flex; flex-direction: column; gap: 16px; }
 }
 .tog:hover { border-color: rgba(var(--t-ink), 0.22); color: var(--color-text); }
 .tog:hover img { filter: grayscale(0.4) opacity(0.85); }
-.tog:has(input:checked) { border-color: rgba(var(--t-acc2), 0.55); background: rgba(var(--t-acc2), 0.10); color: rgb(var(--t-white)); }
+.tog:has(input:checked) { border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); color: rgb(var(--t-white)); }
 .tog:has(input:checked) img { filter: none; transform: scale(1.08); }
 .tog:has(input:checked)::after {
   border-color: transparent;
@@ -195,7 +195,7 @@ main { display: flex; flex-direction: column; gap: 16px; }
   cursor: pointer;
   transition: border-color 0.15s, background-color 0.15s;
 }
-.pick:hover { border-color: rgba(var(--t-acc2), 0.5); background: rgba(var(--t-acc2), 0.06); }
+.pick:hover { border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
 .pick:focus-visible { outline: 2px solid var(--color-accent-strong); outline-offset: 2px; }
 .pick.is-empty { border-style: dashed; border-color: rgba(var(--t-ink), 0.18); padding-left: 14px; }
 .pick--move { padding-left: 14px; }
@@ -206,8 +206,8 @@ main { display: flex; flex-direction: column; gap: 16px; }
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(var(--t-acc2), 0.12);
-  color: var(--color-accent-strong);
+  background: rgb(var(--t-acc2));
+  color: rgb(var(--t-on-acc));
   font-size: 1.4rem;
   font-weight: 600;
   line-height: 1;
@@ -252,16 +252,16 @@ main { display: flex; flex-direction: column; gap: 16px; }
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
-.class-tag--physical { background: rgba(255,140,60,0.18); color: rgb(var(--t-c-ffa060)); }
-.class-tag--special  { background: rgba(var(--t-acc2), 0.16); color: rgb(var(--t-c-7fdcff)); }
-.class-tag--status   { background: rgba(var(--t-g-a0a0b4), 0.16); color: rgb(var(--t-g-b8b8c8)); }
+.class-tag--physical { background: rgb(var(--t-c-ffa060)); color: rgb(var(--t-on-acc)); }
+.class-tag--special  { background: rgb(var(--t-c-7fdcff)); color: rgb(var(--t-on-acc)); }
+.class-tag--status   { background: rgb(var(--t-g-b8b8c8)); color: rgb(var(--t-on-acc)); }
 .stab-tag {
   font-size: 0.66rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(var(--t-acc), 0.15);
-  color: var(--color-accent);
+  background: rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
 }
 
 /* Eingabefelder */
@@ -309,7 +309,7 @@ select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)
 .st-row input { padding: 6px 6px; text-align: center; font-size: 0.86rem; }
 .st-row output { font-size: 0.95rem; font-weight: 800; color: rgb(var(--t-white)); text-align: right; font-variant-numeric: tabular-nums; }
 .st-row.is-used .st-name { color: var(--color-accent-strong); }
-.st-row.is-used input { border-color: rgba(var(--t-acc2), 0.4); background: rgba(var(--t-acc2), 0.07); }
+.st-row.is-used input { border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
 .st-row.is-used output { color: var(--color-accent-strong); }
 
 /* Hinweise unter den Karten */
@@ -337,8 +337,8 @@ select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)
 .mini-btn {
   padding: 4px 11px;
   border-radius: 999px;
-  border: 1px solid rgba(var(--t-acc), 0.32);
-  background: rgba(var(--t-acc), 0.08);
+  border: 1px solid rgb(var(--t-acc));
+  background: rgba(var(--t-ink), 0.06);
   color: var(--color-accent);
   font: inherit;
   font-size: 0.74rem;
@@ -347,7 +347,7 @@ select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)
   white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s;
 }
-.mini-btn:hover { background: rgba(var(--t-acc), 0.16); border-color: rgba(var(--t-acc), 0.5); }
+.mini-btn:hover { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc)); }
 
 .swap-btn {
   margin-top: auto;
@@ -371,15 +371,15 @@ select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)
 .missing-chip {
   padding: 6px 14px;
   border-radius: 999px;
-  border: 1px dashed rgba(var(--t-acc2), 0.45);
-  background: rgba(var(--t-acc2), 0.06);
+  border: 1px dashed rgb(var(--t-acc2));
+  background: rgba(var(--t-ink), 0.06);
   color: var(--color-accent-strong);
   font: inherit;
   font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
 }
-.missing-chip:hover { background: rgba(var(--t-acc2), 0.14); }
+.missing-chip:hover { background: rgba(var(--t-ink), 0.06); }
 
 .res-matchup {
   display: flex;
@@ -591,7 +591,7 @@ select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
 }
-.poke-item:hover { background: rgba(var(--t-acc2), 0.12); border-color: rgba(var(--t-acc2), 0.4); transform: translateY(-2px); }
+.poke-item:hover { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); transform: translateY(-2px); }
 .poke-item img { width: 64px; height: 64px; border-radius: 0; image-rendering: pixelated; }
 .pi-name { font-size: 0.8rem; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pi-id { font-size: 0.68rem; color: var(--color-muted); }
@@ -632,7 +632,7 @@ select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s;
 }
-.move-item:hover { background: rgba(var(--t-acc2), 0.10); border-color: rgba(var(--t-acc2), 0.35); }
+.move-item:hover { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); }
 .mi-name { font-size: 0.9rem; font-weight: 600; color: rgb(var(--t-white)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mi-power { font-size: 0.84rem; font-weight: 700; color: var(--color-muted); text-align: right; font-variant-numeric: tabular-nums; }
 

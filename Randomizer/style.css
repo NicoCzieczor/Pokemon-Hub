@@ -2,8 +2,8 @@
 .game-badge {
   display: inline-block; vertical-align: middle;
   margin-left: 6px; padding: 3px 10px; border-radius: 999px;
-  border: 1px solid rgba(var(--t-acc2), 0.35); background: rgba(var(--t-acc2), 0.10);
-  color: var(--color-accent-strong); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.02em;
+  border: 1px solid rgb(var(--t-acc2)); background: rgb(var(--t-acc2));
+  color: rgb(var(--t-on-acc)); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.02em;
 }
 .step-body h2 small { color: var(--color-muted); font-weight: 600; font-size: 0.82em; }
 
@@ -75,7 +75,7 @@
 .rs-icon {
   width: 38px; height: 38px; flex: 0 0 auto; border-radius: 12px;
   display: grid; place-items: center;
-  background: rgba(var(--t-acc2), 0.10); border: 1px solid rgba(var(--t-acc2), 0.3); color: var(--color-accent-strong);
+  background: rgb(var(--t-acc2)); border: 1px solid rgb(var(--t-acc2)); color: rgb(var(--t-on-acc));
 }
 .rs-icon svg { width: 20px; height: 20px; }
 .rs-sum { display: grid; gap: 1px; min-width: 0; flex: 1 1 auto; }
@@ -110,7 +110,7 @@
 .rs-count {
   min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
   display: inline-grid; place-items: center;
-  background: rgba(var(--t-acc2), 0.22); color: rgb(var(--t-white)); font-size: 0.72rem;
+  background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); font-size: 0.72rem;
 }
 .rs-tab.is-active .rs-count { background: rgba(var(--t-shade), 0.22); color: inherit; }
 
@@ -162,7 +162,7 @@
 
 @media (max-width: 560px) {
   .rs > summary { padding: 10px 12px; gap: 10px; }
-  .rs-icon { display: none; }
+  .rs-icon { display: none; color: rgb(var(--t-on-acc)); }
   .rs-body { padding: 2px 10px 12px; }
   .rs-subs { padding-left: 28px; }
   .rs-warn { margin-left: 28px; }

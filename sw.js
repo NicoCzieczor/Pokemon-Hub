@@ -12,7 +12,7 @@
  * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
  * Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v24';
+const VERSION = 'v26';
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -28,6 +28,8 @@ const TILE_MAX_ENTRIES = 200;
 const PRECACHE = [
   './',
   './index.html',
+  './home.css',
+  './home.js',
   './mobile.html',
   './mobile.css',
   './mobile.js',

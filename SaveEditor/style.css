@@ -103,7 +103,7 @@ p { margin: 0; }
 .drop:hover, .drop.is-over { border-color: rgba(var(--t-acc), 0.6); background: radial-gradient(circle at 50% 0%, rgba(var(--t-acc-glow), 0.10), transparent 60%), rgba(var(--t-ink), 0.03); }
 .drop.is-over { transform: scale(1.01); }
 .drop-candy, .drop-icon { width: 56px; height: 56px; image-rendering: pixelated; }
-.drop-icon { display: grid; place-items: center; border-radius: 18px; background: rgba(var(--t-acc), 0.12); border: 1px solid rgba(var(--t-acc), 0.3); color: var(--color-accent); }
+.drop-icon { display: grid; place-items: center; border-radius: 18px; background: rgb(var(--t-acc)); border: 1px solid rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
 .drop-icon svg { width: 32px; height: 32px; }
 .drop-title { font-size: 1.12rem; font-weight: 800; color: rgb(var(--t-white)); }
 .drop-sub { color: var(--color-muted); font-size: 0.86rem; max-width: 460px; }
@@ -127,8 +127,8 @@ p { margin: 0; }
 .candy-count {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 12px; border-radius: 999px;
-  background: rgba(var(--t-acc), 0.10); border: 1px solid rgba(var(--t-acc), 0.3);
-  color: rgb(var(--t-white)); font-weight: 800; font-size: 0.9rem; white-space: nowrap;
+  background: rgb(var(--t-acc)); border: 1px solid rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc)); font-weight: 800; font-size: 0.9rem; white-space: nowrap;
 }
 .candy-count img { width: 24px; height: 24px; image-rendering: pixelated; }
 
@@ -151,14 +151,15 @@ p { margin: 0; }
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   width: 100%; min-height: 58px; padding: 12px 22px;
   border: 0; border-radius: 18px;
-  background: linear-gradient(135deg, var(--color-accent), rgba(var(--t-acc), 0.82));
+  background: rgb(var(--t-acc));
   color: rgb(var(--t-on-acc)); font-size: 1.1rem; font-weight: 900; letter-spacing: 0.01em;
   box-shadow: 0 10px 26px rgba(var(--t-acc-glow), 0.18);
   transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
 }
 .big-btn img { width: 30px; height: 30px; image-rendering: pixelated; }
 .big-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 30px rgba(var(--t-acc-glow), 0.24); }
-.big-btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+/* Gesperrt: neutral grau statt verblasster Akzentfarbe (die wirkte auf dunklem Grund bräunlich) */
+.big-btn:disabled { background: rgba(var(--t-ink), 0.08); color: var(--color-muted); cursor: default; box-shadow: none; }
 
 .small-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -172,8 +173,8 @@ p { margin: 0; }
 
 /* ── Meldungen ── */
 .msg { padding: 12px 16px; border-radius: 16px; font-size: 0.92rem; }
-.msg-error { border: 1px solid rgba(255, 107, 107, 0.35); background: rgba(255, 107, 107, 0.08); color: rgb(var(--t-g-ffd0d0)); }
-.msg-warn { border: 1px solid rgba(var(--t-acc), 0.3); background: rgba(var(--t-acc), 0.07); color: rgb(var(--t-c-fff1b0)); }
+.msg-error { border: 1px solid rgb(var(--t-c-ff9b8e)); background: rgba(var(--t-ink), 0.06); color: rgb(var(--t-g-ffd0d0)); }
+.msg-warn { border: 1px solid rgb(var(--t-acc)); background: rgba(var(--t-ink), 0.06); color: rgb(var(--t-c-fff1b0)); }
 
 .result {
   display: grid; gap: 12px;
@@ -250,7 +251,7 @@ details.where[open] summary::after { content: '–'; }
 .ed-pk b { overflow: hidden; color: rgb(var(--t-white)); font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
 .ed-pk small { color: var(--color-muted); font-size: 0.74rem; }
 .ed-pk:hover, .ed-slot:hover { border-color: rgba(var(--t-acc), 0.5); }
-.ed-pk.is-active, .ed-slot.is-active { border-color: var(--color-accent); background: rgba(var(--t-acc), 0.12); }
+.ed-pk.is-active, .ed-slot.is-active { border-color: var(--color-accent); background: rgba(var(--t-ink), 0.06); }
 /* Punkt: geändert */
 .ed-pk.is-changed::after, .ed-slot.is-changed::after {
   content: ''; position: absolute; top: 4px; right: 4px;
@@ -273,7 +274,7 @@ details.where[open] summary::after { content: '–'; }
 .type {
   display: inline-flex; align-items: center; justify-content: center; padding: 2px 9px; border-radius: 999px;
   font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-  color: rgb(var(--t-white)); text-shadow: 0 1px 2px rgba(var(--t-shade), 0.45); background: var(--c);
+  color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); background: var(--c);
 }
 .ed-moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .ed-move, .ed-item { display: flex; align-items: stretch; gap: 4px; min-width: 0; }
@@ -298,15 +299,15 @@ details.where[open] summary::after { content: '–'; }
 .ed-x:hover { border-color: rgba(255, 107, 107, 0.45); color: rgb(var(--t-g-ffd0d0)); }
 .ed-add {
   justify-self: start; padding: 10px 14px; border-radius: 12px;
-  border: 1px dashed rgba(var(--t-acc), 0.45); background: rgba(var(--t-acc), 0.05);
+  border: 1px dashed rgb(var(--t-acc)); background: rgba(var(--t-ink), 0.06);
   color: var(--color-accent); font-weight: 800; font-size: 0.9rem;
 }
-.ed-add:hover { background: rgba(var(--t-acc), 0.10); }
+.ed-add:hover { background: rgba(var(--t-ink), 0.06); }
 .ed-moves .ed-add { justify-self: stretch; }
 .ed-note {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   padding: 10px 12px; border-radius: 12px;
-  border: 1px solid rgba(var(--t-acc2), 0.3); background: rgba(var(--t-acc2), 0.08); color: var(--color-text); font-size: 0.86rem;
+  border: 1px solid rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); color: var(--color-text); font-size: 0.86rem;
 }
 .ed-note span { flex: 1 1 260px; }
 .ed-note b { color: rgb(var(--t-white)); }
@@ -347,7 +348,9 @@ details.where[open] summary::after { content: '–'; }
 .ed-picker {
   position: fixed; inset: 0; z-index: 200;
   display: grid; place-items: center; padding: 16px;
-  background: rgba(var(--t-shade), 0.55); backdrop-filter: blur(4px);
+  /* Kein backdrop-filter: der Weichzeichner über die ganze Seite müsste bei jedem Tippen, Scrollen
+     und Drüberfahren in der Liste neu gerechnet werden – dafür etwas dunkler abgedeckt */
+  background: rgba(var(--t-shade), 0.7);
 }
 .ed-picker-box {
   width: min(560px, 100%); max-height: min(720px, calc(100dvh - 32px));
@@ -366,7 +369,7 @@ details.where[open] summary::after { content: '–'; }
   display: flex; align-items: center; gap: 10px; padding: 8px 10px;
   border-radius: 10px; border: 1px solid transparent; background: rgba(var(--t-ink), 0.03); color: var(--color-text); text-align: left;
 }
-.ed-pick:hover, .ed-pick:focus-visible { border-color: rgba(var(--t-acc), 0.5); background: rgba(var(--t-acc), 0.08); }
+.ed-pick:hover, .ed-pick:focus-visible { border-color: rgb(var(--t-acc)); background: rgba(var(--t-ink), 0.06); }
 .ed-pick span { display: grid; flex: 1 1 auto; min-width: 0; }
 .ed-pick b { color: rgb(var(--t-white)); font-size: 0.92rem; }
 .ed-pick small, .ed-pick em { color: var(--color-muted); font-size: 0.74rem; font-style: normal; }

@@ -156,10 +156,10 @@
       text-transform: uppercase;
       flex-shrink: 0;
     }
-    .badge-core    { background: rgba(var(--t-acc), 0.12);  color: var(--color-accent);        border: 1px solid rgba(var(--t-acc), 0.3); }
-    .badge-clause  { background: rgba(var(--t-acc2), 0.10); color: var(--color-accent-strong); border: 1px solid rgba(var(--t-acc2), 0.25); }
-    .badge-variant { background: rgba(112,56,248,0.12); color: rgb(var(--t-c-b48fff));                    border: 1px solid rgba(112,56,248,0.3); }
-    .badge-custom  { background: rgba(72,200,100,0.10); color: rgb(var(--t-c-4ec864));                    border: 1px solid rgba(72,200,100,0.25); }
+    .badge-core    { background: rgb(var(--t-acc));  color: rgb(var(--t-on-acc));        border: 1px solid rgb(var(--t-acc)); }
+    .badge-clause  { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); border: 1px solid rgb(var(--t-acc2)); }
+    .badge-variant { background: rgb(var(--t-c-b48fff)); color: rgb(var(--t-on-acc));                    border: 1px solid rgb(var(--t-c-b48fff)); }
+    .badge-custom  { background: rgb(var(--t-c-4ec864)); color: rgb(var(--t-on-acc));                    border: 1px solid rgb(var(--t-c-4ec864)); }
 
     /* ── RULES LIST ── */
     .rules-list { padding: 2px 0; }
@@ -187,8 +187,8 @@
       flex-shrink: 0;
       margin-top: 1px;
     }
-    .num-core   { background: rgba(var(--t-acc), 0.12);  color: var(--color-accent); }
-    .num-clause { background: rgba(var(--t-acc2), 0.10); color: var(--color-accent-strong); }
+    .num-core   { background: rgb(var(--t-acc));  color: rgb(var(--t-on-acc)); }
+    .num-clause { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
 
     .rule-body { flex: 1; min-width: 0; }
     .rule-name { font-size: 0.86rem; font-weight: 700; color: var(--color-text); margin-bottom: 2px; }
@@ -229,9 +229,9 @@
       font-weight: 700;
       padding: 2px 6px;
       border-radius: 999px;
-      background: rgba(112,56,248,0.15);
-      color: rgb(var(--t-c-b48fff));
-      border: 1px solid rgba(112,56,248,0.3);
+      background: rgb(var(--t-c-b48fff));
+      color: rgb(var(--t-on-acc));
+      border: 1px solid rgb(var(--t-c-b48fff));
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }

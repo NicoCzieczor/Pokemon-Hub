@@ -161,8 +161,8 @@
     .pokemon-slot[data-filled] { border-style: solid; background: rgba(var(--t-ink), 0.05); }
     .p1 .pokemon-slot[data-filled] { border-color: rgba(var(--t-acc2), 0.30); }
     .p2 .pokemon-slot[data-filled] { border-color: rgba(var(--t-acc), 0.30); }
-    .p1 .pokemon-slot:active { background: rgba(var(--t-acc2), 0.10); border-color: rgba(var(--t-acc2), 0.4); transform: scale(0.96); }
-    .p2 .pokemon-slot:active { background: rgba(var(--t-acc), 0.10); border-color: rgba(var(--t-acc), 0.4); transform: scale(0.96); }
+    .p1 .pokemon-slot:active { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); transform: scale(0.96); }
+    .p2 .pokemon-slot:active { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc)); transform: scale(0.96); }
 
     /* Linked slots */
     .pokemon-slot.slot-linked::after { content:'⛓'; position:absolute; top:4px; right:5px; font-size:0.6rem; opacity:0.7; }
@@ -180,9 +180,9 @@
     .pokemon-slot.slot-link-hover[data-slot="5"] { border-color:rgba(80,220,80,0.95)!important;box-shadow:0 0 14px rgba(80,220,80,0.35)!important; }
 
     /* Drag & drop states */
-    .pokemon-slot.drag-over { border-color:rgba(var(--t-acc2), 0.85)!important;background:rgba(var(--t-acc2), 0.14)!important; }
-    .box-slot-half.drag-over { border-style:solid!important;border-color:rgba(var(--t-acc2), 0.85)!important;background:rgba(var(--t-acc2), 0.18)!important; }
-    .info-slot.drag-over { border-color:rgba(var(--t-acc2), 0.8)!important;background:rgba(var(--t-acc2), 0.12)!important; }
+    .pokemon-slot.drag-over { border-color:rgb(var(--t-acc2))!important;background:rgba(var(--t-ink), 0.06) !important; }
+    .box-slot-half.drag-over { border-style:solid!important;border-color:rgb(var(--t-acc2))!important;background:rgba(var(--t-ink), 0.06) !important; }
+    .info-slot.drag-over { border-color:rgb(var(--t-acc2))!important;background:rgba(var(--t-ink), 0.06) !important; }
     #box-section.drag-over-section { border-color:rgba(var(--t-acc2), 0.6); }
     .dragging { opacity: 0.35; }
 
@@ -249,8 +249,8 @@
     .grave-slot-name { width: 100%; font-size: 0.62rem; color: var(--color-muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .graveyard-empty { color: var(--color-muted); font-size: 0.8rem; padding: 2px 0; }
     .grave-killer { font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(var(--t-ink), 0.08); color: var(--color-muted); letter-spacing: 0.04em; }
-    .grave-killer-1 { background: rgba(var(--t-acc2), 0.18); color: var(--color-accent-strong); }
-    .grave-killer-2 { background: rgba(var(--t-acc), 0.18); color: var(--color-accent); }
+    .grave-killer-1 { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
+    .grave-killer-2 { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
     .graveyard-hint { font-size: 0.68rem; color: var(--color-muted); margin: 10px 0 0; }
 
     /* ── Box section ── */
@@ -275,10 +275,10 @@
       flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
       border-radius: 4px; overflow: hidden; font-size: 0.42rem; color: var(--color-muted); text-align: center;
     }
-    .box-slot-half.p1-half { background: rgba(var(--t-acc2), 0.05); border: 1px dashed rgba(var(--t-acc2), 0.22); }
-    .box-slot-half.p2-half { background: rgba(var(--t-acc), 0.05); border: 1px dashed rgba(var(--t-acc), 0.22); }
-    .box-slot-half.filled.p1-half { border-style: solid; border-color: rgba(var(--t-acc2), 0.38); background: rgba(var(--t-acc2), 0.10); }
-    .box-slot-half.filled.p2-half { border-style: solid; border-color: rgba(var(--t-acc), 0.38); background: rgba(var(--t-acc), 0.10); }
+    .box-slot-half.p1-half { background: rgba(var(--t-ink), 0.06); border: 1px dashed rgba(var(--t-acc2), 0.22); }
+    .box-slot-half.p2-half { background: rgba(var(--t-ink), 0.06); border: 1px dashed rgba(var(--t-acc), 0.22); }
+    .box-slot-half.filled.p1-half { border-style: solid; border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
+    .box-slot-half.filled.p2-half { border-style: solid; border-color: rgb(var(--t-acc)); background: rgba(var(--t-ink), 0.06); }
     .box-slot-half img { image-rendering: pixelated; width: 78%; height: auto; }
     .box-slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 34px; margin-top: 1px; }
     .box-slot-empty { font-size: 0.75rem; opacity: 0.22; }
@@ -309,7 +309,7 @@
     #info-content { display: grid; gap: 12px; }
     .info-row { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--color-text); font-size: 0.86rem; }
     .info-types { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-    .info-type { padding: 4px 10px; border-radius: 999px; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(var(--t-acc2), 0.12); color: rgb(var(--t-g-e2e8f0)); }
+    .info-type { padding: 4px 10px; border-radius: 999px; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
     .info-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .info-stat { background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08); border-radius: 12px; padding: 8px 10px; text-align: center; font-size: 0.88rem; }
     .info-stat.stat-hp         { background:rgba(100,210, 90,0.15);border-color:rgba(100,210, 90,0.55);color:rgb(var(--t-c-90e880)); }
@@ -323,9 +323,9 @@
     .evo-path  { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     .evo-stage { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; border-radius: 12px; background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08); min-width: 58px; transition: background 0.15s; }
     .evo-stage img { image-rendering: pixelated; }
-    .evo-stage-active { background: rgba(var(--t-acc2), 0.15); border-color: rgba(var(--t-acc2), 0.5); }
+    .evo-stage-active { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc2)); }
     .evo-stage-clickable { cursor: pointer; }
-    .evo-stage-clickable:active { background: rgba(var(--t-acc2), 0.10); }
+    .evo-stage-clickable:active { background: rgba(var(--t-ink), 0.06); }
     .evo-name { font-size: 0.7rem; text-align: center; max-width: 62px; line-height: 1.2; }
     .evo-arrow { display: flex; flex-direction: column; align-items: center; gap: 1px; }
     .evo-arrow-icon { color: var(--color-muted); font-size: 1rem; line-height: 1; }
@@ -350,14 +350,14 @@
     .weakness-row { display: flex; gap: 3px; align-items: center; }
     .weakness-type-label {
       width: 66px; min-width: 66px; height: 26px; padding: 0 6px; border-radius: 7px;
-      font-size: 0.7rem; font-weight: 600; text-align: center; color: rgb(var(--t-white));
-      text-shadow: 0 1px 2px rgba(var(--t-shade), 0.6);
+      font-size: 0.7rem; font-weight: 600; text-align: center; color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
       display: flex; align-items: center; justify-content: center;
       position: sticky; left: 0; z-index: 1;
     }
     .weakness-player-label { height: 20px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 1px; flex-shrink: 0; }
-    .weakness-player-label.p1-label { background: rgba(var(--t-acc2), 0.15); color: var(--color-accent-strong); }
-    .weakness-player-label.p2-label { background: rgba(var(--t-acc), 0.12); color: var(--color-accent); }
+    .weakness-player-label.p1-label { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
+    .weakness-player-label.p2-label { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
     .weakness-pokemon-header { width: 56px; min-width: 56px; text-align: center; font-size: 0.58rem; color: var(--color-muted); display: flex; flex-direction: column; align-items: center; gap: 2px; padding-bottom: 4px; }
     .weakness-pokemon-header.p1-col { border-bottom: 2px solid rgba(var(--t-acc2), 0.4); }
     .weakness-pokemon-header.p2-col { border-bottom: 2px solid rgba(var(--t-acc), 0.4); }
@@ -387,10 +387,10 @@
     .team-alert { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(255,170,60,0.28); background: rgba(255,150,40,0.08); font-size: 0.78rem; color: var(--color-text); }
     .team-alert-icon { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #ffaa3c; color: #1a1300; font-size: 0.72rem; font-weight: 900; flex-shrink: 0; }
     .team-alert-player { font-size: 0.66rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
-    .team-alert-player.p1 { background: rgba(var(--t-acc2), 0.15); color: var(--color-accent-strong); }
-    .team-alert-player.p2 { background: rgba(var(--t-acc), 0.12); color: var(--color-accent); }
+    .team-alert-player.p1 { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
+    .team-alert-player.p2 { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
     .team-alert-text { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; }
-    .team-alert-type, .team-alert-helper { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: rgb(var(--t-white)); text-shadow: 0 1px 2px rgba(var(--t-shade), 0.5); }
+    .team-alert-type, .team-alert-helper { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
     .team-alert-x4 { font-size: 0.7rem; font-weight: 700; color: rgb(var(--t-c-ff6a50)); }
     .team-alert-help { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 5px; flex-basis: 100%; padding-left: 26px; }
     .team-alert-help-label { font-size: 0.7rem; color: var(--color-muted); }
@@ -458,13 +458,13 @@
     #link-progress { margin-bottom:8px; font-size:0.82rem; }
     #pokemon-list { list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
     #pokemon-list li { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 6px; cursor:pointer; border:1px solid rgba(var(--t-ink), 0.08); border-radius:14px; background:rgba(var(--t-ink), 0.04); min-height:110px; text-align:center; color:var(--color-text); -webkit-tap-highlight-color:transparent; }
-    #pokemon-list li:active { background:rgba(var(--t-acc2), 0.14); border-color:rgba(var(--t-acc2), 0.4); }
+    #pokemon-list li:active { background:rgba(var(--t-ink), 0.06); border-color:rgb(var(--t-acc2)); }
     #pokemon-list li img { width:60px; height:60px; margin-bottom:6px; }
     #pokemon-list li div { font-size:0.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; padding:0 4px; color:var(--color-text); }
     .modal-buttons { display:flex; gap:10px; margin-top:14px; }
     button { font:inherit; }
     #close-modal { flex:1; padding:13px; background:rgba(var(--t-ink), 0.06); color:var(--color-text); border:1px solid rgba(var(--t-ink), 0.14); border-radius:12px; cursor:pointer; font-size:0.92rem; }
-    #modal-skip-link { flex:1; padding:13px; background:rgba(var(--t-acc2), 0.08); color:var(--color-accent-strong); border:1px solid rgba(var(--t-acc2), 0.2); border-radius:12px; cursor:pointer; font-size:0.92rem; }
+    #modal-skip-link { flex:1; padding:13px; background:rgba(var(--t-ink), 0.06); color:var(--color-accent-strong); border:1px solid rgba(var(--t-acc2), 0.2); border-radius:12px; cursor:pointer; font-size:0.92rem; }
 
     /* ── Sync panel ── */
     #session-panel { padding: 12px 14px; border-radius: 16px; background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.09); transition: padding 0.3s ease, border-color 0.3s ease, background 0.3s ease; margin-bottom: 12px; }
@@ -475,14 +475,14 @@
     .session-label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); }
     .sync-status { font-size: 0.8rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
     .sync-status-idle     { color: rgba(var(--t-g-cbd5e1), 0.55); background: rgba(var(--t-ink), 0.05); }
-    .sync-status-loading  { color: rgba(var(--t-acc), 0.9);    background: rgba(var(--t-acc), 0.1); }
-    .sync-status-waiting  { color: rgba(var(--t-acc), 0.9);    background: rgba(var(--t-acc), 0.1); }
-    .sync-status-connected{ color: rgba(var(--t-c-50d282), 0.95);  background: rgba(80,210,130,0.12); }
-    .sync-status-error    { color: rgba(var(--t-c-ff6450), 0.95);  background: rgba(255,100,80,0.12); }
+    .sync-status-loading  { color: rgb(var(--t-on-acc));    background: rgb(var(--t-acc)); }
+    .sync-status-waiting  { color: rgb(var(--t-on-acc));    background: rgb(var(--t-acc)); }
+    .sync-status-connected{ color: rgb(var(--t-on-acc));  background: rgb(var(--t-c-50d282)); }
+    .sync-status-error    { color: rgb(var(--t-on-acc));  background: rgb(var(--t-c-ff6450)); }
     .sync-player-count { font-size: 0.82rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.05em; }
     .sync-player-count-hidden  { display: none; }
-    .sync-player-count-partial { color: rgba(var(--t-acc), 0.9);   background: rgba(var(--t-acc), 0.1); }
-    .sync-player-count-full    { color: rgba(var(--t-c-50d282), 0.95); background: rgba(80,210,130,0.12); }
+    .sync-player-count-partial { color: rgb(var(--t-on-acc));   background: rgb(var(--t-acc)); }
+    .sync-player-count-full    { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-50d282)); }
     .session-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .sync-top-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
     .sync-btn { padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(var(--t-ink), 0.15); background: rgba(var(--t-ink), 0.08); color: rgb(var(--t-g-edf2f7)); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }

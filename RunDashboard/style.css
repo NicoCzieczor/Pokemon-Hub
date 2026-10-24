@@ -247,8 +247,8 @@ select option {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
-  border-color: rgba(var(--t-acc), 0.18);
-  background: linear-gradient(135deg, rgba(var(--t-acc), 0.06), rgba(var(--t-ink), 0.02) 60%);
+  border-color: rgb(var(--t-acc));
+  background: rgba(var(--t-ink), 0.04);
 }
 
 .checkpoint-label {
@@ -324,9 +324,9 @@ select option {
   width: 64px;
   height: 64px;
   border-radius: 20px;
-  background: rgba(var(--t-acc), 0.12);
-  border: 1px solid rgba(var(--t-acc), 0.3);
-  color: var(--color-accent);
+  background: rgb(var(--t-acc));
+  border: 1px solid rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
 }
 .run-empty-icon svg { width: 32px; height: 32px; }
 .run-empty-title { margin: 4px 0 0; font-size: 1.3rem; color: rgb(var(--t-white)); }
@@ -359,7 +359,7 @@ select option {
   margin-top: 8px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: rgba(var(--t-acc2), 0.08);
+  background: rgba(var(--t-ink), 0.06);
   border: 1px solid rgba(var(--t-acc2), 0.18);
   color: var(--color-text);
   font-size: 0.86rem;
@@ -469,7 +469,7 @@ select option {
 .run-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
 .run-tab { display: flex; flex-direction: column; align-items: flex-start; padding: 7px 14px; border: 1px solid rgba(var(--t-ink), 0.1); border-radius: 12px; cursor: pointer; background: transparent; color: var(--color-muted); font-family: inherit; transition: border-color 0.18s, background 0.18s, color 0.18s; text-align: left; }
 .run-tab:hover { border-color: rgba(var(--t-ink), 0.22); color: var(--color-text); }
-.run-tab.is-active { border-color: var(--color-accent); color: var(--color-text); background: rgba(var(--t-acc), 0.08); }
+.run-tab.is-active { border-color: var(--color-accent); color: var(--color-text); background: rgba(var(--t-ink), 0.06); }
 .run-tab-name { font-weight: 700; font-size: 0.88rem; line-height: 1.2; }
 .run-tab-game { font-size: 0.70rem; opacity: 0.65; margin-top: 2px; }
 .run-tab-rename-input { background: transparent; border: none; border-bottom: 1.5px solid var(--color-accent); border-radius: 0; color: var(--color-text); font-size: 0.88rem; font-weight: 700; font-family: inherit; padding: 0 0 1px; width: 100%; min-width: 80px; outline: none; line-height: 1.2; }
@@ -491,7 +491,7 @@ select option {
 .game-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; overflow-y: auto; padding-right: 4px; }
 .game-card { background: rgba(var(--t-ink), 0.04); border: 2px solid transparent; border-radius: 12px; padding: 10px 8px 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: background 0.15s, border-color 0.15s; text-align: center; }
 .game-card:hover { background: rgba(var(--t-ink), 0.09); border-color: rgba(var(--t-ink), 0.18); }
-.game-card.is-selected { border-color: var(--color-accent); background: rgba(var(--t-acc), 0.07); }
+.game-card.is-selected { border-color: var(--color-accent); background: rgba(var(--t-ink), 0.06); }
 .game-card-covers { display: flex; gap: 4px; height: 88px; width: 100%; justify-content: center; align-items: center; }
 .game-card-covers img { max-height: 100%; width: auto; max-width: calc(50% - 2px); object-fit: contain; border-radius: 3px; }
 .game-card-covers img:only-child { max-width: 100%; }
@@ -614,10 +614,10 @@ select option {
   opacity: 1;
 }
 
-.status-caught { color: rgb(var(--t-c-8ff0a4)); background: rgba(80, 232, 128, 0.12); border-color: rgba(80, 232, 128, 0.28); }
-.status-open { color: var(--color-accent); background: rgba(var(--t-acc), 0.12); border-color: rgba(var(--t-acc), 0.28); }
-.status-failed { color: rgb(var(--t-c-ff9b8e)); background: rgba(240, 112, 96, 0.12); border-color: rgba(240, 112, 96, 0.28); }
-.method-starter { color: var(--color-accent); background: rgba(var(--t-acc), 0.12); border-color: rgba(var(--t-acc), 0.32); }
+.status-caught { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-8ff0a4)); border-color: rgb(var(--t-c-8ff0a4)); }
+.status-open { color: rgb(var(--t-on-acc)); background: rgb(var(--t-acc)); border-color: rgb(var(--t-acc)); }
+.status-failed { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-ff9b8e)); border-color: rgb(var(--t-c-ff9b8e)); }
+.method-starter { color: rgb(var(--t-on-acc)); background: rgb(var(--t-acc)); border-color: rgb(var(--t-acc)); }
 
 .icon-btn {
   width: 34px;
@@ -811,8 +811,8 @@ textarea {
 
 #pokemon-list li:hover {
   transform: translateY(-2px);
-  background: rgba(var(--t-acc2), 0.10);
-  border-color: rgba(var(--t-acc2), 0.34);
+  background: rgba(var(--t-ink), 0.06);
+  border-color: rgb(var(--t-acc2));
 }
 
 #pokemon-list li.list-message {
@@ -848,9 +848,9 @@ textarea {
 #pokemon-list .pokemon-card-badge {
   padding: 2px 7px;
   border-radius: 999px;
-  color: var(--color-accent);
-  background: rgba(var(--t-acc), 0.12);
-  border: 1px solid rgba(var(--t-acc), 0.25);
+  color: rgb(var(--t-on-acc));
+  background: rgb(var(--t-acc));
+  border: 1px solid rgb(var(--t-acc));
   font-size: 0.62rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -890,7 +890,7 @@ textarea {
 }
 
 .cp-item.is-current {
-  background: rgba(var(--t-acc2), 0.08);
+  background: rgba(var(--t-ink), 0.06);
   border-color: rgba(var(--t-acc2), 0.22);
   opacity: 1;
 }
@@ -910,15 +910,15 @@ textarea {
 }
 
 .cp-item.is-done .cp-icon {
-  background: rgba(80, 232, 128, 0.12);
-  border-color: rgba(80, 232, 128, 0.3);
-  color: rgb(var(--t-c-8ff0a4));
+  background: rgb(var(--t-c-8ff0a4));
+  border-color: rgb(var(--t-c-8ff0a4));
+  color: rgb(var(--t-on-acc));
 }
 
 .cp-item.is-current .cp-icon {
-  background: rgba(var(--t-acc2), 0.12);
-  border-color: rgba(var(--t-acc2), 0.35);
-  color: var(--color-accent-strong);
+  background: rgb(var(--t-acc2));
+  border-color: rgb(var(--t-acc2));
+  color: rgb(var(--t-on-acc));
 }
 
 .cp-name {
