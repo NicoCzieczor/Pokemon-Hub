@@ -435,11 +435,35 @@
     var g = pickBlock(b, 0, PT.generalSize);
     return { bytes: b, offset: g.offset, size: PT.generalSize, valid: g.valid };
   }
+  // Aktueller Storage-Block (PC-Boxen), wie generalBlock
+  function storageBlock(buffer) {
+    var b = normalize(buffer);
+    if (!b || detect(b) !== 'pt') return null;
+    var s = pickBlock(b, PT.storageStart, PT.storageSize);
+    return { bytes: b, offset: s.offset, size: PT.storageSize, valid: s.valid };
+  }
   // Prüfsumme eines Blocks neu berechnen (CRC16 über die Daten ohne Footer, steht in den letzten 2 Byte)
   function writeChecksum(b, start, length) {
     var c = crc16(b, start, start + length - 0x14);
     b[start + length - 2] = c & 0xFF;
     b[start + length - 1] = c >>> 8;
+  }
+  // Gegenstück zu decryptPK4: Prüfsumme setzen, Blöcke zurücksortieren, verschlüsseln (136 oder 236 Byte)
+  function encryptPK4(dec) {
+    var d = new Uint8Array(dec);
+    var sum = 0;
+    for (var j = 8; j < SIZE_STORED; j += 2) sum = (sum + u16(d, j)) & 0xFFFF;
+    d[6] = sum & 0xFF;
+    d[7] = sum >>> 8;
+    var pid = u32(d, 0), sv = (pid >>> 13) & 31;
+    var out = new Uint8Array(d);
+    for (var k = 0; k < 4; k++) {
+      var to = 8 + BLOCK_POSITION[sv * 4 + k] * 32;
+      out.set(d.subarray(8 + k * 32, 8 + k * 32 + 32), to);
+    }
+    crypt(out, 8, SIZE_STORED, sum);
+    if (out.length > SIZE_STORED) crypt(out, SIZE_STORED, out.length, pid);
+    return out;
   }
 
   return {
@@ -447,7 +471,11 @@
     calcStats: calcStats,
     levelFromExp: levelFromExp,
     generalBlock: generalBlock,
+    storageBlock: storageBlock,
     writeChecksum: writeChecksum,
+    decryptPK4: decryptPK4,
+    encryptPK4: encryptPK4,
+    LAYOUT: { party: PT.party, trainer: PT.trainer, boxCount: BOX_COUNT, boxSlots: BOX_SLOTS, sizeStored: SIZE_STORED, sizeParty: SIZE_PARTY },
     // für Tests
     _internal: { crypt: crypt, crc16: crc16, decryptPK4: decryptPK4, BLOCK_POSITION: BLOCK_POSITION, normalize: normalize, detect: detect }
   };

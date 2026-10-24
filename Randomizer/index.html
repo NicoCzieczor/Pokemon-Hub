@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="../theme.css">
   <title>Randomizer – Pokémon Hub</title>
   <link rel="stylesheet" href="../Pokelocke/base.css">
-  <link rel="stylesheet" href="../Sonderbonbons/style.css">
+  <link rel="stylesheet" href="../SaveEditor/style.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -37,18 +37,18 @@
   <a class="tool-nav-link" href="../Karte/index.html">Karte</a>
   <a class="tool-nav-link" href="../Bosse/index.html">Bosse</a>
   <a class="tool-nav-link" href="../SaveViewer/index.html">Save</a>
-  <a class="tool-nav-link" href="../Sonderbonbons/index.html">Bonbons</a>
+  <a class="tool-nav-link" href="../SaveEditor/index.html">Editor</a>
   <a class="tool-nav-link is-active" href="index.html" aria-current="page">Randomizer</a>
   <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
 </nav>
 
 <header class="page-head">
   <h1><span data-i18n="title1">Rando</span><span class="accent" data-i18n="title2">mizer</span> <span class="game-badge" data-i18n="gameBadge">Platin</span></h1>
-  <p data-i18n="subtitle">Verloren? Würfel dir ein neues zufälliges Platin – direkt hier im Browser, mit denselben Einstellungen wie immer.</p>
+  <p data-i18n="subtitle">Verloren? Würfel dir ein neues zufälliges Platin – direkt hier im Browser. Wie gewürfelt wird, kannst du vorher einstellen.</p>
 </header>
 
 <input type="file" id="rom-input" accept=".nds" hidden>
-<input type="file" id="settings-input" accept=".rnqs" hidden>
+<input type="file" id="rs-input" accept=".rnqs" hidden>
 
 <ol class="steps">
   <!-- 1 -->
@@ -78,6 +78,31 @@
     <div class="step-num">2</div>
     <div class="step-body">
       <h2 data-i18n="s2Title">Neues Spiel würfeln</h2>
+      <details class="rs" id="rs">
+        <summary>
+          <span class="rs-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>
+          </span>
+          <span class="rs-sum">
+            <b data-i18n="setTitle">Einstellungen</b>
+            <small id="rs-status"></small>
+          </span>
+          <span class="rs-open" data-i18n="setOpen">Anpassen</span>
+        </summary>
+        <div class="rs-body">
+          <div class="rs-tabs" id="rs-tabs" role="tablist"></div>
+          <div class="rs-panel" id="rs-panel" role="tabpanel"></div>
+          <div class="rs-foot">
+            <p class="rs-note" id="rs-note"></p>
+            <div class="btn-row">
+              <button type="button" class="small-btn" id="rs-reset"></button>
+              <button type="button" class="small-btn" id="rs-load"></button>
+              <button type="button" class="small-btn" id="rs-save"></button>
+            </div>
+            <p class="rs-msg" id="rs-msg" hidden></p>
+          </div>
+        </div>
+      </details>
       <button type="button" class="big-btn" id="run" disabled>
         <svg class="dice" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><rect x="5" y="5" width="22" height="22" rx="5"/><circle cx="11" cy="11" r="1.6" fill="currentColor"/><circle cx="21" cy="11" r="1.6" fill="currentColor"/><circle cx="16" cy="16" r="1.6" fill="currentColor"/><circle cx="11" cy="21" r="1.6" fill="currentColor"/><circle cx="21" cy="21" r="1.6" fill="currentColor"/></svg>
         <span id="run-label" data-i18n="run">Neues Spiel würfeln</span>
@@ -103,23 +128,15 @@
   </li>
 </ol>
 
-<details class="where" id="settings-box">
-  <summary data-i18n="setTitle">Randomizer-Einstellungen</summary>
-  <div class="where-body">
-    <p id="settings-text"></p>
-    <div class="btn-row">
-      <button type="button" class="small-btn" id="settings-load" data-i18n="setLoad">Eigene .rnqs-Datei laden</button>
-      <button type="button" class="small-btn" id="settings-reset" data-i18n="setReset" hidden>Standard benutzen</button>
-    </div>
-  </div>
-</details>
-
 <p class="foot-note" data-i18n="footNote">Gewürfelt wird mit dem <a href="https://github.com/Ajarmar/universal-pokemon-randomizer-zx" target="_blank" rel="noopener">Universal Pokémon Randomizer ZX</a> 4.6.1 (GPL-3.0, <a href="https://github.com/Ajarmar/universal-pokemon-randomizer-zx/tree/v4.6.1" target="_blank" rel="noopener">Quellcode</a>), im Browser ausgeführt mit <a href="https://cheerpj.com/" target="_blank" rel="noopener">CheerpJ</a>. Deine ROM verlässt dein Gerät nicht.</p>
 
 </div>
 
 <script src="../SaveViewer/data-pt.js"></script>
 <script src="../Bosse/rando.js"></script>
+<script src="rnqs.js"></script>
+<script src="options.js"></script>
+<script src="editor.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

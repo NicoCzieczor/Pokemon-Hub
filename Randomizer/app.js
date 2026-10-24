@@ -5,7 +5,8 @@
  * (Java-Laufzeit als WebAssembly, wird beim ersten Würfeln von cjrtnc.leaningtech.com geladen).
  * Aufgerufen wird sein Kommandozeilen-Modus, genau wie am PC:
  *   cli -s settings.rnqs -i rom.nds -o out.nds -l
- * Die Einstellungen (settings.rnqs) sind dieselben, mit denen bisher gewürfelt wurde.
+ * Die Einstellungen kommen aus editor.js: settings.rnqs (mit denen bisher gewürfelt wurde) oder die
+ * angepasste Fassung davon.
  *
  * CheerpJ-Dateisystem: /app/… = Dateien vom Webserver (das Jar), /str/… = Daten aus JavaScript
  * (ROM, Einstellungen), /files/… = Browser-Speicher (Ausgabe; wird danach wieder gelöscht).
@@ -29,7 +30,7 @@
   const I18N = {
     de: {
       title1: 'Rando', title2: 'mizer', gameBadge: 'Platin',
-      subtitle: 'Verloren? Würfel dir ein neues zufälliges Platin – direkt hier im Browser, mit denselben Einstellungen wie immer.',
+      subtitle: 'Verloren? Würfel dir ein neues zufälliges Platin – direkt hier im Browser. Wie gewürfelt wird, kannst du vorher einstellen.',
       s1Title: 'Original-Spiel auswählen <small>(nur einmal)</small>',
       dropTitle: 'Original-ROM hier reinziehen oder antippen',
       dropSub: 'Die unveränderte Pokémon-Platin-Datei (.nds, ca. 128 MB). Sie wird nur auf diesem Gerät gespeichert – nichts wird hochgeladen.',
@@ -52,14 +53,14 @@
       phase: { load: 'Randomizer wird geladen…', prepare: 'Spiel wird vorbereitet…', run: 'Pokémon, Trainer und Items werden gewürfelt…', finish: 'Fast fertig…' },
       errLoader: 'Der Randomizer konnte nicht geladen werden. Bist du mit dem Internet verbunden? Dann lade die Seite neu und versuch es nochmal.',
       errRun: function (code) { return 'Das Würfeln hat nicht geklappt (Code ' + code + '). Ist es wirklich die Original-ROM?'; },
-      errRunCustom: ' Du benutzt eigene Einstellungen – vielleicht stammen sie aus einer anderen Randomizer-Version als 4.6.1.',
+      errRunCustom: ' Du benutzt angepasste Einstellungen – vielleicht passt eine Kombination nicht. Probier es mit „Standard wiederherstellen“.',
       errMemory: 'Dafür reicht der Speicher nicht. Schließ andere Tabs oder würfel am PC.',
       errOther: 'Das Würfeln hat nicht geklappt: ',
       details: 'Details',
       s3Title: 'Herunterladen und neu starten',
       playWait: 'Hier erscheint dein neues Spiel.',
       playTitle: 'Dein neues Spiel ist fertig!',
-      starters: 'Deine Starter-Auswahl:',
+      starters: 'Starter anzeigen – Spoiler!',
       download: 'Spiel herunterladen',
       playSteps: function (f) {
         return [
@@ -76,17 +77,13 @@
       bossReady: '✓ Der Boss-Planer kennt die Teams aus diesem Spiel schon.',
       bossOpen: 'Boss-Planer öffnen',
       log: 'Spoiler-Log',
-      setTitle: 'Randomizer-Einstellungen',
-      setDefault: 'Benutzt werden die Einstellungen aus dem Hub (<code>settings.rnqs</code>) – dieselben wie bisher.',
-      setCustom: function (n) { return 'Eigene Einstellungen aktiv: <code>' + n + '</code>. Sie müssen aus dem Randomizer 4.6.1 stammen.'; },
-      setLoad: 'Eigene .rnqs-Datei laden',
-      setReset: 'Standard benutzen',
-      setBad: 'Das ist keine Einstellungsdatei des Randomizers (.rnqs).',
+      setTitle: 'Einstellungen',
+      setOpen: 'Anpassen',
       footNote: 'Gewürfelt wird mit dem <a href="https://github.com/Ajarmar/universal-pokemon-randomizer-zx" target="_blank" rel="noopener">Universal Pokémon Randomizer ZX</a> 4.6.1 (GPL-3.0, <a href="https://github.com/Ajarmar/universal-pokemon-randomizer-zx/tree/v4.6.1" target="_blank" rel="noopener">Quellcode</a>), im Browser ausgeführt mit <a href="https://cheerpj.com/" target="_blank" rel="noopener">CheerpJ</a>. Deine ROM verlässt dein Gerät nicht.'
     },
     en: {
       title1: 'Rando', title2: 'mizer', gameBadge: 'Platinum',
-      subtitle: 'Lost? Roll yourself a new random Platinum – right here in the browser, with the same settings as always.',
+      subtitle: 'Lost? Roll yourself a new random Platinum – right here in the browser. You can choose how it gets randomized.',
       s1Title: 'Choose the original game <small>(only once)</small>',
       dropTitle: 'Drop the original ROM here or tap',
       dropSub: 'The unmodified Pokémon Platinum file (.nds, about 128 MB). It is only stored on this device – nothing is uploaded.',
@@ -109,14 +106,14 @@
       phase: { load: 'Loading the randomizer…', prepare: 'Preparing the game…', run: 'Randomizing Pokémon, trainers and items…', finish: 'Almost done…' },
       errLoader: 'The randomizer could not be loaded. Are you connected to the internet? Reload the page and try again.',
       errRun: function (code) { return 'Randomizing failed (code ' + code + '). Is it really the original ROM?'; },
-      errRunCustom: ' You are using custom settings – maybe they come from a randomizer version other than 4.6.1.',
+      errRunCustom: ' You are using customized settings – maybe a combination doesn\'t work. Try "Restore default".',
       errMemory: 'There is not enough memory for this. Close other tabs or roll on a PC.',
       errOther: 'Randomizing failed: ',
       details: 'Details',
       s3Title: 'Download and start over',
       playWait: 'Your new game will show up here.',
       playTitle: 'Your new game is ready!',
-      starters: 'Your starter choice:',
+      starters: 'Show starters – spoiler!',
       download: 'Download game',
       playSteps: function (f) {
         return [
@@ -133,12 +130,8 @@
       bossReady: '✓ The Boss Planner already knows the teams from this game.',
       bossOpen: 'Open Boss Planner',
       log: 'Spoiler log',
-      setTitle: 'Randomizer settings',
-      setDefault: 'The hub\'s settings are used (<code>settings.rnqs</code>) – the same as before.',
-      setCustom: function (n) { return 'Custom settings active: <code>' + n + '</code>. They must come from randomizer version 4.6.1.'; },
-      setLoad: 'Load your own .rnqs file',
-      setReset: 'Use default',
-      setBad: 'This is not a randomizer settings file (.rnqs).',
+      setTitle: 'Settings',
+      setOpen: 'Customize',
       footNote: 'Randomized with the <a href="https://github.com/Ajarmar/universal-pokemon-randomizer-zx" target="_blank" rel="noopener">Universal Pokémon Randomizer ZX</a> 4.6.1 (GPL-3.0, <a href="https://github.com/Ajarmar/universal-pokemon-randomizer-zx/tree/v4.6.1" target="_blank" rel="noopener">source code</a>), running in the browser with <a href="https://cheerpj.com/" target="_blank" rel="noopener">CheerpJ</a>. Your ROM never leaves your device.'
     }
   };
@@ -149,8 +142,6 @@
     rom: null,          // { name, size, code, starters, file, stored }
     romVersion: 0,
     romError: '',
-    settings: loadSettings(),
-    settingsError: '',
     phase: null,        // load | prepare | run | finish
     started: 0,
     runError: null,     // { text, details }
@@ -192,13 +183,11 @@
     };
   })();
 
-  function loadSettings() {
-    try {
-      const s = JSON.parse(localStorage.getItem('rando-settings') || 'null');
-      if (s && s.b64) return { name: s.name, bytes: Uint8Array.from(atob(s.b64), c => c.charCodeAt(0)) };
-    } catch (e) { /* kaputt → Standard */ }
-    return null;
-  }
+  // Einstellungen zum Anklicken (editor.js); manche Extras gibt es nur für die englische ROM
+  const editor = RandoEditor.create({
+    lang: () => lang,
+    ctx: () => ({ english: !!state.rom && /^CPU[EP]$/.test(state.rom.code || '') })
+  });
 
   /* ── Original-ROM ──────────────────────────────────────────────── */
   const reader = blob => (s, e) => blob.slice(s, e).arrayBuffer().then(b => new Uint8Array(b));
@@ -223,6 +212,7 @@
     state.rom = rom;
     state.romVersion++;
     render();
+    editor.render();
   }
 
   function isRandomized(rom) {
@@ -313,7 +303,7 @@
         window.cheerpOSAddStringFile(strRom, new Uint8Array(await state.rom.file.arrayBuffer()));
         strRomVersion = state.romVersion;
       }
-      const settings = state.settings ? state.settings.bytes : new Uint8Array(await (await fetch('settings.rnqs')).arrayBuffer());
+      const settings = await editor.file().catch(() => { throw new Error('loader'); });
       const setPath = '/str/settings' + (++strCount) + '.rnqs';
       window.cheerpOSAddStringFile(setPath, settings);
       await deleteFiles([OUT, OUT + '.log']);
@@ -343,7 +333,7 @@
       const l = L(), msg = e && e.message;
       let text;
       if (msg === 'loader') text = l.errLoader;
-      else if (msg === 'run') text = l.errRun(e.code) + (state.settings ? l.errRunCustom : '');
+      else if (msg === 'run') text = l.errRun(e.code) + (editor.isCustom() ? l.errRunCustom : '');
       else if (e instanceof RangeError || /memory|allocation/i.test(msg || '')) text = l.errMemory;
       else text = l.errOther + msg;
       state.runError = { text: text, details: lines.slice(-12).join('\n') };
@@ -372,28 +362,6 @@
     }
   }
 
-  /* ── Einstellungen ─────────────────────────────────────────────── */
-  async function handleSettings(file) {
-    state.settingsError = '';
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    if (!/\.rnqs$/i.test(file.name) || bytes.length < 16 || bytes.length > 65536) {
-      state.settingsError = L().setBad;
-      render();
-      return;
-    }
-    let bin = '';
-    bytes.forEach(b => { bin += String.fromCharCode(b); });
-    try { localStorage.setItem('rando-settings', JSON.stringify({ name: file.name, b64: btoa(bin) })); } catch (e) { /* nur für diese Sitzung */ }
-    state.settings = { name: file.name, bytes: bytes };
-    render();
-  }
-  function resetSettings() {
-    localStorage.removeItem('rando-settings');
-    state.settings = null;
-    state.settingsError = '';
-    render();
-  }
-
   /* ── Anzeige ───────────────────────────────────────────────────── */
   function applyStatic() {
     const l = L();
@@ -418,10 +386,11 @@
 
   function playHtml(r) {
     const l = L(), T = D.text[lang];
-    const starters = r.starters ? '<div class="starters-label">' + esc(l.starters) + '</div><div class="starters">' +
+    // Starter erst auf Wunsch zeigen – sonst ist die Überraschung im neuen Spiel weg
+    const starters = r.starters ? '<details class="starters-spoiler"><summary>' + esc(l.starters) + '</summary><div class="starters">' +
       r.starters.map(s => '<div class="starter"><img src="' + PT_SPR + s + '.png" alt="" loading="lazy"><b>' + esc(T.species[s] || '#' + s) + '</b></div>').join('') +
-      '</div>' : '';
-    return '<div class="play-title">' + esc(l.playTitle) + '</div>' + starters +
+      '</div></details>' : '';
+    return '<div class="play-title">' + esc(l.playTitle) + '</div>' +
       '<a class="big-btn" href="' + r.url + '" download="' + esc(r.fileName) + '">' +
         '<svg class="dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>' +
         '<span>' + esc(l.download) + '</span></a>' +
@@ -430,7 +399,7 @@
       '<div class="play-boss">' +
         (r.boss ? '<span>' + esc(l.bossReady) + '</span><a class="small-btn" href="../Bosse/index.html">' + esc(l.bossOpen) + '</a>' : '') +
         (r.logUrl ? '<a class="small-btn" href="' + r.logUrl + '" download="' + esc(r.fileName.replace(/\.nds$/, '')) + '-Log.txt">' + esc(l.log) + '</a>' : '') +
-      '</div>';
+      '</div>' + starters;
   }
 
   function render() {
@@ -475,17 +444,11 @@
     $('play-hint').hidden = !!r;
     $('play').hidden = !r;
     if (r) $('play').innerHTML = playHtml(r);
-
-    // Einstellungen
-    $('settings-text').innerHTML = (state.settings ? l.setCustom(esc(state.settings.name)) : l.setDefault) +
-      (state.settingsError ? ' <b>' + esc(state.settingsError) + '</b>' : '');
-    $('settings-reset').hidden = !state.settings;
-    $('settings-load').disabled = busy;
   }
 
   /* ── Ereignisse ────────────────────────────────────────────────── */
   // iPhone kennt .nds/.rnqs nicht und graut die Dateien sonst in der Auswahl aus
-  if (PHONE) { $('rom-input').removeAttribute('accept'); $('settings-input').removeAttribute('accept'); }
+  if (PHONE) { $('rom-input').removeAttribute('accept'); $('rs-input').removeAttribute('accept'); }
   $('drop').addEventListener('click', () => $('rom-input').click());
   $('rom-input').addEventListener('change', e => {
     const f = e.target.files[0];
@@ -507,31 +470,29 @@
     state.rom = null;
     state.romVersion++;
     render();
+    editor.render();
   });
   $('run').addEventListener('click', run);
-  $('settings-load').addEventListener('click', () => $('settings-input').click());
-  $('settings-input').addEventListener('change', e => {
-    const f = e.target.files[0];
-    if (f) handleSettings(f);
-    e.target.value = '';
-  });
-  $('settings-reset').addEventListener('click', resetSettings);
   $('lang-toggle').addEventListener('click', () => {
     lang = lang === 'de' ? 'en' : 'de';
     try { localStorage.setItem('hub-lang', lang); } catch (e) { /* egal */ }
     render();
+    editor.render();
   });
   window.addEventListener('beforeunload', e => {
     if (state.phase) { e.preventDefault(); e.returnValue = ''; }
   });
 
   render();
+  editor.render();
+  editor.load().catch(() => { /* Hinweis steht im Einstellungs-Kasten */ });
   // Gespeicherte ROM vom letzten Mal
   Store.get('rom').then(rec => {
     if (rec && rec.file && !state.rom) {
       state.rom = Object.assign(rec, { stored: true });
       state.romVersion++;
       render();
+      editor.render();
     }
   }).catch(() => {});
 })();

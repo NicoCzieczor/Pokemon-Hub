@@ -12,3 +12,5 @@ CheerpJ selbst ist nicht Teil dieses Projekts, sondern wird beim Würfeln von
 https://cjrtnc.leaningtech.com/ geladen.
 
 settings.rnqs sind die Randomizer-Einstellungen, mit denen bisher gewürfelt wurde.
+rnqs.js und options.js lesen und schreiben dieses Dateiformat; welche Einstellung in welchem Bit
+steht und wann eine Option ausgegraut ist, stammt aus Settings.java und NewRandomizerGUI.java (v4.6.1).

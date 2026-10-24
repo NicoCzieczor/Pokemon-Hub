@@ -12,7 +12,7 @@
  * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
  * Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v22';
+const VERSION = 'v24';
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -95,14 +95,19 @@ const PRECACHE = [
   './SaveViewer/data-pt.js',
   './SaveViewer/pt-save.js',
   './SaveViewer/pt-bag.js',
+  './SaveViewer/pt-edit.js',
   './SaveViewer/soul-link.js',
   './SaveViewer/main.js',
+  './SaveEditor/index.html',
+  './SaveEditor/style.css',
+  './SaveEditor/app.js',
   './Sonderbonbons/index.html',
-  './Sonderbonbons/style.css',
-  './Sonderbonbons/app.js',
   './Randomizer/index.html',
   './Randomizer/style.css',
   './Randomizer/app.js',
+  './Randomizer/rnqs.js',
+  './Randomizer/options.js',
+  './Randomizer/editor.js',
   './Randomizer/settings.rnqs',
 ];
 
