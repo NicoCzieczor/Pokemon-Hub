@@ -533,14 +533,31 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width: 960px) {
-      #teams-area { flex-direction: column; }
-      #level-cap-panel { flex: none; width: 100%; position: static; max-height: 260px; }
+      /* Untereinander: Team zuerst (die Hauptsache), Level Caps darunter. Beide volle Breite –
+         ohne width schrumpfte das Team-Feld auf die Breite seines (leeren) Inhalts */
+      #teams-area { flex-direction: column; align-items: stretch; }
+      #level-cap-panel { flex: none; width: 100%; position: static; max-height: 260px; order: 2; }
+      #team-panel { flex: none; width: 100%; }
     }
     @media (max-width: 680px) {
-      #team-builder { grid-template-columns: repeat(2, minmax(0,1fr)); }
-      #info-panel { grid-template-columns: 1fr; }
-      #box-slots { grid-template-columns: repeat(6, minmax(0,1fr)); }
+      /* Handy: 3 × 2 Slots statt 2 × 3, Karten ohne Mindesthöhen für leere Flächen */
+      #teams-area { gap: 12px; }
+      #team-panel { padding: 12px; gap: 12px; border-radius: 20px; }
+      #team-builder { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+      .pokemon-slot { min-height: 88px; border-radius: 14px; }
+      .pokemon-slot[data-typed="dual"]::before { border-radius: 14px; }
+      .info-slot { min-height: 64px; padding: 10px; font-size: 1rem; }
+      #info-panel { grid-template-columns: 1fr; gap: 12px; }
+      #info-details, #info-controls { min-height: 0; padding: 14px; }
+      #info-controls { order: -1; }
+      #box-slots { grid-template-columns: repeat(6, minmax(0,1fr)); gap: 6px; }
       .info-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      /* Info-Generation: Überschrift und Auswahl in einer Zeile statt einer ganzen Karte */
+      #info-controls { display: flex; align-items: center; gap: 10px; }
+      #info-controls h3 { flex: 1 1 auto; margin: 0; }
+      #info-controls .generation-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      #info-generation-select { width: auto; flex: 0 0 auto; min-width: 104px; padding: 8px 12px; }
+      #weakness-section { padding: 16px 14px; }
     }
   </style>
 </head>

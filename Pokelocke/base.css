@@ -172,7 +172,10 @@ canvas {
 }
 /* Home: deckendes Schild in der Akzentfarbe (wie ein Label), Schrift in --t-on-acc.
    Kein halbdurchsichtiger Akzent-Hintergrund mehr – der wirkte auf dunklem Grund bräunlich. */
-.tool-nav-link:first-child {
+/* „> :first-child“: Home bleibt erstes Kind der Leiste, auch wenn pwa.js die übrigen Tabs in die
+   Scroll-Spur legt (dort ist dann „Run“ das erste Kind – das soll kein Schild werden) */
+.tool-nav > .tool-nav-link:first-child {
+  flex: 0 0 auto;
   height: 30px;
   padding: 0 12px;
   color: rgb(var(--t-on-acc));
@@ -180,7 +183,7 @@ canvas {
   background: rgb(var(--t-acc));
   transition: filter 0.2s;
 }
-.tool-nav-link:first-child:hover {
+.tool-nav > .tool-nav-link:first-child:hover {
   color: rgb(var(--t-on-acc));
   filter: brightness(1.1);
 }
@@ -209,7 +212,7 @@ canvas {
     font-size: 0.72rem;
     letter-spacing: 0.06em;
   }
-  .tool-nav-link:first-child {
+  .tool-nav > .tool-nav-link:first-child {
     height: 28px;
     padding: 0 10px;
   }
@@ -259,4 +262,8 @@ canvas {
   body:has(> #app) { padding: 14px 8px 24px; }
   body > #app { width: 100%; padding: 18px 14px; border-radius: 22px; }
   body > #app > .tool-nav { margin: -18px -14px 0; padding: 0 18px; border-radius: 22px 22px 0 0; }
+  /* Seitenkopf kompakter: Titel etwas kleiner, Untertitel kleiner und enger gesetzt –
+     so beginnt der eigentliche Inhalt am Handy gut eine Fingerbreite weiter oben */
+  body > #app h1 { font-size: 1.6rem; }
+  body > #app h1 + p { font-size: 0.86rem; line-height: 1.45; }
 }

@@ -822,6 +822,11 @@
     var l = L(), sv = state.save;
     applyStatic();
 
+    // Schritt 1 und die Hilfe „Wo liegt mein Spielstand?“ werden nach dem Laden nicht mehr gebraucht –
+    // eingeklappt rutscht das Bearbeiten nach oben (am Handy sonst eine ganze Bildschirmhöhe weiter unten)
+    $('step-prepare').classList.toggle('is-folded', !!sv);
+    document.querySelector('#step-file details.where').hidden = !!sv;
+
     // Schritt 2: Datei
     $('drop').classList.toggle('is-small', !!sv);
     $('drop').querySelector('.drop-title').innerHTML = sv ? l.dropOther : l.dropTitle;

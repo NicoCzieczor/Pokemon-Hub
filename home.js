@@ -1,5 +1,5 @@
 /*
- * Startseite am PC (index.html): Weiterleitung aufs Handy-Layout, hohes Gras und wilde Pokémon in der Bühne,
+ * Startseite am PC (index.html): Weiterleitung aufs Handy-Layout, Bühne (über scene.js),
  * wechselnde Symbole (Ball, Typ), DE/EN.
  * Wird im <head> geladen, damit die Weiterleitung passiert, bevor etwas gezeichnet wird.
  * „Daten sichern/laden“ und der Theme-Knopf kommen aus pwa.js.
@@ -127,104 +127,19 @@
     el.appendChild(img);
   }
 
-  // Bühne: vier wilde Pokémon aus Sinnoh im hohen Gras – zwei hinten, zwei vorne, an den Seiten.
-  // Platin-Sprites schauen nach links; die auf der linken Seite werden gespiegelt, damit alle zur Mitte schauen.
-  function wildMons() {
-    var POOL = [387, 390, 393, 396, 399, 401, 403, 406, 417, 418, 420, 422, 425, 427, 431, 433, 436, 439, 440, 443, 447, 449, 451, 453, 459];
-    var spots = [
-      { row: 'far', left: 15, flip: true },
-      { row: 'far', left: 79, flip: false },
-      { row: 'near', left: 3, flip: true },
-      { row: 'near', left: 86, flip: false }
-    ];
-    var used = {};
-    spots.forEach(function (s, i) {
-      var id;
-      do { id = pick(POOL); } while (used[id]);
-      used[id] = true;
-      var box = document.getElementById('mons-' + s.row);
-      if (!box) return;
-      var mon = document.createElement('div');
-      mon.className = 'mon' + (s.flip ? ' is-flipped' : '');
-      mon.style.left = s.left + '%';
-      mon.style.animationDelay = (-i * 0.7) + 's';
-      var img = document.createElement('img');
-      img.src = SPR + 'pokemon/versions/generation-iv/platinum/' + id + '.png';
-      img.alt = '';
-      mon.appendChild(img);
-      box.appendChild(mon);
-    });
-  }
-
-  // Hohes Gras als Pixel-Kacheln: b = Grund, m = mittel, l = hell, o = dunkel, . = durchsichtig.
-  // Oben die Kante mit den Halmspitzen (Licht von links, wie vom Mond), darunter die ruhige Fläche.
-  var GRASS_EDGE = [
-    '................l...........l...................',
-    '................l...........l............l......',
-    '...m...........ml....m..l...l............l......',
-    '..lm..l...m.l.mml...lm..l...l...l........l...l..',
-    '..lm..l..m..l.m.l...lml..l..l...l....lm..l...l..',
-    '..lm..l..ml..lm.lm.lml...l..lm.l......l..l..l...',
-    'lm.lol.mlm.l.lm.lmolml...lmolm.l....mml.mlm.l.ml',
-    'ml.lmlmlmo..lmlmlmlmlo.m..lmlmlm...l.ml..lmlmml.',
-    'ml.lmlmlmm..lmlmlmlmlm.m..lmlmlm..molmolmlmlml.m',
-    'mollmllmmomobllmlmllmobmoblmlmlmoomoolmlmlmllmmo',
-    'mollmllmmomobllmlmllmobmoblmlmlmobmobmllmlmllmmo',
-    'bbllmllmbbbbbllmlmllmbbobolmlmlmobbbbollmlmllmbb'
-  ];
-  var GRASS_FILL = [
-    'bbbbbbbbbbbbbbbbbbbbbbbbbbbmbmbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbbbbbbbbbmbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbbbbbbbbbmbmbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbmbbbbbbbmbmbbbbbbbbbmbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbmbbbbbbbbbbbbbbbbbbbmbmbbbbbbbbbbbb',
-    'bbbbbbmbbbbbbmbmbbbbbbbbbbbbbbbbbmbmbbbbbbbbbbbb',
-    'bbbbbbmbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbmbmbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbbbbbbbbbbmbmbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbbbbbbbbbbmbmbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbbbbmbmbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbmbbbbbbbbbmbmbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbmbmbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    'bbbbbbbbbbbbbbbbbbbbbbbbbbbmbmbbbbbbbbbbbbbbbbbb'
-  ];
-  var GRASS_TONES = { b: 'g-base', m: 'g-mid', l: 'g-light', o: 'g-dark' };
-
-  // Kachel → je Farbton ein <path> aus waagrechten Pixel-Läufen (Farben setzt home.css je Ebene)
-  function tilePaths(rows) {
-    var d = {};
-    rows.forEach(function (row, y) {
-      for (var x = 0, n; x < row.length; x += n) {
-        n = 1;
-        while (row.charAt(x + n) === row.charAt(x)) n++;
-        var c = row.charAt(x);
-        if (GRASS_TONES[c]) d[c] = (d[c] || '') + 'M' + x + ' ' + y + 'h' + n + 'v1h-' + n + 'z';
-      }
-    });
-    return Object.keys(d).map(function (c) {
-      return '<path class="' + GRASS_TONES[c] + '" d="' + d[c] + '"/>';
-    }).join('');
-  }
-
-  // Hinten kleinere Pixel als vorne (Tiefe); vorne seitlich versetzt, damit die Kanten nicht übereinander liegen
-  function grass() {
-    var edge = tilePaths(GRASS_EDGE), fill = tilePaths(GRASS_FILL);
-    var w = GRASS_EDGE[0].length, eh = GRASS_EDGE.length, fh = GRASS_FILL.length;
-    [{ sel: '.grass--back', id: 'grass-back', scale: 3, shift: 0 },
-     { sel: '.grass--front', id: 'grass-front', scale: 4, shift: 18 }].forEach(function (g) {
-      var svg = document.querySelector(g.sel);
-      if (!svg) return;
-      var s = g.scale, top = eh * s, dx = g.shift * s;
-      svg.innerHTML =
-        '<defs>' +
-          '<pattern id="' + g.id + '-edge" width="' + w + '" height="' + eh + '" patternUnits="userSpaceOnUse" patternTransform="translate(' + dx + ' 0) scale(' + s + ')">' + edge + '</pattern>' +
-          '<pattern id="' + g.id + '-fill" width="' + w + '" height="' + fh + '" patternUnits="userSpaceOnUse" patternTransform="translate(' + dx + ' ' + top + ') scale(' + s + ')">' + fill + '</pattern>' +
-        '</defs>' +
-        '<rect width="100%" height="' + top + '" fill="url(#' + g.id + '-edge)"/>' +
-        '<rect y="' + top + '" width="100%" height="100%" fill="url(#' + g.id + '-fill)"/>';
-    });
+  // Bühne: vier wilde Pokémon aus Sinnoh im hohen Gras – zwei hinten, zwei vorne, an den Seiten
+  // (die linken gespiegelt, damit alle zur Mitte schauen). Gras und Pokémon baut scene.js.
+  function scene() {
+    var far = document.getElementById('mons-far'), near = document.getElementById('mons-near');
+    // Hinten kleinere Pixel als vorne (Tiefe); vorne seitlich versetzt, damit die Kanten nicht übereinander liegen
+    HubScene.grass(document.querySelector('.grass--back'), 'grass-back', 3, 0);
+    HubScene.grass(document.querySelector('.grass--front'), 'grass-front', 4, 18);
+    HubScene.wildMons([
+      { box: far, left: 15, flip: true },
+      { box: far, left: 79, flip: false },
+      { box: near, left: 3, flip: true },
+      { box: near, left: 86, flip: false }
+    ]);
   }
 
   // Das Menüfenster soll auf jedem Bildschirm gleich aussehen: immer zwei Spalten in 1180 px Breite,
@@ -248,8 +163,7 @@
   function init() {
     typeIcon();
     ballIcon();
-    grass();
-    wildMons();
+    scene();
     fitWindow();
     var fitFrame = 0;
     window.addEventListener('resize', function () {

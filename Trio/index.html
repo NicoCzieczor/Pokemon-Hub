@@ -385,6 +385,24 @@
     .type-bg-dark     { background: rgba(112,88,72,0.349); }
     .type-bg-steel    { background: rgb(175,175,175); color: #303040 !important; text-shadow: none !important; }
     .type-bg-fairy    { background: rgb(255,176,193); color: #802040 !important; text-shadow: none !important; }
+
+    /* ── HANDY: drei Teams untereinander – kompakter, damit man nicht drei Bildschirme weit scrollt ── */
+    @media (max-width: 680px) {
+      #players-row { gap: 10px; }
+      .player-panel { padding: 12px 12px 14px; gap: 10px; border-radius: 20px; }
+      .team-builder { gap: 8px; }
+      .pokemon-slot { min-height: 76px; border-radius: 14px; }
+      .info-slot { min-height: 64px; padding: 10px; font-size: 1rem; }
+      #info-panel { grid-template-columns: 1fr; gap: 12px; }
+      #info-details, #info-controls { min-height: 0; padding: 14px; }
+      #info-controls { order: -1; }
+      /* Info-Generation: Überschrift und Auswahl in einer Zeile statt einer ganzen Karte */
+      #info-controls { display: flex; align-items: center; gap: 10px; }
+      #info-controls h3 { flex: 1 1 auto; margin: 0; }
+      #info-controls .generation-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      #info-generation-select { width: auto; flex: 0 0 auto; min-width: 104px; padding: 8px 12px; }
+      .info-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
   </style>
 </head>
 <body>

@@ -1,100 +1,107 @@
-/* Alle Größen in rem: Auf Handys ist 1rem = 16px, auf Tablets wächst die Grundgröße
-   mit dem Bildschirm (Breite / 480px bzw. Höhe / 860px, das Kleinere zählt).
-   So wird die ganze Seite auf dem iPad gleichmäßig größer statt winzig in der Mitte zu stehen. */
+/*
+ * Startseite am Handy und Tablet (mobile.html) – Gegenstück zur PC-Startseite (index.html).
+ *
+ * Aufbau wie beim DS: oben die Bühne der PC-Seite im Kleinen (Himmel, Berge, hohes Gras, wilde
+ * Pokémon – Farben und Aussehen aus scene.css), unten das Menüfenster wie im Spiel, wo der Daumen
+ * hinkommt. Die Bühne füllt nur den Platz über dem Menü und ist ruhig: einmal gezeichnet, nur die
+ * Pokémon wippen leicht (wenige Stufen pro Sekunde, s. scene.css). Kein Weichzeichner.
+ *
+ * Alle Größen in rem. Die Grundgröße richtet sich nach dem Bildschirm: 16px auf einem iPhone mit
+ * 393 × 793 px (App ohne Statusleiste), auf schmaleren oder niedrigeren Geräten etwas kleiner, damit
+ * alles ohne Scrollen passt, auf dem iPad gleichmäßig größer. svh statt dvh: die Größe springt nicht,
+ * wenn Safari beim Scrollen seine Leisten ein- und ausblendet.
+ */
 html {
-  font-size: clamp(16px, min(100vw / 30, 100dvh / 53.75), 32px);
+  font-size: clamp(13px, min(100vw / 24.5, 100vh / 49.5), 32px);
+  font-size: clamp(13px, min(100vw / 24.5, 100svh / 49.5), 32px);
 }
-/* Kleine iPhones (SE u. Ä.): alles etwas kleiner, damit die Seite trotzdem ohne Scrollen passt */
-@media (max-height: 715px) and (max-width: 480px) {
-  html { font-size: 14px; }
-}
-:root {
-  --color-bg: rgb(var(--t-n-0d0f2b));
-  --color-surface: rgba(var(--t-n-191b3a), 0.92);
-  --color-text: rgb(var(--t-g-e0e8f9));
-  --color-accent: rgb(var(--t-acc));
-  --color-accent-strong: rgb(var(--t-acc2));
-  --color-muted: rgb(var(--t-g-b1b3cc));
-  --color-border: rgb(var(--t-n-303258));
-  --color-line: rgba(var(--t-ink), 0.08);
-  /* Füllt hohe Displays: wächst ab 45rem (720px) Bildschirmhöhe bis max. 9.375rem (150px).
-     Größen unten rechnen „Grundwert + --grow × Faktor“. Die Faktoren ergeben zusammen knapp 2 →
-     Inhalt wächst etwas langsamer als das Display, es entsteht nie ein Scrollbalken. */
-  --grow: clamp(0rem, (100dvh - 45rem) / 2, 9.375rem);
-}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 html {
-  min-height: 100%;
   font-family: 'Segoe UI', sans-serif;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(var(--t-acc2-glow), 0.12), transparent 30%),
-    radial-gradient(circle at 85% 80%, rgba(var(--t-acc-glow), 0.10), transparent 28%),
-    var(--color-bg);
-  color: var(--color-text);
+  color: rgb(var(--t-g-e0e8f9));
+  /* Fläche hinter dem Seitenende (Gummiband am iPhone): Farbe des Menüfensters */
+  background: rgb(var(--t-n-161838));
 }
 body {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
   min-height: 100dvh;
-  padding: max(1rem, env(safe-area-inset-top)) 1rem calc(1.25rem + env(safe-area-inset-bottom));
-}
-.hub {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  width: 100%;
-  max-width: 27.5rem;
-  margin: 0 auto;
 }
 
-/* ── KOPFZEILE ── */
+/* ══ Bühne ══ */
+.stage {
+  position: relative;
+  flex: 1 0 auto;
+  min-height: calc(8.5rem + env(safe-area-inset-top));
+  padding: max(0.875rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left));
+}
+/* Reicht unten ein Stück unter das Menüfenster, damit das Gras hinter dessen Rand weitergeht */
+.scene { position: absolute; inset: 0 0 -1.25rem; overflow: hidden; pointer-events: none; }
+.moon {
+  top: calc(max(0.875rem, env(safe-area-inset-top)) + 3.25rem);
+  right: 9%;
+  width: 1.875rem;
+  height: 1.875rem;
+  box-shadow: 0 0 1.25rem 0.375rem var(--moon-glow);
+}
+.range { position: absolute; left: 0; bottom: 3.25rem; width: 100%; height: 4.75rem; }
+
+/* Hohes Gras (Pixelgröße setzt mobile.js): hinten feiner und dunkler, vorne gröber */
+.grass--back { height: 4.5rem; }
+.grass--front { height: 3.25rem; }
+
+/* Wilde Pokémon: hinten in Originalgröße, vorne anderthalbfach – die Füße stecken im Gras */
+.mons--far .mon { bottom: 2.875rem; --bob: -1.5px; }
+.mons--far img { width: 5rem; height: 5rem; }
+.mons--near .mon { bottom: 0.375rem; --bob: -2px; }
+.mons--near img { width: 7.5rem; height: 7.5rem; }
+
+/* ── Kopfzeile über dem Himmel ── */
 .topbar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.25rem 0.25rem 0;
-  margin-bottom: calc(1.125rem + var(--grow) * 0.16);
+  max-width: 27.5rem;
+  margin: 0 auto;
 }
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-}
+.brand { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
 .logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(2.375rem + var(--grow) * 0.1);
-  height: calc(2.375rem + var(--grow) * 0.1);
+  display: grid;
+  place-items: center;
+  width: 2.375rem;
+  height: 2.375rem;
+  flex: 0 0 auto;
   border-radius: 50%;
   background: rgb(var(--t-acc));
-  border: 2px solid rgb(var(--t-acc));
   color: rgb(var(--t-on-acc));
-  flex-shrink: 0;
 }
 .logo svg { width: 58%; height: 58%; }
-h1 {
-  font-size: calc(1.5rem + var(--grow) * 0.05);
+.topbar h1 {
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: rgb(var(--t-white));
 }
-h1 span {
-  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* „Hub“ deckend in der Akzentfarbe wie am PC (theme.css hat für Papier/Graphit eine eigene Regel) */
+.topbar h1 span {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: rgb(var(--t-acc));
 }
 .lang-btn {
   height: 2rem;
   min-width: 2.75rem;
   padding: 0 0.75rem;
   border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-muted);
+  border: 1px solid rgb(var(--t-n-303258));
+  background: rgba(var(--t-n-191b3a), 0.92);
+  color: rgb(var(--t-g-b1b3cc));
   font: inherit;
   font-size: 0.72rem;
   font-weight: 800;
@@ -103,21 +110,54 @@ h1 span {
   -webkit-tap-highlight-color: transparent;
   transition: border-color 0.15s ease, color 0.15s ease;
 }
-.lang-btn:active { border-color: rgba(var(--t-acc), 0.45); color: var(--color-accent); }
+.lang-btn:active { border-color: rgb(var(--t-acc)); color: rgb(var(--t-acc)); }
+/* Theme-Knopf (pwa.js) gleich hoch wie der Sprachknopf, Symbol wächst auf dem iPad mit */
+.topbar .theme-toggle { width: 2rem; min-width: 2rem; height: 2rem; min-height: 2rem; }
+.topbar .theme-toggle svg { width: 0.9375rem; height: 0.9375rem; }
 
-/* ── KATEGORIEN ── */
-.group + .group { margin-top: calc(1rem + var(--grow) * 0.1); }
-.group-title {
-  padding: 0 0.25rem calc(0.4375rem + var(--grow) * 0.04);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  opacity: 0.8;
+/* ══ Menüfenster ══ */
+.win {
+  position: relative;
+  z-index: 1;
+  margin-top: -1.25rem;
+  /* Inhalt höchstens 27,5rem breit (Tablets), das Fenster selbst geht über die ganze Breite */
+  padding: 1.125rem max(1rem, env(safe-area-inset-right), calc((100% - 27.5rem) / 2)) calc(0.875rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left), calc((100% - 27.5rem) / 2));
+  border: 3px solid rgba(var(--t-ink), 0.16);
+  border-bottom: 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: linear-gradient(180deg, rgb(var(--t-n-262952)), rgb(var(--t-n-161838)) 20rem);
+  box-shadow: 0 -0.375rem 1.5rem rgba(var(--t-shade), 0.35);
+  overflow: hidden;
+}
+/* Doppelter Rahmen wie am PC – nur oben und an den Seiten, unten läuft das Fenster aus dem Bild */
+.win::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -2rem;
+  border-radius: calc(1.5rem - 3px) calc(1.5rem - 3px) 0 0;
+  box-shadow:
+    inset 0 0 0 5px rgba(var(--t-n-0d0f2b), 0.5),
+    inset 0 0 0 7px rgba(var(--t-acc), 0.35);
+  pointer-events: none;
 }
 
-/* ── RASTER (4 Kacheln pro Reihe wie auf dem iPhone-Homescreen) ── */
+.grp + .grp { margin-top: 0.75rem; }
+/* Gruppen-Überschrift als deckendes Schild wie am PC */
+.grp h2 {
+  width: fit-content;
+  margin: 0 0 0.4375rem 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.3125rem;
+  background: rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Kacheln ── */
 .grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -127,117 +167,111 @@ h1 span {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(0.4375rem + var(--grow) * 0.03);
+  gap: 0.25rem;
   min-width: 0;
-  padding: calc(0.6875rem + var(--grow) * 0.05) 0.125rem calc(0.5625rem + var(--grow) * 0.05);
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: calc(1rem + var(--grow) * 0.04);
+  padding: 0.4375rem 0.125rem 0.375rem;
+  border-radius: 0.875rem;
+  border: 2px solid rgba(var(--t-ink), 0.09);
+  background: rgba(var(--t-ink), 0.045);
   color: rgb(var(--t-white));
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
 }
 .tile:active {
-  transform: scale(0.95);
-  border-color: rgba(var(--t-acc2), 0.35);
-  background: rgba(var(--t-n-20244a), 0.95);
+  transform: scale(0.96);
+  border-color: rgb(var(--t-acc));
+  background: rgba(var(--t-ink), 0.08);
 }
+.tile:focus-visible { outline: none; border-color: rgb(var(--t-acc)); }
 @media (hover: hover) {
-  .tile:hover { border-color: rgba(var(--t-acc2), 0.3); }
+  .tile:hover { border-color: rgb(var(--t-acc)); background: rgba(var(--t-ink), 0.08); }
 }
-/* Inhalte in Prozent, damit sie mit dem Icon-Rahmen mitwachsen */
-.tile-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(2.625rem + var(--grow) * 0.12);
-  height: calc(2.625rem + var(--grow) * 0.12);
-  border-radius: calc(0.8125rem + var(--grow) * 0.03);
-  background: rgba(var(--t-ink), 0.06);
-  border: 1px solid rgba(var(--t-acc2), 0.22);
-  color: var(--color-accent-strong);
-  flex-shrink: 0;
-}
-.tile-icon svg { width: 52%; height: 52%; }
-.tile-icon img {
-  width: 70%; height: 70%;
-  object-fit: contain;
-  filter: drop-shadow(0 1px 3px rgba(var(--t-shade), 0.4));
-}
-#icon-pokedex img { width: 61%; height: 61%; }
-#hub-type-icon span { display: block; width: 56%; height: 56%; }
 
-/* Icons sitzen oben fest, daher bleiben sie auf einer Höhe, auch wenn ein Name umbricht */
+/* Sprite in einer dunklen Mulde wie am PC */
+.spr-box {
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: 0 0 auto;
+  border-radius: 0.75rem;
+  background: rgba(var(--t-n-0d0f2b), 0.45);
+}
+.spr-box > img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+/* Pokémon-Sprite: 80 × 80 mit viel Rand, daher größer als die Mulde */
+.spr-box > .spr--mon { width: 200%; height: 200%; margin: -50%; }
+.spr-box > .spr--smooth { width: 77%; height: 77%; image-rendering: auto; }
+/* Typen: zwei Typ-Etiketten aus Platin (48 × 16) untereinander */
+#hub-type-icon { align-content: center; gap: 2px; }
+#hub-type-icon .type-tag { display: block; width: 3rem; height: 1rem; image-rendering: pixelated; }
+
 .tile-name {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
   max-width: 100%;
   padding: 0 0.125rem;
-  font-size: calc(0.7rem + var(--grow) * 0.006);
+  overflow: hidden;
+  font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1.25;
   text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ── DATEN SICHERN / LADEN ── */
+/* ── Unten: Daten sichern / laden und Hinweise ── */
+.win-foot {
+  margin-top: 1rem;
+  padding-top: 0.875rem;
+  border-top: 2px dashed rgba(var(--t-ink), 0.12);
+}
 .data-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.625rem;
-  margin-top: calc(1rem + var(--grow) * 0.1);
+  gap: 0.5rem;
 }
 .data-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: calc(2.5rem + var(--grow) * 0.06);
+  height: 2.5rem;
   padding: 0 0.625rem;
-  border-radius: 0.875rem;
-  border: 1px solid var(--color-line);
-  background: rgba(var(--t-n-191b3a), 0.6);
-  color: var(--color-muted);
+  border-radius: 0.75rem;
+  border: 2px solid rgba(var(--t-ink), 0.1);
+  background: rgba(var(--t-ink), 0.04);
+  color: rgb(var(--t-g-e0e8f9));
   font: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.8125rem;
+  font-weight: 600;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
 }
-.data-btn:active { transform: scale(0.97); border-color: rgba(var(--t-acc2), 0.35); }
-.data-btn svg { width: 1rem; height: 1rem; color: var(--color-accent-strong); flex-shrink: 0; }
+.data-btn:active { transform: scale(0.97); border-color: rgb(var(--t-acc)); background: rgba(var(--t-ink), 0.08); }
+.data-btn svg { width: 1rem; height: 1rem; flex: 0 0 auto; color: rgb(var(--t-acc)); }
 
-/* ── FUSSZEILE (sitzt immer am unteren Rand) ── */
-footer {
+.win-notes {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.625rem;
-  margin-top: auto;
-  padding-top: calc(1.25rem + var(--grow) * 0.1);
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  color: rgb(var(--t-g-b1b3cc));
+  font-size: 0.625rem;
+  line-height: 1.35;
   text-align: center;
 }
 .ai-notice {
   display: inline-flex;
   align-items: center;
   gap: 0.3125rem;
-  padding: 0.1875rem 0.625rem;
+  padding: 0.125rem 0.625rem;
   border-radius: 999px;
   border: 1px solid rgba(var(--t-acc2), 0.22);
   background: rgba(var(--t-ink), 0.06);
-  color: var(--color-muted);
-  font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 .ai-notice svg { width: 0.625rem; height: 0.625rem; }
-.trademark {
-  text-wrap: balance;
-  font-size: 0.68rem;
-  color: var(--color-muted);
-  opacity: 0.45;
-}
+.trademark { opacity: 0.65; text-wrap: balance; }

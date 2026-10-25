@@ -3,46 +3,11 @@
  *
  * Vorne ein Menüfenster wie im Spiel (doppelter Rahmen, Knöpfe mit Item-Sprites, ▶-Zeiger beim
  * Drüberfahren). Dahinter eine kleine Bühne: Himmel, Bergkette, hohes Gras im Pixel-Stil und
- * wilde Pokémon, die im Gras stehen (home.js wählt sie zufällig).
+ * wilde Pokémon, die im Gras stehen (scene.js wählt sie zufällig).
  *
- * Die Menü-Farben kommen aus den Theme-Bausteinen (theme.css). Die Szene ist wie die Karte eine
- * Illustration mit eigenen Farben – je Design eine passende Stimmung (Klassik: Nacht,
- * Graphit: Abenddämmerung, Papier: Tag).
+ * Die Menü-Farben kommen aus den Theme-Bausteinen (theme.css). Farben und Aussehen der Bühne
+ * teilt sich der PC mit dem Handy (scene.css) – hier stehen nur Größe und Lage.
  */
-
-/* ── Farben der Szene ── */
-:root {
-  --sky-top: #0a0f2e; --sky-mid: #1a1f50; --sky-bottom: #3b2f6c;
-  --star: rgba(255, 255, 255, 0.85);
-  --moon: #f6f1d6; --moon-shade: #d9d2b0; --moon-glow: rgba(246, 241, 214, 0.28);
-  --range-far: #1f2559; --range-snow: #c7cdee; --range-near: #141a43;
-  --gb-base: #0f3a30; --gb-mid: #17503d; --gb-light: #236a4c; --gb-dark: #0a2a23;
-  --gf-base: #134f40; --gf-mid: #1c6a4d; --gf-light: #2e8a5d; --gf-dark: #0c3a2d;
-  --mon-far: brightness(0.6) saturate(0.8);
-  --mon-near: brightness(0.86) saturate(0.92);
-}
-:root[data-theme="graphite"] {
-  --sky-top: #0e0e0f; --sky-mid: #1b1a19; --sky-bottom: #3d2d1e;
-  --star: rgba(255, 238, 214, 0.7);
-  --moon: #f3e2c0; --moon-shade: #d6c39e; --moon-glow: rgba(243, 214, 160, 0.26);
-  --range-far: #27221e; --range-snow: #bdb4a6; --range-near: #1b1916;
-  --gb-base: #1f3326; --gb-mid: #2a4531; --gb-light: #385a3e; --gb-dark: #15241b;
-  --gf-base: #25402d; --gf-mid: #31553a; --gf-light: #437349; --gf-dark: #19301f;
-  --mon-far: brightness(0.58) saturate(0.7);
-  --mon-near: brightness(0.84) saturate(0.85);
-}
-:root[data-theme="paper"] {
-  --sky-top: #b9d5ec; --sky-mid: #d9e7f1; --sky-bottom: #f4e7d2;
-  --star: transparent;
-  --moon: #fff6dc; --moon-shade: #fff6dc; --moon-glow: rgba(255, 228, 160, 0.55);
-  --range-far: #a3b3c8; --range-snow: #ffffff; --range-near: #92b087;
-  --gb-base: #4e8d42; --gb-mid: #62a64f; --gb-light: #84c466; --gb-dark: #3b6e33;
-  --gf-base: #5a9f48; --gf-mid: #6fb654; --gf-light: #95d470; --gf-dark: #437c38;
-  --mon-far: brightness(0.94) saturate(0.9);
-  /* Farblich „kein Filter“ – aber nicht none: ohne Filter zeichnet Chrome das Pixel-Sprite als direktes
-     Bild und rundet das leichte Wippen auf ganze Pixel (wirkt ruckartig). saturate(1) ändert nichts. */
-  --mon-near: saturate(1);
-}
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -81,82 +46,26 @@ body {
 }
 .lang-btn:hover { border-color: rgba(var(--t-acc), 0.4); color: rgb(var(--t-acc)); }
 
-/* ══ Bühne ══ */
+/* ══ Bühne (bildschirmfüllend hinter dem Fenster) ══ */
 .scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-.sky {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(1.4px 1.4px at 7% 14%, var(--star), transparent),
-    radial-gradient(1px 1px at 15% 34%, var(--star), transparent),
-    radial-gradient(1.6px 1.6px at 23% 9%, var(--star), transparent),
-    radial-gradient(1px 1px at 31% 26%, var(--star), transparent),
-    radial-gradient(1.3px 1.3px at 38% 6%, var(--star), transparent),
-    radial-gradient(1px 1px at 44% 40%, var(--star), transparent),
-    radial-gradient(1.5px 1.5px at 52% 16%, var(--star), transparent),
-    radial-gradient(1px 1px at 58% 31%, var(--star), transparent),
-    radial-gradient(1.4px 1.4px at 64% 8%, var(--star), transparent),
-    radial-gradient(1px 1px at 70% 22%, var(--star), transparent),
-    radial-gradient(1.6px 1.6px at 77% 12%, var(--star), transparent),
-    radial-gradient(1px 1px at 83% 37%, var(--star), transparent),
-    radial-gradient(1.3px 1.3px at 89% 6%, var(--star), transparent),
-    radial-gradient(1px 1px at 95% 24%, var(--star), transparent),
-    radial-gradient(1.2px 1.2px at 4% 44%, var(--star), transparent),
-    radial-gradient(1px 1px at 27% 47%, var(--star), transparent),
-    radial-gradient(1.2px 1.2px at 61% 46%, var(--star), transparent),
-    radial-gradient(1px 1px at 92% 48%, var(--star), transparent),
-    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 42%, var(--sky-bottom) 70%);
-}
 .moon {
-  position: absolute;
   top: 9vh;
   left: 8vw;
   width: 10vh;
   height: 10vh;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 64% 34%, var(--moon-shade) 0 9%, transparent 10%),
-    radial-gradient(circle at 36% 62%, var(--moon-shade) 0 7%, transparent 8%),
-    var(--moon);
   box-shadow: 0 0 60px 22px var(--moon-glow);
 }
 .range { position: absolute; left: 0; bottom: 18vh; width: 100%; height: 40vh; }
-.range-far { fill: var(--range-far); }
-.range-snow { fill: var(--range-snow); }
-.range-near { fill: var(--range-near); }
 
-/* Hohes Gras: Pixel-Kacheln aus home.js, hinten 3-fach, vorne 4-fach vergrößert, mit harten Pixelkanten */
-.grass { position: absolute; left: 0; bottom: 0; width: 100%; shape-rendering: crispEdges; }
+/* Hohes Gras: hinten 3-fach, vorne 4-fach vergrößert (home.js) */
 .grass--back { height: 27vh; }
 .grass--front { height: 15vh; }
-.grass--back .g-base { fill: var(--gb-base); }
-.grass--back .g-mid { fill: var(--gb-mid); }
-.grass--back .g-light { fill: var(--gb-light); }
-.grass--back .g-dark { fill: var(--gb-dark); }
-.grass--front .g-base { fill: var(--gf-base); }
-.grass--front .g-mid { fill: var(--gf-mid); }
-.grass--front .g-light { fill: var(--gf-light); }
-.grass--front .g-dark { fill: var(--gf-dark); }
 
-/* Wilde Pokémon: stehen hinter der jeweils vorderen Grasreihe, unten verdeckt.
-   Sie wippen ganz leicht auf und ab (--bob). Die Bewegung ist eine Sinuskurve aus 4 × 5 winzigen
-   Stufen (je höchstens ~0,2 px): fürs Auge fließend, aber der Browser zeichnet nur ~8-mal pro Sekunde
-   neu statt mit voller Bildrate (bei 144 Hz sonst spürbar Last). */
-.mons { position: absolute; inset: 0; }
-.mon { position: absolute; animation: bob 2.6s steps(5, end) infinite alternate; }
-.mon img { display: block; image-rendering: pixelated; }
-.mon.is-flipped img { transform: scaleX(-1); }
+/* Wilde Pokémon: hinten 2-fach, vorne 3-fach groß */
 .mons--far .mon { bottom: calc(27vh - 50px); --bob: -2px; }
-.mons--far img { width: 160px; height: 160px; filter: var(--mon-far); }
+.mons--far img { width: 160px; height: 160px; }
 .mons--near .mon { bottom: calc(15vh - 80px); --bob: -3px; }
-.mons--near img { width: 240px; height: 240px; filter: var(--mon-near); }
-@keyframes bob {
-  25%  { transform: translateY(calc(var(--bob) * 0.146)); }
-  50%  { transform: translateY(calc(var(--bob) * 0.5)); }
-  75%  { transform: translateY(calc(var(--bob) * 0.854)); }
-  100% { transform: translateY(var(--bob)); }
-}
-@media (prefers-reduced-motion: reduce) { .mon { animation: none; } }
+.mons--near img { width: 240px; height: 240px; }
 
 /* ══ Menüfenster ══ */
 .win {

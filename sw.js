@@ -12,7 +12,7 @@
  * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
  * Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v26';
+const VERSION = 'v27';
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -33,6 +33,8 @@ const PRECACHE = [
   './mobile.html',
   './mobile.css',
   './mobile.js',
+  './scene.css',
+  './scene.js',
   './manifest.json',
   './pwa.js',
   './theme.css',
@@ -113,10 +115,18 @@ const PRECACHE = [
   './Randomizer/settings.rnqs',
 ];
 
-// Kleine Bilder, die die Startseite zufällig anzeigt (Bälle). Werden nebenbei mitgeladen;
-// wenn das nicht klappt, ist das egal.
+// Kleine Bilder der Startseiten (PC und Handy): Item-Sprites der Knöpfe, zufällige Bälle und Typ-Etiketten,
+// wilde Pokémon der Bühne (Liste wie in scene.js). Werden nebenbei mitgeladen, damit die Startseite auch
+// offline vollständig ist; wenn das nicht klappt, ist das egal.
+const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/';
 const BALLS = ['poke-ball','great-ball','ultra-ball','master-ball','safari-ball','net-ball','dive-ball','nest-ball','repeat-ball','timer-ball','luxury-ball','premier-ball','dusk-ball','heal-ball','quick-ball','moon-ball','dream-ball','beast-ball','friend-ball','love-ball','lure-ball','level-ball','fast-ball','heavy-ball','sport-ball','cherish-ball'];
-const WARM_IMAGES = BALLS.map(b => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${b}.png`);
+const HOME_ITEMS = ['journal','vs-recorder','rare-candy','vs-seeker','life-orb','town-map','pal-pad'];
+const WILD_MONS = [132, 387, 390, 393, 396, 399, 401, 403, 406, 417, 418, 420, 422, 425, 427, 431, 433, 436, 439, 440, 443, 447, 449, 451, 453, 459];
+const WARM_IMAGES = [
+  ...BALLS.concat(HOME_ITEMS).map(b => `${SPRITES}items/${b}.png`),
+  ...WILD_MONS.map(n => `${SPRITES}pokemon/versions/generation-iv/platinum/${n}.png`),
+  ...Array.from({ length: 17 }, (_, i) => `${SPRITES}types/generation-iv/platinum/${i + 1}.png`),
+];
 
 const IMAGE_HOSTS = new Set(['raw.githubusercontent.com', 'archives.bulbagarden.net']);
 

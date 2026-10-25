@@ -150,12 +150,12 @@
     .team-builder { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .pokemon-slot {
       position: relative;
-      aspect-ratio: 1;
+      aspect-ratio: 6 / 5; /* etwas flacher als quadratisch: Sprite + Name passen, beide Teams brauchen weniger Höhe */
       display: flex; align-items: center; justify-content: center;
       border-radius: 14px; border: 1px dashed rgba(var(--t-ink), 0.18);
       background: rgba(var(--t-ink), 0.03); cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s;
-      min-height: 82px; font-size: 0.68rem; text-align: center; color: var(--color-muted);
+      min-height: 74px; font-size: 0.68rem; text-align: center; color: var(--color-muted);
     }
     .pokemon-slot > * { pointer-events: none; }
     .pokemon-slot[data-filled] { border-style: solid; background: rgba(var(--t-ink), 0.05); }

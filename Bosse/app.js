@@ -47,7 +47,7 @@ const TEXT = {
     win: 'gewinnt', trade: 'knapp', lose: 'verliert', best: 'Beste Antwort',
     allMoves: 'Alle Attacken', yourMoves: 'Deine Attacken', theirMoves: 'Seine Attacken',
     crit: p => `Volltreffer: ${p}`, critKo: p => `mit Volltreffer ${p} % K.O.`,
-    warnTitle: 'Achtung', overCap: (p, l, c) => `${p} ist Lv. ${l} – über dem Level-Cap ${c}`,
+    warnTitle: 'Achtung', overCap: (c, list) => `Über dem Level-Cap ${c}: ${list}`,
     danger: (me, list) => `${me} fällt mit einem Treffer gegen: ${list}`,
     noThreats: 'Kein Gegner-Pokémon kann eins deiner Pokémon mit einem Treffer besiegen (ohne Volltreffer).',
     hits: (a, b) => (a === b ? `${a}×` : `${a}–${b}×`),
@@ -97,7 +97,7 @@ const TEXT = {
     win: 'wins', trade: 'close', lose: 'loses', best: 'Best answer',
     allMoves: 'All moves', yourMoves: 'Your moves', theirMoves: 'Their moves',
     crit: p => `Crit: ${p}`, critKo: p => `${p} % KO with a crit`,
-    warnTitle: 'Watch out', overCap: (p, l, c) => `${p} is Lv. ${l} – above the level cap ${c}`,
+    warnTitle: 'Watch out', overCap: (c, list) => `Above the level cap ${c}: ${list}`,
     danger: (me, list) => `${me} goes down in one hit to: ${list}`,
     noThreats: 'No enemy Pokémon can KO one of yours in a single hit (without a crit).',
     hits: (a, b) => (a === b ? `${a}×` : `${a}–${b}×`),
@@ -750,8 +750,10 @@ function renderFight() {
     .map((x, i) => `<img class="fight-sprite${i ? ' is-partner' : ''}" src="sprites/${x.c.toLowerCase()}.png" alt="" width="80" height="80">`).join('');
 
   // Hinweise: Level-Cap und Treffer, die eins deiner Pokémon sofort besiegen
+  // (alle zu hohen Pokémon in einer Zeile – sonst stand am Handy jedes einzeln untereinander)
   const warnings = [];
-  for (const m of me) if (m.level > cap) warnings.push(t.overCap(m.name, m.level, cap));
+  const over = me.filter(m => m.level > cap).map(m => `${m.name} (Lv. ${m.level})`);
+  if (over.length) warnings.push(t.overCap(cap, over.join(', ')));
   // Je eigenem Pokémon: welche Gegner es mit einem Treffer besiegen können
   const threats = me.map((m, mi) => {
     const by = duels.map(row => row[mi]).map(d => {

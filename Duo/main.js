@@ -1929,6 +1929,98 @@ document.addEventListener('langchange', async () => {
   if (infoSlot && !infoSlot.dataset.filled) infoSlot.textContent = window.t('info-slot-empty');
 });
 
+// ── Übernahme aus dem Save-Viewer ─────────────────────────────────────────────
+// Der Save-Viewer legt bei zwei verknüpften Spielständen ein Paket unter 'duo-import' ab
+// (PokeAPI-Namen; gleicher Platz = Soul-Link-Paar) und öffnet Duo. Übernommen wird erst nach
+// Rückfrage und erst, wenn alle Pokémon geladen sind – sonst bleibt Duo, wie es war.
+// Läuft nach syncRestore, damit eine verbundene Session den neuen Stand bekommt (saveState → Sync).
+const IMPORT_KEY = 'duo-import';
+const IMPORT_MAX_AGE = 15 * 60 * 1000;
+const IMPORT_TEXT = {
+  de: {
+    ask: (d, n) => `Aus dem Save-Viewer übernehmen?\n\nSpieler 1: ${d.names[0]}\nSpieler 2: ${d.names[1]}\n\n` +
+      `${n.team} Team-${n.team === 1 ? 'Paar' : 'Paare'} · ${n.box} Box-${n.box === 1 ? 'Paar' : 'Paare'} · ${n.grave} im Friedhof\n\n` +
+      'Teams, Box und Friedhof hier in Duo werden dabei ersetzt.' +
+      (syncActive ? '\nIhr seid verbunden – dein Mitspieler bekommt es direkt mit.' : ''),
+    failed: 'Übernahme abgebrochen: Nicht alle Pokémon konnten geladen werden (keine Internetverbindung?). In Duo hat sich nichts geändert – versuch es im Save-Viewer noch einmal.',
+  },
+  en: {
+    ask: (d, n) => `Import from the Save Viewer?\n\nPlayer 1: ${d.names[0]}\nPlayer 2: ${d.names[1]}\n\n` +
+      `${n.team} team ${n.team === 1 ? 'pair' : 'pairs'} · ${n.box} box ${n.box === 1 ? 'pair' : 'pairs'} · ${n.grave} in the graveyard\n\n` +
+      'This replaces the teams, box and graveyard here in Duo.' +
+      (syncActive ? '\nYou are connected – your partner gets it right away.' : ''),
+    failed: 'Import cancelled: not all Pokémon could be loaded (no internet connection?). Nothing changed in Duo – try again from the Save Viewer.',
+  },
+};
+
+function readImport() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(IMPORT_KEY) || 'null'); } catch {}
+  localStorage.removeItem(IMPORT_KEY);
+  if (!data || data.v !== 1 || !(Date.now() - data.at < IMPORT_MAX_AGE)) return null;
+  const list = (k, n) => Array.isArray(data[k]) && (!n || data[k].length === n);
+  if (!list('team1', 6) || !list('team2', 6) || !list('box1', 30) || !list('box2', 30) || !list('graves1') || !list('graves2')) return null;
+  if (data.graves1.length !== data.graves2.length || !Array.isArray(data.names)) return null;
+  return data;
+}
+
+async function applyPendingImport() {
+  const data = readImport();
+  if (!data) return;
+  const txt = IMPORT_TEXT[window.LANG] || IMPORT_TEXT.de;
+  const pairs = (a, b) => a.filter((n, i) => n && b[i]).length;
+  const count = { team: pairs(data.team1, data.team2), box: pairs(data.box1, data.box2), grave: data.graves1.length };
+  if (!confirm(txt.ask(data, count))) return;
+
+  // Erst alles laden – fehlt auch nur eins, wird nichts ersetzt
+  const names = [...new Set([...data.team1, ...data.team2, ...data.box1, ...data.box2, ...data.graves1, ...data.graves2].filter(Boolean))];
+  let loaded;
+  try {
+    const list = await Promise.all(names.map(n => fetchWithSpecies(n)));
+    loaded = new Map(names.map((n, i) => [n, list[i]]));
+  } catch (e) {
+    console.error('Übernahme fehlgeschlagen:', e);
+    alert(txt.failed);
+    return;
+  }
+  const get = n => (n ? { ...loaded.get(n) } : null);
+
+  for (let pl = 0; pl < 2; pl++) {
+    const team = data[`team${pl + 1}`], box = data[`box${pl + 1}`];
+    for (let i = 0; i < 6; i++) { teams[pl][i] = get(team[i]); renderTeamSlot(pl + 1, i, teams[pl][i]); }
+    for (let i = 0; i < 30; i++) boxes[pl][i] = get(box[i]);
+    graves[pl].length = 0;
+  }
+  linkedTeamSlots.clear();
+  data.team1.forEach((n, i) => { if (n && data.team2[i]) linkedTeamSlots.add(i); });
+  linkedBoxSlots.clear();
+  data.box1.forEach((n, i) => { if (n && data.box2[i]) linkedBoxSlots.add(i); });
+  const linkBase = Date.now();   // gleiche linkId = Paar im Friedhof (wie bei „Gestorben“)
+  data.graves1.forEach((n, i) => {
+    graves[0].push({ ...toDisplayPokemon(get(n)), killedBy: 0, linkId: linkBase + i });
+    graves[1].push({ ...toDisplayPokemon(get(data.graves2[i])), killedBy: 0, linkId: linkBase + i });
+  });
+
+  // Spielstände aus Platin → Auswahlliste und Info auf Generation 4
+  if (currentGeneration !== 4) {
+    await loadPokemonList(4);
+    const gs = document.getElementById('generation-select');
+    if (gs) gs.value = '4';
+  }
+  if (!infoGenLocked) {
+    infoGeneration = 4;
+    const igs = document.getElementById('info-generation-select');
+    if (igs) igs.value = '4';
+    renderInfoPanel();
+  }
+
+  updateBoxSlots();
+  renderGraveyard();
+  updateLinkHighlights();
+  renderTeamWeaknessPanel();
+  saveState();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   initSlots();
@@ -1942,6 +2034,7 @@ async function init() {
   renderInfoPanel();
   renderTeamWeaknessPanel();
   await syncRestore();
+  await applyPendingImport();
 }
 
 init();

@@ -876,3 +876,21 @@ section h2 {
   border-color: rgba(var(--t-acc), 0.4);
   color: var(--color-accent, rgb(var(--t-acc)));
 }
+
+/* ── HANDY: kompakter, damit die Ball-Liste nicht vier Bildschirme lang wird ── */
+@media (max-width: 600px) {
+  /* Pokémon-Karte: Sprite + Daten in einer Zeile, „Pokémon wechseln“ darunter über die ganze Breite
+     (vorher quetschte der Knopf die Daten auf ein paar Pixel zusammen und lag über der Fangrate) */
+  .poke-info { gap: 6px 12px; }
+  .poke-info-sprite { width: 72px; height: 72px; }
+  .poke-info-stats { gap: 4px 12px; font-size: 0.8rem; }
+  .poke-change-btn { flex: 1 1 100%; justify-content: center; margin-left: 0; padding: 8px 14px; }
+  /* Bälle: drei statt zwei pro Reihe, kleinere Karten */
+  #ball-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .ball-card { padding: 8px 4px 9px; gap: 3px; border-radius: 12px; }
+  .ball-card img { width: 30px; height: 30px; }
+  .ball-name { font-size: 0.68rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ball-mult { font-size: 0.68rem; }
+  .ball-prob { font-size: 1rem; }
+  .ball-bar-bg, .ball-bar-fill { border-radius: 0 0 12px 12px; }
+}

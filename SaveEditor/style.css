@@ -87,6 +87,8 @@ p { margin: 0; }
 .step-body { display: grid; gap: 12px; min-width: 0; align-content: start; }
 .step-body h2 { margin: 0; font-size: 1.15rem; padding-top: 9px; }
 .step-body > p { color: var(--color-muted); font-size: 0.93rem; }
+/* Erledigter Schritt, dessen Erklärung nicht mehr gebraucht wird: nur noch die Überschrift */
+.step.is-folded .step-body > p { display: none; }
 .step-hint { font-size: 0.9rem; }
 
 /* ── Datei-Feld ── */
@@ -269,7 +271,8 @@ details.where[open] summary::after { content: '–'; }
 .ed-mon-img { width: 80px; height: 80px; flex: 0 0 auto; image-rendering: pixelated; }
 .ed-mon-title { display: grid; gap: 3px; flex: 1 1 160px; min-width: 0; }
 .ed-mon-title b { color: rgb(var(--t-white)); font-size: 1.2rem; }
-.ed-mon-title span { color: var(--color-muted); font-size: 0.86rem; }
+/* Nur die Zeile „Lv. · im Team“ – nicht die Typ-Schilder darunter (die sind auch <span>) */
+.ed-mon-title > span { color: var(--color-muted); font-size: 0.86rem; }
 .types { display: flex; gap: 4px; flex-wrap: wrap; }
 .type {
   display: inline-flex; align-items: center; justify-content: center; padding: 2px 9px; border-radius: 999px;
@@ -401,7 +404,17 @@ details.where[open] summary::after { content: '–'; }
 }
 
 @media (max-width: 560px) {
+  .steps { gap: 10px; }
   .step { grid-template-columns: 1fr; gap: 10px; padding: 16px; }
+  .step.is-folded { padding-block: 12px; }
+  .step.is-folded .step-num { top: 10px; }
+  /* Beutel-Taschen: eine Zeile zum Wischen statt vier umgebrochener Zeilen (bis an den Rand der Karte) */
+  .ed-pockets { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+  .ed-pockets::-webkit-scrollbar { display: none; }
+  .ed-pockets .ed-chip { flex: 0 0 auto; }
+  /* Freundschaft: Regler, Zahl und „Maximum“ in einer Zeile */
+  .ed-friend { gap: 10px; }
+  .ed-friend input { flex: 1 1 100px; }
   .step-num { width: 36px; height: 36px; font-size: 1rem; position: absolute; top: 14px; left: 16px; }
   .step-body h2 { padding: 4px 0 0 48px; min-height: 36px; font-size: 1.05rem; }
   .amount { flex: 1 1 auto; min-width: 60px; padding: 10px 8px; }

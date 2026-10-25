@@ -202,6 +202,7 @@
   return {
     monKey: monKey,
     encounterLocation: encounterLocation,
+    dateNum: dateNum,
     compute: compute,
     partnerOf: partnerOf,
     link: link,

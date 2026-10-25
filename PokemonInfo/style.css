@@ -585,3 +585,22 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
   .stat-row { grid-template-columns: 80px 1fr 34px; }
   .stat-name { font-size: 0.72rem; }
 }
+
+/* ── Handy: weniger Innenabstand, Spezies-Daten zweispaltig, Formen kleiner – der Pokédex war
+   über fünf Bildschirme lang ── */
+@media (max-width: 600px) {
+  #app { gap: 12px; }
+  .card { padding: 16px 14px; border-radius: 20px; }
+  .section-kicker { margin-bottom: 10px; }
+  .details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .detail-item { padding: 9px 11px; border-radius: 12px; }
+  .detail-label { font-size: 0.66rem; margin-bottom: 3px; }
+  .detail-value { font-size: 0.9rem; }
+  #forms-content { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  #forms-content .evo-stage { min-width: 0; padding: 6px 4px; border-radius: 12px; }
+  #forms-content .evo-stage img { width: 44px; height: 44px; }
+  #forms-content .evo-stage-name { max-width: 100%; font-size: 0.68rem; }
+  .identity-layout { gap: 12px; }
+  .identity-sprite { width: 88px; height: 88px; }
+  .identity-name { font-size: 1.5rem; }
+}

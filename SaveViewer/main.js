@@ -58,23 +58,11 @@
     de: {
       'nav.home': 'Home', 'nav.run': 'Run', 'nav.team': 'Team', 'nav.trio': 'Trio', 'nav.catchrate': 'Fangrate',
       'nav.damage': 'Schaden', 'nav.types': 'Typen', 'nav.info': 'Dex', 'nav.map': 'Karte', 'nav.save': 'Save', 'nav.rules': 'Regeln',
-      'subtitle': 'Lade deinen Platin-Spielstand, sieh dir Team, Boxen und Fangorte an – und füll den Beutel auf.',
+      'subtitle': 'Lade deinen Platin-Spielstand und sieh dir Team, Boxen und Fangorte an. Ändern (Bonbons, Beutel, Geld …) geht im <a href="../SaveEditor/index.html">Save-Editor</a>.',
       'drop.title': 'Spielstand hier reinziehen oder antippen',
       'drop.sub': 'Pokémon Platin · .sav oder .dsv vom Emulator. Die Datei wird nur auf deinem Gerät gelesen und nirgendwo hochgeladen.',
       'drop.offline': '✓ Funktioniert offline',
-      'tab.team': 'Team', 'tab.boxes': 'Boxen', 'tab.encounters': 'Fangorte', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link', 'tab.bag': 'Beutel',
-      bag: {
-        pockets: ['Items', 'Basis-Items', 'TM & VM', 'Briefe', 'Medizin', 'Beeren', 'Bälle', 'Kampf-Items'],
-        candyTitle: 'Sonderbonbons', candyNone: 'noch keine', candyFull: 'Die Medizin-Tasche ist voll – entferne erst ein anderes Item.',
-        candyMax: 'Auf 999',
-        empty: 'In dieser Tasche ist nichts.', add: 'Hinzufügen', pick: 'Item wählen …', amount: 'Anzahl', remove: 'Entfernen',
-        full: 'Diese Tasche ist voll.', keyNote: 'Basis-Items lassen sich hier nur ansehen – sie hängen an Ereignissen im Spiel.',
-        changes: function (n) { return n === 0 ? 'Keine Änderungen' : n + (n === 1 ? ' Änderung' : ' Änderungen'); },
-        discard: 'Verwerfen', save: 'Spielstand speichern',
-        saveNote: 'Lädt den geänderten Spielstand herunter (gleicher Name, gleiches Format). Emulator schließen, alte Datei damit ersetzen, Spiel starten. Deine Originaldatei bleibt unverändert, bis du sie ersetzt.',
-        saved: function (f) { return 'Gespeichert als „' + f + '“ – jetzt die alte Datei im Emulator-Ordner damit ersetzen.'; },
-        failed: 'Speichern fehlgeschlagen: '
-      },
+      'tab.team': 'Team', 'tab.boxes': 'Boxen', 'tab.encounters': 'Fangorte', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link',
       'help.title': 'Wo finde ich meinen Spielstand?',
       'help.intro': 'Du brauchst den normalen Spielstand, der beim Speichern im Spiel entsteht – nicht einen Savestate des Emulators. Also vorher im Spiel speichern!',
       'help.desmume': 'Ordner <code>Battery</code>, Datei endet auf <code>.dsv</code>',
@@ -116,49 +104,61 @@
       status: { slp: 'SLF', psn: 'GIF', brn: 'BRT', frz: 'GFR', par: 'PAR', tox: 'GIF', ko: 'K.O.' },
       link: {
         sameTrainer: 'Beide Spielstände gehören demselben Trainer – für Soul Link brauchst du die Spielstände von zwei Spielern.',
-        pairs: function (n) { return n + (n === 1 ? ' Paar' : ' Paare'); },
-        check: function (n) { return n + ' zu prüfen'; },
-        solo: function (n) { return n + ' ohne Partner'; },
-        warns: function (n) { return n + (n === 1 ? ' Regelverstoß' : ' Regelverstöße'); },
-        how: 'Verknüpft automatisch nach Fangort. Gibt es an einem Ort mehrere Fänge, entscheidet das Fangdatum – solche Paare sind mit „prüfen“ markiert. Korrekturen werden auf diesem Gerät gespeichert und gelten auch für spätere Spielstände.',
+        howTitle: 'So wird verknüpft',
+        how: 'Automatisch nach Fangort. Gibt es an einem Ort mehrere Fänge, entscheidet das Fangdatum – solche Paare sind mit „prüfen“ markiert. Deine Korrekturen werden auf diesem Gerät gespeichert und gelten auch für spätere Spielstände.',
         src: { auto: 'auto', check: 'prüfen', manual: 'manuell' },
         srcTitle: { auto: 'Einziger Fang beider Spieler an diesem Ort', check: 'Mehrere Fänge am Ort – nach Fangdatum zugeordnet', manual: 'Von dir festgelegt' },
-        confirm: '✓ Passt', change: 'Ändern', unlink: 'Trennen', link: 'Verknüpfen', ignore: 'Ignorieren', restore: 'Wiederherstellen', auto: 'Automatisch',
+        confirm: '✓ Passt', change: 'Ändern', unlink: 'Trennen', link: 'Verknüpfen', ignore: 'Nicht im Run', restore: 'Zurückholen', auto: 'Automatisch',
+        pickPartner: 'Partner wählen',
         reset: 'Korrekturen zurücksetzen', resetConfirm: 'Alle manuellen Verknüpfungen und Ausnahmen für diesen Run löschen?',
-        warnTitle: 'Regelverstöße', pairsTitle: 'Paare', unpairedTitle: 'Ohne Partner', allPaired: 'Alle Pokémon haben einen Partner.',
-        ignored: function (n) { return n + ' ignoriert'; }, ignoredHint: 'Gehören nicht zum Run (z. B. VM-Sklaven) und werden nicht verknüpft.',
+        ignored: function (n) { return n + ' nicht im Run'; }, ignoredHint: 'Gehören nicht zum Run (z. B. VM-Helfer) und werden weder verknüpft noch nach Duo übernommen.',
         reasons: {
           noMatch: function (p) { return p + ' hat hier nichts'; }, extra: 'Weiterer Fang am Ort', traded: 'Getauscht',
           blocked: 'Manuell getrennt', partnerGone: 'Partner nicht mehr da', noLocation: 'Kein Fangort'
         },
         st: { team: 'Team', box: 'Box', daycare: 'Pension', dead: 'Tot', fainted: 'K.O.' },
-        wDeath: function (dead, alive, inTeam) { return dead + ' ist tot – Partner ' + alive + (inTeam ? ' ist noch im Team' : ' lebt noch'); },
-        wTeam: function (inTeam, other) { return inTeam + ' ist im Team, Partner ' + other + ' nicht'; },
-        wSolo: function (n) { return n + ' ist im Team, hat aber keinen Partner'; },
+        // Abschnitte: [Überschrift, Hinweis]
+        sec: {
+          todo: ['Zu klären', 'Erst danach kann es nach Duo.'],
+          team: ['Team', 'Gleicher Platz in Duo = Paar.'],
+          box: ['Box', ''],
+          grave: ['Friedhof', ''],
+          solo: ['Ohne Partner', 'Bleiben in Duo draußen – oder Partner wählen, falls einer fehlt.']
+        },
+        // Gruppen in „Zu klären“: [Überschrift, was zu tun ist]
+        todo: {
+          death: ['Einer tot, Partner lebt noch', 'Im Spiel den lebenden Partner in die Friedhof-Box legen und den Spielstand neu laden – oder „Ändern“, falls die Verknüpfung falsch ist.'],
+          team: ['Partner nicht im Team', 'Im Spiel beide ins Team holen (oder beide in die Box) und den Spielstand neu laden – oder „Ändern“, falls die Verknüpfung falsch ist.'],
+          solo: ['Im Team, aber ohne Partner', 'Partner wählen – oder „Nicht im Run“, wenn es nicht zum Run gehört (z. B. ein VM-Helfer).']
+        },
         pickTitle: 'Partner wählen', pickSame: 'Gleicher Fangort', pickFree: 'Ohne Partner', pickTaken: 'Schon verknüpft – wird dabei getrennt', pickNone: 'Keinen Partner',
-        partner: 'Soul-Link-Partner', noPartner: 'Kein Partner', isIgnored: 'Ignoriert – gehört nicht zum Run'
+        partner: 'Soul-Link-Partner', noPartner: 'Kein Partner', isIgnored: 'Nicht im Run',
+        duo: {
+          ready: 'Alles passt – bereit für Duo.',
+          blocked: function (n) { return (n === 1 ? '1 Sache' : n + ' Sachen') + ' unten zu klären, dann kann es nach Duo.'; },
+          team: function (n) { return n + (n === 1 ? ' Team-Paar' : ' Team-Paare'); },
+          box: function (n) { return n + (n === 1 ? ' Box-Paar' : ' Box-Paare'); },
+          grave: function (n) { return n + ' im Friedhof'; },
+          solo: function (n) { return n + ' ohne Partner'; },
+          p1: 'Spieler 1', p2: 'Spieler 2', swap: '⇄ Tauschen', swapTitle: 'Wer in Duo Spieler 1 ist',
+          go: 'In Duo übernehmen →',
+          note: 'Ersetzt in Duo Teams, Box und Friedhof. Seid ihr in Duo verbunden, bekommt dein Mitspieler es gleich mit.',
+          soloNote: function (n) { return n + (n === 1 ? ' Pokémon ohne Partner bleibt' : ' Pokémon ohne Partner bleiben') + ' draußen.'; },
+          checkNote: function (n) { return n + (n === 1 ? ' Paar wurde' : ' Paare wurden') + ' nach Fangdatum zugeordnet – kurz prüfen.'; },
+          eggs: function (n) { return n + (n === 1 ? ' Ei wird' : ' Eier werden') + ' übersprungen.'; },
+          pBox: function (n, max) { return n + ' Box-Paare – Duo hat nur ' + max + ' Plätze.'; },
+          pName: function (n) { return n + ' Pokémon, die Duo nicht kennt.'; }
+        }
       }
     },
     en: {
       'nav.home': 'Home', 'nav.run': 'Run', 'nav.team': 'Team', 'nav.trio': 'Trio', 'nav.catchrate': 'Catch Rate',
       'nav.damage': 'Damage', 'nav.types': 'Types', 'nav.info': 'Dex', 'nav.map': 'Map', 'nav.save': 'Save', 'nav.rules': 'Rules',
-      'subtitle': 'Load your Platinum save file, browse your team, boxes and catch locations – and top up your bag.',
+      'subtitle': 'Load your Platinum save file and browse your team, boxes and catch locations. To change things (candies, bag, money …) use the <a href="../SaveEditor/index.html">Save Editor</a>.',
       'drop.title': 'Drop your save file here or tap',
       'drop.sub': 'Pokémon Platinum · .sav or .dsv from your emulator. The file is only read on your device and never uploaded.',
       'drop.offline': '✓ Works offline',
-      'tab.team': 'Team', 'tab.boxes': 'Boxes', 'tab.encounters': 'Encounters', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link', 'tab.bag': 'Bag',
-      bag: {
-        pockets: ['Items', 'Key Items', 'TMs & HMs', 'Mail', 'Medicine', 'Berries', 'Poké Balls', 'Battle Items'],
-        candyTitle: 'Rare Candies', candyNone: 'none yet', candyFull: 'The Medicine pocket is full – remove another item first.',
-        candyMax: 'Set to 999',
-        empty: 'This pocket is empty.', add: 'Add', pick: 'Choose item …', amount: 'Amount', remove: 'Remove',
-        full: 'This pocket is full.', keyNote: 'Key items are view-only here – they are tied to in-game events.',
-        changes: function (n) { return n === 0 ? 'No changes' : n + (n === 1 ? ' change' : ' changes'); },
-        discard: 'Discard', save: 'Save file',
-        saveNote: 'Downloads the edited save (same name, same format). Close the emulator, replace the old file with it, start the game. Your original file stays untouched until you replace it.',
-        saved: function (f) { return 'Saved as “' + f + '” – now replace the old file in your emulator folder with it.'; },
-        failed: 'Saving failed: '
-      },
+      'tab.team': 'Team', 'tab.boxes': 'Boxes', 'tab.encounters': 'Encounters', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link',
       'help.title': 'Where do I find my save file?',
       'help.intro': 'You need the regular save file the game writes when you save in-game – not an emulator save state. So save in the game first!',
       'help.desmume': 'Folder <code>Battery</code>, file ends with <code>.dsv</code>',
@@ -200,27 +200,51 @@
       status: { slp: 'SLP', psn: 'PSN', brn: 'BRN', frz: 'FRZ', par: 'PAR', tox: 'TOX', ko: 'FNT' },
       link: {
         sameTrainer: 'Both saves belong to the same trainer – Soul Link needs the saves of two players.',
-        pairs: function (n) { return n + (n === 1 ? ' pair' : ' pairs'); },
-        check: function (n) { return n + ' to check'; },
-        solo: function (n) { return n + ' without partner'; },
-        warns: function (n) { return n + (n === 1 ? ' rule break' : ' rule breaks'); },
-        how: 'Linked automatically by catch location. If there are several catches at one location, the catch date decides – those pairs are marked “check”. Corrections are stored on this device and also apply to later saves.',
+        howTitle: 'How linking works',
+        how: 'Automatically by catch location. If there are several catches at one location, the catch date decides – those pairs are marked “check”. Your corrections are stored on this device and also apply to later saves.',
         src: { auto: 'auto', check: 'check', manual: 'manual' },
         srcTitle: { auto: 'Only catch of both players at this location', check: 'Several catches here – matched by catch date', manual: 'Set by you' },
-        confirm: '✓ Correct', change: 'Change', unlink: 'Unlink', link: 'Link', ignore: 'Ignore', restore: 'Restore', auto: 'Automatic',
+        confirm: '✓ Correct', change: 'Change', unlink: 'Unlink', link: 'Link', ignore: 'Not in run', restore: 'Bring back', auto: 'Automatic',
+        pickPartner: 'Choose partner',
         reset: 'Reset corrections', resetConfirm: 'Delete all manual links and exceptions for this run?',
-        warnTitle: 'Rule breaks', pairsTitle: 'Pairs', unpairedTitle: 'Without partner', allPaired: 'Every Pokémon has a partner.',
-        ignored: function (n) { return n + ' ignored'; }, ignoredHint: 'Not part of the run (e.g. HM slaves) and never linked.',
+        ignored: function (n) { return n + ' not in run'; }, ignoredHint: 'Not part of the run (e.g. HM helpers) – never linked and not sent to Duo.',
         reasons: {
           noMatch: function (p) { return p + ' has nothing here'; }, extra: 'Extra catch here', traded: 'Traded',
           blocked: 'Unlinked manually', partnerGone: 'Partner no longer there', noLocation: 'No location'
         },
         st: { team: 'Team', box: 'Box', daycare: 'Day Care', dead: 'Dead', fainted: 'Fainted' },
-        wDeath: function (dead, alive, inTeam) { return dead + ' is dead – partner ' + alive + (inTeam ? ' is still in the team' : ' is still alive'); },
-        wTeam: function (inTeam, other) { return inTeam + ' is in the team, partner ' + other + ' is not'; },
-        wSolo: function (n) { return n + ' is in the team but has no partner'; },
+        // Sections: [heading, hint]
+        sec: {
+          todo: ['To sort out', 'Needed before sending to Duo.'],
+          team: ['Team', 'Same slot in Duo = pair.'],
+          box: ['Box', ''],
+          grave: ['Graveyard', ''],
+          solo: ['Without partner', 'Stay out of Duo – or choose a partner if one is missing.']
+        },
+        // Groups in “To sort out”: [heading, what to do]
+        todo: {
+          death: ['One dead, partner still alive', 'Move the living partner to the graveyard box in the game and reload the save – or “Change” if the link is wrong.'],
+          team: ['Partner not in the team', 'Put both in the team (or both in the box) in the game and reload the save – or “Change” if the link is wrong.'],
+          solo: ['In the team but without partner', 'Choose a partner – or “Not in run” if it is not part of the run (e.g. an HM helper).']
+        },
         pickTitle: 'Choose partner', pickSame: 'Same location', pickFree: 'Without partner', pickTaken: 'Already linked – will be unlinked', pickNone: 'No partner',
-        partner: 'Soul Link partner', noPartner: 'No partner', isIgnored: 'Ignored – not part of the run'
+        partner: 'Soul Link partner', noPartner: 'No partner', isIgnored: 'Not in run',
+        duo: {
+          ready: 'Everything fits – ready for Duo.',
+          blocked: function (n) { return (n === 1 ? '1 thing' : n + ' things') + ' to sort out below, then it can go to Duo.'; },
+          team: function (n) { return n + (n === 1 ? ' team pair' : ' team pairs'); },
+          box: function (n) { return n + (n === 1 ? ' box pair' : ' box pairs'); },
+          grave: function (n) { return n + ' in the graveyard'; },
+          solo: function (n) { return n + ' without partner'; },
+          p1: 'Player 1', p2: 'Player 2', swap: '⇄ Swap', swapTitle: 'Who is player 1 in Duo',
+          go: 'Send to Duo →',
+          note: 'Replaces the teams, box and graveyard in Duo. If you are connected in Duo, your partner gets it right away.',
+          soloNote: function (n) { return n + ' Pokémon without partner ' + (n === 1 ? 'stays' : 'stay') + ' out.'; },
+          checkNote: function (n) { return n + (n === 1 ? ' pair was' : ' pairs were') + ' matched by catch date – give it a quick check.'; },
+          eggs: function (n) { return n + (n === 1 ? ' egg is' : ' eggs are') + ' skipped.'; },
+          pBox: function (n, max) { return n + ' box pairs – Duo only has ' + max + ' slots.'; },
+          pName: function (n) { return n + ' Pokémon Duo does not know.'; }
+        }
       }
     }
   };
@@ -228,7 +252,7 @@
   /* ── Zustand ───────────────────────────────────────────────────── */
   var lang = 'de';
   try { lang = localStorage.getItem('hub-lang') === 'en' ? 'en' : 'de'; } catch (e) {}
-  var state = { saves: [], active: 0, tab: 'team', dexMode: 'sinnoh', search: '', pendingSlot: null, link: null, bag: null };
+  var state = { saves: [], active: 0, tab: 'team', dexMode: 'sinnoh', search: '', pendingSlot: null, link: null };
 
   var $ = function (id) { return document.getElementById(id); };
   function L() { return I18N[lang]; }
@@ -535,10 +559,9 @@
       boxes: boxCount(data),
       encounters: encounterGroups(cur()).groups.length,
       dex: (state.dexMode === 'sinnoh' ? data.dex.sinnohCaught : data.dex.caught.length),
-      link: state.link && state.link.ok ? state.link.result.pairs.length : '–',
-      bag: bagDraft().pockets.reduce(function (n, p) { return n + p.length; }, 0)
+      link: state.link && state.link.ok ? state.link.result.pairs.length : '–'
     };
-    $('tabs').style.setProperty('--n', two ? 6 : 5);
+    $('tabs').style.setProperty('--n', two ? 5 : 4);
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
       var k = b.dataset.tab;
       b.hidden = k === 'link' && !two;
@@ -554,142 +577,7 @@
     else if (state.tab === 'boxes') p.innerHTML = boxesHtml();
     else if (state.tab === 'encounters') p.innerHTML = encountersHtml();
     else if (state.tab === 'link') p.innerHTML = linkHtml();
-    else if (state.tab === 'bag') p.innerHTML = bagHtml();
     else p.innerHTML = dexHtml();
-  }
-
-  /* Beutel (bearbeiten, z. B. Sonderbonbons) – Lesen/Schreiben in pt-bag.js */
-  // Entwurf für den aktiven Spielstand; wird beim Wechsel des Spielstands neu angelegt
-  function bagDraft() {
-    var sv = cur();
-    var key = sv.slot + ':' + sv.loadedAt;
-    if (!state.bag || state.bag.key !== key) {
-      var orig = PtBag.read(sv.bytes) || PtBag.POCKETS.map(function () { return []; });
-      state.bag = {
-        key: key,
-        orig: JSON.stringify(orig),
-        pockets: orig.map(function (l) { return l.map(function (e) { return { id: e.id, count: e.count }; }); }),
-        pocket: state.bag ? state.bag.pocket : 4,
-        message: null
-      };
-    }
-    return state.bag;
-  }
-  // Anzahl geänderter Einträge (neu, entfernt oder andere Anzahl)
-  function bagChanges(d) {
-    var orig = JSON.parse(d.orig), n = 0;
-    d.pockets.forEach(function (list, pi) {
-      var before = {};
-      orig[pi].forEach(function (e) { before[e.id] = e.count; });
-      list.forEach(function (e) { if (before[e.id] !== e.count) n++; delete before[e.id]; });
-      n += Object.keys(before).length;
-    });
-    return n;
-  }
-  function bagHtml() {
-    var d = bagDraft(), l = L().bag, t = T();
-    var P = PtBag.POCKETS;
-    var med = d.pockets[4];
-    var candy = med.filter(function (e) { return e.id === PtBag.RARE_CANDY; })[0];
-    var candyFull = !candy && med.length >= P[4].slots;
-    var quick = '<div class="card bag-candy">' + itemImg(PtBag.RARE_CANDY, 'bag-candy-img') +
-      '<div class="bag-candy-txt"><b>' + esc(l.candyTitle) + '</b><span>' + (candy ? '× ' + num(candy.count) : esc(l.candyNone)) + '</span></div>' +
-      '<div class="bag-candy-btns">' + [10, 50, 100].map(function (n) {
-        return '<button type="button" class="ghost-btn" data-act="bag-candy" data-n="' + n + '"' + (candyFull ? ' disabled' : '') + '>+' + n + '</button>';
-      }).join('') + '<button type="button" class="ghost-btn is-strong" data-act="bag-candy" data-n="max"' + (candyFull ? ' disabled' : '') + '>' + esc(l.candyMax) + '</button></div>' +
-      (candyFull ? '<p class="bag-hint">' + esc(l.candyFull) + '</p>' : '') + '</div>';
-
-    var chips = '<div class="bag-pockets" role="tablist">' + P.map(function (p, i) {
-      return '<button type="button" class="bag-pocket' + (i === d.pocket ? ' is-active' : '') + '" data-act="bag-pocket" data-p="' + i + '">' +
-        esc(l.pockets[i]) + ' <span class="count">' + d.pockets[i].length + '</span></button>';
-    }).join('') + '</div>';
-
-    var pi = d.pocket, list = d.pockets[pi], max = P[pi].max, readOnly = pi === 1;
-    var rows = list.length ? list.map(function (e, i) {
-      return '<div class="bag-row">' + itemImg(e.id, 'bag-img') + '<span class="bag-name">' + esc(t.items[e.id] || ('#' + e.id)) + '</span>' +
-        (readOnly ? '<span class="bag-qty-ro">× ' + e.count + '</span>'
-          : '<input type="number" class="bag-qty" min="1" max="' + max + '" value="' + e.count + '" data-bag-i="' + i + '" aria-label="' + esc(l.amount) + '">' +
-            '<button type="button" class="bag-x" data-act="bag-remove" data-i="' + i + '" aria-label="' + esc(l.remove) + '" title="' + esc(l.remove) + '">×</button>') +
-        '</div>';
-    }).join('') : '<p class="muted bag-empty">' + esc(l.empty) + '</p>';
-
-    var add = '';
-    if (readOnly) add = '<p class="bag-hint">' + esc(l.keyNote) + '</p>';
-    else if (list.length >= P[pi].slots) add = '<p class="bag-hint">' + esc(l.full) + '</p>';
-    else {
-      var have = {};
-      list.forEach(function (e) { have[e.id] = true; });
-      var opts = PtBag.itemsOf(pi).filter(function (id) { return !have[id] && t.items[id]; })
-        .map(function (id) { return { id: id, name: t.items[id] }; })
-        .sort(function (a, b) { return pi === 2 ? a.id - b.id : a.name.localeCompare(b.name, lang); })
-        .map(function (o) { return '<option value="' + o.id + '">' + esc(o.name) + '</option>'; }).join('');
-      add = '<div class="bag-add"><select id="bag-add-item"><option value="">' + esc(l.pick) + '</option>' + opts + '</select>' +
-        '<input type="number" id="bag-add-qty" min="1" max="' + max + '" value="1" aria-label="' + esc(l.amount) + '">' +
-        '<button type="button" class="ghost-btn" data-act="bag-add">' + esc(l.add) + '</button></div>';
-    }
-
-    var n = bagChanges(d);
-    var foot = '<div class="card bag-save">' +
-      '<div class="bag-save-row"><span class="bag-changes" id="bag-changes">' + esc(l.changes(n)) + '</span>' +
-      '<button type="button" class="ghost-btn" data-act="bag-reset"' + (n ? '' : ' disabled') + '>' + esc(l.discard) + '</button>' +
-      '<button type="button" class="ghost-btn is-strong" data-act="bag-save" id="bag-save"' + (n ? '' : ' disabled') + '>' + esc(l.save) + '</button></div>' +
-      (d.message ? '<p class="bag-msg' + (d.message.error ? ' is-error' : '') + '">' + esc(d.message.text) + '</p>' : '<p class="bag-hint">' + esc(l.saveNote) + '</p>') +
-      '</div>';
-
-    return '<div class="bag">' + quick + chips + '<div class="card bag-list">' + rows + add + '</div>' + foot + '</div>';
-  }
-  function bagAction(act, ds) {
-    var d = bagDraft(), P = PtBag.POCKETS;
-    d.message = null;
-    if (act === 'bag-pocket') d.pocket = +ds.p;
-    else if (act === 'bag-candy') {
-      var med = d.pockets[4];
-      var e = med.filter(function (x) { return x.id === PtBag.RARE_CANDY; })[0];
-      if (!e) {
-        if (med.length >= P[4].slots) return;
-        e = { id: PtBag.RARE_CANDY, count: 0 };
-        med.push(e);
-      }
-      e.count = ds.n === 'max' ? P[4].max : Math.min(P[4].max, e.count + (+ds.n));
-    } else if (act === 'bag-remove') d.pockets[d.pocket].splice(+ds.i, 1);
-    else if (act === 'bag-add') {
-      var id = +($('bag-add-item') || {}).value;
-      var qty = Math.round(+($('bag-add-qty') || {}).value) || 1;
-      if (!id) return;
-      d.pockets[d.pocket].push({ id: id, count: Math.max(1, Math.min(P[d.pocket].max, qty)) });
-    } else if (act === 'bag-reset') state.bag = null;
-    else if (act === 'bag-save') { saveBag(); return; }
-    renderTabs();
-    renderPanel();
-  }
-  // Geänderte Datei schreiben, im Viewer übernehmen und herunterladen
-  function saveBag() {
-    var sv = cur(), d = bagDraft(), l = L().bag;
-    try {
-      var out = PtBag.write(sv.bytes, d.pockets);
-      var rec = { slot: sv.slot, fileName: sv.fileName, loadedAt: Date.now(), bytes: out.buffer };
-      var nsv = makeSave(rec);
-      if (nsv.error) throw new Error(errorText(nsv.error));
-      nsv.box = sv.box;
-      nsv.grave = sv.grave;
-      state.saves[state.active] = nsv;
-      Store.put(rec);
-      downloadFile(out, sv.fileName);
-      state.bag = null;
-      bagDraft().message = { text: l.saved(sv.fileName) };
-    } catch (err) {
-      d.message = { text: l.failed + err.message, error: true };
-    }
-    render();
-  }
-  function downloadFile(bytes, name) {
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
-    a.download = name;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   }
 
   /* Team */
@@ -968,7 +856,6 @@
     return '<span class="src src--' + k + '" title="' + esc(l.srcTitle[k]) + '">' + l.src[k] + '</span>';
   }
   function trName(i) { return state.saves[i].data.trainer.name || ('#' + (i + 1)); }
-  function whoName(e, i) { return monName(e.m) + ' (' + trName(i) + ')'; }
 
   function lchip(e, saveIdx, extraCls) {
     var m = e.m, l = L();
@@ -1008,89 +895,220 @@
     return typeof r === 'function' ? r(trName(1 - side)) : r;
   }
 
+  /* ── Übersicht ─────────────────────────────────────────────────── */
+  // Aufgebaut wie Duo: Spieler 1 links, Spieler 2 rechts; Abschnitte Zu klären → Team → Box → Friedhof →
+  // Ohne Partner. Jedes Pokémon steht genau einmal da. Die Übernahme nach Duo blockieren nur Regelverstöße
+  // (sie betreffen Team und Friedhof) – Partnerlose außerhalb des Teams bleiben in Duo einfach draußen.
   function linkHtml() {
     var l = L().link, ll = state.link;
     if (!ll) return '';
     if (!ll.ok) return '<div class="notice">' + esc(l.sameTrainer) + '</div>';
-    var r = ll.result;
-    var nCheck = r.pairs.filter(function (p) { return srcKey(p) === 'check'; }).length;
-    var nSolo = r.unpairedA.length + r.unpairedB.length;
+    var plan = duoPlan(), rows = plan.rows, o = plan.order;
+    var head = '<div class="lk-head"><span></span><span>' + esc(trName(o[0])) + '</span><span></span><span>' + esc(trName(o[1])) + '</span><span></span></div>';
+    var lists = ['todo', 'team', 'box', 'grave', 'solo'].map(function (k) { return sectionHtml(k, rows[k], plan); }).join('');
+    return statusCard(plan) + (lists ? head + lists : '') + ignoredHtml();
+  }
 
-    var head = '<div class="card sl-head">' +
-      '<div class="sl-players"><span>' + esc(trName(0)) + '</span><span class="pair-link is-ok">' + CHAIN + '</span><span>' + esc(trName(1)) + '</span></div>' +
-      '<div class="sl-stats"><span class="pill pill--ok">' + l.pairs(r.pairs.length) + '</span>' +
-      (nCheck ? '<span class="pill pill--check">' + l.check(nCheck) + '</span>' : '') +
-      (nSolo ? '<span class="pill">' + l.solo(nSolo) + '</span>' : '') +
-      (r.warnings.length ? '<span class="pill pill--bad">' + l.warns(r.warnings.length) + '</span>' : '') + '</div>' +
-      '<p class="sl-how">' + esc(l.how) + '</p>' +
+  function statusCard(plan) {
+    var l = L().link, d = l.duo, o = plan.order, rows = plan.rows;
+    var pills = '<div class="sl-stats">' +
+      '<span class="pill pill--ok">' + d.team(rows.team.length) + '</span>' +
+      (rows.box.length ? '<span class="pill">' + d.box(rows.box.length) + '</span>' : '') +
+      (rows.grave.length ? '<span class="pill">' + d.grave(rows.grave.length) + '</span>' : '') +
+      (rows.solo.length ? '<span class="pill">' + d.solo(rows.solo.length) + '</span>' : '') + '</div>';
+    var notes = [];
+    if (plan.solo) notes.push(d.soloNote(plan.solo));
+    if (plan.check) notes.push(d.checkNote(plan.check));
+    if (plan.eggs) notes.push(d.eggs(plan.eggs));
+    var status = plan.ok
+      ? '<p class="lk-status-msg is-ok">✓ ' + esc(d.ready) + '</p>'
+      : '<p class="lk-status-msg is-bad">' + plan.problems.map(esc).join(' ') + '</p>';
+    return '<div class="card lk-status' + (plan.ok ? ' is-ready' : '') + '">' +
+      '<div class="lk-top">' +
+        '<div class="lk-players"><span><small>' + d.p1 + '</small><b>' + esc(trName(o[0])) + '</b></span>' +
+          '<span class="pair-link is-ok">' + CHAIN + '</span>' +
+          '<span><small>' + d.p2 + '</small><b>' + esc(trName(o[1])) + '</b></span></div>' +
+        '<button type="button" class="mini-btn" data-act="duo-swap" title="' + esc(d.swapTitle) + '">' + d.swap + '</button>' +
+      '</div>' + pills + status +
+      (notes.length ? '<p class="lk-notes">' + notes.map(esc).join(' ') + '</p>' : '') +
+      '<div class="lk-go"><button type="button" class="duo-go" data-act="duo-go"' + (plan.ok ? '' : ' disabled') + '>' + esc(d.go) + '</button>' +
+        '<span class="duo-note">' + esc(d.note) + '</span></div>' +
       '<div class="sl-tools">' + [0, 1].map(function (i) {
-        return '<div class="sl-grave"><b>' + esc(trName(i)) + '</b>' + graveSelect(state.saves[i], i) + '</div>';
+        return '<div class="sl-grave"><b>' + esc(trName(o[i])) + '</b>' + graveSelect(state.saves[o[i]], o[i]) + '</div>';
       }).join('') +
-      (Object.keys(getPins()).length ? '<button type="button" class="mini-btn" data-act="lreset">' + l.reset + '</button>' : '') + '</div></div>';
+      (Object.keys(getPins()).length ? '<button type="button" class="mini-btn" data-act="lreset">' + l.reset + '</button>' : '') + '</div>' +
+      '<details class="lk-how"><summary>' + esc(l.howTitle) + '</summary><p>' + esc(l.how) + '</p></details>' +
+    '</div>';
+  }
 
-    var warns = '';
-    if (r.warnings.length) {
-      warns = '<div class="subhead"><h3>' + l.warnTitle + '</h3></div><div class="slw-list">' + r.warnings.map(function (w) {
-        var text, target, side;
-        if (w.type === 'death') {
-          var dead = w.dead === 'a' ? w.pair.a : w.pair.b, alive = w.dead === 'a' ? w.pair.b : w.pair.a;
-          var ds = w.dead === 'a' ? 0 : 1;
-          text = l.wDeath(whoName(dead, ds), whoName(alive, 1 - ds), alive.status === 'team');
-          target = alive; side = 1 - ds;
-        } else if (w.type === 'team') {
-          var inT = w.inTeam === 'a' ? w.pair.a : w.pair.b, oth = w.inTeam === 'a' ? w.pair.b : w.pair.a;
-          var ts = w.inTeam === 'a' ? 0 : 1;
-          text = l.wTeam(whoName(inT, ts), whoName(oth, 1 - ts));
-          target = inT; side = ts;
-        } else {
-          side = w.side === 'a' ? 0 : 1;
-          text = l.wSolo(whoName(w.e, side));
-          target = w.e;
-        }
-        var icon = w.type === 'death' ? '✝' : w.type === 'team' ? '⇅' : '⚠';
-        return '<button type="button" class="slw slw--' + w.type + '" data-mon="' + ref(side, target.m.where) + '"><span class="slw-i">' + icon + '</span>' + iconTag(target.m) + '<span>' + esc(text) + '</span></button>';
-      }).join('') + '</div>';
+  function sectionHtml(key, rows, plan) {
+    if (!rows.length) return '';
+    var l = L().link, s = l.sec[key];
+    var list = function (rs) { return '<div class="lk-list">' + rs.map(function (row) { return rowHtml(row, plan); }).join('') + '</div>'; };
+    var body = list(rows);
+    // Zu klären: nach Art des Problems gruppiert, der Hinweis steht einmal pro Gruppe
+    if (key === 'todo') {
+      body = ['death', 'team', 'solo'].map(function (why) {
+        var rs = rows.filter(function (row) { return row.why === why; });
+        if (!rs.length) return '';
+        var g = l.todo[why];
+        return '<div class="lk-group"><b>' + esc(g[0]) + ' <span class="lk-count">' + rs.length + '</span></b><span>' + esc(g[1]) + '</span></div>' + list(rs);
+      }).join('');
     }
+    return '<div class="subhead lk-sub lk-sub--' + key + '"><h3>' + esc(s[0]) + ' <span class="lk-count">' + rows.length + '</span></h3>' +
+      (s[1] ? '<span class="lk-subnote">' + esc(s[1]) + '</span>' : '') + '</div>' + body;
+  }
 
-    var pairs = '<div class="subhead"><h3>' + l.pairsTitle + '</h3></div>' +
-      '<div class="pair-head"><span>' + esc(L().location) + '</span><span>' + esc(trName(0)) + '</span><span></span><span>' + esc(trName(1)) + '</span><span></span></div>' +
-      '<div class="pair-list">' + r.pairs.map(function (p) {
-        var st = pairState(p), k = srcKey(p);
-        return '<div class="pair is-' + st + '">' +
-          '<div class="pair-loc"><b>' + esc(locName(p.loc)) + '</b>' + srcBadge(p) + '</div>' +
-          '<div class="pair-a">' + lchip(p.a, 0) + '</div>' +
-          '<div class="pair-link is-' + st + '">' + CHAIN + '</div>' +
-          '<div class="pair-b">' + lchip(p.b, 1) + '</div>' +
-          '<div class="pair-act">' +
-          (k === 'check' ? '<button type="button" class="mini-btn mini-btn--primary" data-act="lconfirm" data-a="' + p.a.key + '" data-b="' + p.b.key + '">' + l.confirm + '</button>' : '') +
-          '<button type="button" class="mini-btn" data-act="lpick" data-side="0" data-k="' + p.a.key + '">' + l.change + '</button>' +
-          '<button type="button" class="mini-btn" data-act="lunlink" data-a="' + p.a.key + '" data-b="' + p.b.key + '">' + l.unlink + '</button>' +
-          '</div></div>';
-      }).join('') + '</div>';
-
-    function unpCol(list, side) {
-      return '<div class="unp-col"><h4>' + esc(trName(side)) + '</h4>' + (list.length ? list.map(function (u) {
-        var key = u.e.key;
-        var manual = u.reason === 'blocked' || u.reason === 'partnerGone';
-        return '<div class="unp">' + lchip(u.e, side) +
-          '<span class="unp-why">' + esc(locName(SoulLink.encounterLocation(u.e.m))) + ' · ' + esc(reasonText(u, side)) + '</span>' +
-          '<span class="unp-act"><button type="button" class="mini-btn mini-btn--primary" data-act="lpick" data-side="' + side + '" data-k="' + key + '">' + l.link + '</button>' +
-          (manual ? '<button type="button" class="mini-btn" data-act="lrestore" data-k="' + key + '">' + l.auto + '</button>' : '') +
-          '<button type="button" class="mini-btn" data-act="lignore" data-k="' + key + '">' + l.ignore + '</button></span></div>';
-      }).join('') : '<p class="muted" style="font-size:0.85rem">—</p>') + '</div>';
+  // Eine Zeile = ein Paar oder ein Pokémon ohne Partner. Wo der Partner fehlt, ist der leere Platz selbst
+  // der Knopf zum Auswählen.
+  function rowHtml(row, plan) {
+    var l = L().link, o = plan.order, a, b, acts = '', badge = '', link;
+    if (row.pair) {
+      var p = row.pair, k = srcKey(p), left = plan.side(p, 0), right = plan.side(p, 1);
+      a = lchip(left, o[0]);
+      b = lchip(right, o[1]);
+      if (k === 'check') {
+        badge = srcBadge(p);
+        acts += '<button type="button" class="mini-btn mini-btn--primary" data-act="lconfirm" data-a="' + p.a.key + '" data-b="' + p.b.key + '">' + l.confirm + '</button>';
+      }
+      acts += '<button type="button" class="mini-btn" data-act="lpick" data-side="' + o[0] + '" data-k="' + left.key + '">' + l.change + '</button>';
+      link = '<span class="pair-link is-' + row.st + '">' + CHAIN + '</span>';
+    } else {
+      var u = row.solo, e = u.e, manual = u.reason === 'blocked' || u.reason === 'partnerGone';
+      var mine = lchip(e, row.save);
+      var empty = '<button type="button" class="lk-empty" data-act="lpick" data-side="' + row.save + '" data-k="' + e.key + '">' +
+        '<span>+ ' + esc(l.pickPartner) + '</span><small>' + esc(reasonText(u, row.save)) + '</small></button>';
+      a = row.save === o[0] ? mine : empty;
+      b = row.save === o[0] ? empty : mine;
+      if (manual) acts += '<button type="button" class="mini-btn" data-act="lrestore" data-k="' + e.key + '">' + l.auto + '</button>';
+      acts += '<button type="button" class="mini-btn" data-act="lignore" data-k="' + e.key + '">' + l.ignore + '</button>';
+      link = '<span class="pair-link is-none">' + BROKEN + '</span>';
     }
-    var unpaired = '<div class="subhead"><h3>' + l.unpairedTitle + '</h3></div>' +
-      (nSolo ? '<div class="unp-grid">' + unpCol(r.unpairedA, 0) + unpCol(r.unpairedB, 1) + '</div>' : '<p class="muted">' + l.allPaired + '</p>');
+    return '<div class="lk-row is-' + row.st + '">' +
+      '<div class="lk-loc"><b>' + esc(locName(row.loc)) + '</b>' + badge + '</div>' +
+      '<div class="lk-a">' + a + '</div>' + link + '<div class="lk-b">' + b + '</div>' +
+      '<div class="lk-act">' + acts + '</div></div>';
+  }
 
-    var nIgn = r.ignoredA.length + r.ignoredB.length;
-    var ignored = nIgn ? '<details class="help" style="margin-top:14px"><summary>' + l.ignored(nIgn) + '</summary><div class="help-body"><p>' + esc(l.ignoredHint) + '</p><div class="enc-mons">' +
+  function ignoredHtml() {
+    var l = L().link, r = state.link.result, n = r.ignoredA.length + r.ignoredB.length;
+    if (!n) return '';
+    return '<details class="help lk-ignored"><summary>' + l.ignored(n) + '</summary><div class="help-body"><p>' + esc(l.ignoredHint) + '</p><div class="enc-mons">' +
       [[r.ignoredA, 0], [r.ignoredB, 1]].map(function (x) {
         return x[0].map(function (e) {
           return '<span class="ign">' + lchip(e, x[1]) + '<button type="button" class="mini-btn" data-act="lrestore" data-k="' + e.key + '">' + l.restore + '</button></span>';
         }).join('');
-      }).join('') + '</div></div></details>' : '';
+      }).join('') + '</div></div></details>';
+  }
 
-    return head + warns + pairs + unpaired + ignored;
+  /* ── Nach Duo übernehmen ───────────────────────────────────────── */
+  // Duo speichert Pokémon unter ihrem PokeAPI-Namen: meist der englische Artname in Kleinbuchstaben,
+  // dazu ein paar Sonderfälle und Arten, deren Standardform bei PokeAPI einen Zusatz trägt
+  // (Index = Form im Spielstand, Reihenfolge wie in Gen 4).
+  var API_NAME_FIX = { 29: 'nidoran-f', 32: 'nidoran-m', 83: 'farfetchd', 122: 'mr-mime', 439: 'mime-jr' };
+  var API_FORMS = {
+    386: ['deoxys-normal', 'deoxys-attack', 'deoxys-defense', 'deoxys-speed'],
+    413: ['wormadam-plant', 'wormadam-sandy', 'wormadam-trash'],
+    479: ['rotom', 'rotom-heat', 'rotom-wash', 'rotom-frost', 'rotom-fan', 'rotom-mow'],
+    487: ['giratina-altered', 'giratina-origin'],
+    492: ['shaymin-land', 'shaymin-sky']
+  };
+  function apiName(m) {
+    var f = API_FORMS[m.species];
+    if (f) return f[m.form] || f[0];
+    var en = D.text.en.species[m.species];
+    return API_NAME_FIX[m.species] || (en ? en.toLowerCase().replace(/[^a-z0-9-]/g, '') : null) || null;
+  }
+
+  var DUO_TEAM = 6, DUO_BOX = 30;
+  var DUO_P1_KEY = 'saveviewer-duo-p1';   // Trainer (ID), der in Duo Spieler 1 ist
+  var DUO_IMPORT_KEY = 'duo-import';      // Übergabe an Duo/main.js
+
+  // [Spielstand von Spieler 1, Spielstand von Spieler 2] – so stehen sie auch hier links und rechts
+  function duoOrder() {
+    var p1 = null;
+    try { p1 = localStorage.getItem(DUO_P1_KEY); } catch (e) {}
+    return p1 && p1 === trainerKey(state.saves[1]) ? [1, 0] : [0, 1];
+  }
+
+  // Alle Paare und Partnerlosen, einsortiert in die Abschnitte der Übersicht
+  function linkRows(order) {
+    var r = state.link.result;
+    var rows = { todo: [], team: [], box: [], grave: [], solo: [] };
+    r.pairs.forEach(function (p) {
+      var st = pairState(p);
+      var row = { pair: p, st: st, why: st, loc: p.loc, date: Math.min(SoulLink.dateNum(p.a.m), SoulLink.dateNum(p.b.m)) };
+      if (st === 'death' || st === 'team') rows.todo.push(row);
+      else if (st === 'dead') rows.grave.push(row);
+      else if (p.a.status === 'team') rows.team.push(row);
+      else rows.box.push(row);
+    });
+    [[r.unpairedA, 0], [r.unpairedB, 1]].forEach(function (x) {
+      x[0].forEach(function (u) {
+        var inTeam = u.e.status === 'team' && !u.e.m.isEgg;
+        var row = { solo: u, save: x[1], st: inTeam ? 'todo' : 'solo', why: 'solo', loc: SoulLink.encounterLocation(u.e.m), date: SoulLink.dateNum(u.e.m) };
+        rows[inTeam ? 'todo' : 'solo'].push(row);
+      });
+    });
+    var byDate = function (a, b) { return (a.date - b.date) || (a.loc - b.loc); };
+    ['todo', 'box', 'grave', 'solo'].forEach(function (k) { rows[k].sort(byDate); });
+    // Team in der Reihenfolge von Spieler 1 – so steht es danach auch in Duo
+    var first = function (row) { return (order[0] === 0 ? row.pair.a : row.pair.b).m.where.slot; };
+    rows.team.sort(function (a, b) { return first(a) - first(b); });
+    return rows;
+  }
+
+  // Was nach Duo käme – und was dem noch im Weg steht. Blockiert wird nur von „Zu klären“ (Regelverstöße),
+  // zu vielen Box-Paaren und unbekannten Arten. Ungeprüfte Paare und Partnerlose sind nur Hinweise.
+  function duoPlan() {
+    var order = duoOrder(), rows = linkRows(order), d = L().link.duo;
+    function side(p, i) { return order[i] === 0 ? p.a : p.b; }
+    var noEgg = function (row) { return !row.pair.a.m.isEgg && !row.pair.b.m.isEgg; };
+    var pick = function (list) { return list.filter(noEgg).map(function (row) { return row.pair; }); };
+    var team = pick(rows.team), box = pick(rows.box), grave = pick(rows.grave);
+    var all = team.concat(box, grave);
+    var eggs = rows.team.length + rows.box.length + rows.grave.length - all.length +
+      rows.solo.filter(function (row) { return row.solo.e.m.isEgg; }).length;
+
+    var problems = [];
+    if (rows.todo.length) problems.push(d.blocked(rows.todo.length));
+    if (box.length > DUO_BOX) problems.push(d.pBox(box.length, DUO_BOX));
+    var unknown = 0;
+    all.forEach(function (p) { if (!apiName(p.a.m)) unknown++; if (!apiName(p.b.m)) unknown++; });
+    if (unknown) problems.push(d.pName(unknown));
+
+    return {
+      rows: rows, order: order, side: side, team: team, box: box, grave: grave, eggs: eggs,
+      ok: !problems.length && all.length > 0, problems: problems,
+      check: all.filter(function (p) { return srcKey(p) === 'check'; }).length,
+      solo: rows.solo.filter(function (row) { return !row.solo.e.m.isEgg; }).length
+    };
+  }
+
+  function duoAction(act) {
+    if (!state.link || !state.link.ok) return;
+    if (act === 'duo-swap') {
+      var o = duoOrder();
+      try { localStorage.setItem(DUO_P1_KEY, trainerKey(state.saves[o[1]])); } catch (e) {}
+      renderPanel();
+      return;
+    }
+    var plan = duoPlan();
+    if (act !== 'duo-go' || !plan.ok) return;
+    function names(list, i, size) {
+      var out = list.map(function (p) { return apiName(plan.side(p, i).m); });
+      while (size && out.length < size) out.push(null);
+      return out;
+    }
+    var data = {
+      v: 1, at: Date.now(),
+      names: [trName(plan.order[0]), trName(plan.order[1])],
+      team1: names(plan.team, 0, DUO_TEAM), team2: names(plan.team, 1, DUO_TEAM),
+      box1: names(plan.box, 0, DUO_BOX), box2: names(plan.box, 1, DUO_BOX),
+      graves1: names(plan.grave, 0), graves2: names(plan.grave, 1)
+    };
+    try { localStorage.setItem(DUO_IMPORT_KEY, JSON.stringify(data)); } catch (e) { return; }
+    location.href = '../Duo/index.html';
   }
 
   /* Partner auswählen */
@@ -1339,7 +1357,7 @@
       if (act === 'box') { cur().box = +a.dataset.i; renderPanel(); return; }
       if (act === 'dexmode') { state.dexMode = a.dataset.k; renderTabs(); renderPanel(); return; }
       if (act === 'close') { closeModal(); return; }
-      if (act.indexOf('bag-') === 0) { bagAction(act, a.dataset); return; }
+      if (act.indexOf('duo-') === 0) { duoAction(act); return; }
       if (act.charAt(0) === 'l' && linkAction(act, a.dataset)) return;
       return;
     }
@@ -1351,7 +1369,6 @@
   });
 
   document.addEventListener('change', function (e) {
-    if (e.target.dataset && e.target.dataset.bagI != null) { renderTabs(); renderPanel(); return; }
     var s = e.target.closest('select[data-act="grave"]');
     if (!s) return;
     var sv = state.saves[+s.dataset.i];
@@ -1362,17 +1379,6 @@
   });
 
   document.addEventListener('input', function (e) {
-    // Anzahl im Beutel: Entwurf anpassen, ohne neu zu zeichnen (sonst springt der Cursor)
-    if (e.target.dataset && e.target.dataset.bagI != null) {
-      var d = bagDraft(), entry = d.pockets[d.pocket][+e.target.dataset.bagI];
-      var max = PtBag.POCKETS[d.pocket].max, v = Math.round(+e.target.value);
-      if (entry && v >= 1) entry.count = Math.min(max, v);
-      var n = bagChanges(d);
-      $('bag-changes').textContent = L().bag.changes(n);
-      $('bag-save').disabled = !n;
-      document.querySelector('[data-act="bag-reset"]').disabled = !n;
-      return;
-    }
     if (e.target.id !== 'box-search') return;
     state.search = e.target.value;
     var pos = e.target.selectionStart;

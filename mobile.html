@@ -23,213 +23,151 @@
   <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1242x2688.png">
   <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash-828x1792.png">
   <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash-750x1334.png">
-  <script src="pwa.js"></script>
-  <link rel="stylesheet" href="theme.css">
   <title>Pokémon Hub</title>
+  <!-- Erst die Styles, dann die Skripte: pwa.js richtet sich beim Theme-Knopf nach der Position des Sprachknopfs -->
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="scene.css">
   <link rel="stylesheet" href="mobile.css">
+  <script src="pwa.js"></script>
 </head>
 <body>
-  <main class="hub">
 
-    <header class="topbar">
+  <!-- Oben die Bühne der PC-Startseite im Kleinen: Himmel, Mond, Berge, hohes Gras mit wilden Pokémon
+       (Gras und Pokémon setzt scene.js ein). Sie füllt nur den Platz über dem Menü. -->
+  <header class="stage">
+    <div class="scene" aria-hidden="true">
+      <div class="sky"></div>
+      <div class="moon"></div>
+      <svg class="range" viewBox="0 0 400 120" preserveAspectRatio="none">
+        <path class="range-far" d="M0,62 L34,40 L62,30 L92,14 L112,6 L132,16 L160,34 L190,46 L222,40 L256,54 L288,48 L322,60 L356,52 L400,64 V120 H0 Z"/>
+        <path class="range-snow" d="M92,14 L112,6 L132,16 L125,19 L118,14 L111,19 L104,14 L98,18 Z"/>
+        <path class="range-near" d="M0,92 C40,80 82,82 122,90 C166,99 206,84 252,83 C300,82 336,95 372,90 C386,88 394,87 400,88 V120 H0 Z"/>
+      </svg>
+      <div class="mons mons--far" id="mons-far"></div>
+      <svg class="grass grass--back"></svg>
+      <div class="mons mons--near" id="mons-near"></div>
+      <svg class="grass grass--front"></svg>
+    </div>
+
+    <div class="topbar">
       <div class="brand">
         <div class="logo">
           <svg viewBox="0 0 48 48" fill="none">
             <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="3"/>
             <path d="M3 24 H45" stroke="currentColor" stroke-width="3"/>
-            <circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="3" fill="#0d0f2b"/>
+            <circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="3"/>
             <circle cx="24" cy="24" r="4" fill="currentColor"/>
           </svg>
         </div>
         <h1>Pokémon <span>Hub</span></h1>
       </div>
       <button type="button" class="lang-btn" id="lang-btn">DE</button>
-    </header>
+    </div>
+  </header>
 
-    <!-- 4 Spalten wie der iPhone-Homescreen: 4 Reihen passen ohne Scrollen auf den Bildschirm -->
-    <section class="group">
-      <h2 class="group-title" data-i18n="group-run">Dein Run</h2>
+  <!-- Darunter das Menüfenster wie im Spiel – unten, wo der Daumen hinkommt (wie der Touchscreen beim DS).
+       4 Kacheln pro Reihe wie auf dem iPhone-Homescreen, Sprites wie auf der PC-Startseite. -->
+  <main class="win">
+
+    <section class="grp">
+      <h2 data-i18n="group-run">Dein Run</h2>
       <div class="grid">
-
         <a href="./RunDashboard/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="5" y="4" width="22" height="25" rx="3"/>
-              <path d="M11 4V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/>
-              <path d="M10 13l2.5 2.5L17 11M10 19l2.5 2.5L17 17M21 13h1M21 19h1"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/journal.png" alt=""></span>
           <span class="tile-name" data-i18n="rundashboard-name">Dashboard</span>
         </a>
-
         <a href="./SaveViewer/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 6h20l8 8v26a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3Z"/>
-              <path d="M15 6v9h13V6"/>
-              <rect x="14" y="25" width="20" height="12" rx="2"/>
-              <path d="M19 30h10"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/vs-recorder.png" alt=""></span>
           <span class="tile-name" data-i18n="saveviewer-name">Save-Viewer</span>
         </a>
-
         <a href="./SaveEditor/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 27H7V4h12l6 6v6"/>
-              <path d="M19 4v6h6"/>
-              <path d="m20 28 1-4 7-7 3 3-7 7z"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png" alt=""></span>
           <span class="tile-name" data-i18n="editor-name">Save-Editor</span>
         </a>
-
         <a href="./Randomizer/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="5" y="5" width="22" height="22" rx="5"/>
-              <circle cx="11" cy="11" r="1.4" fill="currentColor"/><circle cx="21" cy="11" r="1.4" fill="currentColor"/>
-              <circle cx="16" cy="16" r="1.4" fill="currentColor"/>
-              <circle cx="11" cy="21" r="1.4" fill="currentColor"/><circle cx="21" cy="21" r="1.4" fill="currentColor"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr spr--mon" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum/132.png" alt=""></span>
           <span class="tile-name" data-i18n="rando-name">Randomizer</span>
         </a>
-
       </div>
     </section>
 
-    <section class="group">
-      <h2 class="group-title" data-i18n="group-team">Team &amp; Kämpfe</h2>
+    <section class="grp">
+      <h2 data-i18n="group-team">Team &amp; Kämpfe</h2>
       <div class="grid">
-
         <a href="./Pokelocke/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 3 L28 8 V18 C28 25 16 30 16 30 C16 30 4 25 4 18 V8 Z"/>
-              <path d="M16 10l1.5 3.5 3.5.5-2.5 2.5.5 3.5L16 18l-3 2 .5-3.5L11 14l3.5-.5Z"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt=""></span>
           <span class="tile-name" data-i18n="solo-name">Solo</span>
         </a>
-
         <a href="./Duo/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="4"/>
-              <circle cx="21" cy="11" r="4"/>
-              <path d="M3 28c0-4.4 3.6-8 8-8"/>
-              <path d="M29 28c0-4.4-3.6-8-8-8"/>
-              <path d="M11 20c1.3-.6 2.7-.9 4.2-1 .6 0 1.2.1 1.8.1"/>
-              <path d="M22 18l2 2-2 2M26 20h-4" stroke-width="1.8"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png" alt=""></span>
           <span class="tile-name" data-i18n="duo-name">Duo</span>
         </a>
-
         <a href="./Trio/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="16" cy="8" r="4"/>
-              <circle cx="7" cy="22" r="4"/>
-              <circle cx="25" cy="22" r="4"/>
-              <path d="M13.5 12 L9.5 18M18.5 12 L22.5 18M11 22 h10"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png" alt=""></span>
           <span class="tile-name" data-i18n="trio-name">Trio</span>
         </a>
-
         <a href="./Bosse/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 26 L20 12M20 12 l3-6 3-1-1 3-6 3"/>
-              <path d="M26 26 L12 12M12 12 l-3-6-3-1 1 3 6 3"/>
-              <path d="M9 23 l-2 2M23 23 l2 2"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/vs-seeker.png" alt=""></span>
           <span class="tile-name" data-i18n="bosses-name">Bosse</span>
         </a>
-
       </div>
     </section>
 
-    <section class="group">
-      <h2 class="group-title" data-i18n="group-calc">Rechner</h2>
+    <section class="grp">
+      <h2 data-i18n="group-calc">Rechner</h2>
       <div class="grid">
-
         <a href="./Catchrate/index.html" class="tile">
-          <span class="tile-icon" id="icon-catchrate"></span>
+          <span class="spr-box" id="icon-catchrate"></span>
           <span class="tile-name" data-i18n="catchrate-name">Fangrate</span>
         </a>
-
         <a href="./DamageCalc/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 3 L8 18 H16 L14 29 L24 14 H16 Z"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/life-orb.png" alt=""></span>
           <span class="tile-name" data-i18n="damage-name">Schaden</span>
         </a>
-
         <a href="./Typrechner/index.html" class="tile">
-          <span class="tile-icon" id="hub-type-icon"></span>
+          <span class="spr-box" id="hub-type-icon"></span>
           <span class="tile-name" data-i18n="typcalc-name">Typen</span>
         </a>
-
       </div>
     </section>
 
-    <section class="group">
-      <h2 class="group-title" data-i18n="group-ref">Nachschlagen</h2>
+    <section class="grp">
+      <h2 data-i18n="group-ref">Nachschlagen</h2>
       <div class="grid">
-
         <a href="./PokemonInfo/index.html" class="tile">
-          <span class="tile-icon" id="icon-pokedex"></span>
+          <span class="spr-box"><img class="spr spr--smooth" src="./img/dp-pokedex.png" alt=""></span>
           <span class="tile-name" data-i18n="pokedex-name">Pokédex</span>
         </a>
-
         <a href="./Karte/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 8 L12 5 L20 8 L28 5 V24 L20 27 L12 24 L4 27 Z"/>
-              <path d="M12 5 V24M20 8 V27"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/town-map.png" alt=""></span>
           <span class="tile-name" data-i18n="map-name">Karte</span>
         </a>
-
         <a href="./Rules/index.html" class="tile">
-          <span class="tile-icon">
-            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 5 C6 5 10 4 16 4 C22 4 26 5 26 5 L26 27 C26 27 22 26 16 26 C10 26 6 27 6 27 Z"/>
-              <path d="M16 4 L16 26"/>
-              <path d="M10 10 h4M10 14 h4M10 18 h3M18 10 h4M18 14 h4M18 18 h3"/>
-            </svg>
-          </span>
+          <span class="spr-box"><img class="spr" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/pal-pad.png" alt=""></span>
           <span class="tile-name" data-i18n="rules-name">Regelwerk</span>
         </a>
-
       </div>
     </section>
 
-    <div class="data-actions">
-      <button type="button" class="data-btn" id="backup-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-export">Daten sichern</span></button>
-      <button type="button" class="data-btn" id="backup-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-import">Daten laden</span></button>
-    </div>
-
-    <footer>
-      <span class="ai-notice">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5Z"/>
-        </svg>
-        <span data-i18n="ai-notice">Erstellt mit KI-Unterstützung</span>
-      </span>
-      <p class="trademark" data-i18n="footer">Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.</p>
+    <footer class="win-foot">
+      <div class="data-actions">
+        <button type="button" class="data-btn" id="backup-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-export">Daten sichern</span></button>
+        <button type="button" class="data-btn" id="backup-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="backup-import">Daten laden</span></button>
+      </div>
+      <div class="win-notes">
+        <span class="ai-notice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5Z"/>
+          </svg>
+          <span data-i18n="ai-notice">Erstellt mit KI-Unterstützung</span>
+        </span>
+        <span class="trademark" data-i18n="footer">Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.</span>
+      </div>
     </footer>
 
   </main>
 
+  <script src="scene.js"></script>
   <script src="mobile.js"></script>
 </body>
 </html>

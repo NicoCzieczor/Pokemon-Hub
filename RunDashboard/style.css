@@ -961,13 +961,41 @@ textarea {
     flex-direction: column;
   }
 
-  .run-form,
-  .encounter-form,
-  .encounter-row {
+  .run-form {
     grid-template-columns: 1fr;
   }
 
+  /* Encounter eintragen: Ort und Pokémon über die volle Breite, Status und Art nebeneinander */
+  .encounter-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
+  }
+  .encounter-form > .field:nth-child(-n+2),
+  .encounter-form > .btn-primary {
+    grid-column: 1 / -1;
+  }
+
+  /* Encounter-Liste: zwei Zeilen statt fünf je Eintrag –
+     oben der Ort mit dem Löschknopf, darunter Pokémon, Art und Status */
+  .encounter-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "place place del"
+      "mon method status";
+    gap: 4px 8px;
+    padding: 8px 10px;
+  }
+  .encounter-row .encounter-place { grid-area: place; font-size: 0.86rem; }
+  .encounter-row .encounter-pokemon { grid-area: mon; }
+  .encounter-row .status-pill:not(.is-action) { grid-area: method; }
+  .encounter-row .status-pill.is-action { grid-area: status; }
+  .encounter-row .status-pill { padding: 3px 8px; font-size: 0.68rem; }
+
   .encounter-row .delete-btn {
+    grid-area: del;
+    justify-self: end;
+    width: 28px;
+    height: 28px;
     opacity: 1;
   }
 

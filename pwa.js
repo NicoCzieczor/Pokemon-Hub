@@ -371,7 +371,14 @@
     if (!nav || nav.querySelector('.tool-nav-track')) return;
     var track = document.createElement('div');
     track.className = 'tool-nav-track';
+    // Home (erster Link) bleibt fest links neben der Spur stehen – sonst schiebt das Springen zum
+    // aktiven Tab es am Handy aus dem Bild
+    var homeLink = nav.querySelector('.tool-nav-link');
     while (nav.firstChild) track.appendChild(nav.firstChild);
+    if (homeLink) {
+      homeLink.classList.add('tool-nav-home');
+      nav.appendChild(homeLink);
+    }
     nav.appendChild(track);
     nav.classList.add('has-track');
     // Halter mit Theme- und Sprachknopf (s. setupThemeButton), sonst der Sprachknopf allein
@@ -379,10 +386,11 @@
     var home = null; // merkt sich den ursprünglichen Platz des Knopfs
 
     // Die Spur reicht bis an die Ränder der Leiste und übernimmt deren Innenabstand, damit die
-    // Tabs erst am Kartenrand ausblenden – rechts nur, wenn dort nicht der Sprachknopf steht.
+    // Tabs erst am Kartenrand ausblenden – links nur ohne festen Home-Knopf, rechts nur, wenn dort
+    // nicht der Sprachknopf steht.
     function fitTrack() {
       var cs = getComputedStyle(nav);
-      var pl = parseFloat(cs.paddingLeft) || 0;
+      var pl = homeLink ? 0 : parseFloat(cs.paddingLeft) || 0;
       var pr = btn && btn.parentNode === nav ? 0 : parseFloat(cs.paddingRight) || 0;
       track.style.marginLeft = -pl + 'px';
       track.style.paddingLeft = pl + 'px';
