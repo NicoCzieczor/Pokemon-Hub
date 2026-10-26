@@ -322,7 +322,8 @@
       const fileName = outName();
       const info = await readTeams(rom, fileName);
       state.result = {
-        url: URL.createObjectURL(rom),
+        // Eigener Dateityp, sonst hängt z. B. Samsung Internet „.txt“ an den Namen (slice kopiert nichts)
+        url: URL.createObjectURL(rom.slice(0, rom.size, 'application/x-nintendo-ds-rom')),
         logUrl: log ? URL.createObjectURL(log) : null,
         fileName: fileName,
         size: rom.size,
