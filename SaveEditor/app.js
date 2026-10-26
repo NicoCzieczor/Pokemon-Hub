@@ -776,6 +776,7 @@
     var l = L();
     document.documentElement.lang = lang;
     $('lang-toggle').textContent = lang.toUpperCase();
+    $('picker-close').setAttribute('aria-label', l.close);
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
       var v = l[el.dataset.i18n];
       if (typeof v === 'string') el.innerHTML = v;

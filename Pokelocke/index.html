@@ -25,7 +25,7 @@
   <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../icons/splash-750x1334.png">
   <script src="../pwa.js"></script>
   <link rel="stylesheet" href="../theme.css">
-  <title>Pokémon Team Builder</title>
+  <title>Solo Nuzlocke</title>
   <link rel="stylesheet" href="base.css" />
   <style>
     html, body {
@@ -106,6 +106,7 @@
       transition: color 0.2s, background 0.2s; font: inherit;
     }
     .lcp-toggle:hover { color: var(--color-text); background: rgba(var(--t-ink), 0.08); }
+    .lcp-toggle.is-collapsed { transform: rotate(-90deg); }
     #lcp-game-select {
       width: 100%; padding: 7px 10px; border-radius: 10px;
       border: 1px solid rgba(var(--t-ink), 0.16); background: rgba(var(--t-ink), 0.08);
@@ -567,7 +568,7 @@
     <nav class="tool-nav" aria-label="Pokemon tools">
       <a class="tool-nav-link" href="../index.html" data-i18n="nav-home">Home</a>
       <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav-run">Run</a>
-      <a class="tool-nav-link is-active" href="index.html" aria-current="page" data-i18n="nav-team">Team</a>
+      <a class="tool-nav-link is-active" href="index.html" aria-current="page" data-i18n="nav-team">Solo</a>
       <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
       <a class="tool-nav-link" href="../Trio/index.html" data-i18n="nav-trio">Trio</a>
       <a class="tool-nav-link" href="../Catchrate/index.html" data-i18n="nav-catch">Fangrate</a>
@@ -585,7 +586,7 @@
     <header>
       <div class="header-main">
         <div>
-          <h1>Pokémon Team Builder</h1>
+          <h1>Solo Nuzlocke</h1>
           <p data-i18n="subtitle">Stelle dein Team zusammen, analysiere Typ-Deckung und verwalte deine Box.</p>
         </div>
         <button class="lang-toggle" id="lang-toggle">DE</button>
@@ -598,7 +599,7 @@
       <div id="level-cap-panel">
         <div class="lcp-header">
           <div class="lcp-title-row">
-            <div class="lcp-title">⚔️ Level Caps</div>
+            <div class="lcp-title">Level Caps</div>
             <button class="lcp-toggle" id="lcp-toggle" title="Einklappen">▼</button>
           </div>
           <select id="lcp-game-select" class="lcp-collapsible" style="margin-top:8px"></select>
@@ -606,7 +607,7 @@
         <div id="lcp-list" class="lcp-collapsible"></div>
       </div>
 
-      <!-- Team Builder -->
+      <!-- Team -->
       <section id="team-panel">
         <div id="team-builder">
           <div class="pokemon-slot" data-slot="0"></div>
@@ -653,7 +654,7 @@
     <!-- Inline Box -->
     <section id="box-section">
       <button class="box-toggle-btn" id="box-toggle">
-        <span data-i18n="box">📦 Box</span>
+        <span data-i18n="box">Box</span>
         <span class="box-toggle-icon" id="box-toggle-icon">▼</span>
       </button>
       <div id="box-body" style="display:none">
@@ -703,14 +704,14 @@
 
   <script>
   // ── i18n ─────────────────────────────────────────────────────────────────────
-  window.LANG = localStorage.getItem('solo-lang') || 'de';
+  window.LANG = localStorage.getItem('hub-lang') || 'de';
 
   const TRANSLATIONS = {
     de: {
       'subtitle':'Stelle dein Team zusammen, analysiere Typ-Deckung und verwalte deine Box.',
       'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
       'nav-catch':'Fangrate', 'nav-damage':'Schaden', 'nav-types':'Typen',
-      'box':'📦 Box',
+      'box':'Box',
       'info-title':'Pokémon-Info',
       'info-placeholder':'Wähle ein Pokémon aus dem Team oder dem Info-Slot, um Typ, Statuswerte und Attacken zu sehen.',
       'info-gen-section':'Info-Generation', 'info-gen-label':'Generation auswählen',
@@ -747,7 +748,7 @@
       'subtitle':'Build your team, analyse type coverage and manage your box.',
       'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
       'nav-catch':'Catch', 'nav-damage':'Damage', 'nav-types':'Types',
-      'box':'📦 Box',
+      'box':'Box',
       'info-title':'Pokémon Info',
       'info-placeholder':'Select a Pokémon from the team or the info slot to see type, stats and moves.',
       'info-gen-section':'Info Generation', 'info-gen-label':'Select generation',
@@ -815,11 +816,12 @@
     if (window.LANG === 'en') applyLang();
     document.getElementById('lang-toggle').addEventListener('click', () => {
       window.LANG = window.LANG === 'de' ? 'en' : 'de';
-      localStorage.setItem('solo-lang', window.LANG);
+      localStorage.setItem('hub-lang', window.LANG);
       applyLang();
     });
   });
   </script>
+  <script src="../pokemon-names.js"></script>
   <script type="module" src="main.js"></script>
   <script>
   const LEVEL_CAPS = {
@@ -1135,6 +1137,23 @@
     sel.value = LEVEL_CAPS[cur] ? cur : Object.keys(LEVEL_CAPS)[0];
   }
 
+  // Trainer, die in den Level-Caps mit deutschem Namen eingetragen sind – im englischen Modus übersetzt
+  const LCP_NAMES_EN = {
+    'Rocko':'Brock', 'Surge':'Lt. Surge', 'Pyro':'Blaine', 'Agathe':'Agatha', 'Siegfried':'Lance', 'Blau':'Blue',
+    'Champion Blau':'Champion Blue', 'Champion Siegfried':'Champion Lance', 'Ahornia':'Bugsy',
+  };
+  function lcpName(name) {
+    if (window.LANG !== 'en') return name;
+    return LCP_NAMES_EN[name] || name.replace('(Prüfung)', '(Trial)');
+  }
+  function lcpToggleTitle() {
+    const panel = document.getElementById('level-cap-panel'), btn = document.getElementById('lcp-toggle');
+    if (!panel || !btn) return;
+    const collapsed = panel.classList.contains('lcp-collapsed');
+    btn.title = window.LANG === 'en' ? (collapsed ? 'Expand' : 'Collapse') : (collapsed ? 'Ausklappen' : 'Einklappen');
+  }
+  document.addEventListener('langchange', lcpToggleTitle);
+
   function renderLevelCaps(gameKey) {
     const game = LEVEL_CAPS[gameKey];
     const list = document.getElementById('lcp-list');
@@ -1164,7 +1183,7 @@
       row.className = 'lcp-entry' + (e.isE4 ? ' lcp-e4' : '') + (e.team?.length ? ' lcp-has-team' : '');
       const typeDisplay = e.type ? e.type.split('/').map(t => window.typeLabel(t.trim()) || t.trim()).join('/') : '';
       const variantNote = e.variant ? window.t('variant-note') : '';
-      row.innerHTML = `<span class="lcp-num">${numStr}</span><span class="lcp-name">${e.name}</span>${typeDisplay ? `<span class="lcp-type">${typeDisplay}</span>` : ''}${variantNote ? `<span class="lcp-variant" title="${variantNote}">${window.t('variant-badge')}</span>` : ''}${e.cap != null ? `<span class="lcp-cap">Lv.${e.cap}</span>` : ''}`;
+      row.innerHTML = `<span class="lcp-num">${numStr}</span><span class="lcp-name">${lcpName(e.name)}</span>${typeDisplay ? `<span class="lcp-type">${typeDisplay}</span>` : ''}${variantNote ? `<span class="lcp-variant" title="${variantNote}">${window.t('variant-badge')}</span>` : ''}${e.cap != null ? `<span class="lcp-cap">Lv.${e.cap}</span>` : ''}`;
       if (variantNote) row.title = variantNote;
 
       if (e.team?.length) {
@@ -1196,8 +1215,8 @@
       const panel = document.getElementById('level-cap-panel');
       const btn = document.getElementById('lcp-toggle');
       const collapsed = panel.classList.toggle('lcp-collapsed');
-      btn.textContent = collapsed ? '▶' : '▼';
-      btn.title = collapsed ? 'Ausklappen' : 'Einklappen';
+      btn.classList.toggle('is-collapsed', collapsed);
+      lcpToggleTitle();
     });
   });
   </script>

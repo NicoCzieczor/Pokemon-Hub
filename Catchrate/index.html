@@ -37,7 +37,7 @@
     <nav class="tool-nav" aria-label="Pokemon tools">
         <a class="tool-nav-link" href="../index.html">Home</a>
         <a class="tool-nav-link" href="../RunDashboard/index.html">Run</a>
-        <a class="tool-nav-link" href="../Pokelocke/index.html">Team</a>
+        <a class="tool-nav-link" href="../Pokelocke/index.html">Solo</a>
         <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
         <a class="tool-nav-link" href="../Trio/index.html">Trio</a>
         <a class="tool-nav-link is-active" href="index.html" aria-current="page">Fangrate</a>
@@ -137,7 +137,7 @@
             </div>
           </div>
           <div class="false-swipe-row">
-            <button id="btn-1hp" class="btn-1hp" data-i18n="falseSwipeBtn">⚔ Trugschlag (1 KP)</button>
+            <button id="btn-1hp" class="btn-1hp" data-i18n="falseSwipeBtn">Trugschlag (1 KP)</button>
             <span id="false-swipe-hint" class="false-swipe-hint" style="display:none" data-i18n="falseSwipeHint">Trugschlag aktiv – KP werden als 1 gerechnet</span>
           </div>
         </div>
@@ -188,7 +188,10 @@
   <!-- Pokémon Modal -->
   <div id="pokemon-modal">
     <div class="pokemon-modal-content">
-      <h2 class="pokemon-modal-header" data-i18n="modalTitle">Pokémon auswählen</h2>
+      <div class="pokemon-modal-top">
+        <h2 class="pokemon-modal-header" data-i18n="modalTitle">Pokémon auswählen</h2>
+        <button type="button" class="modal-x" id="close-pokemon-modal" aria-label="Schließen" title="Schließen">×</button>
+      </div>
       <div class="pokemon-modal-search">
         <input
           id="pokemon-search"
@@ -206,6 +209,7 @@
   <!-- Formula tooltip (shown on badge hover) -->
   <div id="formula-tooltip" class="formula-tooltip"></div>
 
+  <script src="../pokemon-names.js"></script>
   <script type="module" src="main.js"></script>
 </body>
 </html>

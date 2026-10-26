@@ -40,7 +40,7 @@
     <nav class="tool-nav" aria-label="Pokemon tools">
       <a class="tool-nav-link" href="../index.html" data-i18n="nav-home">Home</a>
       <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav-run">Run</a>
-      <a class="tool-nav-link" href="../Pokelocke/index.html" data-i18n="nav-team">Team</a>
+      <a class="tool-nav-link" href="../Pokelocke/index.html" data-i18n="nav-team">Solo</a>
       <a class="tool-nav-link is-active" href="index.html" aria-current="page">Duo</a>
       <a class="tool-nav-link" href="../Trio/index.html" data-i18n="nav-trio">Trio</a>
       <a class="tool-nav-link" href="../Catchrate/index.html" data-i18n="nav-catch">Fangrate</a>
@@ -68,8 +68,8 @@
     <!-- Werkzeugleiste: Level-Caps-Schalter (links, direkt über der Liste) + Sync -->
     <div class="duo-toolbar">
     <button type="button" class="lcp-toggle-btn" id="lcp-toggle" title="Ausklappen">
-      <span class="lcp-title">⚔️ Level Caps</span>
-      <span class="lcp-toggle-icon" id="lcp-toggle-icon">▶</span>
+      <span class="lcp-title">Level Caps</span>
+      <span class="lcp-toggle-icon is-collapsed" id="lcp-toggle-icon">▼</span>
     </button>
     <div id="session-panel">
       <div class="session-left">
@@ -78,17 +78,17 @@
         <span id="sync-player-count" class="sync-player-count sync-player-count-hidden"></span>
       </div>
       <div class="session-actions">
-        <button id="sync-create-btn" class="sync-btn sync-btn-primary">Session erstellen</button>
+        <button id="sync-create-btn" class="sync-btn sync-btn-primary" data-i18n="sync-create">Session erstellen</button>
         <div id="sync-join-area" class="sync-join-area">
-          <input id="sync-code-input" type="text" maxlength="6" placeholder="Code eingeben" autocomplete="off" spellcheck="false" />
-          <button id="sync-join-btn" class="sync-btn">Beitreten</button>
+          <input id="sync-code-input" type="text" maxlength="6" placeholder="Code eingeben" data-i18n="sync-code-ph" data-i18n-attr="placeholder" autocomplete="off" spellcheck="false" />
+          <button id="sync-join-btn" class="sync-btn" data-i18n="sync-join">Beitreten</button>
         </div>
         <div id="sync-code-box" class="sync-code-box" style="display:none">
           <span class="sync-code-label">Code:</span>
           <strong id="sync-code-display" class="sync-code">––––––</strong>
-          <button id="sync-copy-btn" class="sync-btn" title="Code kopieren">Copy</button>
+          <button id="sync-copy-btn" class="sync-btn" title="Code kopieren" data-i18n="sync-copy-title" data-i18n-attr="title">Copy</button>
         </div>
-        <button id="sync-leave-btn" class="sync-btn sync-btn-danger" style="display:none">Session verlassen</button>
+        <button id="sync-leave-btn" class="sync-btn sync-btn-danger" style="display:none" data-i18n="sync-leave">Session verlassen</button>
       </div>
     </div>
     </div><!-- .duo-toolbar -->
@@ -135,7 +135,7 @@
     <div id="box-graveyard-row">
       <section id="box-section">
         <button class="box-toggle-btn" id="box-toggle">
-          <span data-i18n="box">📦 Gemeinsame Box</span>
+          <span data-i18n="box">Gemeinsame Box</span>
           <span class="box-toggle-icon" id="box-toggle-icon">▼</span>
         </button>
         <div id="box-body" style="display:none">
@@ -145,7 +145,7 @@
 
       <section id="graveyard-section">
         <button id="graveyard-toggle" class="graveyard-toggle-btn">
-          <span>☠ Friedhof</span>
+          <span data-i18n="graveyard">Friedhof</span>
           <span id="graveyard-toggle-icon">▼</span>
         </button>
         <div id="graveyard-body" style="display:none">
@@ -195,8 +195,8 @@
   </div>
 
   <div id="ctx-menu" class="ctx-menu">
-    <button id="ctx-remove">Entfernen</button>
-    <button id="ctx-kill" class="ctx-danger">☠ Gestorben</button>
+    <button id="ctx-remove" data-i18n="ctx-remove">Entfernen</button>
+    <button id="ctx-kill" class="ctx-danger" data-i18n="ctx-kill">Gestorben</button>
   </div>
 
   <!-- Pokémon-Auswahl Modal -->
@@ -231,6 +231,7 @@
 
 <script src="i18n.js"></script>
 <script src="../vendor/supabase-2.117.2.js"></script>
+<script src="../pokemon-names.js"></script>
 <script type="module" src="main.js"></script>
 <script src="level-caps.js"></script>
 </body>

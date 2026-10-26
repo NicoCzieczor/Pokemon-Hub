@@ -251,21 +251,22 @@ header p { margin: 0; color: var(--color-muted); }
 }
 .leaflet-tooltip.map-tip::before { display: none; }
 
-/* Ortsnamen auf der Karte */
+/* Ortsnamen auf der Karte – feste Farben wie die Marker: Die Karte ist ein Bild und bleibt in jedem
+   Design gleich, die Theme-Schrift wäre im Papier-Design fast schwarz (mit dunklem Schatten unlesbar) */
 .loc-label { width: 0 !important; height: 0 !important; }
 .loc-label span {
   position: absolute;
   transform: translate(-50%, -50%);
   white-space: nowrap;
   font-weight: 800;
-  color: rgb(var(--t-white));
-  text-shadow: 0 1px 2px rgb(var(--t-shade)), 0 0 6px rgba(var(--t-shade), 0.85);
+  color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 6px rgba(0, 0, 0, 0.85);
   pointer-events: none;
 }
 .loc-label--town span, .loc-label--city span { font-size: 0.82rem; letter-spacing: 0.01em; }
-.loc-label--route span { font-size: 0.66rem; font-weight: 700; color: rgb(var(--t-g-e6ecf8)); opacity: 0.9; }
-.loc-label--place span { font-size: 0.68rem; font-weight: 700; font-style: italic; color: rgb(var(--t-c-f1e3b8)); }
-.loc-label.is-selected span { color: var(--color-accent-strong); }
+.loc-label--route span { font-size: 0.66rem; font-weight: 700; color: #e6ecf8; opacity: 0.9; }
+.loc-label--place span { font-size: 0.68rem; font-weight: 700; font-style: italic; color: #f1e3b8; }
+.loc-label.is-selected span { color: #7fdcff; }
 .z-far .loc-label--route, .z-far .loc-label--place { display: none; }
 .z-far .loc-label--town span, .z-far .loc-label--city span { font-size: 0.7rem; }
 .z-near .loc-label--town span, .z-near .loc-label--city span { font-size: 0.95rem; }
@@ -397,6 +398,12 @@ header p { margin: 0; color: var(--color-muted); }
   cursor: pointer;
 }
 .pin:hover { border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
+/* Symbole (SVG aus app.js): Stecknadel, Karte, Planer, Trainer */
+.ico { width: 1.1em; height: 1.1em; flex-shrink: 0; vertical-align: -0.2em; }
+.mini-btn .ico { margin-right: 4px; }
+.pin { color: var(--color-text); }
+.pin .ico { width: 15px; height: 15px; vertical-align: 0; }
+.sr-ico .ico { width: 18px; height: 18px; color: var(--color-muted); }
 
 .row--trainer { flex-direction: column; align-items: stretch; gap: 6px; }
 .tr-head { display: flex; align-items: center; gap: 6px; }

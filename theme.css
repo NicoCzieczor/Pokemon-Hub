@@ -474,6 +474,36 @@ html[data-theme="graphite"] .tool-nav-link.is-active::after {
 .tool-nav .hub-controls { flex: 0 0 auto; position: static; }
 .tool-nav .theme-toggle { min-width: 26px; min-height: 26px; }
 
+/* Sprach- und Design-Knopf überall gleich groß – jede Seite hatte eigene, leicht abweichende Maße.
+   „html …“ schlägt die Regeln der Seiten, egal in welcher Reihenfolge die Stylesheets geladen werden. */
+html .hub-controls .lang-toggle,
+html .hub-controls .lang-btn,
+html .hub-controls .theme-toggle {
+  box-sizing: border-box;
+  height: 34px;
+  min-height: 0;
+  line-height: 1;
+}
+html .hub-controls .lang-toggle,
+html .hub-controls .lang-btn {
+  display: inline-grid;
+  place-items: center;
+  min-width: 46px;
+  padding: 0 13px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+html .hub-controls .theme-toggle { width: 34px; min-width: 0; }
+@media (max-width: 768px) {
+  html .hub-controls .lang-toggle,
+  html .hub-controls .lang-btn,
+  html .hub-controls .theme-toggle { height: 30px; }
+  html .hub-controls .lang-toggle,
+  html .hub-controls .lang-btn { min-width: 40px; padding: 0 10px; font-size: 12px; }
+  html .hub-controls .theme-toggle { width: 30px; }
+}
+
 /* Kurzer Hinweis mit dem Namen des neuen Designs */
 .theme-toast {
   position: fixed;

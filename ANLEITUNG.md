@@ -53,13 +53,12 @@ Das geht auch vom PC aufs Handy und ist gleichzeitig dein Backup, falls mal was 
 
 | | Offline |
 |---|---|
-| Alle Tools, Speicherstand, Regeln | ✅ |
-| Pokémon-Daten & Sprites, die du schon mal angeschaut hast | ✅ |
-| Pokémon, die du noch nie geöffnet hast | ❌ brauchen einmal Internet |
-| Duo-Sync (Supabase) | ❌ läuft immer live |
-| Kanto-Karte | ✅ wenn sie einmal online geöffnet wurde |
-| Sinnoh-Karte | ✅ Marker, Listen und alle Bereiche und Innenkarten, die du schon einmal angesehen hast (Kartenbild wird beim Ansehen gespeichert) |
-| Boss-Planer | ✅ (nur die Pokémon-Bilder brauchen einmal Internet) |
+| Alle Tools, Speicherstand, Regeln | Ja |
+| Pokémon-Daten & Sprites, die du schon mal angeschaut hast | Ja |
+| Pokémon, die du noch nie geöffnet hast | Nein, brauchen einmal Internet |
+| Duo-Sync (Supabase) | Nein, läuft immer live |
+| Sinnoh-Karte | Ja: Marker, Listen und alle Bereiche und Innenkarten, die du schon einmal angesehen hast (Kartenbild wird beim Ansehen gespeichert) |
+| Boss-Planer | Ja (nur die Pokémon-Bilder brauchen einmal Internet) |
 
 ## 5. Änderungen an der Seite
 

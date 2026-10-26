@@ -21,7 +21,7 @@ const TEXT = {
     loadRom: 'Randomizer-ROM laden', romActive: 'Randomisiert:', romRemove: 'Randomizer-Daten entfernen – wieder die Original-Teams',
     romReading: 'Lese ROM …', romError: 'Das ist keine Pokémon-Platin-ROM (.nds).',
     romHint: 'Für Randomizer-Runs: Lade deine randomisierte ROM (.nds) – dann zeigt der Planer die echten Teams deines Spiels. Gelesen werden nur die Trainerdaten (ca. 120 KB), die Datei bleibt auf deinem Gerät.',
-    randoTag: '🎲 Randomizer',
+    randoTag: 'Randomizer',
     wNone: 'Kein Wetter', wSun: 'Sonne', wRain: 'Regen', wSand: 'Sandsturm',
     tabStory: 'Story', tabPost: 'Nach der Liga', tabAll: 'Alle Trainer',
     searchPlaceholder: 'Trainer, Ort oder Pokémon suchen…',
@@ -32,6 +32,7 @@ const TEXT = {
     noSaveTitle: 'Kein Spielstand geladen',
     noSaveText: 'Lade deinen Platin-Spielstand – dann siehst du für jedes Gegner-Pokémon, wer aus deinem Team es am besten schafft. Spielstände aus dem Save-Viewer sind sofort da.',
     badges: n => `${n} Orden`, addBox: '+ Box', resetTeam: '↺ Team', removeMon: 'Aus der Planung nehmen',
+    close: 'Schließen', fightLabel: 'Kampf',
     next: 'Nächster Kampf', fightNo: (i, n) => `Kampf ${i} von ${n}`, levelCap: 'Level-Cap',
     double: 'Doppelkampf', tagWith: p => `zusammen mit ${p}`, heals: 'Heilt im Kampf', onMap: 'Auf der Karte',
     rivalBy: p => `Team passend zu deinem Starter ${p}`,
@@ -71,7 +72,7 @@ const TEXT = {
     loadRom: 'Load randomizer ROM', romActive: 'Randomized:', romRemove: 'Remove randomizer data – back to the original teams',
     romReading: 'Reading ROM …', romError: 'This is not a Pokémon Platinum ROM (.nds).',
     romHint: 'For randomizer runs: load your randomized ROM (.nds) and the planner shows the real teams of your game. Only the trainer data is read (about 120 KB); the file stays on your device.',
-    randoTag: '🎲 Randomizer',
+    randoTag: 'Randomizer',
     wNone: 'No weather', wSun: 'Sun', wRain: 'Rain', wSand: 'Sandstorm',
     tabStory: 'Story', tabPost: 'Post-game', tabAll: 'All trainers',
     searchPlaceholder: 'Search trainer, place or Pokémon…',
@@ -82,6 +83,7 @@ const TEXT = {
     noSaveTitle: 'No save file loaded',
     noSaveText: 'Load your Platinum save file – then you see, for every enemy Pokémon, who on your team handles it best. Saves from the Save Viewer are available right away.',
     badges: n => `${n} badges`, addBox: '+ Box', resetTeam: '↺ Team', removeMon: 'Remove from planning',
+    close: 'Close', fightLabel: 'Battle',
     next: 'Next battle', fightNo: (i, n) => `Battle ${i} of ${n}`, levelCap: 'Level cap',
     double: 'Double battle', tagWith: p => `together with ${p}`, heals: 'Heals in battle', onMap: 'On the map',
     rivalBy: p => `Team for your starter ${p}`,
@@ -776,7 +778,7 @@ function renderFight() {
     <div class="fight-tags">${state.rando ? `<span class="pill pill-rando" title="${esc(state.rando.name)}">${esc(t.randoTag)}</span>` : ''}${tt.d ? `<span class="pill">${esc(t.double)}</span>` : ''}${tag}${heals}${rival}</div>
     ${me.length ? `<div class="alerts">
         ${warnings.map(w => `<p class="alert is-cap">${esc(w)}</p>`).join('')}
-        ${threats.length ? threats.map(w => `<p class="alert is-danger">☠ ${esc(w)}</p>`).join('') : `<p class="alert is-ok">✓ ${esc(t.noThreats)}</p>`}
+        ${threats.length ? threats.map(w => `<p class="alert is-danger">${esc(w)}</p>`).join('') : `<p class="alert is-ok">✓ ${esc(t.noThreats)}</p>`}
       </div>`
       : `<div class="no-save"><b>${esc(t.noSaveTitle)}</b><p>${esc(t.noSaveText)}</p><button type="button" class="btn-ghost" data-load>${esc(t.loadSave)}</button></div>`}
     <div class="foe-grid">${foes.map((f, fi) => foeCard(f, tt.p[fi], duels[fi], fi)).join('')}</div>`;
@@ -899,6 +901,7 @@ function applyLang() {
   document.querySelectorAll('[data-i18n]').forEach(el => { const v = t[el.dataset.i18n]; if (typeof v === 'string') el.textContent = v; });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const v = t[el.dataset.i18nPlaceholder]; if (typeof v === 'string') el.placeholder = v; });
   document.querySelectorAll('[data-i18n-title]').forEach(el => { const v = t[el.dataset.i18nTitle]; if (typeof v === 'string') el.title = v; });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => { const v = t[el.dataset.i18nAria]; if (typeof v === 'string') el.setAttribute('aria-label', v); });
   $('lang-toggle').textContent = window.LANG.toUpperCase();
   // Team neu benennen (Artnamen hängen an der Sprache)
   const sv = currentSave();

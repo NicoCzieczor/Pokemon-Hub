@@ -33,6 +33,14 @@
   var touch = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
     navigator.maxTouchPoints > 0;
 
+  // Handy-Startseite am PC → PC-Startseite (Gegenstück zur Weiterleitung in home.js, gleiche Bedingung).
+  // Die App startet auf mobile.html (manifest.json), damit am Handy keine Weiterleitung nötig ist.
+  if (scriptUrl && location.href.split(/[?#]/)[0] === scriptUrl.replace(/pwa\.js(\?.*)?$/, '') + 'mobile.html') {
+    var phoneHome = navigator.maxTouchPoints > 0 &&
+      ((window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || window.innerWidth <= 768);
+    if (!phoneHome) { location.replace('index.html'); return; }
+  }
+
   /* ── 1. Service Worker ─────────────────────────────────────────────── */
   // Beim Entwickeln (VS Code Live Server, localhost, Heimnetz) kein Offline-Speicher,
   // sonst sieht man nach dem Speichern erst mal die alte Version.
@@ -291,8 +299,95 @@
     if (imp) imp.addEventListener('click', importData);
     applyTheme(storedTheme()); // meta theme-color steht erst jetzt sicher im DOM
     setupThemeButton();
+    labelToolNav();
+    phoneLinks();
     setupToolNav();
+    // Sprachwechsel: Leiste neu beschriften (die Seite hat 'hub-lang' dann schon umgestellt)
+    var langBtn = document.getElementById('lang-toggle') || document.getElementById('lang-btn');
+    if (langBtn) langBtn.addEventListener('click', function () { setTimeout(labelToolNav, 0); });
   });
+
+  /* ── 7. Navigationsleiste beschriften, Handy-Links ─────────────────── */
+  // Die Beschriftung der Leiste steht an einer Stelle für alle Seiten (vorher hatte jede Seite
+  // eigene, teils fehlende Übersetzungen). [deutsch, englisch], Schlüssel = Ordner, '' = Startseite.
+  var NAV_LABELS = {
+    '': ['Home', 'Home'], RunDashboard: ['Run', 'Run'], Pokelocke: ['Solo', 'Solo'], Duo: ['Duo', 'Duo'],
+    Trio: ['Trio', 'Trio'], Catchrate: ['Fangrate', 'Catch Rate'], DamageCalc: ['Schaden', 'Damage'],
+    Typrechner: ['Typen', 'Types'], PokemonInfo: ['Dex', 'Dex'], Karte: ['Karte', 'Map'], Bosse: ['Bosse', 'Bosses'],
+    SaveViewer: ['Save', 'Save'], SaveEditor: ['Editor', 'Editor'], Randomizer: ['Randomizer', 'Randomizer'],
+    Rules: ['Regeln', 'Rules']
+  };
+  var hubRoot = scriptUrl ? scriptUrl.replace(/pwa\.js(\?.*)?$/, '') : null;
+  // Ordner eines Links im Hub ('' = Startseite) oder null für fremde Adressen
+  function hubArea(href) {
+    if (!hubRoot) return null;
+    var u = new URL(href, location.href).href.split('#')[0].split('?')[0];
+    if (u.indexOf(hubRoot) !== 0) return null;
+    var rest = u.slice(hubRoot.length), i = rest.indexOf('/');
+    return i < 0 ? '' : rest.slice(0, i);
+  }
+  // Titel im Browser-Tab je Sprache (stand vorher fest in jeder Seite, meist deutsch)
+  var PAGE_TITLES = {
+    RunDashboard: ['Run-Dashboard', 'Run Dashboard'], Pokelocke: ['Solo Nuzlocke', 'Solo Nuzlocke'],
+    Duo: ['Duo Nuzlocke', 'Duo Nuzlocke'], Trio: ['Trio Nuzlocke', 'Trio Nuzlocke'],
+    Catchrate: ['Fangrate-Rechner', 'Catch Rate Calculator'], DamageCalc: ['Schadens-Rechner', 'Damage Calculator'],
+    Typrechner: ['Typen-Rechner', 'Type Calculator'], PokemonInfo: ['Pokédex', 'Pokédex'],
+    Karte: ['Karte Sinnoh (Platin)', 'Sinnoh Map (Platinum)'], Bosse: ['Boss-Planer (Platin)', 'Boss Planner (Platinum)'],
+    SaveViewer: ['Save-Viewer', 'Save Viewer'], SaveEditor: ['Save-Editor', 'Save Editor'],
+    Randomizer: ['Randomizer', 'Randomizer'], Rules: ['Nuzlocke-Regelwerk', 'Nuzlocke Rules']
+  };
+  function labelToolNav() {
+    var en = 0;
+    try { en = localStorage.getItem('hub-lang') === 'en' ? 1 : 0; } catch (e) {}
+    var page = PAGE_TITLES[hubArea(location.href)];
+    if (page) document.title = page[en] + ' – Pokémon Hub';
+    var nav = document.querySelector('.tool-nav');
+    if (!nav) return;
+    Array.prototype.forEach.call(nav.querySelectorAll('a.tool-nav-link'), function (a) { labelNavLink(a, en); });
+  }
+  function labelNavLink(a, en) {
+    var k = hubArea(a.getAttribute('href'));
+    if (k == null || !NAV_LABELS[k]) return;
+    a.removeAttribute('data-i18n'); // die Seite beschriftet die Leiste sonst selbst – anders
+    if (a.textContent !== NAV_LABELS[k][en]) a.textContent = NAV_LABELS[k][en];
+  }
+  // Schon beschriften, während der Browser die Seite aufbaut (vor dem ersten Zeichnen) – erst bei
+  // DOMContentLoaded blitzte beim Seitenwechsel kurz der Text aus dem HTML auf (z. B. „Team“ statt „Solo“).
+  // Der Text eines Links kann nach dem Link selbst ankommen, deshalb zählt jede Änderung in einem Link.
+  if (window.MutationObserver) {
+    var earlyEn = 0;
+    try { earlyEn = localStorage.getItem('hub-lang') === 'en' ? 1 : 0; } catch (e) {}
+    var earlyNav = new MutationObserver(function (records) {
+      records.forEach(function (r) {
+        var t = r.target.nodeType === 1 ? r.target : r.target.parentElement;
+        var a = t && t.closest && t.closest('a.tool-nav-link');
+        if (a) labelNavLink(a, earlyEn);
+        Array.prototype.forEach.call(r.addedNodes, function (n) {
+          if (n.nodeType !== 1) return;
+          if (n.matches('a.tool-nav-link')) labelNavLink(n, earlyEn);
+          else Array.prototype.forEach.call(n.querySelectorAll('a.tool-nav-link'), function (x) { labelNavLink(x, earlyEn); });
+        });
+      });
+    });
+    earlyNav.observe(document.documentElement, { childList: true, characterData: true, subtree: true });
+    document.addEventListener('DOMContentLoaded', function () { earlyNav.disconnect(); });
+  }
+  // Am Handy direkt auf die Handy-Seiten verlinken statt über index.html und eine Weiterleitung.
+  // Bedingungen wie in home.js (Startseite) und Duo/index.html.
+  function phoneLinks() {
+    var fingers = navigator.maxTouchPoints > 0;
+    var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    var home = fingers && (coarse || window.innerWidth <= 768);
+    var duo = fingers && window.innerWidth < 768;
+    if ((!home && !duo) || !hubRoot) return;
+    Array.prototype.forEach.call(document.querySelectorAll('a[href]'), function (a) {
+      var k = hubArea(a.getAttribute('href'));
+      if (k == null) return;
+      var u = new URL(a.getAttribute('href'), location.href), file = u.pathname.split('/').pop();
+      if (home && k === '' && (file === 'index.html' || file === '')) a.href = hubRoot + 'mobile.html';
+      else if (duo && k === 'Duo' && file === 'index.html') a.href = hubRoot + 'Duo/mobile.html';
+    });
+  }
 
   /* ── 6b. Theme-Knopf ───────────────────────────────────────────────── */
   var THEME_NAMES = {
@@ -319,10 +414,11 @@
     if (lang) {
       var cs = getComputedStyle(lang);
       if (cs.position === 'fixed') {
-        var r = lang.getBoundingClientRect();
+        // Abstände aus dem CSS übernehmen – aus der Lage auf dem Bildschirm berechnet stimmten sie
+        // während des Ladens nicht immer (Save-Viewer: 10 px weiter links als auf den anderen Seiten)
         box.classList.add('is-fixed');
-        box.style.top = r.top + 'px';
-        box.style.right = Math.max(0, document.documentElement.clientWidth - r.right) + 'px';
+        box.style.top = cs.top;
+        box.style.right = cs.right;
       }
       lang.parentNode.insertBefore(box, lang);
       box.appendChild(lang);

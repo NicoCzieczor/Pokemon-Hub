@@ -132,6 +132,8 @@ let boxOpen    = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+// Name in den Auswahllisten – aus pokemon-names.js (sofort da, auch offline; vorher eine Anfrage je Pokémon)
+function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
 function formatLabel(t) { return t.split('-').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function getDisplayName(name) { return allPokemonList.find(p => p.name===name)?.displayName || capitalize(name); }
 function getTypeEffectiveness(atk, defs) {
@@ -453,7 +455,7 @@ function renderCoverageSection(allActive) {
   header.className = 'coverage-header';
   const titleEl = document.createElement('div');
   titleEl.className = 'coverage-title';
-  titleEl.innerHTML = `🛡️ ${window.t('recommendations')}`;
+  titleEl.textContent = window.t('recommendations');
   header.appendChild(titleEl);
   header.appendChild(Object.assign(document.createElement('div'), { className:'coverage-subtitle', textContent:window.t('recs-subtitle') }));
   section.appendChild(header);
@@ -894,10 +896,9 @@ async function loadAllPokemonBasic() {
       const m = p.url.match(/\/pokemon\/(\d+)\//);
       const id = m ? Number(m[1]) : null;
       if (!id) return null;
-      return { id, name:p.name, displayName:capitalize(p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
+      return { id, name:p.name, displayName:listName(id, p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
     }).filter(Boolean);
   });
-  allPokemonList.forEach(p => getPokemonSpecies(p.name).then(s=>{ if(s.germanName) p.displayName=s.germanName; }).catch(()=>{}));
 }
 
 async function loadPokemonList(gen=1) {
@@ -906,17 +907,8 @@ async function loadPokemonList(gen=1) {
   pokemonList = list.map(p => {
     const m = p.url.match(/\/pokemon\/(\d+)\//);
     const id = m?Number(m[1]):null;
-    return { id, name:p.name, displayName:capitalize(p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
+    return { id, name:p.name, displayName:listName(id, p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
   }).filter(p=>p.id);
-  await Promise.allSettled(list.map(async p => {
-    try {
-      const s = await getPokemonSpecies(p.name);
-      const loc = pokemonList.find(x=>x.name===p.name);
-      if (loc) loc.displayName = s.germanName||loc.displayName;
-      const glob = allPokemonList.find(x=>x.name===p.name);
-      if (glob) glob.displayName = s.germanName||glob.displayName;
-    } catch {}
-  }));
 }
 
 function renderPokemonList(filter='') {
@@ -1327,14 +1319,7 @@ document.addEventListener('langchange', async () => {
     } catch {}
   }));
 
-  await Promise.allSettled(pokemonList.map(async p => {
-    try {
-      const s = await getPokemonSpecies(p.name);
-      p.displayName = s.germanName || p.displayName;
-      const glob = allPokemonList.find(x => x.name === p.name);
-      if (glob) glob.displayName = p.displayName;
-    } catch {}
-  }));
+  [...pokemonList, ...allPokemonList].forEach(p => { p.displayName = listName(p.id, p.name); });
 
   teamPokemon.forEach((p, i) => renderTeamSlot(i, p));
   if (boxOpen) updateBoxSlots();

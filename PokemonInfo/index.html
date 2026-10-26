@@ -34,7 +34,7 @@
   <nav class="tool-nav" aria-label="Pokémon tools">
     <a class="tool-nav-link" href="../index.html" data-i18n="nav.home">Home</a>
     <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav.run">Run</a>
-    <a class="tool-nav-link" href="../Pokelocke/index.html" data-i18n="nav.team">Team</a>
+    <a class="tool-nav-link" href="../Pokelocke/index.html" data-i18n="nav.team">Solo</a>
     <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
     <a class="tool-nav-link" href="../Trio/index.html" data-i18n="nav.trio">Trio</a>
     <a class="tool-nav-link" href="../Catchrate/index.html" data-i18n="nav.catchrate">Fangrate</a>
@@ -60,7 +60,7 @@
   <!-- Suche + Spiel: das Spiel gilt für Entwicklung, Attacken und Fundorte -->
   <div class="top-controls">
     <button id="search-trigger" class="search-trigger" type="button">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.2-4.2"/></svg></span>
       <span id="search-trigger-label" data-i18n="searchPlaceholder">Pokémon suchen...</span>
     </button>
     <label class="game-bar">
@@ -77,7 +77,7 @@
       <div class="identity-layout">
         <div class="identity-sprite-wrap">
           <img id="identity-sprite" class="identity-sprite" src="" alt="">
-          <button id="shiny-btn" class="shiny-btn" type="button">✨ Shiny</button>
+          <button id="shiny-btn" class="shiny-btn" type="button">✦ Shiny</button>
         </div>
         <div class="identity-info">
           <div class="identity-name-row">
@@ -188,13 +188,14 @@
         <span id="move-detail-type"></span>
         <span id="move-detail-cat"></span>
       </div>
-      <button id="move-detail-close" class="icon-btn" type="button" title="Schließen">&#215;</button>
+      <button id="move-detail-close" class="icon-btn" type="button" title="Schließen" data-i18n-title="close">&#215;</button>
     </div>
     <div id="move-detail-stats" class="move-detail-stats"></div>
     <div id="move-detail-desc" class="move-detail-desc"></div>
   </div>
 </div>
 
+<script src="../pokemon-names.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

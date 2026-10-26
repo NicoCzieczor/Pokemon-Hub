@@ -26,7 +26,7 @@
 <nav class="tool-nav" aria-label="Pokemon tools">
   <a class="tool-nav-link" href="../index.html">Home</a>
   <a class="tool-nav-link" href="../RunDashboard/index.html">Run</a>
-  <a class="tool-nav-link" href="../Pokelocke/index.html">Team</a>
+  <a class="tool-nav-link" href="../Pokelocke/index.html">Solo</a>
   <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
   <a class="tool-nav-link" href="../Trio/index.html">Trio</a>
   <a class="tool-nav-link" href="../Catchrate/index.html">Fangrate</a>
@@ -86,7 +86,7 @@
       <button type="button" class="list-tab" data-list="all" data-i18n="tabAll">Alle Trainer</button>
     </div>
     <input id="trainer-search" class="trainer-search" type="search" autocomplete="off" spellcheck="false" placeholder="Trainer, Ort oder Pokémon suchen…" data-i18n-placeholder="searchPlaceholder" hidden>
-    <select id="fight-select" class="fight-select" aria-label="Kampf"></select>
+    <select id="fight-select" class="fight-select" aria-label="Kampf" data-i18n-aria="fightLabel"></select>
     <div id="fight-list" class="fight-list"></div>
   </aside>
 
@@ -103,7 +103,7 @@
   <div class="picker-dialog" role="dialog" aria-modal="true" aria-labelledby="picker-title">
     <div class="picker-head">
       <h2 id="picker-title" data-i18n="pickTitle">Pokémon aus der Box</h2>
-      <button type="button" class="picker-close" id="picker-close" aria-label="Schließen">×</button>
+      <button type="button" class="picker-close" id="picker-close" aria-label="Schließen" data-i18n-aria="close">×</button>
     </div>
     <input id="picker-search" type="search" autocomplete="off" placeholder="Suchen…" data-i18n-placeholder="pickSearch">
     <div id="picker-list" class="picker-list"></div>

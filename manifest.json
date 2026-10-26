@@ -4,7 +4,7 @@
   "short_name": "PokéHub",
   "description": "Nuzlocke-Tools: Run-Dashboard, Team Builder, Duo, Trio, Fangrate, Schaden, Typen, Pokédex.",
   "lang": "de",
-  "start_url": "./index.html",
+  "start_url": "./mobile.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0d0f2b",

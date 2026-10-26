@@ -1,5 +1,8 @@
 import { getPokemon, getGenerationList, getPokemonSpecies, getMoveGermanName, getEvolutionChain } from "../Pokelocke/pokeapi.js";
 
+// Ketten-Symbol für verknüpfte Pokémon (statt Emoji, Farbe aus der Schrift)
+const CHAIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
+
 // ── Type chart ───────────────────────────────────────────────────────────────
 const ALL_TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
 const TYPE_GERMAN = {
@@ -47,6 +50,8 @@ let linkPendingSlot = null; // { slot, type, triggerPlayer, step, picked, detail
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+// Name in den Auswahllisten – aus pokemon-names.js (sofort da, auch offline; vorher eine Anfrage je Pokémon)
+function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
 function formatLabel(t) { return t.split('-').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function getDisplayName(name) { return allPokemonList.find(p => p.name===name)?.displayName || capitalize(name); }
 function nextPlayer(cur, steps = 1) { return ((cur - 1 + steps) % 3) + 1; }
@@ -181,7 +186,7 @@ function updateBoxSlots() {
       return `<div class="box-slot-third ${cls}"><span class="box-slot-empty">+</span></div>`;
     };
     slot.innerHTML = makeThird(p1, 'p1-third') + makeThird(p2, 'p2-third') + makeThird(p3, 'p3-third')
-      + (isLinked ? '<span class="box-chain-icon">⛓</span>' : '');
+      + (isLinked ? '<span class="box-chain-icon">' + CHAIN_ICON + '</span>' : '');
   });
 }
 
@@ -426,7 +431,8 @@ function saveState() {
 async function fetchWithSpecies(name) {
   const details = await getPokemon(name);
   try {
-    const species = await getPokemonSpecies(name);
+    // Art über das Pokémon: Formen wie „giratina-altered“ haben keinen eigenen Art-Eintrag
+    const species = await getPokemonSpecies(details.speciesName || name);
     details.germanName = species.germanName || capitalize(details.name);
     details.evolutionChainUrl = species.evolutionChainUrl ?? null;
   } catch { details.germanName = capitalize(details.name); details.evolutionChainUrl = null; }
@@ -474,10 +480,9 @@ async function loadAllPokemonBasic() {
       const m = p.url.match(/\/pokemon\/(\d+)\//);
       const id = m ? Number(m[1]) : null;
       if (!id) return null;
-      return { id, name:p.name, displayName:capitalize(p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
+      return { id, name:p.name, displayName:listName(id, p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
     }).filter(Boolean);
   });
-  allPokemonList.forEach(p => getPokemonSpecies(p.name).then(s=>{ if(s.germanName) p.displayName=s.germanName; }).catch(()=>{}));
 }
 
 async function loadPokemonList(gen=1) {
@@ -486,17 +491,8 @@ async function loadPokemonList(gen=1) {
   pokemonList = list.map(p => {
     const m = p.url.match(/\/pokemon\/(\d+)\//);
     const id = m?Number(m[1]):null;
-    return { id, name:p.name, displayName:capitalize(p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
+    return { id, name:p.name, displayName:listName(id, p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
   }).filter(p=>p.id);
-  await Promise.allSettled(list.map(async p => {
-    try {
-      const s = await getPokemonSpecies(p.name);
-      const loc = pokemonList.find(x=>x.name===p.name);
-      if (loc) loc.displayName = s.germanName||loc.displayName;
-      const glob = allPokemonList.find(x=>x.name===p.name);
-      if (glob) glob.displayName = s.germanName||glob.displayName;
-    } catch {}
-  }));
 }
 
 function renderPokemonList(filter='') {
@@ -551,9 +547,9 @@ function openModal(title='Wähle ein Pokémon', isLinking=false) {
 
       prog.innerHTML =
         makeStepDone(picked[0], triggerPlayer) +
-        `<span class="link-prog-arrow">⛓</span>` +
+        `<span class="link-prog-arrow">${CHAIN_ICON}</span>` +
         (step >= 2 ? makeStepDone(picked[1], p2Player) : makeStepPending(p2Player)) +
-        `<span class="link-prog-arrow">⛓</span>` +
+        `<span class="link-prog-arrow">${CHAIN_ICON}</span>` +
         makeStepPending(p3Player);
 
       prog.style.display = 'flex';

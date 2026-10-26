@@ -145,7 +145,8 @@
       padding: 12px 18px;
       border-bottom: 1px solid var(--color-border);
     }
-    .section-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .section-icon { display: grid; place-items: center; width: 22px; height: 22px; flex-shrink: 0; color: var(--color-accent); }
+    .section-icon svg { width: 19px; height: 19px; }
     .section-title { font-size: 0.95rem; font-weight: 700; color: rgb(var(--t-white)); flex: 1; }
     .section-badge {
       padding: 2px 9px;
@@ -336,7 +337,7 @@
     <nav class="tool-nav" aria-label="Pokemon tools">
       <a class="tool-nav-link" href="../index.html">Home</a>
       <a class="tool-nav-link" href="../RunDashboard/index.html">Run</a>
-      <a class="tool-nav-link" href="../Pokelocke/index.html">Team</a>
+      <a class="tool-nav-link" href="../Pokelocke/index.html">Solo</a>
       <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
       <a class="tool-nav-link" href="../Trio/index.html">Trio</a>
       <a class="tool-nav-link" href="../Catchrate/index.html">Fangrate</a>
@@ -364,7 +365,7 @@
         <!-- Grundregeln -->
         <div class="rule-section">
           <div class="section-head">
-            <span class="section-icon">📜</span>
+            <span class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>
             <span class="section-title" data-i18n="tab-core">Grundregeln</span>
             <span class="section-badge badge-core" data-i18n="core-badge">Pflicht</span>
           </div>
@@ -396,7 +397,7 @@
         <!-- Klauseln -->
         <div class="rule-section">
           <div class="section-head">
-            <span class="section-icon">⚖️</span>
+            <span class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M8 20h8M5 7h14M12 4l0 3"/><path d="M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg></span>
             <span class="section-title" data-i18n="tab-clauses">Klauseln</span>
             <span class="section-badge badge-clause" data-i18n="clauses-badge">Optional</span>
           </div>
@@ -451,7 +452,7 @@
       <!-- ── VARIANTEN ── -->
       <div class="rule-section">
         <div class="section-head">
-          <span class="section-icon">🎮</span>
+          <span class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 10.5v4M5 12.5h4"/><path d="M15.5 11.5h.01M18 14h.01" stroke-width="2.6"/></svg></span>
           <span class="section-title" data-i18n="tab-variants">Varianten</span>
           <span class="section-badge badge-variant" data-i18n="variants-badge">Varianten</span>
         </div>
@@ -521,7 +522,7 @@
       <!-- ── EIGENE REGELN ── -->
       <div class="rule-section">
         <div class="section-head">
-          <span class="section-icon">✏️</span>
+          <span class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m14 6 4 4"/></svg></span>
           <span class="section-title" data-i18n="tab-custom">Eigene Regeln</span>
           <span class="section-badge badge-custom" data-i18n="custom-badge">Eigene</span>
         </div>

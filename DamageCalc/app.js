@@ -350,7 +350,11 @@ async function loadGenList(gen) {
   if (genListCache.has(gen)) return genListCache.get(gen);
   const { limit, offset } = GEN_RANGES[gen];
   const d = await apiFetch(`${BASE_URL}/pokemon?limit=${limit}&offset=${offset}`);
-  const list = d.results.map((p, i) => ({ name: p.name, id: offset + i + 1, gen, deName: null, enName: cap(p.name) }));
+  // Namen aus pokemon-names.js (sofort da, auch offline) – vorher eine Anfrage je Pokémon
+  const list = d.results.map((p, i) => {
+    const id = offset + i + 1;
+    return { name: p.name, id, gen, deName: window.pokemonName(id, p.name, 'de'), enName: window.pokemonName(id, p.name, 'en') || cap(p.name) };
+  });
   genListCache.set(gen, list);
   return list;
 }
@@ -361,17 +365,6 @@ async function loadAllPokemonBasic() {
   return allPokemonList;
 }
 const listName = p => (isEn() ? p.enName : (p.deName || p.enName));
-
-async function localizePokemonList(list, rerender) {
-  await Promise.allSettled(list.map(async p => {
-    if (p.localized) return;
-    const sp = await apiFetch(`${BASE_URL}/pokemon-species/${p.name}`);
-    p.deName = sp.names.find(n => n.language.name === 'de')?.name || null;
-    p.enName = sp.names.find(n => n.language.name === 'en')?.name || p.enName;
-    p.localized = true;
-  }));
-  if (rerender) rerender();
-}
 
 const STAT_KEYS = { hp:'hp', attack:'attack', defense:'defense', 'special-attack':'sp_attack', 'special-defense':'sp_defense', speed:'speed', special:'special' };
 const byslot = (a, b) => a.slot - b.slot;
@@ -845,7 +838,6 @@ let modalTarget = null;
 let currentGenList = [];
 let searchDebounce = null;
 let lastFocus = null;
-let allLocalizing = false;
 
 function openModal(modal, focusEl) {
   lastFocus = document.activeElement;
@@ -877,9 +869,6 @@ async function loadAndRenderGen(gen) {
   }
   pokeLoading.hidden = true;
   renderPokeList(currentGenList, false);
-  localizePokemonList(currentGenList, () => {
-    if (!pokeModal.hidden && !pokeSearch.value.trim()) renderPokeList(currentGenList, false);
-  });
 }
 
 function renderPokeList(list, showHeaders) {
@@ -926,11 +915,6 @@ async function renderPokemonSearch() {
   pokeLoading.hidden = false;
   const all = await loadAllPokemonBasic();
   pokeLoading.hidden = true;
-  // Deutsche Namen aller Generationen erst laden, wenn wirklich gesucht wird
-  if (!allLocalizing) {
-    allLocalizing = true;
-    localizePokemonList(all, () => { if (!pokeModal.hidden && pokeSearch.value.trim()) renderPokemonSearch(); });
-  }
   const filtered = all
     .filter(p => searchKey(p.deName).includes(key) || searchKey(p.enName).includes(key) || searchKey(p.name).includes(key) || String(p.id) === q.replace('#', ''))
     .sort((a, b) => a.id - b.id);

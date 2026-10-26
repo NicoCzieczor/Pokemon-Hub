@@ -1,12 +1,12 @@
 // ── i18n ─────────────────────────────────────────────────────────────────────
-window.LANG = localStorage.getItem('duo-lang') || 'de';
+window.LANG = localStorage.getItem('hub-lang') || 'de';
 
 const TRANSLATIONS = {
   de: {
     'subtitle':'Team-Builder für zwei Spieler – Typen, Stats und gemeinsame Analyse.',
     'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
     'nav-catch':'Fangrate', 'nav-damage':'Schaden', 'nav-types':'Typen',
-    'player1':'Spieler 1', 'player2':'Spieler 2', 'box':'📦 Gemeinsame Box',
+    'player1':'Spieler 1', 'player2':'Spieler 2', 'box':'Gemeinsame Box',
     'info-title':'Pokémon-Info', 'info-placeholder':'Wähle ein Pokémon aus einem Team oder dem Info-Slot.',
     'info-gen-section':'Info-Generation', 'info-gen-label':'Generation',
     'info-slot-empty':'Info-Pokémon wählen', 'weakness-title':'Team-Typ-Analyse',
@@ -42,12 +42,20 @@ const TRANSLATIONS = {
     'box-pick': (slot, pl) => `Gemeinsame Box – Slot ${slot} (Spieler ${pl})`,
     'link-label': (pl, slot) => `Spieler ${pl} – Slot ${slot}`,
     'pending': 'Ausstehend…',
+    'sync-idle':'Nicht verbunden', 'sync-create':'Session erstellen', 'sync-join':'Beitreten',
+    'sync-leave':'Session verlassen', 'sync-leave-short':'Verlassen', 'sync-code-ph':'Code eingeben', 'sync-copy-title':'Code kopieren',
+    'sync-both':'Beide Spieler verbunden ✓', 'sync-waiting': (me, other) => `Spieler ${me} – warte auf Spieler ${other}…`,
+    'sync-creating':'Erstelle Session…', 'sync-create-error':'Fehler beim Erstellen.', 'sync-connecting':'Verbinde…',
+    'sync-not-found':'Session nicht gefunden.', 'sync-full':'Session ist bereits voll.', 'sync-connect-error':'Fehler beim Verbinden.',
+    'graveyard':'Friedhof', 'graveyard-empty':'Noch keine gefallenen Pokémon.', 'grave-player': pl => `Spieler ${pl}`, 'grave-blame-short': pl => `S${pl}`,
+    'graveyard-hint':'Tippen: Schuld wechseln (S1 / S2 / ?) · Gedrückt halten: aus dem Friedhof löschen',
+    'ctx-remove':'Entfernen', 'ctx-kill':'Gestorben',
   },
   en: {
     'subtitle':'Team builder for two players – types, stats and shared analysis.',
     'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
     'nav-catch':'Catch', 'nav-damage':'Damage', 'nav-types':'Types',
-    'player1':'Player 1', 'player2':'Player 2', 'box':'📦 Shared Box',
+    'player1':'Player 1', 'player2':'Player 2', 'box':'Shared Box',
     'info-title':'Pokémon Info', 'info-placeholder':'Select a Pokémon from a team or the info slot.',
     'info-gen-section':'Info Generation', 'info-gen-label':'Generation',
     'info-slot-empty':'Select Info Pokémon', 'weakness-title':'Team Type Analysis',
@@ -83,6 +91,14 @@ const TRANSLATIONS = {
     'box-pick': (slot, pl) => `Shared Box – Slot ${slot} (Player ${pl})`,
     'link-label': (pl, slot) => `Player ${pl} – Slot ${slot}`,
     'pending': 'Pending…',
+    'sync-idle':'Not connected', 'sync-create':'Create session', 'sync-join':'Join',
+    'sync-leave':'Leave session', 'sync-leave-short':'Leave', 'sync-code-ph':'Enter code', 'sync-copy-title':'Copy code',
+    'sync-both':'Both players connected ✓', 'sync-waiting': (me, other) => `Player ${me} – waiting for player ${other}…`,
+    'sync-creating':'Creating session…', 'sync-create-error':'Error creating the session.', 'sync-connecting':'Connecting…',
+    'sync-not-found':'Session not found.', 'sync-full':'Session is already full.', 'sync-connect-error':'Error connecting.',
+    'graveyard':'Graveyard', 'graveyard-empty':'No fallen Pokémon yet.', 'grave-player': pl => `Player ${pl}`, 'grave-blame-short': pl => `P${pl}`,
+    'graveyard-hint':'Tap: switch blame (P1 / P2 / ?) · Hold: remove from the graveyard',
+    'ctx-remove':'Remove', 'ctx-kill':'Fainted',
   },
 };
 
@@ -119,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.LANG === 'en') applyLang();
   document.getElementById('lang-toggle').addEventListener('click', () => {
     window.LANG = window.LANG === 'de' ? 'en' : 'de';
-    localStorage.setItem('duo-lang', window.LANG);
+    localStorage.setItem('hub-lang', window.LANG);
     applyLang();
   });
 });

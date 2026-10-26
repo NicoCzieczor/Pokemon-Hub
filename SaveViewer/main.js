@@ -90,7 +90,7 @@
       encSummary: function (l, n) { return l + ' Fangorte · ' + n + ' Pokémon'; },
       encDead: function (n) { return n + ' im Friedhof'; },
       location: 'Ort', noLocation: 'Ohne Fangort', eggs: 'Eier (noch nicht geschlüpft)', hatched: 'aus Ei',
-      tagTeam: 'Team', tagDaycare: 'Pension', tagDead: '✝', traded: 'getauscht',
+      tagTeam: 'Team', tagDaycare: 'Pension', tagDead: '†', traded: 'getauscht',
       dexMode: { sinnoh: 'Sinnoh', national: 'National' }, legendCaught: 'gefangen', legendSeen: 'gesehen', legendUnseen: 'unbekannt',
       lv: 'Lv.', egg: 'Ei', nature: 'Wesen', ability: 'Fähigkeit', item: 'Item', noItem: '—', hiddenPower: 'Kraftreserve',
       friendship: 'Freundschaft', eggCycles: 'Ei-Zyklen übrig', pokerus: 'Pokérus', pkrsActive: 'infiziert', pkrsCured: 'immun',
@@ -186,7 +186,7 @@
       encSummary: function (l, n) { return l + ' locations · ' + n + ' Pokémon'; },
       encDead: function (n) { return n + ' in the graveyard'; },
       location: 'Location', noLocation: 'No location', eggs: 'Eggs (not hatched yet)', hatched: 'from egg',
-      tagTeam: 'Team', tagDaycare: 'Day Care', tagDead: '✝', traded: 'traded',
+      tagTeam: 'Team', tagDaycare: 'Day Care', tagDead: '†', traded: 'traded',
       dexMode: { sinnoh: 'Sinnoh', national: 'National' }, legendCaught: 'caught', legendSeen: 'seen', legendUnseen: 'unknown',
       lv: 'Lv.', egg: 'Egg', nature: 'Nature', ability: 'Ability', item: 'Item', noItem: '—', hiddenPower: 'Hidden Power',
       friendship: 'Friendship', eggCycles: 'Egg cycles left', pokerus: 'Pokérus', pkrsActive: 'infected', pkrsCured: 'cured',
@@ -362,7 +362,7 @@
   }
   function genderTag(m) {
     if (m.isEgg || m.gender === 2) return '';
-    return m.gender === 1 ? '<span class="g-f">♀</span>' : '<span class="g-m">♂</span>';
+    return m.gender === 1 ? '<span class="g-f">♀\uFE0E</span>' : '<span class="g-m">♂\uFE0E</span>';
   }
   function statusInfo(m) {
     var s = m.status, k = null;
@@ -394,7 +394,7 @@
     var el = $('error');
     if (!msg) { el.hidden = true; el.textContent = ''; return; }
     el.hidden = false;
-    el.innerHTML = '<span>⚠️</span><span>' + esc(msg) + '</span>';
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 22 20.5H2z"/><path d="M12 10v4.5M12 17.5v.01"/></svg><span>' + esc(msg) + '</span>';
   }
 
   function errorText(r) {
@@ -524,7 +524,7 @@
     if (t.coins) meta.push('<span>' + l.coins + ' <b>' + num(t.coins) + '</b></span>');
     var started = gameDate(t.started);
     if (started) meta.push('<span>' + l.started + ' <b>' + started + '</b></span>');
-    if (t.gameClear) meta.push('<span class="pill" style="color:var(--color-accent);border-color:rgba(var(--t-acc),0.35)">🏆 ' + l.champion + '</span>');
+    if (t.gameClear) meta.push('<span class="pill" style="color:var(--color-accent);border-color:rgba(var(--t-acc),0.35)">' + l.champion + '</span>');
 
     var badges = BADGES.map(function (b, i) {
       var on = t.badges[b.bit];
@@ -541,7 +541,7 @@
     $('trainer').innerHTML =
       '<div class="avatar' + (t.gender === 1 ? ' is-f' : '') + '">' + esc((t.name || '?').charAt(0)) + '</div>' +
       '<div style="min-width:0"><div class="trainer-name">' + esc(t.name || '—') + ' ' +
-      (t.gender === 1 ? '<span class="g-f">♀</span>' : '<span class="g-m">♂</span>') + '</div>' +
+      (t.gender === 1 ? '<span class="g-f">♀\uFE0E</span>' : '<span class="g-m">♂\uFE0E</span>') + '</div>' +
       '<div class="trainer-meta">' + meta.join('') + '</div><div class="badges">' + badges + '</div></div>' + dexHtml;
   }
 
@@ -637,7 +637,7 @@
     var opts = '<option value="-1">' + l.none + '</option>' + sv.data.boxes.map(function (b, i) {
       return '<option value="' + i + '"' + (sv.grave === i ? ' selected' : '') + '>' + esc(boxLabel(sv.data, i)) + '</option>';
     }).join('');
-    return '<label class="grave-select">✝ ' + l.graveyard + ' <select data-act="grave" data-i="' + saveIdx + '">' + opts + '</select></label>';
+    return '<label class="grave-select">† ' + l.graveyard + ' <select data-act="grave" data-i="' + saveIdx + '">' + opts + '</select></label>';
   }
 
   function boxesHtml() {
@@ -645,7 +645,7 @@
     var list = data.boxes.map(function (b, i) {
       var n = b.slots.filter(Boolean).length;
       return '<button type="button" class="box-btn' + (i === sv.box ? ' is-active' : '') + (n ? '' : ' is-empty') + '" data-act="box" data-i="' + i + '">' +
-        '<span>' + (sv.grave === i ? '✝ ' : '') + esc(boxLabel(data, i)) + '</span><span class="n">' + n + '</span></button>';
+        '<span>' + (sv.grave === i ? '† ' : '') + esc(boxLabel(data, i)) + '</span><span class="n">' + n + '</span></button>';
     }).join('');
 
     var box = data.boxes[sv.box];
@@ -676,7 +676,7 @@
     }
 
     return '<div class="box-layout"><div class="box-list">' + list + '</div><div>' +
-      '<div class="box-title"><h3>' + (sv.grave === sv.box ? '✝ ' : '') + esc(boxLabel(data, sv.box)) + ' <span class="muted" style="font-size:0.85rem;font-weight:700">' + count + '/30</span></h3>' + search + '</div>' +
+      '<div class="box-title"><h3>' + (sv.grave === sv.box ? '† ' : '') + esc(boxLabel(data, sv.box)) + ' <span class="muted" style="font-size:0.85rem;font-weight:700">' + count + '/30</span></h3>' + search + '</div>' +
       results +
       '<div class="box-grid' + (sv.grave === sv.box ? ' is-grave' : '') + '">' + slots + '</div>' +
       (count ? '' : '<p class="muted" style="margin-top:10px;font-size:0.85rem">' + l.boxEmpty + '</p>') +
@@ -1276,7 +1276,7 @@
     }
     var bi = ballItem(m.ball);
     originRows += '<dt>' + l.ball + '</dt><dd>' + itemImg(bi) + esc(t.items[bi]) + '</dd>' +
-      '<dt>' + l.ot + '</dt><dd>' + esc(m.otName) + ' <span class="' + (m.otGender ? 'g-f' : 'g-m') + '">' + (m.otGender ? '♀' : '♂') + '</span> · ' + pad(m.tid, 5) + (traded ? ' <span class="tag">' + l.traded + '</span>' : '') + '</dd>' +
+      '<dt>' + l.ot + '</dt><dd>' + esc(m.otName) + ' <span class="' + (m.otGender ? 'g-f' : 'g-m') + '">' + (m.otGender ? '♀\uFE0E' : '♂\uFE0E') + '</span> · ' + pad(m.tid, 5) + (traded ? ' <span class="tag">' + l.traded + '</span>' : '') + '</dd>' +
       '<dt>' + l.game + '</dt><dd>' + esc(VERSIONS[lang][m.version] || ('#' + m.version)) + '</dd>' +
       '<dt>' + l.language + '</dt><dd>' + (LANGS[m.language] || '—') + '</dd>' +
       (m.fateful ? '<dt>' + l.fateful + '</dt><dd>✓</dd>' : '');

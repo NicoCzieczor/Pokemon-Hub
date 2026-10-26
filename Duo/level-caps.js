@@ -314,6 +314,23 @@ function buildGameSelect() {
   sel.value = LEVEL_CAPS[cur] ? cur : Object.keys(LEVEL_CAPS)[0];
 }
 
+// Trainer, die in den Level-Caps mit deutschem Namen eingetragen sind – im englischen Modus übersetzt
+const LCP_NAMES_EN = {
+  'Rocko':'Brock', 'Surge':'Lt. Surge', 'Pyro':'Blaine', 'Agathe':'Agatha', 'Siegfried':'Lance', 'Blau':'Blue',
+  'Champion Blau':'Champion Blue', 'Champion Siegfried':'Champion Lance', 'Ahornia':'Bugsy',
+};
+function lcpName(name) {
+  if (window.LANG !== 'en') return name;
+  return LCP_NAMES_EN[name] || name.replace('(Prüfung)', '(Trial)');
+}
+function lcpToggleTitle() {
+  const panel = document.getElementById('level-cap-panel'), btn = document.getElementById('lcp-toggle');
+  if (!panel || !btn) return;
+  const collapsed = panel.classList.contains('lcp-collapsed');
+  btn.title = window.LANG === 'en' ? (collapsed ? 'Expand' : 'Collapse') : (collapsed ? 'Ausklappen' : 'Einklappen');
+}
+document.addEventListener('langchange', lcpToggleTitle);
+
 function renderLevelCaps(gameKey) {
   const game = LEVEL_CAPS[gameKey];
   const list = document.getElementById('lcp-list');
@@ -343,7 +360,7 @@ function renderLevelCaps(gameKey) {
     row.className = 'lcp-entry' + (e.isE4 ? ' lcp-e4' : '') + (e.team?.length ? ' lcp-has-team' : '');
     const typeDisplay = e.type ? e.type.split('/').map(t => window.typeLabel(t.trim()) || t.trim()).join('/') : '';
     const variantNote = e.variant ? window.t('variant-note') : '';
-    row.innerHTML = `<span class="lcp-num">${numStr}</span><span class="lcp-name">${e.name}</span>${typeDisplay ? `<span class="lcp-type">${typeDisplay}</span>` : ''}${variantNote ? `<span class="lcp-variant" title="${variantNote}">${window.t('variant-badge')}</span>` : ''}${e.cap != null ? `<span class="lcp-cap">Lv.${e.cap}</span>` : ''}`;
+    row.innerHTML = `<span class="lcp-num">${numStr}</span><span class="lcp-name">${lcpName(e.name)}</span>${typeDisplay ? `<span class="lcp-type">${typeDisplay}</span>` : ''}${variantNote ? `<span class="lcp-variant" title="${variantNote}">${window.t('variant-badge')}</span>` : ''}${e.cap != null ? `<span class="lcp-cap">Lv.${e.cap}</span>` : ''}`;
     if (variantNote) row.title = variantNote;
 
     if (e.team?.length) {
@@ -374,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lcp-toggle').addEventListener('click', () => {
     const panel = document.getElementById('level-cap-panel');
     const collapsed = panel.classList.toggle('lcp-collapsed');
-    document.getElementById('lcp-toggle-icon').textContent = collapsed ? '▶' : '▼';
-    document.getElementById('lcp-toggle').title = collapsed ? 'Ausklappen' : 'Einklappen';
+    document.getElementById('lcp-toggle-icon').classList.toggle('is-collapsed', collapsed);
+    lcpToggleTitle();
   });
 });

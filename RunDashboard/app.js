@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'pokemon-run-dashboard-state';
-const LANG_STORAGE_KEY = 'duo-lang';
+const LANG_STORAGE_KEY = 'hub-lang'; // gleiche Sprache wie alle Seiten des Hubs
 const POKEAPI_BASE_URL = 'https://pokeapi.co/api/v2';
 const I18N = {
   de: {
@@ -47,6 +47,17 @@ const I18N = {
     confirmResetShort: 'Sicher?',
     confirmYes: 'Ja',
     confirmNo: 'Nein',
+    newRun: 'Neuer Run',
+    newRunTitle: 'Neuen Run erstellen',
+    renameRunTitle: 'Run umbenennen',
+    deleteRunTitle: 'Diesen Run löschen',
+    deleteRunQuestion: 'Run löschen?',
+    genAll: 'Alle',
+    create: 'Erstellen',
+    cancel: 'Abbrechen',
+    runNamePlaceholder: 'Name (optional)',
+    cpMark: 'Klick zum Markieren',
+    cpUnmark: 'Klick zum Rücksetzen',
     noEncounters: 'Noch keine Encounters eingetragen.',
     emptyGraveyard: 'Noch leer.',
     deleteEncounterTitle: 'Löschen',
@@ -76,6 +87,7 @@ const I18N = {
     'stat.graveyard': 'Graveyard',
     'status.caught': 'Gefangen',
     'status.open': 'Offen',
+    'placeUsed': 'eingetragen',
     'status.failed': 'Verpasst',
     'method.wild': 'Wild',
     'method.grass': 'Gras',
@@ -139,6 +151,17 @@ const I18N = {
     confirmResetShort: 'Sure?',
     confirmYes: 'Yes',
     confirmNo: 'No',
+    newRun: 'New run',
+    newRunTitle: 'Create new run',
+    renameRunTitle: 'Rename run',
+    deleteRunTitle: 'Delete this run',
+    deleteRunQuestion: 'Delete run?',
+    genAll: 'All',
+    create: 'Create',
+    cancel: 'Cancel',
+    runNamePlaceholder: 'Name (optional)',
+    cpMark: 'click to mark',
+    cpUnmark: 'click to reset',
     noEncounters: 'No encounters added yet.',
     emptyGraveyard: 'Still empty.',
     deleteEncounterTitle: 'Delete',
@@ -168,6 +191,7 @@ const I18N = {
     'stat.graveyard': 'Graveyard',
     'status.caught': 'Caught',
     'status.open': 'Open',
+    'placeUsed': 'logged',
     'status.failed': 'Missed',
     'method.wild': 'Wild',
     'method.grass': 'Grass',
@@ -717,24 +741,6 @@ async function getGenerationList(gen = 1) {
   return data.results;
 }
 
-const speciesCache = new Map();
-
-async function getPokémonSpecies(idOrName) {
-  if (speciesCache.has(idOrName)) return speciesCache.get(idOrName);
-  const response = await fetch(`${POKEAPI_BASE_URL}/pokemon-species/${idOrName}`);
-  if (!response.ok) throw new Error(`Pokémon-Spezies "${idOrName}" nicht gefunden`);
-  const data = await response.json();
-  const germanName = data.names.find(name => name.language.name === 'de');
-  const englishName = data.names.find(name => name.language.name === 'en');
-  const result = {
-    id: data.id,
-    name: data.name,
-    germanName: germanName ? germanName.name : data.name,
-    englishName: englishName ? englishName.name : capitalize(data.name),
-  };
-  speciesCache.set(idOrName, result);
-  return result;
-}
 
 const LEVEL_CAPS = {
   'rot-blau': { label: 'Rot / Blau', entries: [
@@ -1465,29 +1471,29 @@ const LOCATION_ORDER = {
 
 const STARTER_LOCATION = 'Starter-Pokémon';
 
-const BULBA = 'https://archives.bulbagarden.net/media/upload/thumb/';
-function bt(hash, f) { return BULBA + hash + '/' + f + '/200px-' + f; }
+// Cover liegen im Hub (Bulbagarden erlaubt kein Einbetten auf fremden Seiten – die Bilder luden dort nie)
+function cover(name) { return 'covers/' + name + '.webp'; }
 const GAME_COVERS = {
-  'rot-blau':               [bt('8/80','Red_EN_boxart.png'), bt('5/5a','Blue_EN_boxart.png')],
-  'gelb':                   [bt('9/95','Yellow_EN_boxart.png')],
-  'gold-silber':            [bt('c/c7','Gold_EN_boxart.png'), bt('f/f5','Silver_EN_boxart.png')],
-  'kristall':               [bt('6/60','Crystal_EN_boxart.png')],
-  'rubin-saphir':           [bt('5/5f','Ruby_EN_boxart.png'), bt('6/62','Sapphire_EN_boxart.png')],
-  'feuerrot-blattgruen':    [bt('4/43','FireRed_EN_boxart.png'), bt('d/d7','LeafGreen_EN_boxart.png')],
-  'smaragd':                [bt('6/65','Emerald_EN_boxart.jpg')],
-  'diamant-perl':           [bt('6/69','Diamond_EN_boxart.jpg'), bt('a/af','Pearl_EN_boxart.jpg')],
-  'platin':                 [bt('8/83','Platinum_EN_boxart.png')],
-  'heartgold-soulsilver':   [bt('6/6e','HeartGold_EN_boxart.jpg'), bt('5/5c','SoulSilver_EN_boxart.jpg')],
-  'schwarz-weiss':          [bt('d/dc','Black_EN_boxart.png'), bt('0/08','White_EN_boxart.png')],
-  'schwarz2-weiss2':        [bt('3/34','Black_2_EN_boxart.png'), bt('1/14','White_2_EN_boxart.png')],
-  'x-y':                    [bt('2/27','X_EN_boxart.png'), bt('4/41','Y_EN_boxart.png')],
-  'omega-rot-alpha-saphir': [bt('5/5b','Omega_Ruby_EN_boxart.png'), bt('f/f2','Alpha_Sapphire_EN_boxart.png')],
-  'sonne-mond':             [bt('0/06','Sun_EN_boxart.png'), bt('3/38','Moon_EN_boxart.png')],
-  'ultrasonne-ultramond':   [bt('d/de','Ultra_Sun_EN_boxart.png'), bt('8/86','Ultra_Moon_EN_boxart.png')],
-  'letsgo':                 [bt('a/ae','Lets_Go_Pikachu_EN_boxart.png'), bt('1/1e','Lets_Go_Eevee_EN_boxart.png')],
-  'schwert-schild':         [bt('4/47','Sword_EN_boxart.png'), bt('8/8d','Shield_EN_boxart.png')],
-  'bdsp':                   [bt('3/33','Brilliant_Diamond_EN_boxart.png'), bt('f/fa','Shining_Pearl_EN_boxart.png')],
-  'karmesin-purpur':        [bt('5/5f','Scarlet_EN_boxart.png'), bt('1/13','Violet_EN_boxart.png')],
+  'rot-blau':               [cover('red'), cover('blue')],
+  'gelb':                   [cover('yellow')],
+  'gold-silber':            [cover('gold'), cover('silver')],
+  'kristall':               [cover('crystal')],
+  'rubin-saphir':           [cover('ruby'), cover('sapphire')],
+  'feuerrot-blattgruen':    [cover('firered'), cover('leafgreen')],
+  'smaragd':                [cover('emerald')],
+  'diamant-perl':           [cover('diamond'), cover('pearl')],
+  'platin':                 [cover('platinum')],
+  'heartgold-soulsilver':   [cover('heartgold'), cover('soulsilver')],
+  'schwarz-weiss':          [cover('black'), cover('white')],
+  'schwarz2-weiss2':        [cover('black_2'), cover('white_2')],
+  'x-y':                    [cover('x'), cover('y')],
+  'omega-rot-alpha-saphir': [cover('omega_ruby'), cover('alpha_sapphire')],
+  'sonne-mond':             [cover('sun'), cover('moon')],
+  'ultrasonne-ultramond':   [cover('ultra_sun'), cover('ultra_moon')],
+  'letsgo':                 [cover('lets_go_pikachu'), cover('lets_go_eevee')],
+  'schwert-schild':         [cover('sword'), cover('shield')],
+  'bdsp':                   [cover('brilliant_diamond'), cover('shining_pearl')],
+  'karmesin-purpur':        [cover('scarlet'), cover('violet')],
 };
 
 const GAME_GEN_GROUP = {
@@ -2690,6 +2696,10 @@ function applyStaticTranslations() {
   });
   document.querySelectorAll('[data-i18n-title]').forEach(element => {
     element.title = t(element.dataset.i18nTitle);
+    if (element.hasAttribute('aria-label')) element.setAttribute('aria-label', element.title);
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(element => {
+    element.setAttribute('aria-label', t(element.dataset.i18nAria));
   });
   els.langToggle.textContent = window.LANG.toUpperCase();
   els.langToggle.title = window.LANG === 'de' ? 'Sprache wechseln' : 'Switch language';
@@ -2804,7 +2814,7 @@ function showGameSelectModal() {
   activeGenFilter = 0;
   const nameInput = document.getElementById('run-new-name-input');
   nameInput.value = '';
-  nameInput.placeholder = 'Name (optional)';
+  nameInput.placeholder = t('runNamePlaceholder');
   const confirmBtn = document.getElementById('game-select-confirm');
   if (confirmBtn) confirmBtn.disabled = true;
   document.querySelectorAll('.gen-tab').forEach(t => t.classList.toggle('is-active', t.dataset.gen === '0'));
@@ -2923,12 +2933,13 @@ function renderCheckpointProgress() {
     const isDone = index < state.checkpoint;
     const isCurrent = index === state.checkpoint;
     const cls = isDone ? 'is-done' : isCurrent ? 'is-current' : 'is-future';
-    const icon = isDone ? '✓' : isCurrent ? '▶' : String(index + 1);
+    // Aktueller Kampf: gezeichnetes Dreieck (das Zeichen ▶ wäre auf dem iPhone ein Emoji)
+    const icon = isDone ? escapeHtml('✓') : isCurrent ? '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.8 8.4 5 3 8.2z" fill="currentColor"/></svg>' : String(index + 1);
     const name = checkpointNameLabel(entry, index);
     const cap = entry.cap ? `Lv.${entry.cap}` : '';
     return `
-      <div class="cp-item ${cls}" data-cp-index="${index}" title="${escapeHtml(isDone ? name + ' – Klick zum Rücksetzen' : name + ' – Klick zum Markieren')}">
-        <div class="cp-icon">${escapeHtml(icon)}</div>
+      <div class="cp-item ${cls}" data-cp-index="${index}" title="${escapeHtml(name + ' – ' + t(isDone ? 'cpUnmark' : 'cpMark'))}">
+        <div class="cp-icon">${icon}</div>
         <div class="cp-name">${escapeHtml(name)}</div>
         <div class="cp-cap">${escapeHtml(cap)}</div>
       </div>
@@ -2950,14 +2961,15 @@ function renderLocationOptions() {
     ...ordered.filter(location => knownLocations.includes(location)),
     ...knownLocations.filter(location => !orderedSet.has(location)),
   ];
+  // Nuzlocke: pro Ort zählt nur die erste Begegnung – eingetragene Orte sind ausgegraut
+  const used = new Set(state.encounters.map(entry => entry.place));
   els.encounterPlaceSelect.innerHTML = locations
-    .map(location => `<option value="${escapeHtml(location)}">${escapeHtml(locationLabel(location))}</option>`)
+    .map(location => used.has(location)
+      ? `<option value="${escapeHtml(location)}" disabled>${escapeHtml(locationLabel(location))} · ${escapeHtml(t('placeUsed'))}</option>`
+      : `<option value="${escapeHtml(location)}">${escapeHtml(locationLabel(location))}</option>`)
     .join('');
-  if (locations.includes(selectedLocation)) {
-    els.encounterPlaceSelect.value = selectedLocation;
-  } else {
-    els.encounterPlaceSelect.value = STARTER_LOCATION;
-  }
+  const free = locations.filter(location => !used.has(location));
+  els.encounterPlaceSelect.value = free.includes(selectedLocation) ? selectedLocation : (free[0] || '');
 }
 
 function renderRandomizerToggle() {
@@ -3154,16 +3166,13 @@ function methodSummary(methods = []) {
   return labels.length ? ` (${labels.join(', ')})` : '';
 }
 
+// Namen aus pokemon-names.js (sofort da, auch offline) – vorher eine Anfrage je Pokémon
 function enrichPokémonNames(list) {
   list.forEach(pokemon => {
-    getPokémonSpecies(pokemon.name)
-      .then(species => {
-        if (species.germanName) pokemon.displayName = species.germanName;
-        if (species.germanName) pokemon.germanName = species.germanName;
-        if (species.englishName) pokemon.englishName = species.englishName;
-        if (els.pokemonModal.style.display === 'flex') renderPokémonList(els.pokemonSearch.value);
-      })
-      .catch(() => {});
+    const de = window.pokemonName(pokemon.id, pokemon.name, 'de');
+    const en = window.pokemonName(pokemon.id, pokemon.name, 'en');
+    if (de) { pokemon.displayName = de; pokemon.germanName = de; }
+    if (en) pokemon.englishName = en;
   });
 }
 
@@ -3359,7 +3368,20 @@ function renderGraveyard() {
   `).join('');
 }
 
+// Generation der Pokémon-Auswahl passend zum Spiel des Runs – auch beim Anlegen oder Wechseln
+// eines Runs, nicht nur beim Laden der Seite (eine eigene Wahl im Fenster bleibt sonst erhalten)
+let generationGame = null;
+function syncPokémonGeneration() {
+  if (state.game === generationGame) return;
+  const first = generationGame === null;
+  generationGame = state.game;
+  const gen = GAME_DEFAULT_GENERATION[state.game] || currentPokémonGeneration;
+  if (!first && gen !== currentPokémonGeneration) loadPokémonList(gen);   // beim Start lädt die Liste unten
+  currentPokémonGeneration = gen;
+}
+
 function render() {
+  syncPokémonGeneration();
   renderCheckpointOptions();
   renderCheckpointCard();
   renderCheckpointProgress();
@@ -3535,7 +3557,9 @@ els.encounterForm.addEventListener('submit', event => {
   event.preventDefault();
   const place = getCurrentEncounterLocation();
   const pokemonName = els.encounterPokémon.value.trim();
-  if (!place) return;
+  if (!place || state.encounters.some(entry => entry.place === place)) return;
+  // Ohne Pokémon kein Encounter (nachträglich eintragen geht nicht) – stattdessen gleich die Auswahl öffnen
+  if (!pokemonName) { openPokémonModal('encounter'); return; }
   state.encounters.unshift({
     place,
     pokemon: selectedEncounterPokémon || pokemonName,
@@ -3543,7 +3567,6 @@ els.encounterForm.addEventListener('submit', event => {
     status: els.encounterStatus.value,
     createdAt: Date.now(),
   });
-  els.encounterPlaceSelect.value = '';
   els.encounterPokémon.value = '';
   els.encounterMethod.value = 'wild';
   els.encounterStatus.value = 'open';
@@ -3552,6 +3575,7 @@ els.encounterForm.addEventListener('submit', event => {
   save();
   renderStats();
   renderEncounters();
+  renderLocationOptions();   // Ort ist jetzt belegt → nächster freier Ort
 });
 
 function cycleEncounterStatus(index) {
@@ -3570,6 +3594,7 @@ function deleteEncounter(index) {
   save();
   renderStats();
   renderEncounters();
+  renderLocationOptions();   // Ort wieder frei
 }
 
 els.encounterList.addEventListener('click', event => {
@@ -3758,7 +3783,7 @@ els.pokemonList.addEventListener('click', event => {
 });
 
 load();
-currentPokémonGeneration = GAME_DEFAULT_GENERATION[state.game] || currentPokémonGeneration;
+syncPokémonGeneration();
 render();
 applyLanguage();
 loadAllPokémonBasic().then(() => renderPokémonList());

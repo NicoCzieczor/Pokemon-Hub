@@ -12,14 +12,14 @@
  * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
  * Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v27';
+const VERSION = 'v29';
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
 const API_CACHE = `${PREFIX}api`;
 const IMG_CACHE = `${PREFIX}img`;
 const TILE_CACHE = `${PREFIX}tiles-${TILE_VERSION}`;
-const API_MAX_ENTRIES = 600;
+const API_MAX_ENTRIES = 3000;
 const IMG_MAX_ENTRIES = 3000;
 const TILE_MAX_ENTRIES = 200;
 
@@ -38,6 +38,7 @@ const PRECACHE = [
   './manifest.json',
   './pwa.js',
   './theme.css',
+  './pokemon-names.js',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -128,7 +129,7 @@ const WARM_IMAGES = [
   ...Array.from({ length: 17 }, (_, i) => `${SPRITES}types/generation-iv/platinum/${i + 1}.png`),
 ];
 
-const IMAGE_HOSTS = new Set(['raw.githubusercontent.com', 'archives.bulbagarden.net']);
+const IMAGE_HOSTS = new Set(['raw.githubusercontent.com']);
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

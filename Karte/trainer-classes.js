@@ -49,7 +49,8 @@
     return cls.split('_').map(w => w[0] + w.slice(1).toLowerCase()).join(' ');
   }
   // Der Rivale heißt in den Spieldaten „Cedric“ (Platzhalter – im Spiel steht der Name aus dem Spielstand)
-  const trainerName = (name, en, cls) => (cls === 'RIVAL' ? 'Barry' : en ? name : NAMES_DE[name] || name);
+  // Rüpel heißen in den Spieldaten nur „Grunt“ – das steckt schon in der Klasse („Galaktik-Rüpel“), also kein Name
+  const trainerName = (name, en, cls) => (cls === 'RIVAL' ? 'Barry' : name === 'Grunt' ? '' : en ? name : NAMES_DE[name] || name);
 
   window.TrainerClasses = { CLASS_NAMES, className, trainerName };
 })();

@@ -110,6 +110,9 @@ function buildMoveTooltip(data) {
 ${data.description ? `<div class="tt-desc">${data.description}</div>` : ''}`;
 }
 
+// Ketten-Symbol für verknüpfte Paare (statt Emoji, Farbe aus der Schrift)
+const CHAIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
+
 // ── State ────────────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'pokemon-duo-nuzlocke-state';
 let pokemonList = [], allPokemonList = [];
@@ -145,6 +148,7 @@ function sessionCanEdit(_playerIndex) { return true; }
 function toDisplayPokemon(p) {
   if (!p) return null;
   return {
+    id: p.id,
     name: p.name,
     sprite: p.sprite,
     germanName: p.germanName || p.name,
@@ -212,6 +216,8 @@ function applySharedState(state) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+// Name in den Auswahllisten – aus pokemon-names.js (sofort da, auch offline; vorher eine Anfrage je Pokémon)
+function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
 function formatLabel(t) { return t.split('-').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function getDisplayName(name) { return allPokemonList.find(p => p.name===name)?.displayName || capitalize(name); }
 function getTypeEffectiveness(atk, defs) {
@@ -471,7 +477,7 @@ function updateBoxSlots() {
       return `<div class="box-slot-half ${cls}"><span class="box-slot-empty">+</span></div>`;
     };
     slot.innerHTML = makeHalf(p1, 'p1-half') + makeHalf(p2, 'p2-half')
-      + (isLinked ? '<span class="box-chain-icon">⛓</span>' : '');
+      + (isLinked ? '<span class="box-chain-icon">' + CHAIN_ICON + '</span>' : '');
   });
 }
 
@@ -861,9 +867,15 @@ async function renderInfoPanel() {
 }
 
 // ── Sync ──────────────────────────────────────────────────────────────────────
-function syncUpdateStatus(text, type = 'idle') {
+// Status als Übersetzungs-Schlüssel merken, damit er beim Sprachwechsel mitwechselt
+let syncStatus = { key: 'sync-idle', type: 'idle', args: [] };
+function syncUpdateStatus(key, type = 'idle', ...args) {
+  syncStatus = { key, type, args };
+  renderSyncStatus();
+}
+function renderSyncStatus() {
   const el = document.getElementById('sync-status');
-  if (el) { el.textContent = text; el.className = `sync-status sync-status-${type}`; }
+  if (el) { el.textContent = window.t(syncStatus.key, ...syncStatus.args); el.className = `sync-status sync-status-${syncStatus.type}`; }
 }
 
 function syncUpdateCount(connected, total) {
@@ -891,8 +903,8 @@ function syncRenderPresence() {
     for (const m of metas) if (m.slot === 1 || m.slot === 2) online.add(m.slot);
   }
   const other = sessionMySlot === 1 ? 2 : 1;
-  if (online.has(other)) syncUpdateStatus('Beide Spieler verbunden ✓', 'connected');
-  else syncUpdateStatus(`Spieler ${sessionMySlot} – warte auf Spieler ${other}…`, 'waiting');
+  if (online.has(other)) syncUpdateStatus('sync-both', 'connected');
+  else syncUpdateStatus('sync-waiting', 'waiting', sessionMySlot, other);
   syncUpdateCount(online.size, 2);
 }
 
@@ -924,7 +936,7 @@ function syncSubscribe() {
 }
 
 async function syncCreate() {
-  syncUpdateStatus('Erstelle Session…', 'loading');
+  syncUpdateStatus('sync-creating', 'loading');
   try {
     const code = Math.random().toString(36).slice(2, 8).toUpperCase();
     const { data: sess, error: sessErr } = await sb.from('sessions').insert({ code }).select().single();
@@ -944,18 +956,18 @@ async function syncCreate() {
     syncRenderPresence();
   } catch(e) {
     console.error(e);
-    syncUpdateStatus('Fehler beim Erstellen.', 'error');
+    syncUpdateStatus('sync-create-error', 'error');
   }
 }
 
 async function syncJoin(code) {
   if (!code) return;
-  syncUpdateStatus('Verbinde…', 'loading');
+  syncUpdateStatus('sync-connecting', 'loading');
   try {
     const { data: sess, error: sessErr } = await sb.from('sessions').select('id').eq('code', code.toUpperCase()).single();
-    if (sessErr || !sess) { syncUpdateStatus('Session nicht gefunden.', 'error'); return; }
+    if (sessErr || !sess) { syncUpdateStatus('sync-not-found', 'error'); return; }
     const { data: existing } = await sb.from('players').select('slot').eq('session_id', sess.id).eq('slot', 2).maybeSingle();
-    if (existing) { syncUpdateStatus('Session ist bereits voll.', 'error'); return; }
+    if (existing) { syncUpdateStatus('sync-full', 'error'); return; }
     syncSessionId = sess.id;
     sessionMySlot = 2;
     // slot=2 ist nur Presence-Marker (leer)
@@ -972,7 +984,7 @@ async function syncJoin(code) {
     if (stateRow?.team) applySharedState(stateRow.team);
   } catch(e) {
     console.error(e);
-    syncUpdateStatus('Fehler beim Verbinden.', 'error');
+    syncUpdateStatus('sync-connect-error', 'error');
   }
 }
 
@@ -993,7 +1005,7 @@ async function syncLeave() {
   document.getElementById('sync-create-btn').style.display = 'inline-flex';
   document.getElementById('sync-join-area').style.display  = 'flex';
   document.getElementById('sync-leave-btn').style.display  = 'none';
-  syncUpdateStatus('Nicht verbunden', 'idle');
+  syncUpdateStatus('sync-idle', 'idle');
   syncUpdateCount(0, 2);
 }
 
@@ -1130,10 +1142,9 @@ async function loadAllPokemonBasic() {
       const m = p.url.match(/\/pokemon\/(\d+)\//);
       const id = m ? Number(m[1]) : null;
       if (!id) return null;
-      return { id, name:p.name, displayName:capitalize(p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
+      return { id, name:p.name, displayName:listName(id, p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
     }).filter(Boolean);
   });
-  allPokemonList.forEach(p => getPokemonSpecies(p.name).then(s=>{ if(s.germanName) p.displayName=s.germanName; }).catch(()=>{}));
 }
 
 async function loadPokemonList(gen=1) {
@@ -1142,17 +1153,8 @@ async function loadPokemonList(gen=1) {
   pokemonList = list.map(p => {
     const m = p.url.match(/\/pokemon\/(\d+)\//);
     const id = m?Number(m[1]):null;
-    return { id, name:p.name, displayName:capitalize(p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
+    return { id, name:p.name, displayName:listName(id, p.name), sprite:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
   }).filter(p=>p.id);
-  await Promise.allSettled(list.map(async p => {
-    try {
-      const s = await getPokemonSpecies(p.name);
-      const loc = pokemonList.find(x=>x.name===p.name);
-      if (loc) loc.displayName = s.germanName||loc.displayName;
-      const glob = allPokemonList.find(x=>x.name===p.name);
-      if (glob) glob.displayName = s.germanName||glob.displayName;
-    } catch {}
-  }));
 }
 
 function renderPokemonList(filter='') {
@@ -1193,7 +1195,7 @@ function openModal(title=null, isLinking=false) {
           </div>
           <span class="link-prog-check">✓</span>
         </div>
-        <span class="link-prog-arrow">⛓</span>
+        <span class="link-prog-arrow">${CHAIN_ICON}</span>
         <div class="link-prog-step link-prog-pending">
           <div class="link-prog-empty">?</div>
           <div>
@@ -1793,7 +1795,7 @@ function renderGraveyard() {
   const count = graves[0].length + graves[1].length;
 
   if (count === 0) {
-    container.innerHTML = `<div class="graveyard-empty">${window.LANG === 'en' ? 'No fallen Pokémon yet.' : 'Noch keine gefallenen Pokémon.'}</div>`;
+    container.innerHTML = `<div class="graveyard-empty">${window.t('graveyard-empty')}</div>`;
     return;
   }
 
@@ -1802,15 +1804,18 @@ function renderGraveyard() {
     const dead = graves[pl-1];
     if (!dead.length) continue;
     const col = pl === 1 ? 'var(--color-accent-strong)' : 'var(--color-accent)';
-    html += `<div class="graveyard-player-label" style="color:${col}">${window.LANG === 'en' ? `Player ${pl}` : `Spieler ${pl}`}</div>`;
+    html += `<div class="graveyard-player-label" style="color:${col}">${window.t('grave-player', pl)}</div>`;
     html += '<div class="graveyard-grid">';
     dead.forEach((p, i) => {
       const kb = p.killedBy ?? 0;
       const kbClass = kb === 1 ? 'grave-killer-1' : kb === 2 ? 'grave-killer-2' : '';
-      const kbLabel = kb === 1 ? 'S1' : kb === 2 ? 'S2' : '?';
-      html += `<div class="grave-slot" data-player="${pl}" data-idx="${i}" title="${p.germanName}">
-        <img src="${p.sprite}" alt="${p.germanName}">
-        <span class="grave-slot-name">${p.germanName}</span>
+      const kbLabel = kb ? window.t('grave-blame-short', kb) : '?';
+      // Ältere Einträge haben keine Nummer – die steht aber in der Sprite-Adresse
+      const id = p.id || Number(String(p.sprite || '').match(/\/(\d+)\.png/)?.[1] || 0);
+      const name = window.pokemonName(id, p.name) || p.germanName;
+      html += `<div class="grave-slot" data-player="${pl}" data-idx="${i}" title="${name}">
+        <img src="${p.sprite}" alt="${name}">
+        <span class="grave-slot-name">${name}</span>
         <span class="grave-killer ${kbClass}">${kbLabel}</span>
       </div>`;
     });
@@ -1907,14 +1912,7 @@ document.addEventListener('langchange', async () => {
   }));
 
   // Also update displayName for the current gen's list (visible in modal)
-  await Promise.allSettled(pokemonList.map(async p => {
-    try {
-      const s = await getPokemonSpecies(p.name);
-      p.displayName = s.germanName || p.displayName;
-      const glob = allPokemonList.find(x => x.name === p.name);
-      if (glob) glob.displayName = p.displayName;
-    } catch {}
-  }));
+  [...pokemonList, ...allPokemonList].forEach(p => { p.displayName = listName(p.id, p.name); });
 
   // Re-render team slots
   for (let pl = 1; pl <= 2; pl++) {
@@ -1927,6 +1925,8 @@ document.addEventListener('langchange', async () => {
   renderInfoPanel();
   const infoSlot = document.querySelector('.info-slot[data-slot="info"]');
   if (infoSlot && !infoSlot.dataset.filled) infoSlot.textContent = window.t('info-slot-empty');
+  renderGraveyard();
+  renderSyncStatus();
 });
 
 // ── Übernahme aus dem Save-Viewer ─────────────────────────────────────────────

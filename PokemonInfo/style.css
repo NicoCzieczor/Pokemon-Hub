@@ -89,7 +89,8 @@ header p { margin: 0; color: var(--color-muted); }
 }
 .search-trigger-name { font-weight: 800; color: var(--color-text); }
 .search-trigger-id { color: var(--color-muted); font-size: 0.85rem; }
-.search-icon { font-size: 1.2rem; opacity: 0.5; }
+.search-icon { display: grid; opacity: 0.55; }
+.search-icon svg { width: 18px; height: 18px; }
 
 /* Suche und Spielauswahl nebeneinander – das Spiel gilt für Entwicklung, Attacken und Fundorte */
 .top-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 340px); gap: 12px; align-items: stretch; }

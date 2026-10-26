@@ -110,6 +110,7 @@ header p { color: var(--color-muted); }
 }
 .pill--ok { color: rgb(var(--t-on-acc)); border-color: rgb(var(--t-c-8ef0b4)); background: rgb(var(--t-c-8ef0b4)); }
 
+.error > svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
 .error {
   display: flex; gap: 12px; align-items: flex-start;
   padding: 14px 16px; border-radius: 16px;

@@ -109,7 +109,8 @@
       -webkit-tap-highlight-color: transparent;
     }
     .m-tab-btn.active { color: var(--color-accent-strong); }
-    .m-tab-icon { font-size: 1.25rem; line-height: 1; }
+    .m-tab-icon { display: block; width: 22px; height: 22px; }
+    .m-tab-icon svg { display: block; width: 100%; height: 100%; }
 
     /* ── Inhalt der Tabs (scrollt mit der Seite) ── */
     #m-content {
@@ -165,7 +166,7 @@
     .p2 .pokemon-slot:active { background: rgba(var(--t-ink), 0.06); border-color: rgb(var(--t-acc)); transform: scale(0.96); }
 
     /* Linked slots */
-    .pokemon-slot.slot-linked::after { content:'⛓'; position:absolute; top:4px; right:5px; font-size:0.6rem; opacity:0.7; }
+    .pokemon-slot.slot-linked::after { content:''; position:absolute; top:5px; right:6px; width:10px; height:10px; background:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'/%3E%3C/svg%3E") center / contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'/%3E%3C/svg%3E") center / contain no-repeat; opacity:0.6; }
     .pokemon-slot.slot-linked[data-slot="0"] { border-color:rgba(184,100,255,0.55);background:rgba(184,100,255,0.07); }
     .pokemon-slot.slot-linked[data-slot="1"] { border-color:rgba(0,200,180,0.55);background:rgba(0,200,180,0.07); }
     .pokemon-slot.slot-linked[data-slot="2"] { border-color:rgba(255,140,0,0.55);background:rgba(255,140,0,0.07); }
@@ -194,7 +195,8 @@
     .lcp-header { padding: 12px 14px; }
     .lcp-title-row { display: flex; align-items: center; justify-content: space-between; }
     .lcp-title { font-size: 0.9rem; font-weight: 700; color: rgb(var(--t-g-f8fafc)); }
-    .lcp-toggle { background: none; border: none; color: var(--color-muted); font-size: 0.85rem; cursor: pointer; padding: 4px 8px; }
+    .lcp-toggle { background: none; border: none; color: var(--color-muted); font-size: 0.85rem; cursor: pointer; padding: 4px 8px; transition: transform 0.2s; }
+    .lcp-toggle.is-collapsed { transform: rotate(-90deg); }
     #level-cap-panel.lcp-collapsed .lcp-collapsible { display: none; }
     #lcp-list { padding: 0 10px 10px; max-height: 220px; overflow-y: auto; }
     #lcp-game-select { width: 100%; margin-top: 8px; padding: 7px 8px; background: rgba(var(--t-ink), 0.06); border: 1px solid rgba(var(--t-ink), 0.14); border-radius: 10px; color: var(--color-text); font: inherit; font-size: 0.85rem; }
@@ -283,6 +285,8 @@
     .box-slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 34px; margin-top: 1px; }
     .box-slot-empty { font-size: 0.75rem; opacity: 0.22; }
     .box-chain-icon { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 0.48rem; color: var(--color-accent); pointer-events: none; }
+    .box-chain-icon svg { display: block; width: 1.6em; height: 1.6em; }
+    .link-prog-arrow svg { display: block; width: 1em; height: 1em; }
 
     /* ── Info tab ── */
     .info-slot {
@@ -511,7 +515,7 @@
 <nav class="tool-nav" aria-label="Pokemon tools">
   <a class="tool-nav-link" href="../index.html" data-i18n="nav-home">Home</a>
   <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav-run">Run</a>
-  <a class="tool-nav-link" href="../Pokelocke/index.html" data-i18n="nav-team">Team</a>
+  <a class="tool-nav-link" href="../Pokelocke/index.html" data-i18n="nav-team">Solo</a>
   <a class="tool-nav-link is-active" href="index.html" aria-current="page">Duo</a>
   <a class="tool-nav-link" href="../Trio/index.html" data-i18n="nav-trio">Trio</a>
   <a class="tool-nav-link" href="../Catchrate/index.html" data-i18n="nav-catch">Fangrate</a>
@@ -534,19 +538,19 @@
 
 <nav class="m-tab-bar">
   <button class="m-tab-btn active" data-tab="teams">
-    <span class="m-tab-icon">⚔️</span>
+    <span class="m-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h6M15 12h6"/><circle cx="12" cy="12" r="3"/></svg></span>
     <span class="m-tab-label">Teams</span>
   </button>
   <button class="m-tab-btn" data-tab="box">
-    <span class="m-tab-icon">📦</span>
+    <span class="m-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg></span>
     <span class="m-tab-label">Box</span>
   </button>
   <button class="m-tab-btn" data-tab="info">
-    <span class="m-tab-icon">📊</span>
+    <span class="m-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></span>
     <span class="m-tab-label">Info</span>
   </button>
   <button class="m-tab-btn" data-tab="analyse">
-    <span class="m-tab-icon">🔍</span>
+    <span class="m-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.2-4.2"/></svg></span>
     <span class="m-tab-label">Analyse</span>
   </button>
 </nav>
@@ -567,12 +571,12 @@
         <button id="sync-copy-btn" class="sync-btn">Copy</button>
       </div>
       <div class="session-actions">
-        <button id="sync-create-btn" class="sync-btn sync-btn-primary">Session erstellen</button>
+        <button id="sync-create-btn" class="sync-btn sync-btn-primary" data-i18n="sync-create">Session erstellen</button>
         <div id="sync-join-area" class="sync-join-area">
-          <input id="sync-code-input" type="text" maxlength="6" placeholder="Code eingeben" autocomplete="off" spellcheck="false" />
-          <button id="sync-join-btn" class="sync-btn">Beitreten</button>
+          <input id="sync-code-input" type="text" maxlength="6" placeholder="Code eingeben" data-i18n="sync-code-ph" data-i18n-attr="placeholder" autocomplete="off" spellcheck="false" />
+          <button id="sync-join-btn" class="sync-btn" data-i18n="sync-join">Beitreten</button>
         </div>
-        <button id="sync-leave-btn" class="sync-btn sync-btn-danger" style="display:none">Verlassen</button>
+        <button id="sync-leave-btn" class="sync-btn sync-btn-danger" style="display:none" data-i18n="sync-leave-short">Verlassen</button>
       </div>
     </div>
     <div id="players-row" style="display:flex;flex-direction:column;gap:12px">
@@ -603,8 +607,8 @@
     <div id="level-cap-panel" class="lcp-collapsed">
       <div class="lcp-header">
         <div class="lcp-title-row">
-          <div class="lcp-title">⚔️ Level Caps</div>
-          <button class="lcp-toggle" id="lcp-toggle" title="Ausklappen">▶</button>
+          <div class="lcp-title">Level Caps</div>
+          <button class="lcp-toggle is-collapsed" id="lcp-toggle" title="Ausklappen">▼</button>
         </div>
         <select id="lcp-game-select" class="lcp-collapsible"></select>
       </div>
@@ -616,7 +620,7 @@
   <div id="tab-box" class="m-tab-panel">
     <section id="box-section">
       <button class="box-toggle-btn" id="box-toggle">
-        <span data-i18n="box">📦 Gemeinsame Box</span>
+        <span data-i18n="box">Gemeinsame Box</span>
         <span class="box-toggle-icon" id="box-toggle-icon">▼</span>
       </button>
       <div id="box-body" style="display:none">
@@ -626,12 +630,12 @@
 
     <section id="graveyard-section">
       <button id="graveyard-toggle" class="graveyard-toggle-btn">
-        <span>☠ Friedhof</span>
+        <span data-i18n="graveyard">Friedhof</span>
         <span id="graveyard-toggle-icon">▼</span>
       </button>
       <div id="graveyard-body" style="display:none">
         <div id="graveyard-slots"><div class="graveyard-empty">Noch keine gefallenen Pokémon.</div></div>
-        <p class="graveyard-hint" style="padding:0 12px 12px">Tippen: Schuld wechseln (S1 / S2 / ?) · Gedrückt halten: aus dem Friedhof löschen</p>
+        <p class="graveyard-hint" style="padding:0 12px 12px" data-i18n="graveyard-hint">Tippen: Schuld wechseln (S1 / S2 / ?) · Gedrückt halten: aus dem Friedhof löschen</p>
       </div>
     </section>
   </div>
@@ -681,8 +685,8 @@
 <button id="dev-fill-btn" style="display:none"></button>
 
 <div id="ctx-menu" class="ctx-menu">
-  <button id="ctx-remove">Entfernen</button>
-  <button id="ctx-kill" class="ctx-danger">☠ Gestorben</button>
+  <button id="ctx-remove" data-i18n="ctx-remove">Entfernen</button>
+  <button id="ctx-kill" class="ctx-danger" data-i18n="ctx-kill">Gestorben</button>
 </div>
 
 <!-- Pokémon modal (bottom sheet) -->
@@ -717,14 +721,14 @@
 
 <script>
 // ── i18n ─────────────────────────────────────────────────────────────────────
-window.LANG = localStorage.getItem('duo-lang') || 'de';
+window.LANG = localStorage.getItem('hub-lang') || 'de';
 
 const TRANSLATIONS = {
   de: {
     'subtitle':'Team-Builder für zwei Spieler – Typen, Stats und gemeinsame Analyse.',
     'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
     'nav-catch':'Fangrate', 'nav-damage':'Schaden', 'nav-types':'Typen',
-    'player1':'Spieler 1', 'player2':'Spieler 2', 'box':'📦 Gemeinsame Box',
+    'player1':'Spieler 1', 'player2':'Spieler 2', 'box':'Gemeinsame Box',
     'info-title':'Pokémon-Info', 'info-placeholder':'Wähle ein Pokémon aus einem Team oder dem Info-Slot.',
     'info-gen-section':'Info-Generation', 'info-gen-label':'Generation auswählen',
     'info-slot-empty':'Info-Pokémon wählen', 'weakness-title':'Team-Typ-Analyse',
@@ -760,12 +764,20 @@ const TRANSLATIONS = {
     'box-pick': (slot, pl) => `Gemeinsame Box – Slot ${slot} (Spieler ${pl})`,
     'link-label': (pl, slot) => `Spieler ${pl} – Slot ${slot}`,
     'pending': 'Ausstehend…',
+    'sync-idle':'Nicht verbunden', 'sync-create':'Session erstellen', 'sync-join':'Beitreten',
+    'sync-leave':'Session verlassen', 'sync-leave-short':'Verlassen', 'sync-code-ph':'Code eingeben', 'sync-copy-title':'Code kopieren',
+    'sync-both':'Beide Spieler verbunden ✓', 'sync-waiting': (me, other) => `Spieler ${me} – warte auf Spieler ${other}…`,
+    'sync-creating':'Erstelle Session…', 'sync-create-error':'Fehler beim Erstellen.', 'sync-connecting':'Verbinde…',
+    'sync-not-found':'Session nicht gefunden.', 'sync-full':'Session ist bereits voll.', 'sync-connect-error':'Fehler beim Verbinden.',
+    'graveyard':'Friedhof', 'graveyard-empty':'Noch keine gefallenen Pokémon.', 'grave-player': pl => `Spieler ${pl}`, 'grave-blame-short': pl => `S${pl}`,
+    'graveyard-hint':'Tippen: Schuld wechseln (S1 / S2 / ?) · Gedrückt halten: aus dem Friedhof löschen',
+    'ctx-remove':'Entfernen', 'ctx-kill':'Gestorben',
   },
   en: {
     'subtitle':'Team builder for two players – types, stats and shared analysis.',
     'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
     'nav-catch':'Catch', 'nav-damage':'Damage', 'nav-types':'Types',
-    'player1':'Player 1', 'player2':'Player 2', 'box':'📦 Shared Box',
+    'player1':'Player 1', 'player2':'Player 2', 'box':'Shared Box',
     'info-title':'Pokémon Info', 'info-placeholder':'Select a Pokémon from a team or the info slot.',
     'info-gen-section':'Info Generation', 'info-gen-label':'Select generation',
     'info-slot-empty':'Select Info Pokémon', 'weakness-title':'Team Type Analysis',
@@ -801,6 +813,14 @@ const TRANSLATIONS = {
     'box-pick': (slot, pl) => `Shared Box – Slot ${slot} (Player ${pl})`,
     'link-label': (pl, slot) => `Player ${pl} – Slot ${slot}`,
     'pending': 'Pending…',
+    'sync-idle':'Not connected', 'sync-create':'Create session', 'sync-join':'Join',
+    'sync-leave':'Leave session', 'sync-leave-short':'Leave', 'sync-code-ph':'Enter code', 'sync-copy-title':'Copy code',
+    'sync-both':'Both players connected ✓', 'sync-waiting': (me, other) => `Player ${me} – waiting for player ${other}…`,
+    'sync-creating':'Creating session…', 'sync-create-error':'Error creating the session.', 'sync-connecting':'Connecting…',
+    'sync-not-found':'Session not found.', 'sync-full':'Session is already full.', 'sync-connect-error':'Error connecting.',
+    'graveyard':'Graveyard', 'graveyard-empty':'No fallen Pokémon yet.', 'grave-player': pl => `Player ${pl}`, 'grave-blame-short': pl => `P${pl}`,
+    'graveyard-hint':'Tap: switch blame (P1 / P2 / ?) · Hold: remove from the graveyard',
+    'ctx-remove':'Remove', 'ctx-kill':'Fainted',
   },
 };
 
@@ -837,12 +857,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.LANG === 'en') applyLang();
   document.getElementById('lang-toggle').addEventListener('click', () => {
     window.LANG = window.LANG === 'de' ? 'en' : 'de';
-    localStorage.setItem('duo-lang', window.LANG);
+    localStorage.setItem('hub-lang', window.LANG);
     applyLang();
   });
 });
 </script>
 <script src="../vendor/supabase-2.117.2.js"></script>
+<script src="../pokemon-names.js"></script>
 <script type="module" src="main.js"></script>
 <script>
 const LEVEL_CAPS = {
@@ -1161,6 +1182,23 @@ function buildGameSelect() {
   sel.value = LEVEL_CAPS[cur] ? cur : Object.keys(LEVEL_CAPS)[0];
 }
 
+// Trainer, die in den Level-Caps mit deutschem Namen eingetragen sind – im englischen Modus übersetzt
+const LCP_NAMES_EN = {
+  'Rocko':'Brock', 'Surge':'Lt. Surge', 'Pyro':'Blaine', 'Agathe':'Agatha', 'Siegfried':'Lance', 'Blau':'Blue',
+  'Champion Blau':'Champion Blue', 'Champion Siegfried':'Champion Lance', 'Ahornia':'Bugsy',
+};
+function lcpName(name) {
+  if (window.LANG !== 'en') return name;
+  return LCP_NAMES_EN[name] || name.replace('(Prüfung)', '(Trial)');
+}
+function lcpToggleTitle() {
+  const panel = document.getElementById('level-cap-panel'), btn = document.getElementById('lcp-toggle');
+  if (!panel || !btn) return;
+  const collapsed = panel.classList.contains('lcp-collapsed');
+  btn.title = window.LANG === 'en' ? (collapsed ? 'Expand' : 'Collapse') : (collapsed ? 'Ausklappen' : 'Einklappen');
+}
+document.addEventListener('langchange', lcpToggleTitle);
+
 function renderLevelCaps(gameKey) {
   const game = LEVEL_CAPS[gameKey];
   const list = document.getElementById('lcp-list');
@@ -1190,7 +1228,7 @@ function renderLevelCaps(gameKey) {
     row.className = 'lcp-entry' + (e.isE4 ? ' lcp-e4' : '') + (e.team?.length ? ' lcp-has-team' : '');
     const typeDisplay = e.type ? e.type.split('/').map(t => window.typeLabel(t.trim()) || t.trim()).join('/') : '';
     const variantNote = e.variant ? window.t('variant-note') : '';
-    row.innerHTML = `<span class="lcp-num">${numStr}</span><span class="lcp-name">${e.name}</span>${typeDisplay ? `<span class="lcp-type">${typeDisplay}</span>` : ''}${variantNote ? `<span class="lcp-variant" title="${variantNote}">${window.t('variant-badge')}</span>` : ''}${e.cap != null ? `<span class="lcp-cap">Lv.${e.cap}</span>` : ''}`;
+    row.innerHTML = `<span class="lcp-num">${numStr}</span><span class="lcp-name">${lcpName(e.name)}</span>${typeDisplay ? `<span class="lcp-type">${typeDisplay}</span>` : ''}${variantNote ? `<span class="lcp-variant" title="${variantNote}">${window.t('variant-badge')}</span>` : ''}${e.cap != null ? `<span class="lcp-cap">Lv.${e.cap}</span>` : ''}`;
     if (variantNote) row.title = variantNote;
 
     if (e.team?.length) {
@@ -1221,8 +1259,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const panel = document.getElementById('level-cap-panel');
     const btn = document.getElementById('lcp-toggle');
     const collapsed = panel.classList.toggle('lcp-collapsed');
-    btn.textContent = collapsed ? '▶' : '▼';
-    btn.title = collapsed ? 'Ausklappen' : 'Einklappen';
+    btn.classList.toggle('is-collapsed', collapsed);
+    lcpToggleTitle();
   });
 
   // Tab switching

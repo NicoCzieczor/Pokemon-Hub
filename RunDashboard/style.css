@@ -920,6 +920,7 @@ textarea {
   border-color: rgb(var(--t-acc2));
   color: rgb(var(--t-on-acc));
 }
+.cp-icon svg { width: 10px; height: 10px; display: block; }
 
 .cp-name {
   font-size: 0.84rem;

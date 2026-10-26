@@ -1,4 +1,4 @@
-import { getGenerationList, getPokemonSpecies } from "../Pokelocke/pokeapi.js";
+import { getGenerationList } from "../Pokelocke/pokeapi.js";
 
 window.LANG = localStorage.getItem('hub-lang') || 'de';
 document.documentElement.lang = window.LANG;
@@ -20,7 +20,7 @@ const TRANSLATIONS = {
     statusParalysis: 'Paralyse',
     statusPoison: 'Gift',
     statusBurn: 'Brand',
-    falseSwipeBtn: '⚔ Trugschlag (1 KP)',
+    falseSwipeBtn: 'Trugschlag (1 KP)',
     falseSwipeHint: 'Trugschlag aktiv – KP werden als 1 gerechnet',
     specialCondLabel: 'Sonderbedingungen',
     togFirstTurn: '1. Zug',
@@ -35,6 +35,7 @@ const TRANSLATIONS = {
     playerLevelLabel: 'Eigenes Level',
     turnsLabel: 'Runden (Zeitball)',
     modalTitle: 'Pokémon auswählen',
+    close: 'Schließen',
     modalSearchPlaceholder: 'Nach Pokémon suchen…',
     genFilterAll: 'Alle',
     pokeEmptyHint: 'Noch kein Pokémon ausgewählt.',
@@ -96,7 +97,7 @@ const TRANSLATIONS = {
     statusParalysis: 'Paralysis',
     statusPoison: 'Poison',
     statusBurn: 'Burn',
-    falseSwipeBtn: '⚔ False Swipe (1 HP)',
+    falseSwipeBtn: 'False Swipe (1 HP)',
     falseSwipeHint: 'False Swipe active – HP counted as 1',
     specialCondLabel: 'Special Conditions',
     togFirstTurn: 'First turn',
@@ -111,6 +112,7 @@ const TRANSLATIONS = {
     playerLevelLabel: 'Player Level',
     turnsLabel: 'Turns (Timer Ball)',
     modalTitle: 'Choose Pokémon',
+    close: 'Close',
     modalSearchPlaceholder: 'Search Pokémon…',
     genFilterAll: 'All',
     pokeEmptyHint: 'No Pokémon selected yet.',
@@ -236,6 +238,10 @@ const GAMES = [
 
 let selectedGameId = 'sv';
 function currentGame() { return GAMES.find(g => g.id === selectedGameId) || GAMES.at(-1); }
+function gameLabel(game) {
+  const t = TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
+  return t['game' + game.id[0].toUpperCase() + game.id.slice(1)] || game.label;
+}
 
 // ── Ball definitions ──────────────────────────────────────────────────────
 // mult(ctx) returns the ball multiplier; additive:true means it's added to
@@ -295,6 +301,38 @@ const BALLS = [
     desc:'4× auf schlafende/eingefrorene Pokémon (Gen 8+); sonst kein Fangbonus.' },
 ];
 
+// Englische Namen und Beschreibungen (Ball-ID → [Name, Beschreibung])
+const BALLS_EN = {
+  poke:    ['Poké Ball',    'Standard ball without a special effect.'],
+  great:   ['Great Ball',   '1.5× catch rate – a bit better than the Poké Ball.'],
+  ultra:   ['Ultra Ball',   '2× catch rate – the strongest regular ball.'],
+  master:  ['Master Ball',  'Catches any Pokémon without fail.'],
+  safari:  ['Safari Ball',  '1.5× catch rate; only in Safari Zones.'],
+  net:     ['Net Ball',     '3.5× on Water and Bug Pokémon (Gen 7+; Gen 6: 3×), otherwise 1×.'],
+  dive:    ['Dive Ball',    '3.5× when the Pokémon is underwater or encountered on the water.'],
+  nest:    ['Nest Ball',    'Up to 3.9× – the lower the Pokémon\'s level, the stronger.'],
+  repeat:  ['Repeat Ball',  '3.5× on Pokémon you have caught before (Gen 7+; Gen 6: 3×), otherwise 1×.'],
+  timer:   ['Timer Ball',   'Gets stronger every turn – up to 4× from turn 30.'],
+  luxury:  ['Luxury Ball',  'No catch bonus; the caught Pokémon gains friendship twice as fast.'],
+  premier: ['Premier Ball', 'No catch bonus; a bonus for buying 10 Poké Balls.'],
+  dusk:    ['Dusk Ball',    '3.5× in caves or at night (Gen 6: 3.5×; Gen 7+: 3×), otherwise 1×.'],
+  heal:    ['Heal Ball',    'No catch bonus; fully restores HP and status after the catch.'],
+  quick:   ['Quick Ball',   '5× (Gen 4: 4×) when thrown on the very first turn of the battle.'],
+  cherish: ['Cherish Ball', 'Only available from official events; no catch bonus in normal battles.'],
+  sport:   ['Sport Ball',   '1.5× catch rate; only in Bug-Catching Contests.'],
+  friend:  ['Friend Ball',  'No catch bonus; the caught Pokémon starts with high friendship.'],
+  fast:    ['Fast Ball',    '4× on Pokémon with a base Speed of 100 or higher.'],
+  heavy:   ['Heavy Ball',   'Adds −20 to +40 directly to the catch rate, depending on the Pokémon\'s weight.'],
+  level:   ['Level Ball',   'Up to 8× the further your level is above the opponent\'s.'],
+  love:    ['Love Ball',    '8× when the Love Ball condition is met (gender / same species).'],
+  lure:    ['Lure Ball',    '5× when fishing (Gen 6–7); 4× (Gen 8+); 3× (Gen 2–5); otherwise 1×.'],
+  moon:    ['Moon Ball',    '4× on Pokémon that evolve with a Moon Stone.'],
+  beast:   ['Beast Ball',   '5× on Ultra Beasts; only 0.1× on all other Pokémon.'],
+  dream:   ['Dream Ball',   '4× on sleeping/frozen Pokémon (Gen 8+); otherwise no catch bonus.'],
+};
+const ballName = ball => (window.LANG === 'en' && BALLS_EN[ball.id]?.[0]) || ball.name;
+const ballDesc = ball => (window.LANG === 'en' && BALLS_EN[ball.id]?.[1]) || ball.desc || '';
+
 // ── Generation ranges ─────────────────────────────────────────────────────
 const GEN_RANGES = [
   { gen:1, from:1,   to:151,  label:'Generation 1 – Kanto'  },
@@ -310,7 +348,7 @@ const GEN_RANGES = [
 function genOf(id) { return GEN_RANGES.find(r => id >= r.from && id <= r.to); }
 
 // ── State ─────────────────────────────────────────────────────────────────
-let selectedPokemon   = null; // { id, name, germanName, sprite, types, captureRate, weightKg, baseSpeed }
+let selectedPokemon   = null; // { id, name, sprite, types, captureRate, weightKg, baseSpeed }
 let allPokemonList    = [];
 let selectedBallId    = null;
 let selectedGenFilter = null; // null = all, 1-9 = specific generation
@@ -388,18 +426,19 @@ function probColor(p) {
 function formatProb(p) {
   if (p === null) return '–';
   if (p >= 1) return '100%';
-  if (p < 0.001) return '<0,1%';
-  return (p * 100).toFixed(1).replace('.', ',') + '%';
+  if (p < 0.001) return decimal('<0.1%');
+  return decimal((p * 100).toFixed(1)) + '%';
 }
+function decimal(str) { return window.LANG === 'en' ? str : str.replace('.', ','); }
 
 function multLabel(ball, conds) {
   if (ball.additive) {
     const b = heavyBonus(selectedPokemon?.weightKg || 0);
-    return (b >= 0 ? '+' : '') + b + ' add.';
+    return (b >= 0 ? '+' : '') + b + (window.LANG === 'en' ? ' flat' : ' add.');
   }
   const m = ball.mult(conds);
   if (!isFinite(m)) return '∞';
-  return (Math.round(m * 10) / 10).toFixed(1).replace('.', ',') + '×';
+  return decimal((Math.round(m * 10) / 10).toFixed(1)) + '×';
 }
 
 // ── Formula tooltip content ───────────────────────────────────────────────
@@ -453,6 +492,56 @@ const FORMULA_TOOLTIPS = {
         <li>Schüttelprüfung: Exponent 3/16 statt 1/4 → P = (a/255)<sup>3/4</sup></li>
       </ul>`,
 };
+const FORMULA_TOOLTIPS_EN = {
+  1: `<div class="tt-title">Gen 1 formula (simplified)</div>
+      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+      <ul class="tt-rules">
+        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
+        <li>Sleep / Freeze: <b>2.5×</b> status bonus</li>
+        <li>Paralysis / Poison / Burn: 1.5×</li>
+        <li>Note: the real Gen 1 formula uses two separate RNG checks</li>
+      </ul>`,
+  2: `<div class="tt-title">Gen 2 formula</div>
+      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+      <ul class="tt-rules">
+        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
+        <li>Sleep / Freeze: <b>2.5×</b> status bonus</li>
+        <li>Paralysis / Poison / Burn: <b>no bonus (Gen II bug!)</b></li>
+        <li>New balls: Moon Ball, Heavy Ball and more</li>
+      </ul>`,
+  3: `<div class="tt-title">Gen 3 formula</div>
+      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+      <ul class="tt-rules">
+        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
+        <li>Sleep / Freeze: <b>2.0×</b> status bonus (↓ from 2.5× in Gen 1–2)</li>
+        <li>Paralysis / Poison / Burn: 1.5×</li>
+      </ul>`,
+  4: `<div class="tt-title">Gen 4 formula</div>
+      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+      <ul class="tt-rules">
+        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
+        <li>Sleep / Freeze: 2.0× status bonus</li>
+        <li>Paralysis / Poison / Burn: 1.5×</li>
+        <li>Quick Ball: <b>4×</b> on the first turn</li>
+      </ul>`,
+  5: `<div class="tt-title">Gen 5 formula</div>
+      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+      <ul class="tt-rules">
+        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
+        <li>Sleep / Freeze: <b>2.5×</b> status bonus (↑ from 2.0× in Gen 3–4)</li>
+        <li>Paralysis / Poison / Burn: 1.5×</li>
+        <li>Quick Ball: <b>5×</b> on the first turn (↑ from 4× in Gen 4)</li>
+      </ul>`,
+  6: `<div class="tt-title">Gen 6+ formula</div>
+      <div class="tt-formula">P = (a ÷ 255)<sup>3/4</sup><br>a = HP factor × catch rate × ball × status</div>
+      <ul class="tt-rules">
+        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
+        <li>Sleep / Freeze: 2.5× status bonus</li>
+        <li>Paralysis / Poison / Burn: 1.5×</li>
+        <li>Quick Ball: <b>5×</b> on the first turn</li>
+        <li>Shake check: exponent 3/16 instead of 1/4 → P = (a/255)<sup>3/4</sup></li>
+      </ul>`,
+};
 
 // ── Modal gen filter + game warning ──────────────────────────────────────
 function renderGenFilterBar() {
@@ -488,8 +577,8 @@ function updateGameWarning() {
   const range = genOf(selectedPokemon.id);
   const t = TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
   el.textContent = window.LANG === 'en'
-    ? `⚠ ${selectedPokemon.germanName} was introduced in Generation ${range?.gen ?? '?'} and is not available in ${currentGame().label}.`
-    : `⚠ ${selectedPokemon.germanName} wurde erst in Generation ${range?.gen ?? '?'} eingeführt und ist in ${currentGame().label} nicht verfügbar.`;
+    ? `${listName(selectedPokemon.id, selectedPokemon.name)} was introduced in Generation ${range?.gen ?? '?'} and is not available in ${gameLabel(currentGame())}.`
+    : `${listName(selectedPokemon.id, selectedPokemon.name)} wurde erst in Generation ${range?.gen ?? '?'} eingeführt und ist in ${gameLabel(currentGame())} nicht verfügbar.`;
   el.style.display = '';
 }
 
@@ -528,11 +617,8 @@ function updateConditionVisibility() {
 
 function updateFormulaBadge() {
   const f = currentGame().formula;
-  const label = f <= 1 ? 'Gen-1-Formel'
-    : f <= 2 ? 'Gen-2-Formel'
-    : f <= 4 ? 'Gen-3–4-Formel'
-    : f <= 5 ? 'Gen-5-Formel'
-    : 'Gen-6+-Formel';
+  const gen = f <= 1 ? '1' : f <= 2 ? '2' : f <= 4 ? '3–4' : f <= 5 ? '5' : '6+';
+  const label = window.LANG === 'en' ? `Gen ${gen} formula` : `Gen-${gen}-Formel`;
   document.getElementById('formula-badge').textContent = label;
 }
 
@@ -551,16 +637,16 @@ function renderPokemonCard() {
   const typeHtml = (p.types || []).map(typeBadge).join('');
   card.innerHTML = `
     <div class="poke-info">
-      <img class="poke-info-sprite" src="${p.sprite}" alt="${p.germanName}">
+      <img class="poke-info-sprite" src="${p.sprite}" alt="${listName(p.id, p.name)}">
       <div class="poke-info-body">
         <div class="poke-info-head">
-          <span class="poke-info-name">${p.germanName}</span>
+          <span class="poke-info-name">${listName(p.id, p.name)}</span>
           <span class="poke-info-id">#${p.id}</span>
         </div>
         <div class="poke-info-types">${typeHtml}</div>
         <div class="poke-info-stats">
           <span>${tr.catchRateLabel} <b><span class="catch-rate-badge">${p.captureRate}/255</span></b></span>
-          <span>${tr.weightLabel} <b>${p.weightKg.toFixed(1).replace('.', ',')} kg</b></span>
+          <span>${tr.weightLabel} <b>${decimal(p.weightKg.toFixed(1))} kg</b></span>
           <span>${tr.speedLabel} <b>${p.baseSpeed}</b></span>
         </div>
       </div>
@@ -596,10 +682,10 @@ function renderBallGrid() {
     const barW  = prob !== null ? Math.round(prob * 100) : 0;
     const div   = document.createElement('div');
     div.className = 'ball-card' + (ball.id === selectedBallId ? ' selected' : '');
-    div.title = ball.desc ?? '';
+    div.title = ballDesc(ball);
     div.innerHTML = `
-      <img src="${ITEMS_SPRITE_URL}${ball.sprite}.png" alt="${ball.name}" onerror="this.style.opacity='0.3'">
-      <div class="ball-name">${ball.name}</div>
+      <img src="${ITEMS_SPRITE_URL}${ball.sprite}.png" alt="${ballName(ball)}" onerror="this.style.opacity='0.3'">
+      <div class="ball-name">${ballName(ball)}</div>
       <div class="ball-mult" style="color:${color}">${multLabel(ball, conds)}</div>
       <div class="ball-prob" style="color:${color}">${formatProb(prob)}</div>
       <div class="ball-bar-bg"><div class="ball-bar-fill" style="width:${barW}%;background:${color}"></div></div>`;
@@ -627,10 +713,10 @@ function renderSelectedDetail(conds) {
   detail.style.display = 'block';
   detail.innerHTML = `
     <div class="detail-header">
-      <img src="${ITEMS_SPRITE_URL}${ball.sprite}.png" alt="${ball.name}" onerror="this.style.opacity='0.3'">
+      <img src="${ITEMS_SPRITE_URL}${ball.sprite}.png" alt="${ballName(ball)}" onerror="this.style.opacity='0.3'">
       <div class="detail-header-text">
-        <div class="detail-ball-name">${ball.name}</div>
-        <div class="detail-ball-desc">${ball.desc ?? ''}</div>
+        <div class="detail-ball-name">${ballName(ball)}</div>
+        <div class="detail-ball-desc">${ballDesc(ball)}</div>
         <div class="detail-prob" style="color:${color}">${formatProb(prob)}</div>
       </div>
     </div>
@@ -704,7 +790,7 @@ function renderPokemonList(filter) {
       currentGen = range?.gen ?? null;
       const header = document.createElement('li');
       header.className = 'pokemon-gen-header';
-      header.textContent = range?.label ?? '';
+      header.textContent = range ? (window.LANG === 'en' ? range.label.replace('Einall', 'Unova') : range.label) : '';
       list.appendChild(header);
     }
     const li = document.createElement('li');
@@ -721,17 +807,13 @@ async function pickPokemon(p) {
   document.getElementById('poke-card').innerHTML = `<p class="poke-empty-hint">${tr.pokeLoadingHint}</p>`;
 
   try {
-    const [pokeRes, speciesRes] = await Promise.all([
-      fetch(`${API}/pokemon/${p.name}`),
-      fetch(`${API}/pokemon-species/${p.name}`),
-    ]);
-    const [poke, species] = await Promise.all([pokeRes.json(), speciesRes.json()]);
-    const germanName = species.names?.find(n => n.language.name === 'de')?.name || capitalize(p.name);
+    const poke = await (await fetch(`${API}/pokemon/${p.name}`)).json();
+    // Die Art über das Pokémon holen: Formen wie „giratina-altered“ haben keinen eigenen Art-Eintrag
+    const species = await (await fetch(poke.species.url)).json();
 
     selectedPokemon = {
       id:          poke.id,
       name:        poke.name,
-      germanName,
       sprite:      poke.sprites.front_default,
       types:       poke.types.map(t => t.type.name),
       captureRate: species.capture_rate,
@@ -829,7 +911,7 @@ async function init() {
     const tooltip = document.getElementById('formula-tooltip');
     badge.addEventListener('mouseenter', () => {
       tooltipTimer = setTimeout(() => {
-        tooltip.innerHTML = FORMULA_TOOLTIPS[currentGame().formula] ?? '';
+        tooltip.innerHTML = (window.LANG === 'en' ? FORMULA_TOOLTIPS_EN : FORMULA_TOOLTIPS)[currentGame().formula] ?? '';
         const r = badge.getBoundingClientRect();
         tooltip.style.left      = (r.left + r.width / 2) + 'px';
         tooltip.style.top       = (r.top - 10) + 'px';
@@ -863,6 +945,10 @@ async function init() {
 
   // Modal
   document.getElementById('pokemon-search').addEventListener('input', e => renderPokemonList(e.target.value));
+  document.getElementById('close-pokemon-modal').addEventListener('click', closeModal);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('pokemon-modal').style.display === 'flex') closeModal();
+  });
   document.getElementById('pokemon-modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal();
   });
@@ -875,20 +961,17 @@ async function init() {
       const m = p.url.match(/\/pokemon\/(\d+)\//);
       const id = m ? Number(m[1]) : null;
       if (!id) return null;
-      return { id, name: p.name, displayName: capitalize(p.name), sprite: `${POKE_SPRITE_URL}${id}.png` };
+      return { id, name: p.name, displayName: listName(id, p.name), sprite: `${POKE_SPRITE_URL}${id}.png` };
     }).filter(Boolean);
   });
 
-  // Background: progressively load German names
-  allPokemonList.forEach(p => {
-    getPokemonSpecies(p.name)
-      .then(s => { if (s.germanName) p.displayName = s.germanName; })
-      .catch(() => {});
-  });
 
   // Auto-load default Pokémon
   pickPokemon({ name: 'bulbasaur' }).catch(() => {});
 }
+
+// Name in der Auswahlliste – aus pokemon-names.js (sofort da, auch offline; vorher eine Anfrage je Pokémon)
+function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 function applyLang() {
@@ -906,17 +989,22 @@ function applyLang() {
     if (t[key] !== undefined) el.label = t[key];
   });
   document.getElementById('lang-toggle').textContent = window.LANG.toUpperCase();
+  const x = document.getElementById('close-pokemon-modal');
+  x.title = t.close; x.setAttribute('aria-label', t.close);
   // Re-render pokemon card and ball grid (contains translated strings)
   renderPokemonCard();
   renderBallGrid();
   renderGenFilterBar();
+  updateFormulaBadge();
 }
 
 document.getElementById('lang-toggle').addEventListener('click', () => {
   window.LANG = window.LANG === 'de' ? 'en' : 'de';
   localStorage.setItem('hub-lang', window.LANG);
   document.documentElement.lang = window.LANG;
+  allPokemonList.forEach(p => { p.displayName = listName(p.id, p.name); });
   applyLang();
+  if (selectedPokemon) updateGameWarning();
 });
 applyLang();
 

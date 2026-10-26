@@ -1,5 +1,5 @@
 const POKEAPI = 'https://pokeapi.co/api/v2';
-const LANG_KEY = 'duo-lang';
+const LANG_KEY = 'hub-lang'; // gleiche Sprache wie alle Seiten des Hubs
 
 // ── I18N ─────────────────────────────────────────────────────────────────────
 const I18N = {
@@ -19,10 +19,10 @@ const I18N = {
     noLocations: 'Für dieses Pokémon sind in der Datenbank (PokéAPI) keine Fundorte gespeichert. Das bedeutet nicht, dass es keine gibt — die Daten sind schlicht unvollständig.',
     noEvolution: 'Dieses Pokémon entwickelt sich nicht.',
     hiddenAbility: 'Versteckte Fähigkeit',
-    shiny: '✨ Shiny',
+    shiny: '✦ Shiny',
     bst: 'Gesamt', genLabel: 'Gen',
     height: 'Höhe', weight: 'Gewicht', catchRate: 'Fangrate', friendship: 'Basis-FSW',
-    genderMale: '♂ männlich', genderFemale: '♀ weiblich', genderless: 'Geschlechtslos',
+    genderMale: '♂\uFE0E männlich', genderFemale: '♀\uFE0E weiblich', genderless: 'Geschlechtslos',
     eggGroups: 'Ei-Gruppen', hatchSteps: 'Schritte (Schlüpfen)', growthRate: 'Wachstum',
     baseExp: 'Basis-EP',
     methodLevelUp: 'Level-Up', methodMachine: 'TM/VM', methodEgg: 'Ei', methodTutor: 'Lehrling',
@@ -37,6 +37,8 @@ const I18N = {
     evoFor: 'Bedingungen in', evoOr: 'oder', evoFrom: 'erst ab {g}', evoNotInGame: 'in diesem Spiel nicht möglich',
     loadError: 'Dieses Pokémon konnte nicht geladen werden.', retry: 'Nochmal versuchen',
     locLoadError: 'Fundorte konnten nicht geladen werden.',
+    close: 'Schließen',
+    locNotWild: 'nicht wild', locNoneIn: 'In {game} ist dieses Pokémon nicht in freier Wildbahn zu finden – z. B. nur durch Entwicklung, als Geschenk oder per Tausch. Andere Spiele kannst du oben auswählen.',
     locOnlyIn: 'Nur in', bulbaAll: 'Alle Fundorte auf Bulbapedia →', bulbaIncomplete: 'Daten können unvollständig sein',
   },
   en: {
@@ -55,10 +57,10 @@ const I18N = {
     noLocations: 'No locations are stored in the database (PokéAPI) for this Pokémon. This doesn\'t mean there aren\'t any — the data is simply incomplete.',
     noEvolution: 'This Pokémon does not evolve.',
     hiddenAbility: 'Hidden Ability',
-    shiny: '✨ Shiny',
+    shiny: '✦ Shiny',
     bst: 'Total', genLabel: 'Gen',
     height: 'Height', weight: 'Weight', catchRate: 'Catch Rate', friendship: 'Base FSW',
-    genderMale: '♂ Male', genderFemale: '♀ Female', genderless: 'Genderless',
+    genderMale: '♂\uFE0E Male', genderFemale: '♀\uFE0E Female', genderless: 'Genderless',
     eggGroups: 'Egg Groups', hatchSteps: 'Steps (Hatch)', growthRate: 'Growth Rate',
     baseExp: 'Base EXP',
     methodLevelUp: 'Level-Up', methodMachine: 'TM/HM', methodEgg: 'Egg', methodTutor: 'Tutor',
@@ -73,6 +75,8 @@ const I18N = {
     evoFor: 'Conditions in', evoOr: 'or', evoFrom: 'from {g}', evoNotInGame: 'not possible in this game',
     loadError: 'This Pokémon could not be loaded.', retry: 'Try again',
     locLoadError: 'Locations could not be loaded.',
+    close: 'Close',
+    locNotWild: 'not wild', locNoneIn: 'In {game} this Pokémon can\'t be found in the wild – e.g. only by evolving, as a gift or by trading. Pick another game above.',
     locOnlyIn: 'Only in', bulbaAll: 'All locations on Bulbapedia →', bulbaIncomplete: 'Data may be incomplete',
   },
 };
@@ -145,8 +149,41 @@ const VERSION_GROUP_LABELS = {
   'yellow':                               'Gelb (Gen 1)',
   'red-blue':                             'Rot / Blau (Gen 1)',
 };
+const VERSION_GROUP_LABELS_EN = {
+  'champions':                            'Pokémon Champions (Gen 9)',
+  'mega-dimension':                       'Legends: Z-A – Mega Dimension (Gen 9)',
+  'legends-za':                           'Legends: Z-A (Gen 9)',
+  'the-indigo-disk':                      'Scarlet / Violet – The Indigo Disk (Gen 9)',
+  'the-teal-mask':                        'Scarlet / Violet – The Teal Mask (Gen 9)',
+  'scarlet-violet':                       'Scarlet / Violet (Gen 9)',
+  'legends-arceus':                       'Legends: Arceus (Gen 8)',
+  'brilliant-diamond-shining-pearl':      'B. Diamond / S. Pearl (Gen 8)',
+  'the-crown-tundra':                     'Sword / Shield – The Crown Tundra (Gen 8)',
+  'the-isle-of-armor':                    'Sword / Shield – The Isle of Armor (Gen 8)',
+  'sword-shield':                         'Sword / Shield (Gen 8)',
+  'lets-go-pikachu-lets-go-eevee':        "Let's Go (Gen 7)",
+  'ultra-sun-ultra-moon':                 'Ultra Sun / Ultra Moon (Gen 7)',
+  'sun-moon':                             'Sun / Moon (Gen 7)',
+  'omega-ruby-alpha-sapphire':            'Omega Ruby / Alpha Sapphire (Gen 6)',
+  'x-y':                                  'X / Y (Gen 6)',
+  'black-2-white-2':                      'Black 2 / White 2 (Gen 5)',
+  'black-white':                          'Black / White (Gen 5)',
+  'heartgold-soulsilver':                 'HeartGold / SoulSilver (Gen 4)',
+  'platinum':                             'Platinum (Gen 4)',
+  'diamond-pearl':                        'Diamond / Pearl (Gen 4)',
+  'xd':                                   'Pokémon XD (Gen 3)',
+  'emerald':                              'Emerald (Gen 3)',
+  'firered-leafgreen':                    'FireRed / LeafGreen (Gen 3)',
+  'colosseum':                            'Pokémon Colosseum (Gen 3)',
+  'ruby-sapphire':                        'Ruby / Sapphire (Gen 3)',
+  'crystal':                              'Crystal (Gen 2)',
+  'gold-silver':                          'Gold / Silver (Gen 2)',
+  'yellow':                               'Yellow (Gen 1)',
+  'red-blue':                             'Red / Blue (Gen 1)',
+};
 const VERSION_GROUP_ORDER = Object.keys(VERSION_GROUP_LABELS);
-const vgShortLabel = vg => (VERSION_GROUP_LABELS[vg] || vg).replace(/ \(Gen \d\)$/, '');
+const vgLabel = vg => (window.LANG === 'en' ? VERSION_GROUP_LABELS_EN : VERSION_GROUP_LABELS)[vg] || vg;
+const vgShortLabel = vg => vgLabel(vg).replace(/ \(Gen \d\)$/, '');
 
 // Region(en) je Edition – eine Entwicklung „an einem Ort" gilt nur in Spielen dieser Region
 const VG_REGIONS = {
@@ -189,6 +226,21 @@ const GAME_VERSION_LABELS = {
   emerald:'Smaragd',firered:'Feuerrot',leafgreen:'Blattgrün',ruby:'Rubin',sapphire:'Saphir',
   crystal:'Kristall',gold:'Gold',silver:'Silber',yellow:'Gelb',red:'Rot',blue:'Blau',
 };
+const GAME_VERSION_LABELS_EN = {
+  scarlet:'Scarlet',violet:'Violet',sword:'Sword',shield:'Shield',
+  'brilliant-diamond':'B. Diamond','shining-pearl':'S. Pearl',
+  'legends-arceus':'Arceus',
+  'the-isle-of-armor-sword':'Sword (Isle of Armor)','the-isle-of-armor-shield':'Shield (Isle of Armor)',
+  'the-crown-tundra-sword':'Sword (Crown Tundra)','the-crown-tundra-shield':'Shield (Crown Tundra)',
+  'ultra-sun':'Ultra Sun','ultra-moon':'Ultra Moon',sun:'Sun',moon:'Moon',
+  'lets-go-pikachu':"Let's Go P.",'lets-go-eevee':"Let's Go E.",
+  'omega-ruby':'Omega Ruby','alpha-sapphire':'Alpha Sapphire',x:'X',y:'Y',
+  'black-2':'Black 2','white-2':'White 2',black:'Black',white:'White',
+  heartgold:'HeartGold',soulsilver:'SoulSilver',platinum:'Platinum',diamond:'Diamond',pearl:'Pearl',
+  emerald:'Emerald',firered:'FireRed',leafgreen:'LeafGreen',ruby:'Ruby',sapphire:'Sapphire',
+  crystal:'Crystal',gold:'Gold',silver:'Silver',yellow:'Yellow',red:'Red',blue:'Blue',
+};
+const gameLabel = g => (window.LANG === 'en' ? GAME_VERSION_LABELS_EN : GAME_VERSION_LABELS)[g];
 
 const GAME_CLUSTERS = [
   { label: 'Rot / Blau / Gelb',                games: ['red','blue','yellow'] },
@@ -554,7 +606,6 @@ let currentMoveMethod = 'level-up', currentVersionGroup = '';
 let isShiny = false;
 let modalGenList = [], modalCurrentGen = 1;
 let allPokemonList = null;
-const displayNameMap = new Map();
 
 const GEN_VG_RANGES = {
   1: new Set(['red-blue','yellow']),
@@ -628,8 +679,8 @@ function formatModalPokemonName(name) {
     .replace(/-50$/, '')
     .replace(/-red-flower$/, '')
     .replace(/-meadow$/, '')
-    .replace(/-male$/, ' ♂')
-    .replace(/-female$/, ' ♀')
+    .replace(/-male$/, ' ♂\uFE0E')
+    .replace(/-female$/, ' ♀\uFE0E')
     .split('-').map(w => w[0].toUpperCase() + w.slice(1)).join('-');
 }
 
@@ -643,32 +694,9 @@ async function ensureAllPokemonList() {
       const id = m ? Number(m[1]) : null;
       return { name: p.name, id, sprite: id ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` : '' };
     }).filter(p => p.id);
-    preloadAllGermanNames();
   } catch {}
 }
 
-let germanNamesLoading = false;
-
-async function preloadAllGermanNames() {
-  if (window.LANG !== 'de' || !allPokemonList || germanNamesLoading) return;
-  germanNamesLoading = true;
-  const toLoad = allPokemonList.filter(p => p.id >= 1 && p.id <= 1025 && !displayNameMap.has(p.name));
-  const CHUNK = 10;
-  for (let i = 0; i < toLoad.length; i += CHUNK) {
-    await Promise.allSettled(toLoad.slice(i, i + CHUNK).map(async p => {
-      try {
-        const ck = `${p.name}-de`;
-        if (!cacheS.has(ck)) await apiSpecies(p.name);
-        const s = cacheS.get(ck);
-        if (s?.displayName) { p.displayName = s.displayName; displayNameMap.set(p.name, s.displayName); }
-      } catch {}
-    }));
-    const modal = document.getElementById('pokemon-modal');
-    const searchEl = document.getElementById('modal-search');
-    if (modal?.style.display === 'flex' && searchEl?.value.trim()) renderModalGrid(searchEl.value);
-  }
-  germanNamesLoading = false;
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getGeneration(id) {
@@ -759,7 +787,7 @@ function evoDetailsForVG(details, vg, locRegion) {
   return { list: [], status: detailRank(earliest) > rank ? 'later' : 'unavailable', firstVG: earliest.version_group?.name };
 }
 
-// Eine Entwicklungs-Methode als kurzer Text, z. B. „Lv. 25 · nachts" oder „Level-Up · 📍 Kraterberg (Magnetfeld)"
+// Eine Entwicklungs-Methode als kurzer Text, z. B. „Lv. 25 · nachts" oder „Level-Up · Kraterberg (Magnetfeld)"
 function formatEvoDetail(d, N, target) {
   const en = window.LANG === 'en';
   const L = (de, english) => (en ? english : de);
@@ -781,7 +809,7 @@ function formatEvoDetail(d, N, target) {
   }
   if (d.item && trig !== 'use-item') parts.push(item(d.item.name));
   if (d.min_happiness) parts.push(L(`Freundschaft ${d.min_happiness}+`, `Friendship ${d.min_happiness}+`));
-  if (d.min_affection) parts.push(L(`Zuneigung ${d.min_affection}+ ♥`, `Affection ${d.min_affection}+ ♥`));
+  if (d.min_affection) parts.push(L(`Zuneigung ${d.min_affection}+ ♥\uFE0E`, `Affection ${d.min_affection}+ ♥\uFE0E`));
   if (d.min_beauty) parts.push(L(`Schönheit ${d.min_beauty}+`, `Beauty ${d.min_beauty}+`));
   if (d.known_move) parts.push(L(`kennt ${move(d.known_move.name)}`, `knows ${move(d.known_move.name)}`));
   if (d.known_move_type) parts.push(L(`kennt ${typeLabel(d.known_move_type.name)}-Attacke`, `knows a ${typeLabel(d.known_move_type.name)} move`));
@@ -795,8 +823,8 @@ function formatEvoDetail(d, N, target) {
   if (d.relative_physical_stats != null) {
     parts.push(d.relative_physical_stats > 0 ? L('Angr > Vert', 'Atk > Def') : d.relative_physical_stats < 0 ? L('Angr < Vert', 'Atk < Def') : L('Angr = Vert', 'Atk = Def'));
   }
-  if (d.gender === 1) parts.push('♀');
-  else if (d.gender === 2) parts.push('♂');
+  if (d.gender === 1) parts.push('♀\uFE0E');
+  else if (d.gender === 2) parts.push('♂\uFE0E');
   if (d.time_of_day) parts.push({ day: L('tagsüber', 'daytime'), night: L('nachts', 'night'), dusk: L('abends', 'dusk') }[d.time_of_day] || d.time_of_day);
   if (d.needs_overworld_rain) parts.push(L('bei Regen', 'in rain'));
   if (d.turn_upside_down) parts.push(L('Konsole umdrehen', 'console upside down'));
@@ -810,7 +838,7 @@ function formatEvoDetail(d, N, target) {
   if (d.allowed_natures) parts.push(L('Form je nach Wesen', 'form depends on nature'));
   if (d.location) {
     const place = SPECIAL_PLACE[target];
-    parts.push(`📍 ${N.loc.get(d.location.name)?.name || prettySlug(d.location.name)}${place ? ` (${en ? place.en : place.de})` : ''}`);
+    parts.push(`${N.loc.get(d.location.name)?.name || prettySlug(d.location.name)}${place ? ` (${en ? place.en : place.de})` : ''}`);
   }
   const SPECIAL_TRIGGER = {
     shed: L('freier Teamplatz + Pokéball', 'free party slot + Poké Ball'),
@@ -853,7 +881,7 @@ function renderIdentity(p, s) {
   document.getElementById('identity-types').innerHTML = p.types.map(typeBadge).join('');
 
   const qs = document.getElementById('identity-quick-stats');
-  const genderText = s.genderRate === -1 ? t('genderless') : s.genderRate === 0 ? '100% ♂' : s.genderRate === 8 ? '100% ♀' : `${Math.round((8 - s.genderRate) / 8 * 100)}% ♂ · ${Math.round(s.genderRate / 8 * 100)}% ♀`;
+  const genderText = s.genderRate === -1 ? t('genderless') : s.genderRate === 0 ? '100% ♂\uFE0E' : s.genderRate === 8 ? '100% ♀\uFE0E' : `${Math.round((8 - s.genderRate) / 8 * 100)}% ♂ · ${Math.round(s.genderRate / 8 * 100)}% ♀`;
   qs.innerHTML = [
     { label: t('catchRate'), value: s.captureRate },
     { label: t('friendship'), value: s.baseHappiness },
@@ -1041,7 +1069,9 @@ function renderForms(s, currentName) {
     const isActive = v.pokemon.name === currentName;
     const base = s.name || '';
     const suffix = v.pokemon.name.startsWith(base + '-') ? v.pokemon.name.slice(base.length + 1) : v.pokemon.name;
-    const label = suffix.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') || 'Standard';
+    const known = window.POKEMON_NAMES.forms[v.pokemon.name] || (v.is_default && s.id);
+    const label = (known && window.pokemonName(s.id, v.pokemon.name))
+      || suffix.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') || 'Standard';
     return `<div class="evo-stage ${isActive ? 'is-active' : 'is-clickable'}" data-form="${escHtml(v.pokemon.name)}">
       ${sprite ? `<img src="${escHtml(sprite)}" alt="${escHtml(label)}">` : ''}
       <div class="evo-stage-name">${escHtml(label)}</div>
@@ -1071,7 +1101,7 @@ async function renderMoves(p, seq = loadSeq) {
   const vgs = getAvailableVersionGroups(p.moves);
   const verSel = document.getElementById('version-select');
   verSel.innerHTML = vgs.length
-    ? [...vgs].reverse().map(vg => `<option value="${escHtml(vg)}">${escHtml(VERSION_GROUP_LABELS[vg] || vg)}</option>`).join('')
+    ? [...vgs].reverse().map(vg => `<option value="${escHtml(vg)}">${escHtml(vgLabel(vg))}</option>`).join('')
     : `<option value="">${escHtml(t('noData'))}</option>`;
   if (!currentVersionGroup) {
     currentVersionGroup = defaultVersionGroup(vgs, currentSpecies?.id ?? 0);
@@ -1208,7 +1238,7 @@ async function renderLocations(pokemonName, seq = loadSeq) {
       if (seen.has(sig)) continue;
       seen.add(sig);
       const same = present.filter(g => gameSig(g) === sig);
-      options.push({ label: same.map(g => GAME_VERSION_LABELS[g]).join(' / '), game: same[0], present: same, all: cluster.games });
+      options.push({ label: same.map(gameLabel).join(' / '), game: same[0], present: same, all: cluster.games });
     }
   }
 
@@ -1232,16 +1262,16 @@ async function renderLocations(pokemonName, seq = loadSeq) {
   const locName = slug => locNameMap.get(slug) || formatLocSlug(slug);
 
   gameSel.style.display = '';
-  gameSel.innerHTML = options.map((o, i) => `<option value="${i}">${escHtml(o.label)}</option>`).join('');
-
+  let list = options;
   const showOption = idx => {
-    const opt = options[idx];
+    const opt = list[idx];
     if (!opt) return;
+    if (opt.none) { el.innerHTML = `<div class="no-locations">${escHtml(t('locNoneIn').replace('{game}', opt.game))}</div>${bpFooter}`; return; }
     // Mehrere Bereiche desselben Ortes mit gleichen Daten nur einmal zeigen, Reihenfolge nach Name
     const rows = [...(byGame[opt.game] || [])].sort((a, b) => locName(a.slug).localeCompare(locName(b.slug), window.LANG));
     const exclusive = opt.present.length < opt.all.length && opt.all.length > 1;
     const badge = exclusive
-      ? `<div class="loc-only-row"><span class="loc-only-badge">${escHtml(t('locOnlyIn'))} ${opt.present.map(g => escHtml(GAME_VERSION_LABELS[g])).join(' &amp; ')}</span></div>`
+      ? `<div class="loc-only-row"><span class="loc-only-badge">${escHtml(t('locOnlyIn'))} ${opt.present.map(g => escHtml(gameLabel(g))).join(' &amp; ')}</span></div>`
       : '';
     el.innerHTML = `${badge}<div class="location-row location-head">
         <span class="loc-header">${escHtml(t('locColName'))}</span>
@@ -1257,7 +1287,17 @@ async function renderLocations(pokemonName, seq = loadSeq) {
       </div>`).join('')}${bpFooter}`;
   };
 
-  locState = { options, showOption };
+  // Spiele mit Fundorten; hat das oben gewählte Spiel keine, steht es vorne mit Hinweis
+  // (vorher sprang die Anzeige ohne Hinweis zu einem anderen Spiel, z. B. Let's Go statt Platin)
+  const refresh = () => {
+    const versions = VG_VERSIONS[currentVersionGroup] || [];
+    const game = versions.map(gameLabel).filter(Boolean).join(' / ');
+    const has = !game || options.some(o => o.present.some(g => versions.includes(g)));
+    list = has ? options : [{ none: true, game, label: `${game} – ${t('locNotWild')}` }, ...options];
+    gameSel.innerHTML = list.map((o, i) => `<option value="${i}">${escHtml(o.label)}</option>`).join('');
+  };
+  locState = { showOption, refresh, list: () => list };
+  refresh();
   gameSel.onchange = () => showOption(Number(gameSel.value));
   const start = locationOptionForVG(currentVersionGroup);
   gameSel.value = String(start);
@@ -1268,7 +1308,7 @@ async function renderLocations(pokemonName, seq = loadSeq) {
 function locationOptionForVG(vg) {
   if (!locState) return 0;
   const versions = VG_VERSIONS[vg] || [];
-  const idx = locState.options.findIndex(o => o.present.some(g => versions.includes(g)));
+  const idx = locState.list().findIndex(o => !o.none && o.present.some(g => versions.includes(g)));
   return idx >= 0 ? idx : 0;
 }
 
@@ -1384,46 +1424,25 @@ async function loadModalGen(gen) {
     const list = await fetchGenList(gen);
     modalGenList = list;
     renderModalGrid('');
-    loadDisplayNamesForGrid(list);
   } catch { grid.innerHTML = `<li class="list-msg">${escHtml(t('noData'))}</li>`; }
-}
-
-async function loadDisplayNamesForGrid(list) {
-  if (window.LANG !== 'de') return;
-  const chunkSize = 6;
-  for (let i = 0; i < list.length; i += chunkSize) {
-    await Promise.allSettled(list.slice(i, i + chunkSize).map(async p => {
-      try {
-        const ck = `${p.name}-de`;
-        if (!cacheS.has(ck)) await apiSpecies(p.name);
-        const s = cacheS.get(ck);
-        if (!s || !s.displayName) return;
-        p.displayName = s.displayName;
-        displayNameMap.set(p.name, s.displayName);
-        const el = document.querySelector(`#pokemon-grid li[data-name="${CSS.escape(p.name)}"] span`);
-        if (el) el.textContent = s.displayName;
-      } catch {}
-    }));
-  }
 }
 
 function renderModalGrid(filter) {
   const q = filter.trim().toLowerCase();
   const source = (q && allPokemonList) ? allPokemonList : modalGenList;
   const filtered = q ? source.filter(p => {
-    const dn = (p.displayName || displayNameMap.get(p.name) || '').toLowerCase();
-    return p.name.includes(q) || String(p.id).includes(q) || dn.includes(q);
+    const de = (window.pokemonName(p.id, p.name, 'de') || '').toLowerCase();
+    const en = (window.pokemonName(p.id, p.name, 'en') || '').toLowerCase();
+    return p.name.includes(q) || String(p.id).includes(q) || de.includes(q) || en.includes(q);
   }) : source;
   const grid = document.getElementById('pokemon-grid');
   if (!filtered.length) {
-    const msg = (q && germanNamesLoading && window.LANG === 'de')
-      ? 'Deutsche Namen werden geladen…'
-      : t('noData');
-    grid.innerHTML = `<li class="list-msg">${escHtml(msg)}</li>`;
+    grid.innerHTML = `<li class="list-msg">${escHtml(t('noData'))}</li>`;
     return;
   }
   grid.innerHTML = filtered.slice(0, 150).map(p => {
-    const label = p.displayName || formatModalPokemonName(p.name);
+    // Name aus pokemon-names.js (Standardform = Artname, sonst z. B. „Ur-Giratina“)
+    const label = window.pokemonName(p.id, p.name) || formatModalPokemonName(p.name);
     return `<li data-name="${escHtml(p.name)}" title="${escHtml(p.name)}">
       <img src="${escHtml(p.sprite)}" alt="${escHtml(p.name)}" loading="lazy">
       <span>${escHtml(label)}</span>
@@ -1435,6 +1454,7 @@ function renderModalGrid(filter) {
 function applyLanguage() {
   document.querySelectorAll('[data-i18n]').forEach(el => { const v = t(el.dataset.i18n); if (v) el.textContent = v; });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const v = t(el.dataset.i18nPlaceholder); if (v) el.placeholder = v; });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { const v = t(el.dataset.i18nTitle); if (v) { el.title = v; if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', v); } });
   document.getElementById('lang-toggle').textContent = window.LANG.toUpperCase();
 }
 
@@ -1482,6 +1502,7 @@ document.getElementById('version-select').addEventListener('change', e => {
   if (currentPokemon) renderMoveTable(currentPokemon);
   drawEvolution();
   if (locState) {
+    locState.refresh();
     const idx = locationOptionForVG(currentVersionGroup);
     document.getElementById('location-game-select').value = String(idx);
     locState.showOption(idx);

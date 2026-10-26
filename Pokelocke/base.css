@@ -92,7 +92,7 @@ p {
   padding: 0 var(--spacing-sm);
 }
 
-/* 🌙 Dunkler globaler Scrollbar-Stil */
+/* Dunkler globaler Scrollbar-Stil */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

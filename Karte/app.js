@@ -8,6 +8,12 @@
 window.LANG = localStorage.getItem('hub-lang') || 'de';
 document.documentElement.lang = window.LANG;
 
+// Schlichte Symbole statt Emojis (Farbe aus der Schrift)
+const ICON_PIN = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>';
+const ICON_MAP = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/></svg>';
+const ICON_SWORDS = '<svg class="ico" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 26 20 12m0 0 3-6 3-1-1 3-6 3M26 26 12 12m0 0-3-6-3-1 1 3 6 3M9 23l-2 2m16-2 2 2"/></svg>';
+const ICON_PERSON = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+
 const TRANSLATIONS = {
   de: {
     title: 'Karte von Sinnoh',
@@ -94,6 +100,7 @@ const nm = o => (o ? (isEn() ? o.en || o.de : o.de || o.en) : '');
 // ── Trainerklassen und -namen (gemeinsam mit dem Boss-Planer: trainer-classes.js) ──
 const className = cls => TrainerClasses.className(cls, isEn());
 const trainerName = (name, cls) => TrainerClasses.trainerName(name, isEn(), cls);
+const trainerTitle = (cls, name) => [className(cls), trainerName(name, cls)].filter(Boolean).join(' ');
 const CLASS_NAMES = TrainerClasses.CLASS_NAMES;
 
 // ── Darstellung der Marker ────────────────────────────────────────────────────
@@ -127,7 +134,8 @@ let NATIVE_ZOOM = 4;   // Zoomstufe der feinsten Blätter (1 Bildpixel = 1 Spiel
 let MAX_ZOOM = 6;
 let map = null;
 const layers = {};     // Marker je Art
-const shown = new Set(KINDS);
+// Beim Öffnen sind alle Filter aus – sonst ist die ganze Karte voller Punkte. Ein Tipp auf einen Filter zeigt ihn.
+const shown = new Set();
 let selected = -1;
 let currentTab = 'items';
 let selLayer = null, labelLayer = null, focusMarker = null;
@@ -337,7 +345,7 @@ function markerText(m) {
   if (m.k === 'trainer') {
     const lv = entry.party.map(p => p.lv);
     const lvText = lv.length ? ` · ${t('level')} ${Math.min(...lv)}${Math.max(...lv) !== Math.min(...lv) ? '–' + Math.max(...lv) : ''}` : '';
-    return `${className(entry.cls)} ${trainerName(entry.name, entry.cls)}${lvText}`;
+    return `${trainerTitle(entry.cls, entry.name)}${lvText}`;
   }
   const kind = entry.kind === 'hidden' ? t('kHiddenOne') : entry.kind === 'gift' ? t('kGiftOne') : t('kBallOne');
   return `${kind}: ${itemName(entry)}${entry.qty > 1 ? ' ×' + entry.qty : ''}`;
@@ -345,7 +353,7 @@ function markerText(m) {
 
 function buildMarkers() {
   const renderer = L.svg({ padding: 0.3 });
-  for (const kind of KINDS) layers[kind] = L.layerGroup().addTo(map);
+  for (const kind of KINDS) layers[kind] = L.layerGroup();   // auf die Karte kommen sie über syncKinds (Filter)
   const counts = Object.fromEntries(KINDS.map(k => [k, 0]));
   for (const m of D.markers) {
     const marker = L.circleMarker(llg(m.x + 0.5, m.z + 0.5, m.y), { ...STYLE[m.k], renderer, bubblingMouseEvents: false });
@@ -371,6 +379,7 @@ function buildMarkers() {
       chip.setAttribute('aria-pressed', String(on));
     });
   });
+  syncKinds();
   onZoom();
 }
 // Marker-Ebenen passend zu Filtern und Ansicht (Oberwelt oder Innenkarte) zeigen
@@ -642,12 +651,12 @@ function renderLocation(li, focus) {
   ].filter(Boolean);
   const via = l.via != null ? `<button type="button" class="via-link" data-loc="${l.via}">${esc(t('via', { p: locName(D.locations[l.via]) }))} →</button>` : '';
   const ents = (l.entrances || []).length
-    ? `<div class="ent-row"><span>${esc(t('entrances'))}:</span>${l.entrances.map(([x, z], n) => `<button type="button" class="mini-btn" data-goto="${x},${z}">📍 ${esc(t('entranceN', { n: n + 1 }))}</button>`).join('')}</div>`
+    ? `<div class="ent-row"><span>${esc(t('entrances'))}:</span>${l.entrances.map(([x, z], n) => `<button type="button" class="mini-btn" data-goto="${x},${z}">${ICON_PIN}${esc(t('entranceN', { n: n + 1 }))}</button>`).join('')}</div>`
     : '';
   // Innenkarten des Ortes (Stockwerke, Räume, Gebäude)
   const mapKeys = mapsOf(li);
   const inside = mapKeys.length
-    ? `<div class="ent-row map-row"><span>${esc(t('interiorMaps'))}:</span>${mapKeys.map(k => `<button type="button" class="mini-btn map-btn${k === inMap ? ' is-on' : ''}" data-map="${esc(k)}">🗺️ ${esc(areaName(D.maps[k].area) || locName(l))}</button>`).join('')}</div>`
+    ? `<div class="ent-row map-row"><span>${esc(t('interiorMaps'))}:</span>${mapKeys.map(k => `<button type="button" class="mini-btn map-btn${k === inMap ? ' is-on' : ''}" data-map="${esc(k)}">${ICON_MAP}${esc(areaName(D.maps[k].area) || locName(l))}</button>`).join('')}</div>`
     : '';
   const tab = (key, label, count, disabled) => `<button type="button" class="tab${currentTab === key ? ' is-active' : ''}" data-tab="${key}"${disabled ? ' disabled' : ''}>${esc(label)}${count != null ? ` <small>${count}</small>` : ''}</button>`;
   const wildCount = l.wild.length;
@@ -681,7 +690,7 @@ function renderLocation(li, focus) {
   }
   const body = $('tab-body');
   body.innerHTML = currentTab === 'items' ? itemsHTML(l) : currentTab === 'trainers' ? trainersHTML(l) : wildHTML(l);
-  // 📍: auf der Oberwelt hinfliegen bzw. die Innenkarte öffnen, in der das Item oder der Trainer steht
+  // Stecknadel: auf der Oberwelt hinfliegen bzw. die Innenkarte öffnen, in der das Item oder der Trainer steht
   body.querySelectorAll('[data-pos]').forEach(b => b.addEventListener('click', () => {
     const [x, z, y] = parsePos(b.dataset.pos), inside = b.dataset.map;
     if (inside && inside === inMap) flyToTile(x, z, y, 3);
@@ -699,7 +708,7 @@ function renderLocation(li, focus) {
   }
 }
 
-const posBtn = e => (e.pos ? `<button type="button" class="pin" data-pos="${e.pos[0]},${e.pos[1]},${e.pos[2] ?? ''}"${e.map ? ` data-map="${esc(e.map)}"` : ''} title="${esc(t(e.map ? 'showInside' : 'showOnMap'))}" aria-label="${esc(t(e.map ? 'showInside' : 'showOnMap'))}">📍</button>` : '');
+const posBtn = e => (e.pos ? `<button type="button" class="pin" data-pos="${e.pos[0]},${e.pos[1]},${e.pos[2] ?? ''}"${e.map ? ` data-map="${esc(e.map)}"` : ''} title="${esc(t(e.map ? 'showInside' : 'showOnMap'))}" aria-label="${esc(t(e.map ? 'showInside' : 'showOnMap'))}">${ICON_PIN}</button>` : '');
 // Bereiche wie im Großmoor heißen nur „1"–„6"
 // Bereichsnamen stehen in platin.json auf Deutsch, die englischen in D.areaEn
 const areaName = area => (/^\d+$/.test(area) ? t('areaN', { n: area }) : (isEn() && D.areaEn?.[area]) || area);
@@ -748,10 +757,10 @@ function trainersHTML(l) {
   });
   return `<div class="list-group">${rows.map(({ tr, i, variants }) => {
     const head = `<div class="tr-head">
-        <span class="row-title">${esc(className(tr.cls))} ${esc(trainerName(tr.name, tr.cls))}</span>
+        <span class="row-title">${esc(trainerTitle(tr.cls, tr.name))}</span>
         ${tr.double ? `<span class="badge">${esc(t('double'))}</span>` : ''}
         ${areaTag(tr.area)}${posBtn(tr)}
-        <a class="pin" href="../Bosse/index.html#${esc(tr.id)}" title="${esc(t('toPlanner'))}" aria-label="${esc(t('toPlanner'))}">⚔️</a>
+        <a class="pin" href="../Bosse/index.html#${esc(tr.id)}" title="${esc(t('toPlanner'))}" aria-label="${esc(t('toPlanner'))}">${ICON_SWORDS}</a>
       </div>`;
     if (variants && variants.length > 1) {
       return `<div class="row row--trainer" data-ref="t${i}">${head}
@@ -828,14 +837,14 @@ function runSearch(q) {
   if (!top.length) { box.innerHTML = `<div class="sr-empty">${esc(t('noResults'))}</div>`; box.hidden = false; return; }
   box.innerHTML = top.map(({ e }, n) => {
     const l = D.locations[e.li];
-    if (e.type === 'loc') return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">🗺️</span><span class="sr-main">${esc(locName(l))}</span><small>${esc(typeLabel(l))}</small></button>`;
+    if (e.type === 'loc') return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">${ICON_MAP}</span><span class="sr-main">${esc(locName(l))}</span><small>${esc(typeLabel(l))}</small></button>`;
     if (e.type === 'item') {
       const it = l.items[e.i];
       const kind = it.kind === 'hidden' ? t('kHiddenOne') : it.kind === 'gift' ? t('kGiftOne') : t('kBallOne');
       return `<button type="button" class="sr" data-n="${n}"><img class="sr-ico" src="${itemSprite(it)}" alt="" onerror="this.style.visibility='hidden'"><span class="sr-main">${esc(itemName(it))}</span><small>${esc(kind)} · ${esc(locName(l))}</small></button>`;
     }
     const tr = l.trainers[e.i];
-    return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">👤</span><span class="sr-main">${esc(className(tr.cls))} ${esc(trainerName(tr.name, tr.cls))}</span><small>${esc(locName(l))}</small></button>`;
+    return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">${ICON_PERSON}</span><span class="sr-main">${esc(trainerTitle(tr.cls, tr.name))}</span><small>${esc(locName(l))}</small></button>`;
   }).join('');
   box.hidden = false;
   box.querySelectorAll('.sr').forEach(b => b.addEventListener('click', () => pickResult(top[+b.dataset.n].e)));
@@ -866,6 +875,7 @@ function applyLang() {
   const dict = tr();
   document.querySelectorAll('[data-i18n]').forEach(el => { const v = dict[el.dataset.i18n]; if (typeof v === 'string') el.textContent = v; });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const v = dict[el.dataset.i18nPlaceholder]; if (typeof v === 'string') el.placeholder = v; });
+  $('interior-select').setAttribute('aria-label', isEn() ? 'Area' : 'Bereich');
   $('lang-toggle').textContent = window.LANG.toUpperCase();
   if (!D) return;
   labelLayer?.eachLayer(m => { const el = m.getElement()?.querySelector('span'); if (el) el.textContent = locName(D.locations[m.locIndex]); });
