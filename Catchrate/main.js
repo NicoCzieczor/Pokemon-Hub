@@ -191,7 +191,12 @@ function updateSliderStyle(v) {
     `linear-gradient(to right, ${fill} ${pct}%, ${empty} ${pct}%)`;
 }
 function nestMult(level) { return Math.max(1, (41 - Math.max(1, level)) / 10); }
-function timerMult(turns) { return Math.min(4, 1 + Math.floor(turns * 1229 / 4096)); }
+// Timer Ball. turns = current round (1 = first round, none passed yet). Gen 3–4: (rounds passed + 10) ÷ 10
+// (pokeemerald: battleTurnCounter starts at 0); Gen 5+: 1 + rounds passed × 1229/4096. Capped at 4×.
+function timerMult(turns, formulaGen) {
+  const passed = Math.max(0, turns - 1);
+  return Math.min(4, formulaGen >= 5 ? 1 + passed * 1229 / 4096 : (passed + 10) / 10);
+}
 function levelMult(pl, el) {
   if (el <= 0) return 1;
   const r = pl / el;
@@ -265,7 +270,7 @@ const BALLS = [
     desc:'Bis zu 3,9× – je niedriger das Level des Pokémon, desto stärker.' },
   { id:'repeat',  name:'Wiederball',  sprite:'repeat-ball',  mult:ctx=>ctx.caughtBefore?(ctx.gen>=7?3.5:3):1,
     desc:'3,5× auf bereits gefangene Pokémon (Gen 7+; Gen 6: 3×), sonst 1×.' },
-  { id:'timer',   name:'Zeitball',    sprite:'timer-ball',   mult:ctx=>timerMult(ctx.turns),
+  { id:'timer',   name:'Zeitball',    sprite:'timer-ball',   mult:ctx=>timerMult(ctx.turns, ctx.formulaGen),
     desc:'Wird mit jeder Runde stärker – maximal 4× ab Runde 30.' },
   { id:'luxury',  name:'Luxusball',   sprite:'luxury-ball',  mult:()=>1,
     desc:'Kein Fangbonus; gefangene Pokémon gewinnen Freundschaft doppelt so schnell.' },
@@ -385,12 +390,11 @@ function computeProb(ball, conds) {
   if (ball.id === 'master') return 1;
 
   const hpFactor = (3 - 2 * conds.hpPercent / 100) / 3;
-  // Gen I/II: sleep ×2.5; Gen III–IV: sleep ×2.0; Gen V+: sleep ×2.5
+  // Gen I: sleep ×2.5; Gen III–IV: sleep ×2.0; Gen V+: sleep ×2.5. Gen II: no factor – see below
   const sleepMult = (conds.formulaGen <= 2 || conds.formulaGen >= 5) ? 2.5 : 2.0;
-  // Gen II bug: paralysis/burn/poison give no status bonus
-  const otherMult = conds.formulaGen === 2 ? 1.0 : 1.5;
-  const statusMult = (conds.status === 'sleep' || conds.status === 'freeze') ? sleepMult
-    : (conds.status === 'paralysis' || conds.status === 'poison' || conds.status === 'burn') ? otherMult
+  const statusMult = conds.formulaGen === 2 ? 1.0
+    : (conds.status === 'sleep' || conds.status === 'freeze') ? sleepMult
+    : (conds.status === 'paralysis' || conds.status === 'poison' || conds.status === 'burn') ? 1.5
     : 1.0;
 
   let a;
@@ -402,6 +406,13 @@ function computeProb(ball, conds) {
     if (!isFinite(m)) return 1;
     if (m <= 0) return 0;
     a = hpFactor * selectedPokemon.captureRate * m * statusMult;
+  }
+  if (conds.formulaGen === 2) {
+    // Gen II (pokecrystal, PokeBallEffect): sleep/freeze add 10 to the finished value instead of a factor;
+    // paralysis/poison/burn should add 5 but give nothing (bug). Caught if random 0–255 ≤ a → (a + 1) ÷ 256.
+    const bonus = (conds.status === 'sleep' || conds.status === 'freeze') ? 10 : 0;
+    const a2 = Math.min(255, Math.max(1, Math.floor(a)) + bonus);
+    return (a2 + 1) / 256;
   }
   const ratio = Math.min(1, Math.max(0, a / 255));
   // Gen VI+ shake check uses exponent 3/16 per check (vs. 1/4 in Gen III–V) → P = ratio^(3/4)
@@ -452,10 +463,10 @@ const FORMULA_TOOLTIPS = {
         <li>Hinweis: Echte Gen-1-Formel nutzt zwei separate RNG-Prüfungen</li>
       </ul>`,
   2: `<div class="tt-title">Gen-2-Formel</div>
-      <div class="tt-formula">P = a ÷ 255<br>a = KP-Faktor × Fangrate × Ball × Status</div>
+      <div class="tt-formula">P = (a + 1) ÷ 256<br>a = KP-Faktor × Fangrate × Ball + Status</div>
       <ul class="tt-rules">
         <li>KP-Faktor: (3 − 2 × KP%) ÷ 3</li>
-        <li>Schlaf / Eis: <b>2,5×</b> Statusbonus</li>
+        <li>Schlaf / Eis: <b>+10</b> auf den Wert (kein Faktor)</li>
         <li>Paralyse / Gift / Brand: <b>kein Bonus (Gen-II-Bug!)</b></li>
         <li>Neue Bälle: Mondball, Schwerball u.a.</li>
       </ul>`,
@@ -502,10 +513,10 @@ const FORMULA_TOOLTIPS_EN = {
         <li>Note: the real Gen 1 formula uses two separate RNG checks</li>
       </ul>`,
   2: `<div class="tt-title">Gen 2 formula</div>
-      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+      <div class="tt-formula">P = (a + 1) ÷ 256<br>a = HP factor × catch rate × ball + status</div>
       <ul class="tt-rules">
         <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
-        <li>Sleep / Freeze: <b>2.5×</b> status bonus</li>
+        <li>Sleep / Freeze: <b>+10</b> to the value (no factor)</li>
         <li>Paralysis / Poison / Burn: <b>no bonus (Gen II bug!)</b></li>
         <li>New balls: Moon Ball, Heavy Ball and more</li>
       </ul>`,

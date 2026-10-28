@@ -1,4 +1,5 @@
-import { getPokemon, getGenerationList, getPokemonSpecies, getMoveData, getEvolutionChain, getAbilityData } from "../Pokelocke/pokeapi.js";
+import { getPokemon, getGenerationList, getPokemonSpecies, getMoveData, getEvolutionChain, getAbilityData, placeholderPokemon } from "../Pokelocke/pokeapi.js";
+import { cleanSharedState, cleanGrave, mergeSharedState, isPokemonName } from "./shared-state.js";
 
 const SUPABASE_URL = 'https://lvyjqtpgeaoxaecduqxq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2eWpxdHBnZWFveGFlY2R1cXhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NzYxMTgsImV4cCI6MjA5NTE1MjExOH0.KAPsEDAFZ2RC5p028wk2XC4Z2CifmoKm08jy_BjmgPM';
@@ -95,7 +96,7 @@ function attachTooltip(el, getHtml) {
   });
 }
 function buildAbilityTooltip(data) {
-  return `<div class="tt-title">${data.name}</div>${data.description ? `<div class="tt-desc">${data.description}</div>` : ''}`;
+  return `<div class="tt-title">${esc(data.name)}</div>${data.description ? `<div class="tt-desc">${esc(data.description)}</div>` : ''}`;
 }
 function buildMoveTooltip(data) {
   const typeClass = data.type ? `type-bg-${data.type}` : '';
@@ -104,10 +105,10 @@ function buildMoveTooltip(data) {
   const power = data.power ?? '–';
   const acc   = data.accuracy != null ? data.accuracy + '%' : '–';
   const pp    = data.pp ?? '–';
-  return `<div class="tt-title">${data.name}</div>
+  return `<div class="tt-title">${esc(data.name)}</div>
 <div class="tt-meta">${typeLabel ? `<span class="tt-type ${typeClass}">${typeLabel}</span>` : ''}${catLabel ? `<span class="tt-cat">${catLabel}</span>` : ''}</div>
 <div class="tt-stats"><span>${window.t('power')}: ${power}</span><span>${window.t('accuracy')}: ${acc}</span><span>${window.t('pp')}: ${pp}</span></div>
-${data.description ? `<div class="tt-desc">${data.description}</div>` : ''}`;
+${data.description ? `<div class="tt-desc">${esc(data.description)}</div>` : ''}`;
 }
 
 // Ketten-Symbol für verknüpfte Paare (statt Emoji, Farbe aus der Schrift)
@@ -141,6 +142,10 @@ let syncSessionId  = null;
 let syncChannel    = null;
 let syncActive     = false;
 const MY_CLIENT_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+// Abgleich mit der Datenbank: syncBase = zuletzt bekannter Stand dort (geprüft), syncDirty = eigene Änderung
+// noch nicht geschrieben, syncFresh = false, solange der Stand veraltet sein kann (Hintergrund, Verbindung weg)
+// – dann wird erst neu geladen und zusammengeführt, bevor geschrieben wird.
+let syncBase = null, syncDirty = false, syncFresh = false, syncPushing = false, syncChangeNo = 0;
 
 // In Session-Modus dürfen BEIDE Spieler ALLES bearbeiten (geteilter Spielstand)
 function sessionCanEdit(_playerIndex) { return true; }
@@ -171,8 +176,11 @@ function getSharedState() {
   };
 }
 
-function applySharedState(state) {
-  if (!state || typeof state !== 'object' || Array.isArray(state)) return;
+// Stand aus der Datenbank übernehmen – nur geprüfte Felder (cleanSharedState), danach auch lokal sichern,
+// damit nach einem Neustart ohne Netz der zuletzt bekannte gemeinsame Stand da ist
+function applySharedState(raw) {
+  const state = cleanSharedState(raw);
+  if (!state) return;
 
   // Teams
   if (Array.isArray(state.team1)) {
@@ -212,9 +220,12 @@ function applySharedState(state) {
 
   updateLinkHighlights();
   renderTeamWeaknessPanel();
+  saveLocal();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+// Texte und Adressen, die in HTML landen (Namen kommen auch aus der Datenbank und aus Backups)
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 // Name in den Auswahllisten – aus pokemon-names.js (sofort da, auch offline; vorher eine Anfrage je Pokémon)
 function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
@@ -446,7 +457,7 @@ function renderTeamSlot(player, index, details) {
   if (!slot) return;
   if (details) {
     slot.dataset.filled = 'true';
-    slot.innerHTML = `<div style="text-align:center" draggable="false"><img src="${details.sprite}" alt="" style="width:55px;height:55px" draggable="false"><div style="font-size:12px" draggable="false">${details.germanName||capitalize(details.name)}</div></div>`;
+    slot.innerHTML = `<div style="text-align:center" draggable="false"><img src="${esc(details.sprite)}" alt="" style="width:55px;height:55px" draggable="false"><div style="font-size:12px" draggable="false">${esc(details.germanName||capitalize(details.name))}</div></div>`;
   } else {
     slot.removeAttribute('data-filled');
     slot.innerHTML = '';
@@ -458,7 +469,7 @@ function renderInfoSlot(details) {
   if (!slot) return;
   if (details) {
     slot.dataset.filled = 'true';
-    slot.innerHTML = `<div style="text-align:center"><img src="${details.sprite}" alt="" style="width:60px;height:60px"><div style="font-size:13px">${details.germanName||capitalize(details.name)}</div></div>`;
+    slot.innerHTML = `<div style="text-align:center"><img src="${esc(details.sprite)}" alt="" style="width:60px;height:60px"><div style="font-size:13px">${esc(details.germanName||capitalize(details.name))}</div></div>`;
   } else {
     slot.removeAttribute('data-filled');
     slot.innerHTML = window.t('info-slot-empty');
@@ -471,8 +482,8 @@ function updateBoxSlots() {
     const isLinked = !!(p1 && p2);
     const makeHalf = (p, cls) => {
       if (p) {
-        const name = p.germanName || capitalize(p.name);
-        return `<div class="box-slot-half ${cls} filled" draggable="true"><img src="${p.sprite}" alt="" width="30" height="30"><div class="box-slot-name">${name}</div></div>`;
+        const name = esc(p.germanName || capitalize(p.name));
+        return `<div class="box-slot-half ${cls} filled" draggable="true"><img src="${esc(p.sprite)}" alt="" width="30" height="30"><div class="box-slot-name">${name}</div></div>`;
       }
       return `<div class="box-slot-half ${cls}"><span class="box-slot-empty">+</span></div>`;
     };
@@ -522,8 +533,8 @@ function renderTeamWeaknessPanel() {
   const addPokeHeader = (p, cls) => {
     const c = document.createElement('div');
     c.className = `weakness-pokemon-header ${cls}`;
-    const name = p.germanName || capitalize(p.name);
-    c.innerHTML = `<img src="${p.sprite}" alt="${name}" width="36" height="36"><div title="${name}">${name}</div>`;
+    const name = esc(p.germanName || capitalize(p.name));
+    c.innerHTML = `<img src="${esc(p.sprite)}" alt="${name}" width="36" height="36"><div title="${name}">${name}</div>`;
     header.appendChild(c);
   };
   a1.forEach(p => addPokeHeader(p, 'p1-col'));
@@ -688,7 +699,7 @@ async function renderInfoPanel() {
   }
   const header = document.createElement('div');
   header.className = 'info-row';
-  header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${activePokemonInfo.germanName||formatLabel(activePokemonInfo.name)}</div><div style="opacity:.75">#${activePokemonInfo.id}</div>`;
+  header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${esc(activePokemonInfo.germanName||formatLabel(activePokemonInfo.name))}</div><div style="opacity:.75">#${esc(activePokemonInfo.id)}</div>`;
   const types = document.createElement('div');
   types.className = 'info-types';
   (Array.isArray(activePokemonInfo.types)?activePokemonInfo.types:[]).forEach(t => {
@@ -700,7 +711,7 @@ async function renderInfoPanel() {
   Object.entries(activePokemonInfo.stats||{}).forEach(([k,v]) => {
     const m = statMeta[k]||{ label:formatLabel(k), css:'' };
     const s = Object.assign(document.createElement('div'), { className:`info-stat ${m.css}`.trim() });
-    s.innerHTML = `<strong>${m.label}</strong><br>${v}`;
+    s.innerHTML = `<strong>${esc(m.label)}</strong><br>${esc(v)}`;
     statsGrid.appendChild(s);
   });
 
@@ -765,14 +776,14 @@ async function renderInfoPanel() {
               const itemDetail = resolvedDetails.find(d => d.trigger?.name === 'use-item' && d.item?.name);
               const itemName = itemDetail?.item?.name || null;
               const itemSprite = itemName ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${itemName}.png` : null;
-              arr.innerHTML = `<div class="evo-arrow-icon">→</div>${itemSprite ? `<img src="${itemSprite}" alt="${itemName}" width="24" height="24" style="image-rendering:pixelated;margin-top:2px">` : ''}${cond?`<div class="evo-condition">${cond}</div>`:''}`;
+              arr.innerHTML = `<div class="evo-arrow-icon">→</div>${itemSprite ? `<img src="${esc(itemSprite)}" alt="${esc(itemName)}" width="24" height="24" style="image-rendering:pixelated;margin-top:2px">` : ''}${cond?`<div class="evo-condition">${esc(cond)}</div>`:''}`;
               row.appendChild(arr);
             }
             const isActive = stage.name === activePokemonInfo.name || stage.name === activePokemonInfo.baseName;
             const el = document.createElement('div');
             el.className = 'evo-stage' + (isActive ? ' evo-stage-active' : ' evo-stage-clickable');
             const stageName = stageGermanNames[stage.name] || getDisplayName(stage.name);
-            el.innerHTML = `<img src="${stage.sprite}" alt="${stageName}" width="48" height="48"><div class="evo-name">${stageName}</div>`;
+            el.innerHTML = `<img src="${esc(stage.sprite)}" alt="${esc(stageName)}" width="48" height="48"><div class="evo-name">${esc(stageName)}</div>`;
             if (!isActive) {
               el.addEventListener('click', async () => {
                 try {
@@ -809,8 +820,8 @@ async function renderInfoPanel() {
       const basePart = activePokemonInfo.baseName || '';
       const suffix = formName.startsWith(basePart + '-') ? formName.slice(basePart.length + 1) : formName;
       const displayName = suffix.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      const imgHtml = sprite ? `<img src="${sprite}" alt="${displayName}" width="48" height="48">` : '';
-      formEl.innerHTML = `${imgHtml}<div class="evo-name">${displayName}</div>`;
+      const imgHtml = sprite ? `<img src="${esc(sprite)}" alt="${esc(displayName)}" width="48" height="48">` : '';
+      formEl.innerHTML = `${imgHtml}<div class="evo-name">${esc(displayName)}</div>`;
       if (!isCurrentForm) {
         formEl.addEventListener('click', async () => {
           try {
@@ -846,7 +857,7 @@ async function renderInfoPanel() {
       const el = Object.assign(document.createElement('div'), { className:'info-move' });
       const typeColor = m.moveType ? TYPE_MOVE_COLORS[m.moveType] : null;
       if (typeColor) el.style.background = `linear-gradient(to right, ${typeColor} 0%, rgba(var(--t-ink),0.04) 60%)`;
-      el.innerHTML = `<strong>${m.name}</strong> <span class="learn-method-tag ${m.methodClass}" style="font-size:.9rem;opacity:.9">${m.learnInfo}</span>`;
+      el.innerHTML = `<strong>${esc(m.name)}</strong> <span class="learn-method-tag ${m.methodClass}" style="font-size:.9rem;opacity:.9">${esc(m.learnInfo)}</span>`;
       if (m.data) attachTooltip(el, () => buildMoveTooltip(m.data));
       movesList.appendChild(el);
     });
@@ -896,62 +907,126 @@ function syncUpdateCount(connected, total) {
 // Wer gerade online ist, kommt aus Realtime-Presence: jedes offene Fenster meldet seinen Platz an.
 // Verlässt ein Spieler die Session oder schließt die Seite/App, sieht der andere das sofort.
 // (Die Zeilen in „players“ regeln nur, wer zur Session gehört; slot=1 hält den Spielstand.)
-function syncRenderPresence() {
-  if (!syncChannel || !sessionMySlot) return;
-  const online = new Set([sessionMySlot]);
+function presenceSlots() {
+  const online = new Set();
+  if (!syncChannel) return online;
   for (const metas of Object.values(syncChannel.presenceState())) {
     for (const m of metas) if (m.slot === 1 || m.slot === 2) online.add(m.slot);
   }
+  return online;
+}
+
+function syncRenderPresence() {
+  if (!syncChannel || !sessionMySlot) return;
+  const online = presenceSlots();
+  online.add(sessionMySlot);
   const other = sessionMySlot === 1 ? 2 : 1;
   if (online.has(other)) syncUpdateStatus('sync-both', 'connected');
   else syncUpdateStatus('sync-waiting', 'waiting', sessionMySlot, other);
   syncUpdateCount(online.size, 2);
 }
 
+// Beim Beitreten auf die erste Anwesenheitsliste warten (höchstens ein paar Sekunden).
+// null = unbekannt – dann gilt ein vorhandener Eintrag als belegt.
+let presenceWaiters = [];
+function waitForPresence(ms = 4000) {
+  return new Promise(resolve => {
+    const done = online => {
+      clearTimeout(timer);
+      presenceWaiters = presenceWaiters.filter(w => w !== done);
+      resolve(online);
+    };
+    const timer = setTimeout(() => done(null), ms);
+    presenceWaiters.push(done);
+  });
+}
+function onPresenceSync() {
+  const online = presenceSlots();
+  presenceWaiters.slice().forEach(w => w(online));
+  syncRenderPresence();
+}
+
 function syncSubscribe() {
   if (syncChannel) { sb.removeChannel(syncChannel); syncChannel = null; }
+  // Nur Änderungen dieser Session schicken lassen, nicht die aller Sessions
+  const filter = 'session_id=eq.' + syncSessionId;
   const channel = sb.channel('duo-sync-' + syncSessionId, { config: { presence: { key: MY_CLIENT_ID } } });
   syncChannel = channel
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players' }, payload => {
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players', filter }, payload => {
       const row = payload.new;
       if (!row || row.session_id !== syncSessionId) return;
       // Aktuellen Stand sofort pushen, damit P2 ihn sieht
       if (row.slot === 2 && sessionMySlot === 1) setTimeout(onAfterSave, 200);
     })
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, payload => {
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players', filter }, payload => {
       const row = payload.new;
-      if (!row || row.session_id !== syncSessionId) return;
+      if (!syncActive || !row || row.session_id !== syncSessionId) return;
       if (row.slot !== 1) return; // geteilter Spielstand ist nur auf slot=1
       if (row.team?.lastWriter === MY_CLIENT_ID) return; // eigenes Echo ignorieren
-      applySharedState(row.team);
+      receiveSharedState(row.team);
     })
-    .on('presence', { event: 'sync' }, syncRenderPresence)
+    .on('presence', { event: 'sync' }, onPresenceSync)
     // Wird nach jedem (Wieder-)Verbinden aufgerufen, z. B. wenn das Handy aus dem Hintergrund zurückkommt
     .subscribe(status => {
-      if (status === 'SUBSCRIBED' && syncChannel === channel) {
+      if (syncChannel !== channel) return;
+      if (status === 'SUBSCRIBED') {
         syncRenderPresence();
-        channel.track({ slot: sessionMySlot }).catch(e => console.error('Presence-Fehler:', e));
+        if (sessionMySlot) channel.track({ slot: sessionMySlot }).catch(e => console.error('Presence-Fehler:', e));
+        // Änderungen aus der Zeit ohne Verbindung nachladen
+        if (syncActive) syncRefresh();
+      } else {
+        syncFresh = false;   // Verbindung weg: erst neu laden, bevor wieder geschrieben wird
       }
     });
+}
+
+function showSessionUI(code) {
+  document.getElementById('sync-code-display').textContent = code || '';
+  document.getElementById('sync-code-box').style.display   = 'flex';
+  document.getElementById('sync-create-btn').style.display = 'none';
+  document.getElementById('sync-join-area').style.display  = 'none';
+  document.getElementById('sync-leave-btn').style.display  = 'inline-flex';
+}
+
+// Verbindung lokal beenden (ohne Datenbank)
+function syncStop() {
+  syncActive = false;
+  sessionMySlot = null;
+  syncSessionId = null;
+  syncBase = null; syncDirty = false; syncFresh = false;
+  clearTimeout(_syncTimer); clearTimeout(_syncRetry);
+  if (syncChannel) { sb.removeChannel(syncChannel); syncChannel = null; }
+}
+
+// 6 Zeichen aus 0–9/A–Z, zufällig per crypto; schon vergebene Codes werden übersprungen
+async function newSessionCode() {
+  const abc = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = Array.from(crypto.getRandomValues(new Uint8Array(6)), b => abc[b % abc.length]).join('');
+    const { data, error } = await sb.from('sessions').select('id').eq('code', code).maybeSingle();
+    if (error) throw error;
+    if (!data) return code;
+  }
+  throw new Error('Kein freier Session-Code gefunden');
 }
 
 async function syncCreate() {
   syncUpdateStatus('sync-creating', 'loading');
   try {
-    const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const code = await newSessionCode();
     const { data: sess, error: sessErr } = await sb.from('sessions').insert({ code }).select().single();
     if (sessErr) throw sessErr;
+    // slot=1 hält den GEMEINSAMEN Spielstand
+    const state = getSharedState();
+    const { error: playerErr } = await sb.from('players').insert({ session_id: sess.id, slot: 1, team: state });
+    if (playerErr) throw playerErr;
     syncSessionId = sess.id;
     sessionMySlot = 1;
-    // slot=1 hält den GEMEINSAMEN Spielstand
-    await sb.from('players').insert({ session_id: sess.id, slot: 1, team: getSharedState() });
+    setSyncBase(cleanSharedState(state));
+    syncDirty = false; syncFresh = true;
     syncActive = true;
     syncSubscribe();
-    document.getElementById('sync-code-display').textContent = code;
-    document.getElementById('sync-code-box').style.display  = 'flex';
-    document.getElementById('sync-create-btn').style.display = 'none';
-    document.getElementById('sync-join-area').style.display  = 'none';
-    document.getElementById('sync-leave-btn').style.display  = 'inline-flex';
+    showSessionUI(code);
     localStorage.setItem('sync-session', JSON.stringify({ id: sess.id, slot: 1, code }));
     syncRenderPresence();
   } catch(e) {
@@ -962,28 +1037,46 @@ async function syncCreate() {
 
 async function syncJoin(code) {
   if (!code) return;
+  code = code.toUpperCase();
   syncUpdateStatus('sync-connecting', 'loading');
   try {
-    const { data: sess, error: sessErr } = await sb.from('sessions').select('id').eq('code', code.toUpperCase()).single();
-    if (sessErr || !sess) { syncUpdateStatus('sync-not-found', 'error'); return; }
-    const { data: existing } = await sb.from('players').select('slot').eq('session_id', sess.id).eq('slot', 2).maybeSingle();
-    if (existing) { syncUpdateStatus('sync-full', 'error'); return; }
+    const { data: sess, error: sessErr } = await sb.from('sessions').select('id').eq('code', code).maybeSingle();
+    if (sessErr) throw sessErr;
+    if (!sess) { syncUpdateStatus('sync-not-found', 'error'); return; }
+    // Erst zuhören, wer gerade online ist: Ein Platz, dessen Spieler offline ist, darf neu belegt werden
+    // (z. B. nach Browserwechsel oder gelöschtem Speicher) – sonst wäre die Session für immer „voll“.
+    syncStop();
     syncSessionId = sess.id;
-    sessionMySlot = 2;
-    // slot=2 ist nur Presence-Marker (leer)
-    await sb.from('players').insert({ session_id: sess.id, slot: 2, team: {} });
-    syncActive = true;
     syncSubscribe();
-    document.getElementById('sync-join-area').style.display   = 'none';
-    document.getElementById('sync-create-btn').style.display  = 'none';
-    document.getElementById('sync-leave-btn').style.display   = 'inline-flex';
-    localStorage.setItem('sync-session', JSON.stringify({ id: sess.id, slot: 2, code: code.toUpperCase() }));
+    const [online, rows] = await Promise.all([
+      waitForPresence(),
+      sb.from('players').select('slot').eq('session_id', sess.id),
+    ]);
+    if (syncSessionId !== sess.id) return;
+    if (rows.error) throw rows.error;
+    const taken = new Set((rows.data || []).map(r => r.slot));
+    let slot = null;
+    if (!taken.has(2)) slot = 2;
+    else if (online && !online.has(2)) slot = 2;
+    else if (online && !online.has(1)) slot = 1;
+    if (!slot) { syncStop(); syncUpdateStatus('sync-full', 'error'); return; }
+    if (!taken.has(slot)) {
+      // slot=2 ist nur Presence-Marker (leer)
+      const { error } = await sb.from('players').insert({ session_id: sess.id, slot, team: {} });
+      if (error) throw error;
+    }
+    sessionMySlot = slot;
+    setSyncBase(null);
+    syncDirty = false; syncFresh = false;
+    syncActive = true;
+    syncChannel?.track({ slot }).catch(e => console.error('Presence-Fehler:', e));
+    showSessionUI(code);
+    localStorage.setItem('sync-session', JSON.stringify({ id: sess.id, slot, code }));
     syncRenderPresence();
-    // Geteilten Spielstand laden
-    const { data: stateRow } = await sb.from('players').select('team').eq('session_id', sess.id).eq('slot', 1).maybeSingle();
-    if (stateRow?.team) applySharedState(stateRow.team);
+    await syncRefresh();   // geteilten Spielstand laden
   } catch(e) {
     console.error(e);
+    syncStop();
     syncUpdateStatus('sync-connect-error', 'error');
   }
 }
@@ -991,13 +1084,13 @@ async function syncJoin(code) {
 async function syncLeave() {
   const mySlot    = sessionMySlot;
   const mySession = syncSessionId;
-  syncActive    = false;
-  sessionMySlot = null;
-  syncSessionId = null;
-  if (syncChannel) { sb.removeChannel(syncChannel); syncChannel = null; }
+  if (syncDirty && syncFresh) await syncPush();   // ausstehende Änderung noch schreiben
+  syncStop();
+  setSyncBase(null);
   if (mySession && mySlot === 2) {
     // Spieler 2 verlässt → nur Presence-Marker entfernen, Spielstand auf slot=1 bleibt
-    await sb.from('players').delete().eq('session_id', mySession).eq('slot', 2);
+    const { error } = await sb.from('players').delete().eq('session_id', mySession).eq('slot', 2);
+    if (error) console.error('Verlassen:', error);
   }
   // Spieler 1 verlässt → Spielstand bleibt in Supabase (kann später wieder verbinden)
   localStorage.removeItem('sync-session');
@@ -1012,24 +1105,29 @@ async function syncLeave() {
 async function syncRestore() {
   const raw = localStorage.getItem('sync-session');
   if (!raw) return;
-  try {
-    const { id, slot, code } = JSON.parse(raw);
-    const { data: sess } = await sb.from('sessions').select('id').eq('id', id).maybeSingle();
-    if (!sess) { localStorage.removeItem('sync-session'); return; }
-    syncSessionId = id;
-    sessionMySlot = slot;
-    syncActive = true;
-    syncSubscribe();
-    document.getElementById('sync-code-display').textContent = code;
-    document.getElementById('sync-code-box').style.display   = 'flex';
-    document.getElementById('sync-create-btn').style.display = 'none';
-    document.getElementById('sync-join-area').style.display  = 'none';
-    document.getElementById('sync-leave-btn').style.display  = 'inline-flex';
-    // Geteilten Spielstand von slot=1 laden — Supabase ist Quelle der Wahrheit
-    const { data: stateRow } = await sb.from('players').select('team').eq('session_id', id).eq('slot', 1).maybeSingle();
-    if (stateRow?.team) applySharedState(stateRow.team);
-    syncRenderPresence();
-  } catch(e) { localStorage.removeItem('sync-session'); }
+  let saved = null;
+  try { saved = JSON.parse(raw); } catch {}
+  if (!saved || saved.id == null || (saved.slot !== 1 && saved.slot !== 2)) { localStorage.removeItem('sync-session'); return; }
+  const { data: sess, error } = await sb.from('sessions').select('id').eq('id', saved.id).maybeSingle();
+  // Nur vergessen, wenn Supabase ausdrücklich keine Session mehr findet. Bei Netzfehlern (offline,
+  // Supabase nicht erreichbar) bleibt die Verbindung gespeichert und wird nachgeholt, sobald es geht.
+  if (!error && !sess) { localStorage.removeItem('sync-session'); return; }
+  syncSessionId = saved.id;
+  sessionMySlot = saved.slot;
+  syncBase = loadSyncBase(saved.id);
+  syncDirty = false; syncFresh = false;
+  syncActive = true;
+  syncSubscribe();
+  showSessionUI(saved.code);
+  if (error) {
+    console.error('Sync:', error);
+    syncUpdateStatus('sync-offline', 'error');
+    syncRetryLater();
+    return;
+  }
+  // Geteilten Spielstand von slot=1 laden — Supabase ist Quelle der Wahrheit
+  await syncRefresh();
+  syncRenderPresence();
 }
 
 function initSyncUI() {
@@ -1050,38 +1148,131 @@ function initSyncUI() {
       setTimeout(() => btn.textContent = 'Copy', 1500);
     });
   });
+  // Aus dem Hintergrund zurück bzw. wieder online: erst den aktuellen Stand holen
+  document.addEventListener('visibilitychange', () => {
+    if (!syncActive) return;
+    if (document.visibilityState === 'hidden') {
+      if (syncDirty && syncFresh) syncPush();   // nicht im 400-ms-Timer liegen lassen
+      syncFresh = false;
+    } else {
+      syncRefresh();
+    }
+  });
+  window.addEventListener('online', () => { if (syncActive) syncRefresh(); });
+}
+
+// ── Abgleich mit der Datenbank ────────────────────────────────────────────────
+// Letzter bekannter Stand in der Datenbank – auch lokal gemerkt, damit nach einem Start ohne Netz
+// eigene Änderungen mit denen des Partners zusammengeführt werden können statt sie zu überschreiben.
+const SYNC_BASE_KEY = 'duo-sync-base';
+function setSyncBase(state) {
+  syncBase = state;
+  try {
+    if (state && syncSessionId != null) localStorage.setItem(SYNC_BASE_KEY, JSON.stringify({ session: syncSessionId, state }));
+    else localStorage.removeItem(SYNC_BASE_KEY);
+  } catch (e) { console.error('Speichern fehlgeschlagen:', e); }
+}
+function loadSyncBase(sessionId) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SYNC_BASE_KEY) || 'null');
+    return saved && saved.session === sessionId ? cleanSharedState(saved.state) : null;
+  } catch { return null; }
+}
+
+// Stand aus der Datenbank: übernehmen – oder, wenn hier noch eine eigene Änderung aussteht, zusammenführen
+function receiveSharedState(raw) {
+  const server = cleanSharedState(raw);
+  if (!server) return;
+  if (syncDirty) {
+    applySharedState(mergeSharedState(syncBase, cleanSharedState(getSharedState()), server));
+    syncChangeNo++;   // der zusammengeführte Stand muss noch geschrieben werden
+    queuePush();
+  } else {
+    applySharedState(server);
+  }
+  setSyncBase(server);
+}
+
+let syncRefreshing = null, _syncRetry = null;
+function syncRetryLater() { clearTimeout(_syncRetry); _syncRetry = setTimeout(syncRefresh, 10000); }
+
+function syncRefresh() {
+  if (!syncActive || syncSessionId == null) return Promise.resolve();
+  if (syncRefreshing) return syncRefreshing;
+  clearTimeout(_syncRetry);
+  const sessionId = syncSessionId;
+  syncRefreshing = (async () => {
+    const { data, error } = await sb.from('players').select('team').eq('session_id', sessionId).eq('slot', 1).maybeSingle();
+    if (sessionId !== syncSessionId) return;
+    if (error) { console.error('Sync-Fehler:', error); syncRetryLater(); return; }
+    if (data?.team) receiveSharedState(data.team);
+    syncFresh = true;
+    if (syncDirty) syncPush();
+  })().finally(() => { syncRefreshing = null; });
+  return syncRefreshing;
+}
+
+let _syncTimer = null;
+function queuePush(delay = 400) {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(syncPush, delay);
+}
+
+// Geteilter Spielstand liegt immer auf slot=1, egal wer schreibt
+async function syncPush() {
+  clearTimeout(_syncTimer); _syncTimer = null;
+  if (!syncActive || syncSessionId == null || !syncDirty || syncPushing) return;
+  if (!syncFresh) { syncRefresh(); return; }   // erst aktuellen Stand holen; danach wird geschrieben
+  syncPushing = true;
+  const sessionId = syncSessionId, changeNo = syncChangeNo, state = getSharedState();
+  const { error } = await sb.from('players').update({ team: state }).eq('session_id', sessionId).eq('slot', 1);
+  syncPushing = false;
+  if (sessionId !== syncSessionId) return;
+  if (error) {
+    console.error('Sync-Fehler:', error);
+    syncFresh = false;
+    syncRetryLater();   // später: neu laden, zusammenführen, schreiben
+    return;
+  }
+  setSyncBase(cleanSharedState(state));
+  if (changeNo === syncChangeNo) syncDirty = false;
+  else queuePush(0);   // während des Schreibens kam noch etwas dazu
+}
+
+function onAfterSave() {
+  if (!syncActive || syncSessionId == null) return;
+  syncDirty = true;
+  syncChangeNo++;
+  queuePush();
 }
 
 // ── Save / Load ───────────────────────────────────────────────────────────────
-let _syncTimer = null;
-function onAfterSave() {
-  if (!syncActive || !syncSessionId) return;
-  clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(() => {
-    // Geteilter Spielstand liegt immer auf slot=1, egal wer schreibt
-    sb.from('players')
-      .update({ team: getSharedState() })
-      .eq('session_id', syncSessionId)
-      .eq('slot', 1)
-      .then(({ error }) => { if (error) console.error('Sync-Fehler:', error); });
-  }, 400);
+// Nur auf diesem Gerät; true = geklappt (false z. B. bei vollem Speicher)
+function saveLocal() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      generation: currentGeneration,
+      team1: teams[0].map(p=>p?.name||null),
+      team2: teams[1].map(p=>p?.name||null),
+      box1:  boxes[0].map(p=>p?.name||null),
+      box2:  boxes[1].map(p=>p?.name||null),
+      linkedTeam: [...linkedTeamSlots],
+      linkedBox:  [...linkedBoxSlots],
+      graves1: graves[0],
+      graves2: graves[1],
+    }));
+    return true;
+  } catch (e) {
+    console.error('Speichern fehlgeschlagen:', e);
+    return false;
+  }
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    generation: currentGeneration,
-    team1: teams[0].map(p=>p?.name||null),
-    team2: teams[1].map(p=>p?.name||null),
-    box1:  boxes[0].map(p=>p?.name||null),
-    box2:  boxes[1].map(p=>p?.name||null),
-    linkedTeam: [...linkedTeamSlots],
-    linkedBox:  [...linkedBoxSlots],
-    graves1: graves[0],
-    graves2: graves[1],
-  }));
+  const ok = saveLocal();
   onAfterSave();
   const s = document.getElementById('save-status');
-  if (s) { s.textContent=window.t('saved'); setTimeout(()=>s.textContent='',2000); }
+  if (s) { s.textContent=window.t(ok ? 'saved' : 'save-failed'); setTimeout(()=>s.textContent='', ok ? 2000 : 8000); }
 }
 
 async function fetchWithSpecies(name) {
@@ -1097,6 +1288,32 @@ async function fetchWithSpecies(name) {
   } catch { details.germanName = capitalize(details.name); details.evolutionChainUrl = null; details.varieties = []; }
   return details;
 }
+
+// Gespeichertes Pokémon laden. Klappt das gerade nicht (offline, API-Fehler), bleibt es als Platzhalter
+// mit seinem Namen stehen – so geht beim nächsten Speichern nichts verloren. retryPlaceholders() holt es nach.
+async function loadSaved(name) {
+  if (!isPokemonName(name)) return null;
+  try { return await fetchWithSpecies(name); }
+  catch (e) { console.warn('Nicht geladen, Platzhalter:', name, e); return placeholderPokemon(name); }
+}
+
+async function retryPlaceholders() {
+  let changed = false;
+  for (const list of [teams[0], teams[1], boxes[0], boxes[1]]) {
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (!p?.placeholder) continue;
+      let d;
+      try { d = await fetchWithSpecies(p.name); } catch { return; }   // noch offline – beim nächsten Mal
+      if (list[i] === p) { list[i] = d; changed = true; }
+    }
+  }
+  if (!changed) return;
+  for (let pl = 1; pl <= 2; pl++) teams[pl-1].forEach((p, i) => renderTeamSlot(pl, i, p));
+  updateBoxSlots();
+  renderTeamWeaknessPanel();
+}
+window.addEventListener('online', retryPlaceholders);
 
 async function loadSavedState() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -1114,20 +1331,21 @@ async function loadSavedState() {
       const saved = state[`team${pl}`];
       if (Array.isArray(saved)) {
         for (let i=0; i<6; i++) {
-          if (saved[i]) { const d=await fetchWithSpecies(saved[i]); teams[pl-1][i]=d; renderTeamSlot(pl,i,d); }
+          if (saved[i]) { const d=await loadSaved(saved[i]); teams[pl-1][i]=d; renderTeamSlot(pl,i,d); }
         }
       }
       const savedBox = state[`box${pl}`];
       if (Array.isArray(savedBox)) {
         for (let i=0; i<30; i++) {
-          if (savedBox[i]) boxes[pl-1][i] = await fetchWithSpecies(savedBox[i]);
+          if (savedBox[i]) boxes[pl-1][i] = await loadSaved(savedBox[i]);
         }
       }
     }
-    if (Array.isArray(state.linkedTeam)) state.linkedTeam.forEach(i => linkedTeamSlots.add(i));
-    if (Array.isArray(state.linkedBox))  state.linkedBox.forEach(i => linkedBoxSlots.add(i));
-    if (Array.isArray(state.graves1)) state.graves1.forEach(p => graves[0].push(p));
-    if (Array.isArray(state.graves2)) state.graves2.forEach(p => graves[1].push(p));
+    const inRange = n => i => Number.isInteger(i) && i >= 0 && i < n;
+    if (Array.isArray(state.linkedTeam)) state.linkedTeam.filter(inRange(6)).forEach(i => linkedTeamSlots.add(i));
+    if (Array.isArray(state.linkedBox))  state.linkedBox.filter(inRange(30)).forEach(i => linkedBoxSlots.add(i));
+    if (Array.isArray(state.graves1)) state.graves1.map(cleanGrave).filter(Boolean).forEach(p => graves[0].push(p));
+    if (Array.isArray(state.graves2)) state.graves2.map(cleanGrave).filter(Boolean).forEach(p => graves[1].push(p));
     renderGraveyard();
     updateLinkHighlights();
   } catch(e) { console.error('Fehler beim Laden:', e); }
@@ -1167,7 +1385,7 @@ function renderPokemonList(filter='') {
   if (!filtered.length) { listEl.innerHTML=`<li style="cursor:default">${window.t('no-pokemon-found')}</li>`; return; }
   filtered.forEach(p => {
     const li = document.createElement('li');
-    li.innerHTML = `<img src="${p.sprite}" alt="${p.displayName}"/><div>${p.displayName}</div>`;
+    li.innerHTML = `<img src="${esc(p.sprite)}" alt="${esc(p.displayName)}"/><div>${esc(p.displayName)}</div>`;
     li.addEventListener('click', ()=>selectPokemon(p));
     listEl.appendChild(li);
   });
@@ -1184,11 +1402,11 @@ function openModal(title=null, isLinking=false) {
   if (prog) {
     if (isLinking && linkPendingSlot?.details) {
       const { details: d, triggerPlayer, slot } = linkPendingSlot;
-      const name = d.germanName || capitalize(d.name);
+      const name = esc(d.germanName || capitalize(d.name));
       const other = 3 - triggerPlayer;
       prog.innerHTML = `
         <div class="link-prog-step">
-          <img src="${d.sprite}" alt="${name}" style="width:44px;height:44px;image-rendering:pixelated">
+          <img src="${esc(d.sprite)}" alt="${name}" style="width:44px;height:44px;image-rendering:pixelated">
           <div>
             <div class="link-prog-label">${window.t('link-label', triggerPlayer, slot+1)}</div>
             <strong>${name}</strong>
@@ -1215,9 +1433,11 @@ function openModal(title=null, isLinking=false) {
   if (gs) gs.value = String(currentGeneration);
   renderPokemonList();
   document.getElementById('pokemon-modal').style.display = 'flex';
+  pickSeq++;
 }
 
 function closeModal() {
+  pickSeq++;
   document.getElementById('pokemon-modal').style.display = 'none';
   const prog = document.getElementById('link-progress');
   if (prog) prog.style.display = 'none';
@@ -1448,10 +1668,7 @@ function initTouchDrag() {
       handleDrop({ type:'box', player:tgt.player, slot:tgt.slot });
     } else if (tgt.type === 'info') {
       const ds = dragSource; dragSource = null;
-      const pokemon = ds.type === 'team' ? teams[ds.player-1][ds.slot] : boxes[ds.player-1][ds.slot];
-      if (!pokemon) return;
-      infoGenLocked = false; infoPokemon = activePokemonInfo = pokemon;
-      renderInfoSlot(pokemon); renderInfoPanel(); saveState();
+      showInfoFor(ds.type === 'team' ? teams[ds.player-1][ds.slot] : boxes[ds.player-1][ds.slot]);
     } else if (tgt.type === 'boxsection' && isDragLinked()) {
       const freeSlot = boxes[0].findIndex((_, idx) => !boxes[0][idx] && !boxes[1][idx]);
       if (freeSlot !== -1) {
@@ -1534,18 +1751,23 @@ function initSlots() {
       info.classList.remove('drag-over');
       if (!dragSource) return;
       const stub = dragSource.type === 'team' ? teams[dragSource.player-1][dragSource.slot] : boxes[dragSource.player-1][dragSource.slot];
-      if (!stub?.name) return;
-      // Volle Daten holen — Slots enthalten im Sync-Modus nur Display-Stubs
-      try {
-        const pokemon = stub.moves ? stub : await fetchWithSpecies(stub.name);
-        infoGenLocked = false;
-        infoPokemon = activePokemonInfo = pokemon;
-        renderInfoSlot(pokemon);
-        renderInfoPanel();
-        saveState();
-      } catch(err) { console.error('Info-Drop:', err); }
+      showInfoFor(stub);
     });
   }
+}
+
+// Pokémon ins Info-Feld. Immer frisch über den Namen laden: Slots enthalten im Sync-Modus nur Anzeige-Daten
+// aus der Datenbank, und die sollen nie als vollständige Daten (Werte, Attacken, Adressen) übernommen werden.
+async function showInfoFor(stub) {
+  if (!isPokemonName(stub?.name)) return;
+  try {
+    const pokemon = await fetchWithSpecies(stub.name);
+    infoGenLocked = false;
+    infoPokemon = activePokemonInfo = pokemon;
+    renderInfoSlot(pokemon);
+    renderInfoPanel();
+    saveState();
+  } catch(err) { console.error('Info-Drop:', err); }
 }
 
 function initBoxSlots() {
@@ -1636,10 +1858,15 @@ function initBoxSlots() {
 }
 
 // ── Select & remove ───────────────────────────────────────────────────────────
+// Zählt jede Auswahl sowie jedes Öffnen/Schließen des Fensters. Kommt eine Antwort erst an, wenn schon etwas
+// anderes gewählt oder das Fenster neu geöffnet wurde, wird sie verworfen – sonst landet sie im falschen Platz.
+let pickSeq = 0;
 async function selectPokemon(pokemon) {
+  const seq = ++pickSeq;
+  const slot = selectedSlot, player = selectedPlayer, type = selectedSlotType;
   try {
     const details = await fetchWithSpecies(pokemon.name);
-    const slot = selectedSlot, player = selectedPlayer, type = selectedSlotType;
+    if (seq !== pickSeq) return;
 
     if (type === 'team') {
       teams[player-1][slot] = details;
@@ -1812,9 +2039,9 @@ function renderGraveyard() {
       const kbLabel = kb ? window.t('grave-blame-short', kb) : '?';
       // Ältere Einträge haben keine Nummer – die steht aber in der Sprite-Adresse
       const id = p.id || Number(String(p.sprite || '').match(/\/(\d+)\.png/)?.[1] || 0);
-      const name = window.pokemonName(id, p.name) || p.germanName;
+      const name = esc(window.pokemonName(id, p.name) || p.germanName);
       html += `<div class="grave-slot" data-player="${pl}" data-idx="${i}" title="${name}">
-        <img src="${p.sprite}" alt="${name}">
+        <img src="${esc(p.sprite)}" alt="${name}">
         <span class="grave-slot-name">${name}</span>
         <span class="grave-killer ${kbClass}">${kbLabel}</span>
       </div>`;
@@ -2035,6 +2262,7 @@ async function init() {
   renderTeamWeaknessPanel();
   await syncRestore();
   await applyPendingImport();
+  setTimeout(retryPlaceholders, 15000);   // z. B. nach einem kurzen API-Fehler beim Start
 }
 
 init();

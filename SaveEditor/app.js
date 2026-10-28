@@ -139,6 +139,9 @@
       noState: 'Lade danach keinen Savestate („Schnellladen“) – der holt den alten Stand ohne deine Änderungen zurück.',
       writeFailed: 'Die Datei konnte nicht direkt ersetzt werden – ist der Emulator noch offen? Schließ ihn und versuch es nochmal, oder lade die Datei herunter.',
       retry: 'Nochmal versuchen',
+      conflict: 'Die Datei wurde inzwischen geändert – vermutlich hat der Emulator gespeichert. Sie wurde deshalb nicht überschrieben.',
+      conflictText: 'Lade die Datei neu und mach deine Änderung noch einmal – dann geht kein Spielfortschritt verloren. Oder lade deine Fassung als eigene Datei herunter.',
+      reload: 'Datei neu laden',
       download: 'Herunterladen',
       downloadAgain: 'Nochmal herunterladen',
       undo: 'Rückgängig',
@@ -256,6 +259,9 @@
       noState: 'Don\'t load a save state afterwards – it brings back the old state without your changes.',
       writeFailed: 'The file could not be replaced directly – is the emulator still open? Close it and try again, or download the file.',
       retry: 'Try again',
+      conflict: 'The file has changed in the meantime – probably the emulator saved. So it was not overwritten.',
+      conflictText: 'Reload the file and make your change again – that way no game progress is lost. Or download your version as a separate file.',
+      reload: 'Reload file',
       download: 'Download',
       downloadAgain: 'Download again',
       undo: 'Undo',
@@ -438,14 +444,25 @@
   }
 
   /* ── Speichern ─────────────────────────────────────────────────── */
-  // Direkt in die ausgewählte Datei schreiben; true = geklappt
-  function writeHandle(handle, bytes) {
+  // Direkt in die ausgewählte Datei schreiben; true = geklappt, 'conflict' = die Datei ist nicht mehr die,
+  // die wir kennen (expected) – z. B. hat der Emulator inzwischen gespeichert. Dann wird nichts überschrieben.
+  function writeHandle(handle, bytes, expected) {
     if (!handle || !handle.createWritable) return Promise.resolve(false);
     var opts = { mode: 'readwrite' };
     return Promise.resolve(handle.queryPermission ? handle.queryPermission(opts) : 'prompt').then(function (p) {
       return p === 'granted' ? p : handle.requestPermission(opts);
     }).then(function (p) {
       if (p !== 'granted') return false;
+      return handle.getFile().then(function (f) {
+        return f.arrayBuffer();
+      }).then(function (buf) {
+        if (expected && !sameBytes(new Uint8Array(buf), expected)) return 'conflict';
+        return writeBytes(handle, bytes);
+      });
+    }).catch(function () { return false; });
+  }
+  function writeBytes(handle, bytes) {
+    return Promise.resolve().then(function () {
       return handle.createWritable().then(function (w) {
         return w.write(bytes).then(function () { return w.close(); });
       }).then(function () {
@@ -472,8 +489,9 @@
     state.busy = true;
     render();
     var out = sv.work;
-    writeHandle(sv.handle, out).then(function (ok) {
-      if (ok) { markSaved(); state.result = { kind: 'direct' }; }
+    writeHandle(sv.handle, out, sv.orig).then(function (ok) {
+      if (ok === 'conflict') state.result = { kind: 'conflict' };
+      else if (ok) { markSaved(); state.result = { kind: 'direct' }; }
       else if (sv.handle && sv.handle.createWritable) state.result = { kind: 'writeFailed' };
       else { downloadFile(out, sv.name); markSaved(); state.result = { kind: 'download' }; }
     }).then(function () {
@@ -488,7 +506,14 @@
     state.busy = true;
     render();
     var before = sv.before;
-    writeHandle(sv.handle, before).then(function (ok) {
+    writeHandle(sv.handle, before, sv.orig).then(function (ok) {
+      if (ok === 'conflict') {
+        // Inzwischen hat jemand anderes gespeichert – den alten Stand nicht darüberschreiben
+        state.result = { kind: 'conflict' };
+        state.busy = false;
+        render();
+        return;
+      }
       if (!ok) downloadFile(before, sv.name);
       sv.orig = sv.work = before;
       sv.base = sv.data = PtSave.parse(before, D);
@@ -810,6 +835,10 @@
         return '<div class="result-title">' + l.writeFailed + '</div>' +
           '<div class="btn-row"><button type="button" class="small-btn" data-act="retry">↻ ' + l.retry + '</button>' +
           '<button type="button" class="small-btn" data-act="download">⭳ ' + l.download + '</button></div>';
+      case 'conflict':
+        return '<div class="result-title">' + l.conflict + '</div><p>' + l.conflictText + '</p>' +
+          '<div class="btn-row"><button type="button" class="small-btn" data-act="reload">↻ ' + l.reload + '</button>' +
+          '<button type="button" class="small-btn" data-act="download">⭳ ' + l.download + '</button></div>';
       case 'undone':
         return '<div class="result-title">' + l.undone + '</div>';
       case 'undoneDownload':
@@ -864,7 +893,7 @@
     var r = state.result;
     $('result').hidden = !r;
     if (r) {
-      $('result').className = 'result' + (r.kind === 'error' || r.kind === 'writeFailed' ? ' is-error' : '');
+      $('result').className = 'result' + (/^(error|writeFailed|conflict)$/.test(r.kind) ? ' is-error' : '');
       $('result').innerHTML = resultHtml(r, sv);
     }
     renderPicker();
@@ -981,9 +1010,12 @@
     if (!b || !state.save || state.busy) return;
     var act = b.dataset.act, sv = state.save;
     if (act === 'download') {
-      if (state.result && state.result.kind === 'writeFailed') { markSaved(); state.result = { kind: 'download' }; }
+      if (state.result && /^(writeFailed|conflict)$/.test(state.result.kind)) { markSaved(); state.result = { kind: 'download' }; }
       downloadFile(sv.orig, sv.name);
       render();
+    } else if (act === 'reload') {
+      // Aktuelle Datei neu einlesen (eigene, ungespeicherte Änderungen fallen dabei weg)
+      if (sv.handle) sv.handle.getFile().then(function (f) { return load(f, sv.handle); });
     } else if (act === 'retry') apply();
     else if (act === 'undo') undo();
   });

@@ -1,4 +1,4 @@
-import { getPokemon, getGenerationList, getPokemonSpecies, getMoveGermanName, getEvolutionChain } from "../Pokelocke/pokeapi.js";
+import { getPokemon, getGenerationList, getPokemonSpecies, getMoveGermanName, getEvolutionChain, placeholderPokemon } from "../Pokelocke/pokeapi.js";
 
 // Ketten-Symbol für verknüpfte Pokémon (statt Emoji, Farbe aus der Schrift)
 const CHAIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
@@ -49,6 +49,8 @@ let isLinkingMode   = false;
 let linkPendingSlot = null; // { slot, type, triggerPlayer, step, picked, details }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+// Texte und Adressen, die in HTML landen
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 // Name in den Auswahllisten – aus pokemon-names.js (sofort da, auch offline; vorher eine Anfrage je Pokémon)
 function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
@@ -155,7 +157,7 @@ function renderTeamSlot(player, index, details) {
   if (!slot) return;
   if (details) {
     slot.dataset.filled = 'true';
-    slot.innerHTML = `<div style="text-align:center"><img src="${details.sprite}" alt="" style="width:55px;height:55px"><div style="font-size:12px">${details.germanName||capitalize(details.name)}</div></div>`;
+    slot.innerHTML = `<div style="text-align:center"><img src="${esc(details.sprite)}" alt="" style="width:55px;height:55px"><div style="font-size:12px">${esc(details.germanName||capitalize(details.name))}</div></div>`;
   } else {
     slot.removeAttribute('data-filled');
     slot.innerHTML = '';
@@ -167,7 +169,7 @@ function renderInfoSlot(details) {
   if (!slot) return;
   if (details) {
     slot.dataset.filled = 'true';
-    slot.innerHTML = `<div style="text-align:center"><img src="${details.sprite}" alt="" style="width:60px;height:60px"><div style="font-size:13px">${details.germanName||capitalize(details.name)}</div></div>`;
+    slot.innerHTML = `<div style="text-align:center"><img src="${esc(details.sprite)}" alt="" style="width:60px;height:60px"><div style="font-size:13px">${esc(details.germanName||capitalize(details.name))}</div></div>`;
   } else {
     slot.removeAttribute('data-filled');
     slot.innerHTML = 'Info-Pokémon wählen';
@@ -180,8 +182,8 @@ function updateBoxSlots() {
     const isLinked = linkedBoxSlots.has(i);
     const makeThird = (p, cls) => {
       if (p) {
-        const name = p.germanName || capitalize(p.name);
-        return `<div class="box-slot-third ${cls} filled"><img src="${p.sprite}" alt="" width="24" height="24"><div class="box-slot-name">${name}</div></div>`;
+        const name = esc(p.germanName || capitalize(p.name));
+        return `<div class="box-slot-third ${cls} filled"><img src="${esc(p.sprite)}" alt="" width="24" height="24"><div class="box-slot-name">${name}</div></div>`;
       }
       return `<div class="box-slot-third ${cls}"><span class="box-slot-empty">+</span></div>`;
     };
@@ -234,8 +236,8 @@ function renderTeamWeaknessPanel() {
     g.active.forEach(p => {
       const c = document.createElement('div');
       c.className = `weakness-pokemon-header ${g.cls}`;
-      const name = p.germanName || capitalize(p.name);
-      c.innerHTML = `<img src="${p.sprite}" alt="${name}" width="36" height="36"><div title="${name}">${name}</div>`;
+      const name = esc(p.germanName || capitalize(p.name));
+      c.innerHTML = `<img src="${esc(p.sprite)}" alt="${name}" width="36" height="36"><div title="${name}">${name}</div>`;
       header.appendChild(c);
     });
   });
@@ -330,7 +332,7 @@ async function renderInfoPanel() {
   }
   const header = document.createElement('div');
   header.className = 'info-row';
-  header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${activePokemonInfo.germanName||formatLabel(activePokemonInfo.name)}</div><div style="opacity:.75">#${activePokemonInfo.id}</div>`;
+  header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${esc(activePokemonInfo.germanName||formatLabel(activePokemonInfo.name))}</div><div style="opacity:.75">#${esc(activePokemonInfo.id)}</div>`;
   const types = document.createElement('div');
   types.className = 'info-types';
   (Array.isArray(activePokemonInfo.types)?activePokemonInfo.types:[]).forEach(t => {
@@ -342,7 +344,7 @@ async function renderInfoPanel() {
   Object.entries(activePokemonInfo.stats||{}).forEach(([k,v]) => {
     const m = statMeta[k]||{ label:formatLabel(k), css:'' };
     const s = Object.assign(document.createElement('div'), { className:`info-stat ${m.css}`.trim() });
-    s.innerHTML = `<strong>${m.label}</strong><br>${v}`;
+    s.innerHTML = `<strong>${esc(m.label)}</strong><br>${esc(v)}`;
     statsGrid.appendChild(s);
   });
   const evoTitle = Object.assign(document.createElement('div'), { textContent:'Entwicklung' });
@@ -364,12 +366,12 @@ async function renderInfoPanel() {
               const arr = document.createElement('div');
               arr.className = 'evo-arrow';
               const cond = formatEvolutionCondition(stage.evolutionDetails);
-              arr.innerHTML = `<div class="evo-arrow-icon">→</div>${cond?`<div class="evo-condition">${cond}</div>`:''}`;
+              arr.innerHTML = `<div class="evo-arrow-icon">→</div>${cond?`<div class="evo-condition">${esc(cond)}</div>`:''}`;
               row.appendChild(arr);
             }
             const el = document.createElement('div');
             el.className = 'evo-stage'+(stage.name===activePokemonInfo.name?' evo-stage-active':'');
-            el.innerHTML = `<img src="${stage.sprite}" alt="${getDisplayName(stage.name)}" width="48" height="48"><div class="evo-name">${getDisplayName(stage.name)}</div>`;
+            el.innerHTML = `<img src="${esc(stage.sprite)}" alt="${esc(getDisplayName(stage.name))}" width="48" height="48"><div class="evo-name">${esc(getDisplayName(stage.name))}</div>`;
             row.appendChild(el);
           });
           evoContainer.appendChild(row);
@@ -398,7 +400,7 @@ async function renderInfoPanel() {
   } else {
     moveItems.forEach(m => {
       const el = Object.assign(document.createElement('div'), { className:'info-move' });
-      el.innerHTML = `<strong>${m.name}</strong> <span class="learn-method-tag ${m.methodClass}" style="font-size:.9rem;opacity:.9">${m.learnInfo}</span>`;
+      el.innerHTML = `<strong>${esc(m.name)}</strong> <span class="learn-method-tag ${m.methodClass}" style="font-size:.9rem;opacity:.9">${esc(m.learnInfo)}</span>`;
       movesList.appendChild(el);
     });
   }
@@ -413,19 +415,22 @@ async function renderInfoPanel() {
 
 // ── Save / Load ───────────────────────────────────────────────────────────────
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    generation: currentGeneration,
-    team1: teams[0].map(p=>p?.name||null),
-    team2: teams[1].map(p=>p?.name||null),
-    team3: teams[2].map(p=>p?.name||null),
-    box1:  boxes[0].map(p=>p?.name||null),
-    box2:  boxes[1].map(p=>p?.name||null),
-    box3:  boxes[2].map(p=>p?.name||null),
-    linkedTeam: [...linkedTeamSlots],
-    linkedBox:  [...linkedBoxSlots],
-  }));
+  let ok = true;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      generation: currentGeneration,
+      team1: teams[0].map(p=>p?.name||null),
+      team2: teams[1].map(p=>p?.name||null),
+      team3: teams[2].map(p=>p?.name||null),
+      box1:  boxes[0].map(p=>p?.name||null),
+      box2:  boxes[1].map(p=>p?.name||null),
+      box3:  boxes[2].map(p=>p?.name||null),
+      linkedTeam: [...linkedTeamSlots],
+      linkedBox:  [...linkedBoxSlots],
+    }));
+  } catch (e) { ok = false; console.error('Speichern fehlgeschlagen:', e); }
   const s = document.getElementById('save-status');
-  if (s) { s.textContent='Gespeichert!'; setTimeout(()=>s.textContent='',2000); }
+  if (s) { s.textContent = ok ? 'Gespeichert!' : 'Speichern fehlgeschlagen – Gerätespeicher voll?'; setTimeout(()=>s.textContent='', ok ? 2000 : 8000); }
 }
 
 async function fetchWithSpecies(name) {
@@ -438,6 +443,32 @@ async function fetchWithSpecies(name) {
   } catch { details.germanName = capitalize(details.name); details.evolutionChainUrl = null; }
   return details;
 }
+
+// Gespeichertes Pokémon laden. Klappt das gerade nicht (offline, API-Fehler), bleibt es als Platzhalter
+// mit seinem Namen stehen – so geht beim nächsten Speichern nichts verloren. retryPlaceholders() holt es nach.
+async function loadSaved(name) {
+  if (typeof name !== 'string' || !/^[a-z0-9-]{1,60}$/.test(name)) return null;
+  try { return await fetchWithSpecies(name); }
+  catch (e) { console.warn('Nicht geladen, Platzhalter:', name, e); return placeholderPokemon(name); }
+}
+
+async function retryPlaceholders() {
+  let changed = false;
+  for (const list of [...teams, ...boxes]) {
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (!p?.placeholder) continue;
+      let d;
+      try { d = await fetchWithSpecies(p.name); } catch { return; }   // noch offline – beim nächsten Mal
+      if (list[i] === p) { list[i] = d; changed = true; }
+    }
+  }
+  if (!changed) return;
+  for (let pl = 1; pl <= 3; pl++) teams[pl-1].forEach((p, i) => renderTeamSlot(pl, i, p));
+  updateBoxSlots();
+  renderTeamWeaknessPanel();
+}
+window.addEventListener('online', retryPlaceholders);
 
 async function loadSavedState() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -455,18 +486,19 @@ async function loadSavedState() {
       const saved = state[`team${pl}`];
       if (Array.isArray(saved)) {
         for (let i=0; i<6; i++) {
-          if (saved[i]) { const d=await fetchWithSpecies(saved[i]); teams[pl-1][i]=d; renderTeamSlot(pl,i,d); }
+          if (saved[i]) { const d=await loadSaved(saved[i]); teams[pl-1][i]=d; renderTeamSlot(pl,i,d); }
         }
       }
       const savedBox = state[`box${pl}`];
       if (Array.isArray(savedBox)) {
         for (let i=0; i<30; i++) {
-          if (savedBox[i]) boxes[pl-1][i] = await fetchWithSpecies(savedBox[i]);
+          if (savedBox[i]) boxes[pl-1][i] = await loadSaved(savedBox[i]);
         }
       }
     }
-    if (Array.isArray(state.linkedTeam)) state.linkedTeam.forEach(i => linkedTeamSlots.add(i));
-    if (Array.isArray(state.linkedBox))  state.linkedBox.forEach(i => linkedBoxSlots.add(i));
+    const inRange = n => i => Number.isInteger(i) && i >= 0 && i < n;
+    if (Array.isArray(state.linkedTeam)) state.linkedTeam.filter(inRange(6)).forEach(i => linkedTeamSlots.add(i));
+    if (Array.isArray(state.linkedBox))  state.linkedBox.filter(inRange(30)).forEach(i => linkedBoxSlots.add(i));
     updateLinkHighlights();
   } catch(e) { console.error('Fehler beim Laden:', e); }
 }
@@ -505,7 +537,7 @@ function renderPokemonList(filter='') {
   if (!filtered.length) { listEl.innerHTML='<li style="cursor:default">Kein Pokémon gefunden.</li>'; return; }
   filtered.forEach(p => {
     const li = document.createElement('li');
-    li.innerHTML = `<img src="${p.sprite}" alt="${p.displayName}"/><div>${p.displayName}</div>`;
+    li.innerHTML = `<img src="${esc(p.sprite)}" alt="${esc(p.displayName)}"/><div>${esc(p.displayName)}</div>`;
     li.addEventListener('click', ()=>selectPokemon(p));
     listEl.appendChild(li);
   });
@@ -526,9 +558,9 @@ function openModal(title='Wähle ein Pokémon', isLinking=false) {
       const p3Player = nextPlayer(triggerPlayer, 2);
 
       const makeStepDone = (details, playerNum) => {
-        const name = details.germanName || capitalize(details.name);
+        const name = esc(details.germanName || capitalize(details.name));
         return `<div class="link-prog-step">
-          <img src="${details.sprite}" alt="${name}" style="width:44px;height:44px;image-rendering:pixelated">
+          <img src="${esc(details.sprite)}" alt="${name}" style="width:44px;height:44px;image-rendering:pixelated">
           <div>
             <div class="link-prog-label">Spieler ${playerNum} – Slot ${slot+1}</div>
             <strong>${name}</strong>
@@ -564,9 +596,11 @@ function openModal(title='Wähle ein Pokémon', isLinking=false) {
   if (gs) gs.value = String(currentGeneration);
   renderPokemonList();
   document.getElementById('pokemon-modal').style.display = 'flex';
+  pickSeq++;
 }
 
 function closeModal() {
+  pickSeq++;
   document.getElementById('pokemon-modal').style.display = 'none';
   const prog = document.getElementById('link-progress');
   if (prog) prog.style.display = 'none';
@@ -631,10 +665,15 @@ function initBoxSlots() {
 }
 
 // ── Select & remove ───────────────────────────────────────────────────────────
+// Zählt jede Auswahl sowie jedes Öffnen/Schließen des Fensters. Kommt eine Antwort erst an, wenn schon etwas
+// anderes gewählt oder das Fenster neu geöffnet wurde, wird sie verworfen – sonst landet sie im falschen Platz.
+let pickSeq = 0;
 async function selectPokemon(pokemon) {
+  const seq = ++pickSeq;
+  const slot = selectedSlot, player = selectedPlayer, type = selectedSlotType;
   try {
     const details = await fetchWithSpecies(pokemon.name);
-    const slot = selectedSlot, player = selectedPlayer, type = selectedSlotType;
+    if (seq !== pickSeq) return;
 
     if (type === 'team') {
       teams[player-1][slot] = details;
@@ -746,6 +785,7 @@ async function init() {
   renderInfoSlot(infoPokemon);
   renderInfoPanel();
   renderTeamWeaknessPanel();
+  setTimeout(retryPlaceholders, 15000);   // z. B. nach einem kurzen API-Fehler beim Start
 }
 
 init();

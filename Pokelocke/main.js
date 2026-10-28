@@ -1,4 +1,4 @@
-import { getPokemon, getGenerationList, getPokemonSpecies, getMoveData, getEvolutionChain, getAbilityData } from "./pokeapi.js";
+import { getPokemon, getGenerationList, getPokemonSpecies, getMoveData, getEvolutionChain, getAbilityData, placeholderPokemon } from "./pokeapi.js";
 
 // ── Type move gradient colors ─────────────────────────────────────────────────
 const TYPE_MOVE_COLORS = {
@@ -101,7 +101,7 @@ function attachTooltip(el, getHtml) {
   });
 }
 function buildAbilityTooltip(data) {
-  return `<div class="tt-title">${data.name}</div>${data.description ? `<div class="tt-desc">${data.description}</div>` : ''}`;
+  return `<div class="tt-title">${esc(data.name)}</div>${data.description ? `<div class="tt-desc">${esc(data.description)}</div>` : ''}`;
 }
 function buildMoveTooltip(data) {
   const typeClass = data.type ? `type-bg-${data.type}` : '';
@@ -110,10 +110,10 @@ function buildMoveTooltip(data) {
   const power = data.power ?? '–';
   const acc   = data.accuracy != null ? data.accuracy + '%' : '–';
   const pp    = data.pp ?? '–';
-  return `<div class="tt-title">${data.name}</div>
+  return `<div class="tt-title">${esc(data.name)}</div>
 <div class="tt-meta">${typeLabel ? `<span class="tt-type ${typeClass}">${typeLabel}</span>` : ''}${catLabel ? `<span class="tt-cat">${catLabel}</span>` : ''}</div>
 <div class="tt-stats"><span>${window.t('power')}: ${power}</span><span>${window.t('accuracy')}: ${acc}</span><span>${window.t('pp')}: ${pp}</span></div>
-${data.description ? `<div class="tt-desc">${data.description}</div>` : ''}`;
+${data.description ? `<div class="tt-desc">${esc(data.description)}</div>` : ''}`;
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -131,6 +131,8 @@ let dragSource = null; // { type: 'team'|'box', slot: number }
 let boxOpen    = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+// Texte und Adressen, die in HTML landen
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 // Name in den Auswahllisten – aus pokemon-names.js (sofort da, auch offline; vorher eine Anfrage je Pokémon)
 function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
@@ -377,9 +379,9 @@ function renderTeamSlot(index, details) {
   if (!slot) return;
   if (details) {
     slot.dataset.filled = 'true';
-    const name = details.germanName || capitalize(details.name);
+    const name = esc(details.germanName || capitalize(details.name));
     applySlotTypeStyle(slot, details.types || [], 1.0);
-    slot.innerHTML = `<div style="text-align:center" draggable="false"><img src="${details.sprite}" alt="${name}" style="width:60px;height:60px" draggable="false"><div style="font-size:13px" draggable="false">${name}</div></div>`;
+    slot.innerHTML = `<div style="text-align:center" draggable="false"><img src="${esc(details.sprite)}" alt="${name}" style="width:60px;height:60px" draggable="false"><div style="font-size:13px" draggable="false">${name}</div></div>`;
   } else {
     slot.removeAttribute('data-filled');
     slot.style.background = '';
@@ -395,8 +397,8 @@ function renderInfoSlot(details) {
   if (!slot) return;
   if (details) {
     slot.dataset.filled = 'true';
-    const name = details.germanName || capitalize(details.name);
-    slot.innerHTML = `<div style="text-align:center"><img src="${details.sprite}" alt="${name}" style="width:60px;height:60px"><div style="font-size:13px">${name}</div></div>`;
+    const name = esc(details.germanName || capitalize(details.name));
+    slot.innerHTML = `<div style="text-align:center"><img src="${esc(details.sprite)}" alt="${name}" style="width:60px;height:60px"><div style="font-size:13px">${name}</div></div>`;
   } else {
     slot.removeAttribute('data-filled');
     slot.innerHTML = window.t('info-slot-empty');
@@ -407,9 +409,9 @@ function updateBoxSlots() {
   document.querySelectorAll('.box-slot').forEach((slot, i) => {
     const p = boxPokemon[i];
     if (p) {
-      const name = p.germanName || capitalize(p.name);
+      const name = esc(p.germanName || capitalize(p.name));
       applySlotTypeStyle(slot, p.types || [], 1.0);
-      slot.innerHTML = `<img src="${p.sprite}" alt="${name}" style="width:40px;height:40px;image-rendering:pixelated"><div style="font-size:0.65rem;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56px;margin-top:2px">${name}</div>`;
+      slot.innerHTML = `<img src="${esc(p.sprite)}" alt="${name}" style="width:40px;height:40px;image-rendering:pixelated"><div style="font-size:0.65rem;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56px;margin-top:2px">${name}</div>`;
       slot.dataset.filled = 'true';
     } else {
       slot.style.background = '';
@@ -543,8 +545,8 @@ function renderTeamWeaknessPanel() {
   active.forEach(p => {
     const c = document.createElement('div');
     c.className = 'weakness-pokemon-header';
-    const name = p.germanName || capitalize(p.name);
-    c.innerHTML = `<img src="${p.sprite}" alt="${name}" width="36" height="36"><div title="${name}">${name}</div>`;
+    const name = esc(p.germanName || capitalize(p.name));
+    c.innerHTML = `<img src="${esc(p.sprite)}" alt="${name}" width="36" height="36"><div title="${name}">${name}</div>`;
     header.appendChild(c);
   });
   table.appendChild(header);
@@ -641,7 +643,7 @@ async function renderInfoPanel() {
   }
   const header = document.createElement('div');
   header.className = 'info-row';
-  header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${activePokemonInfo.germanName||formatLabel(activePokemonInfo.name)}</div><div style="opacity:.75">#${activePokemonInfo.id}</div>`;
+  header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${esc(activePokemonInfo.germanName||formatLabel(activePokemonInfo.name))}</div><div style="opacity:.75">#${esc(activePokemonInfo.id)}</div>`;
   const types = document.createElement('div');
   types.className = 'info-types';
   (Array.isArray(activePokemonInfo.types)?activePokemonInfo.types:[]).forEach(t => {
@@ -660,7 +662,7 @@ async function renderInfoPanel() {
   Object.entries(activePokemonInfo.stats||{}).forEach(([k,v]) => {
     const m = statMeta[k]||{ label:formatLabel(k), css:'' };
     const s = Object.assign(document.createElement('div'), { className:`info-stat ${m.css}`.trim() });
-    s.innerHTML = `<strong>${m.label}</strong><br>${v}`;
+    s.innerHTML = `<strong>${esc(m.label)}</strong><br>${esc(v)}`;
     statsGrid.appendChild(s);
   });
 
@@ -728,14 +730,14 @@ async function renderInfoPanel() {
               const itemDetail = resolvedDetails.find(d => d.trigger?.name === 'use-item' && d.item?.name);
               const itemName = itemDetail?.item?.name || null;
               const itemSprite = itemName ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${itemName}.png` : null;
-              arr.innerHTML = `<div class="evo-arrow-icon">→</div>${itemSprite ? `<img src="${itemSprite}" alt="${itemName}" width="24" height="24" style="image-rendering:pixelated;margin-top:2px">` : ''}${cond?`<div class="evo-condition">${cond}</div>`:''}`;
+              arr.innerHTML = `<div class="evo-arrow-icon">→</div>${itemSprite ? `<img src="${esc(itemSprite)}" alt="${esc(itemName)}" width="24" height="24" style="image-rendering:pixelated;margin-top:2px">` : ''}${cond?`<div class="evo-condition">${esc(cond)}</div>`:''}`;
               row.appendChild(arr);
             }
             const isActive = stage.name === activePokemonInfo.name || stage.name === activePokemonInfo.baseName;
             const el = document.createElement('div');
             el.className = 'evo-stage' + (isActive ? ' evo-stage-active' : ' evo-stage-clickable');
             const stageName = stageGermanNames[stage.name] || getDisplayName(stage.name);
-            el.innerHTML = `<img src="${stage.sprite}" alt="${stageName}" width="48" height="48"><div class="evo-name">${stageName}</div>`;
+            el.innerHTML = `<img src="${esc(stage.sprite)}" alt="${esc(stageName)}" width="48" height="48"><div class="evo-name">${esc(stageName)}</div>`;
             if (!isActive) {
               el.addEventListener('click', async () => {
                 try {
@@ -774,8 +776,8 @@ async function renderInfoPanel() {
       const basePart = activePokemonInfo.baseName || '';
       const suffix = formName.startsWith(basePart + '-') ? formName.slice(basePart.length + 1) : formName;
       const displayName = suffix.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      const imgHtml = sprite ? `<img src="${sprite}" alt="${displayName}" width="48" height="48">` : '';
-      formEl.innerHTML = `${imgHtml}<div class="evo-name">${displayName}</div>`;
+      const imgHtml = sprite ? `<img src="${esc(sprite)}" alt="${esc(displayName)}" width="48" height="48">` : '';
+      formEl.innerHTML = `${imgHtml}<div class="evo-name">${esc(displayName)}</div>`;
       if (!isCurrentForm) {
         formEl.addEventListener('click', async () => {
           try {
@@ -813,7 +815,7 @@ async function renderInfoPanel() {
       const el = Object.assign(document.createElement('div'), { className:'info-move' });
       const typeColor = m.moveType ? TYPE_MOVE_COLORS[m.moveType] : null;
       if (typeColor) el.style.background = `linear-gradient(to right, ${typeColor} 0%, rgba(var(--t-ink),0.04) 60%)`;
-      el.innerHTML = `<strong>${m.name}</strong> <span class="learn-method-tag ${m.methodClass}" style="font-size:.9rem;opacity:.9">${m.learnInfo}</span>`;
+      el.innerHTML = `<strong>${esc(m.name)}</strong> <span class="learn-method-tag ${m.methodClass}" style="font-size:.9rem;opacity:.9">${esc(m.learnInfo)}</span>`;
       if (m.data) attachTooltip(el, () => buildMoveTooltip(m.data));
       movesList.appendChild(el);
     });
@@ -838,13 +840,16 @@ async function renderInfoPanel() {
 
 // ── Save / Load ───────────────────────────────────────────────────────────────
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    generation: currentGeneration,
-    team: teamPokemon.map(p => p?.name||null),
-    box:  boxPokemon.map(p => p?.name||null),
-  }));
+  let ok = true;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      generation: currentGeneration,
+      team: teamPokemon.map(p => p?.name||null),
+      box:  boxPokemon.map(p => p?.name||null),
+    }));
+  } catch (e) { ok = false; console.error('Speichern fehlgeschlagen:', e); }
   const s = document.getElementById('save-status');
-  if (s) { s.textContent=window.t('saved'); setTimeout(()=>s.textContent='', 2000); }
+  if (s) { s.textContent=window.t(ok ? 'saved' : 'save-failed'); setTimeout(()=>s.textContent='', ok ? 2000 : 8000); }
 }
 
 async function fetchWithSpecies(name) {
@@ -861,6 +866,32 @@ async function fetchWithSpecies(name) {
   return details;
 }
 
+// Gespeichertes Pokémon laden. Klappt das gerade nicht (offline, API-Fehler), bleibt es als Platzhalter
+// mit seinem Namen stehen – so geht beim nächsten Speichern nichts verloren. retryPlaceholders() holt es nach.
+async function loadSaved(name) {
+  if (typeof name !== 'string' || !/^[a-z0-9-]{1,60}$/.test(name)) return null;
+  try { return await fetchWithSpecies(name); }
+  catch (e) { console.warn('Nicht geladen, Platzhalter:', name, e); return placeholderPokemon(name); }
+}
+
+async function retryPlaceholders() {
+  let changed = false;
+  for (const list of [teamPokemon, boxPokemon]) {
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (!p?.placeholder) continue;
+      let d;
+      try { d = await fetchWithSpecies(p.name); } catch { return; }   // noch offline – beim nächsten Mal
+      if (list[i] === p) { list[i] = d; changed = true; }
+    }
+  }
+  if (!changed) return;
+  teamPokemon.forEach((p, i) => renderTeamSlot(i, p));
+  updateBoxSlots();
+  renderTeamWeaknessPanel();
+}
+window.addEventListener('online', retryPlaceholders);
+
 async function loadSavedState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return;
@@ -876,12 +907,12 @@ async function loadSavedState() {
     }
     if (Array.isArray(state.team)) {
       for (let i=0; i<6; i++) {
-        if (state.team[i]) { const d=await fetchWithSpecies(state.team[i]); teamPokemon[i]=d; renderTeamSlot(i,d); }
+        if (state.team[i]) { const d=await loadSaved(state.team[i]); teamPokemon[i]=d; renderTeamSlot(i,d); }
       }
     }
     if (Array.isArray(state.box)) {
       for (let i=0; i<30; i++) {
-        if (state.box[i]) boxPokemon[i] = await fetchWithSpecies(state.box[i]);
+        if (state.box[i]) boxPokemon[i] = await loadSaved(state.box[i]);
       }
     }
   } catch(e) { console.error('Fehler beim Laden:', e); }
@@ -921,7 +952,7 @@ function renderPokemonList(filter='') {
   if (!filtered.length) { listEl.innerHTML=`<li style="cursor:default">${window.t('no-pokemon-found')}</li>`; return; }
   filtered.forEach(p => {
     const li = document.createElement('li');
-    li.innerHTML = `<img src="${p.sprite}" alt="${p.displayName}"/><div>${p.displayName}</div>`;
+    li.innerHTML = `<img src="${esc(p.sprite)}" alt="${esc(p.displayName)}"/><div>${esc(p.displayName)}</div>`;
     li.addEventListener('click', ()=>selectPokemon(p));
     listEl.appendChild(li);
   });
@@ -937,9 +968,11 @@ function openModal(title=null) {
   if (gs) gs.value = String(currentGeneration);
   renderPokemonList();
   document.getElementById('pokemon-modal').style.display = 'flex';
+  pickSeq++;
 }
 
 function closeModal() {
+  pickSeq++;
   document.getElementById('pokemon-modal').style.display = 'none';
 }
 
@@ -1223,17 +1256,23 @@ function initBoxSlots() {
 }
 
 // ── Select & remove ───────────────────────────────────────────────────────────
+// Zählt jede Auswahl sowie jedes Öffnen/Schließen des Fensters. Kommt eine Antwort erst an, wenn schon etwas
+// anderes gewählt oder das Fenster neu geöffnet wurde, wird sie verworfen – sonst landet sie im falschen Platz.
+let pickSeq = 0;
 async function selectPokemon(pokemon) {
+  const seq = ++pickSeq;
+  const slot = selectedSlot, type = selectedSlotType;
   try {
     const details = await fetchWithSpecies(pokemon.name);
-    if (selectedSlotType === 'team') {
-      teamPokemon[selectedSlot] = details;
-      renderTeamSlot(selectedSlot, details);
+    if (seq !== pickSeq) return;
+    if (type === 'team') {
+      teamPokemon[slot] = details;
+      renderTeamSlot(slot, details);
       renderTeamWeaknessPanel();
-    } else if (selectedSlotType === 'box') {
-      boxPokemon[selectedSlot] = details;
+    } else if (type === 'box') {
+      boxPokemon[slot] = details;
       updateBoxSlots();
-    } else if (selectedSlotType === 'info') {
+    } else if (type === 'info') {
       infoGenLocked = false;
       infoPokemon = activePokemonInfo = details;
       renderInfoSlot(details);
@@ -1343,6 +1382,7 @@ async function init() {
   renderInfoSlot(infoPokemon);
   renderInfoPanel();
   renderTeamWeaknessPanel();
+  setTimeout(retryPlaceholders, 15000);   // z. B. nach einem kurzen API-Fehler beim Start
 }
 
 init();

@@ -172,28 +172,45 @@
   }, true);
 
   /* ── 4. Speicherstand sichern / laden ──────────────────────────────── */
+  // Gesichert werden nur die Einträge des Hubs (andere Seiten unter derselben github.io-Adresse teilen sich den
+  // Speicher und bleiben unberührt) plus die Spielstände aus dem Save-Viewer. Bewusst nicht dabei: die
+  // Duo-Verbindung (sync-session) – eine weitergegebene Sicherung würde sonst den Zugang zur Session mitgeben –
+  // und die ROM des Randomizers (zu groß, muss neu ausgewählt werden).
   var BACKUP_APP = 'pokemon-hub';
+  var BACKUP_FORMAT = 2;
+  var HUB_KEYS = ['hub-lang', 'hub-theme', 'hub-gen', 'dc-gen',
+    'pokemon-run-dashboard-state', 'pokemon-run-dashboard-runs', 'nuzlocke-custom-rules',
+    'pokemon-team-builder-state', 'pokemon-duo-nuzlocke-state', 'pokemon-trio-nuzlocke-state',
+    'rando-settings', 'bosse-rando', 'bosse-starter', 'bosse-save', 'saveviewer-duo-p1'];
+  var HUB_PREFIXES = ['bosse-team:', 'saveviewer-links-', 'saveviewer-grave-'];
+  var MAX_SAVE_BYTES = 4 * 1024 * 1024;
   var TEXT = {
     de: {
       shareTitle: 'Pokémon Hub Backup',
       empty: 'Es gibt noch keine gespeicherten Daten.',
       bad: 'Das ist keine gültige Pokémon-Hub-Sicherung.',
-      confirm: function (n, date) {
-        return 'Sicherung' + (date ? ' vom ' + date : '') + ' mit ' + n + ' Einträgen laden?\n\n' +
-          'Die aktuellen Daten auf diesem Gerät werden dabei ersetzt.';
+      confirm: function (n, saves, date) {
+        return 'Sicherung' + (date ? ' vom ' + date : '') + ' mit ' + n + ' Einträgen' +
+          (saves != null ? ' und ' + saves + (saves === 1 ? ' Spielstand' : ' Spielständen') : '') + ' laden?\n\n' +
+          'Die aktuellen Hub-Daten auf diesem Gerät werden dabei ersetzt. Nicht in der Sicherung: die ROM für den ' +
+          'Randomizer (bei Bedarf neu auswählen) und eine Duo-Verbindung (mit dem Code neu beitreten).';
       },
       done: 'Sicherung geladen.',
+      savesFailed: 'Die Einträge sind geladen, die Spielstände für den Save-Viewer aber nicht. Lade sie dort bei Bedarf neu.',
       failed: 'Laden fehlgeschlagen: '
     },
     en: {
       shareTitle: 'Pokémon Hub backup',
       empty: 'There is no saved data yet.',
       bad: 'This is not a valid Pokémon Hub backup.',
-      confirm: function (n, date) {
-        return 'Load backup' + (date ? ' from ' + date : '') + ' with ' + n + ' entries?\n\n' +
-          'The current data on this device will be replaced.';
+      confirm: function (n, saves, date) {
+        return 'Load backup' + (date ? ' from ' + date : '') + ' with ' + n + ' entries' +
+          (saves != null ? ' and ' + saves + (saves === 1 ? ' save file' : ' save files') : '') + '?\n\n' +
+          'The current hub data on this device will be replaced. Not included: the ROM for the Randomizer ' +
+          '(select it again if needed) and a Duo connection (join again with the code).';
       },
       done: 'Backup loaded.',
+      savesFailed: 'The entries were loaded, but the save files for the Save Viewer were not. Load them there again if needed.',
       failed: 'Loading failed: '
     }
   };
@@ -203,21 +220,91 @@
     return TEXT[l] || TEXT.de;
   }
 
+  function isHubKey(k) {
+    return HUB_KEYS.indexOf(k) >= 0 || HUB_PREFIXES.some(function (p) { return k.indexOf(p) === 0; });
+  }
+  // Grobe Prüfung je Eintrag: einfache Werte haben ein festes Format, alles andere muss ein JSON-Objekt sein
+  function validValue(k, v) {
+    if (typeof v !== 'string' || v.length > 5000000) return false;
+    if (k === 'hub-lang') return v === 'de' || v === 'en';
+    if (k === 'hub-theme') return THEMES.indexOf(v) >= 0;
+    if (k === 'hub-gen' || k === 'dc-gen' || k === 'bosse-save' || k.indexOf('saveviewer-grave-') === 0) return /^-?\d{1,4}$/.test(v);
+    if (k === 'bosse-starter' || k === 'saveviewer-duo-p1') return v.length <= 64;
+    try { var j = JSON.parse(v); return j !== null && typeof j === 'object'; } catch (e) { return false; }
+  }
+
   function collect() {
     var out = {};
     for (var i = 0; i < localStorage.length; i++) {
       var key = localStorage.key(i);
-      out[key] = localStorage.getItem(key);
+      if (isHubKey(key)) out[key] = localStorage.getItem(key);
     }
     return out;
   }
 
+  /* Spielstände des Save-Viewers (IndexedDB, gleicher Aufbau wie in SaveViewer/main.js) */
+  function savesDb() {
+    return new Promise(function (res, rej) {
+      if (!window.indexedDB) { rej(new Error('no idb')); return; }
+      var r = indexedDB.open('pokehub-saveviewer', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('saves', { keyPath: 'slot' }); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+  }
+  function readSaves() {
+    return savesDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var t = db.transaction('saves', 'readonly'), req = t.objectStore('saves').getAll();
+        t.oncomplete = function () { db.close(); res(req.result || []); };
+        t.onerror = t.onabort = function () { db.close(); rej(t.error); };
+      });
+    });
+  }
+  function writeSaves(records) {
+    return savesDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var t = db.transaction('saves', 'readwrite'), store = t.objectStore('saves');
+        store.clear();
+        records.forEach(function (rec) { store.put(rec); });
+        t.oncomplete = function () { db.close(); res(); };
+        t.onerror = t.onabort = function () { db.close(); rej(t.error); };
+      });
+    });
+  }
+  function toB64(buf) {
+    var bytes = new Uint8Array(buf), s = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s);
+  }
+  function fromB64(text) {
+    var s = atob(text), bytes = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+    return bytes.buffer;
+  }
+
+  // Vorab gelesen: Teilen am Handy klappt nur direkt nach dem Antippen, nicht erst nach dem Lesen der Datenbank
+  var savesCache = null;
+  function refreshSaves() {
+    return readSaves().catch(function () { return []; }).then(function (list) { savesCache = list; return list; });
+  }
+
   function exportData() {
+    if (savesCache) { share(savesCache); return; }
+    refreshSaves().then(share);
+  }
+
+  function share(saves) {
     var t = tr();
     var data = collect();
-    if (!Object.keys(data).length) { alert(t.empty); return; }
+    if (!Object.keys(data).length && !saves.length) { alert(t.empty); return; }
     var now = new Date();
-    var json = JSON.stringify({ app: BACKUP_APP, format: 1, exportedAt: now.toISOString(), data: data }, null, 2);
+    var json = JSON.stringify({
+      app: BACKUP_APP, format: BACKUP_FORMAT, exportedAt: now.toISOString(), data: data,
+      saves: saves.map(function (rec) {
+        return { slot: rec.slot, fileName: rec.fileName, loadedAt: rec.loadedAt, bytes: toB64(rec.bytes) };
+      })
+    }, null, 2);
     var name = 'pokemon-hub-backup-' + now.toISOString().slice(0, 10) + '.json';
     var file = new File([json], name, { type: 'application/json' });
 
@@ -260,34 +347,59 @@
     input.click();
   }
 
+  // Sicherung prüfen; null = unbrauchbar. Fremde Schlüssel (ältere Sicherungen enthielten alles) werden übergangen,
+  // ein Hub-Eintrag mit falschem Format macht die ganze Sicherung ungültig.
+  function parseBackup(text) {
+    var payload;
+    try { payload = JSON.parse(text); } catch (e) { return null; }
+    if (!payload || payload.app !== BACKUP_APP || (payload.format !== 1 && payload.format !== 2)) return null;
+    var data = payload.data;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+    var keys = Object.keys(data).filter(isHubKey);
+    if (!keys.every(function (k) { return validValue(k, data[k]); })) return null;
+    var saves = null;
+    if (payload.format === 2) {
+      if (!Array.isArray(payload.saves) || payload.saves.length > 2) return null;
+      try {
+        saves = payload.saves.map(function (s) {
+          if (!s || (s.slot !== 1 && s.slot !== 2) || typeof s.fileName !== 'string' || typeof s.bytes !== 'string') throw new Error('save');
+          var bytes = fromB64(s.bytes);
+          if (!bytes.byteLength || bytes.byteLength > MAX_SAVE_BYTES) throw new Error('save');
+          return { slot: s.slot, fileName: s.fileName.slice(0, 200), loadedAt: Number(s.loadedAt) || Date.now(), bytes: bytes };
+        });
+      } catch (e) { return null; }
+    }
+    if (!keys.length && !(saves && saves.length)) return null;
+    return { keys: keys, data: data, saves: saves, exportedAt: payload.exportedAt };
+  }
+
   function restore(text) {
     var t = tr();
-    var payload;
-    try { payload = JSON.parse(text); } catch (e) { alert(t.bad); return; }
-    var data = payload && payload.app === BACKUP_APP ? payload.data : null;
-    if (!data || typeof data !== 'object' || Array.isArray(data)) { alert(t.bad); return; }
-    var keys = Object.keys(data).filter(function (k) { return typeof data[k] === 'string'; });
-    if (!keys.length) { alert(t.bad); return; }
+    var b = parseBackup(text);
+    if (!b) { alert(t.bad); return; }
 
     var date = '';
-    try { date = new Date(payload.exportedAt).toLocaleString(); } catch (e) {}
-    if (!confirm(t.confirm(keys.length, date))) return;
+    try { date = b.exportedAt ? new Date(b.exportedAt).toLocaleString() : ''; } catch (e) {}
+    if (!confirm(t.confirm(b.keys.length, b.saves ? b.saves.length : null, date))) return;
 
     var before = collect();
     try {
-      localStorage.clear();
-      keys.forEach(function (k) { localStorage.setItem(k, data[k]); });
+      Object.keys(before).forEach(function (k) { localStorage.removeItem(k); });
+      b.keys.forEach(function (k) { localStorage.setItem(k, b.data[k]); });
     } catch (err) {
       // Zurück zum alten Stand, falls etwas schiefgeht (z. B. Speicher voll)
       try {
-        localStorage.clear();
+        Object.keys(collect()).forEach(function (k) { localStorage.removeItem(k); });
         Object.keys(before).forEach(function (k) { localStorage.setItem(k, before[k]); });
       } catch (e) {}
       alert(t.failed + err.message);
       return;
     }
-    alert(tr().done);
-    location.reload();
+    var saves = b.saves ? writeSaves(b.saves).then(function () { return true; }, function () { return false; }) : Promise.resolve(true);
+    saves.then(function (ok) {
+      alert(ok ? t.done : t.savesFailed);
+      location.reload();
+    });
   }
 
   window.PokeHubBackup = { exportData: exportData, importData: importData };
@@ -296,6 +408,12 @@
     var exp = document.getElementById('backup-export');
     var imp = document.getElementById('backup-import');
     if (exp) exp.addEventListener('click', exportData);
+    if (exp) {
+      refreshSaves();
+      // Zurück vom Save-Viewer (gleicher oder anderer Tab): Spielstände neu einlesen
+      window.addEventListener('pageshow', refreshSaves);
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') refreshSaves(); });
+    }
     if (imp) imp.addEventListener('click', importData);
     applyTheme(storedTheme()); // meta theme-color steht erst jetzt sicher im DOM
     setupThemeButton();

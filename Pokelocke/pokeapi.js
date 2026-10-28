@@ -39,6 +39,37 @@ export async function getPokemon(idOrName) {
   return result;
 }
 
+// Ersatz, wenn ein gespeichertes Pokémon gerade nicht geladen werden kann (offline, API-Fehler).
+// Der Name bleibt erhalten, damit beim nächsten Speichern nichts verloren geht; Nummer, Bild und
+// Anzeigename kommen – soweit bekannt – aus pokemon-names.js. Später mit dem echten Eintrag ersetzen.
+let slugIds = null;
+function idForName(name) {
+  const N = typeof window !== 'undefined' ? window.POKEMON_NAMES : null;
+  if (!N || !Array.isArray(N.en)) return null;
+  if (!slugIds) {
+    slugIds = new Map();
+    N.en.forEach((n, id) => {
+      if (!n) return;
+      const slug = String(n).toLowerCase().normalize('NFD').replace(/[̀-ͯ'’.:]/g, '')
+        .replace(/♀/g, '-f').replace(/♂/g, '-m').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      if (!slugIds.has(slug)) slugIds.set(slug, id);
+    });
+  }
+  const key = String(name).toLowerCase();
+  if (N.forms && N.forms[key]) return N.forms[key][0];
+  return slugIds.get(key) ?? slugIds.get(key.split('-')[0]) ?? null;
+}
+
+export function placeholderPokemon(name) {
+  const id = idForName(name);
+  const label = (id && typeof window !== 'undefined' && window.pokemonName && window.pokemonName(id, name))
+    || String(name).split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return {
+    id, name, baseName: name, germanName: label, types: [], placeholder: true,
+    sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id || 0}.png`,
+  };
+}
+
 // Liste einer Generation abrufen (nur Namen + URL, noch keine Details)
 export async function getGenerationList(gen = 1) {
   const ranges = {

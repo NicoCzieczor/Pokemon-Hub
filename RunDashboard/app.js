@@ -61,6 +61,7 @@ const I18N = {
     noEncounters: 'Noch keine Encounters eingetragen.',
     emptyGraveyard: 'Noch leer.',
     deleteEncounterTitle: 'Löschen',
+    saveFailed: 'Speichern fehlgeschlagen – der Gerätespeicher ist voll. Änderungen gehen beim Schließen verloren. Sichere deine Daten auf der Startseite.',
     changeStatusTitle: 'Status wechseln',
     removeGraveyardTitle: 'Entfernen',
     starterBadge: 'Starter',
@@ -165,6 +166,7 @@ const I18N = {
     noEncounters: 'No encounters added yet.',
     emptyGraveyard: 'Still empty.',
     deleteEncounterTitle: 'Delete',
+    saveFailed: 'Saving failed – device storage is full. Changes will be lost when you close the app. Back up your data on the home page.',
     changeStatusTitle: 'Change status',
     removeGraveyardTitle: 'Remove',
     starterBadge: 'Starter',
@@ -2873,13 +2875,36 @@ function hideDeletePopup() {
   deletePopupTargetIdx = -1;
 }
 
+// true = dauerhaft gespeichert. Klappt das nicht (Speicher voll), gibt es einen sichtbaren Hinweis –
+// sonst ginge der Stand beim Schließen unbemerkt verloren.
 function save() {
-  if (allRuns.length === 0) {
-    try { localStorage.setItem(RUNS_KEY, JSON.stringify({ active: 0, runs: [] })); } catch(e) {}
-    return;
-  }
+  if (allRuns.length === 0) return writeRuns({ active: 0, runs: [] });
   allRuns[activeRunIdx] = JSON.parse(JSON.stringify(state));
-  try { localStorage.setItem(RUNS_KEY, JSON.stringify({ active: activeRunIdx, runs: allRuns })); } catch(e) {}
+  return writeRuns({ active: activeRunIdx, runs: allRuns });
+}
+
+function writeRuns(data) {
+  try {
+    localStorage.setItem(RUNS_KEY, JSON.stringify(data));
+    showSaveWarning(false);
+    return true;
+  } catch (e) {
+    console.error('Speichern fehlgeschlagen:', e);
+    showSaveWarning(true);
+    return false;
+  }
+}
+
+function showSaveWarning(show) {
+  let el = document.getElementById('save-warning');
+  if (!show) { if (el) el.hidden = true; return; }
+  if (!el) {
+    el = Object.assign(document.createElement('div'), { id: 'save-warning', className: 'save-warning' });
+    el.setAttribute('role', 'alert');
+    document.body.appendChild(el);
+  }
+  el.textContent = t('saveFailed');
+  el.hidden = false;
 }
 
 function load() {
@@ -2903,8 +2928,8 @@ function load() {
       allRuns = [coerceRun(JSON.parse(oldRaw))];
       activeRunIdx = 0;
       applyRun(allRuns[0]);
-      localStorage.removeItem(STORAGE_KEY);
-      save();
+      // Altes Format erst entfernen, wenn das neue sicher gespeichert ist
+      if (save()) localStorage.removeItem(STORAGE_KEY);
       return;
     }
   } catch {}
@@ -3347,7 +3372,7 @@ function renderEncounters() {
         <span>${escapeHtml(pokemonDisplayName(entry.pokemon) || '-')}</span>
       </div>
       <span class="status-pill method-${escapeHtml(entry.method || 'wild')}">${escapeHtml(methodLabel(entry.method))}</span>
-      <span class="status-pill status-${entry.status} is-action" role="button" tabindex="0" data-status-index="${index}" title="${escapeHtml('→ ' + (nextStatusLabel[entry.status] || '?'))}">${statusLabel(entry.status)}</span>
+      <span class="status-pill status-${escapeHtml(entry.status)} is-action" role="button" tabindex="0" data-status-index="${index}" title="${escapeHtml('→ ' + (nextStatusLabel[entry.status] || '?'))}">${statusLabel(entry.status)}</span>
       <button class="icon-btn delete-btn" data-delete-index="${index}" title="${escapeHtml(t('deleteEncounterTitle'))}" aria-label="${escapeHtml(t('deleteEncounterTitle'))}">&#215;</button>
     </div>
   `).join('');

@@ -12,7 +12,7 @@
  * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
  * Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v29';
+const VERSION = 'v30';
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -62,6 +62,7 @@ const PRECACHE = [
   './Duo/index.html',
   './Duo/mobile.html',
   './Duo/main.js',
+  './Duo/shared-state.js',
   './Duo/style.css',
   './Duo/i18n.js',
   './Duo/level-caps.js',
@@ -184,7 +185,8 @@ async function staleWhileRevalidate(event) {
     .then(async res => {
       if (res.ok) {
         const clean = res.redirected ? await unredirect(res) : res;
-        await cache.put(key, clean.clone());
+        // Speichern darf scheitern (z. B. Speicher voll) – die Antwort aus dem Netz gilt trotzdem
+        try { await cache.put(key, clean.clone()); } catch (e) { /* beim nächsten Mal erneut */ }
         return clean;
       }
       return res;

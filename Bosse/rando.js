@@ -41,15 +41,30 @@
   function Lcrng(seed) { this.s = seed >>> 0; }
   Lcrng.prototype.next = function () { this.s = (Math.imul(this.s, 0x41C64E6D) + 0x6073) >>> 0; return this.s >>> 16; };
 
-  // NARC: BTAF (Start/Ende je Datei), BTNF, GMIF (Daten)
+  // NARC: BTAF (Start/Ende je Datei), BTNF, GMIF (Daten).
+  // Anzahl und Bereiche werden gegen die Dateigröße geprüft – eine kaputte Datei darf den Tab nicht lahmlegen.
   function narc(b) {
-    if (String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'NARC') throw new Error('kein NARC');
+    if (b.length < 28 || String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'NARC') throw new Error('kein NARC');
     var off = 16, btaf = u32(b, off + 4), n = u32(b, off + 8), list = [];
+    if (btaf < 12 || off + btaf > b.length || n > (btaf - 12) / 8) throw new Error('kein NARC');
     for (var i = 0; i < n; i++) list.push([u32(b, off + 12 + i * 8), u32(b, off + 16 + i * 8)]);
     off += btaf;
+    if (off + 8 > b.length) throw new Error('kein NARC');
     off += u32(b, off + 4);
     var data = off + 8;
-    return list.map(function (e) { return b.subarray(data + e[0], data + e[1]); });
+    if (data > b.length) throw new Error('kein NARC');
+    return list.map(function (e) {
+      if (e[0] > e[1] || data + e[1] > b.length) throw new Error('kein NARC');
+      return b.subarray(data + e[0], data + e[1]);
+    });
+  }
+
+  // Größte Datei, die gelesen wird (die NARCs der Platin-ROM sind wenige MB groß), und höchstens so viele
+  // Einträge im Verzeichnisbaum – Grenzen gegen kaputte oder manipulierte ROMs
+  var MAX_FILE = 32 * 1024 * 1024, MAX_ENTRIES = 50000;
+  function readRange(read, start, end) {
+    if (!(end >= start) || end - start > MAX_FILE) return Promise.reject(new Error('kein NARC'));
+    return read(start, end);
   }
 
   // Dateien im ROM finden: Header → FNT (Namen) + FAT (Positionen)
@@ -58,12 +73,13 @@
       var code = String.fromCharCode(h[0xC], h[0xD], h[0xE], h[0xF]);
       if (code.slice(0, 3) !== 'CPU') throw new Error('notPlatinum');
       var fntOff = u32(h, 0x40), fntSize = u32(h, 0x44), fatOff = u32(h, 0x48), fatSize = u32(h, 0x4C);
-      return Promise.all([read(fntOff, fntOff + fntSize), read(fatOff, fatOff + fatSize)]).then(function (r) {
-        var fnt = r[0], fat = r[1], ids = {};
+      return Promise.all([readRange(read, fntOff, fntOff + fntSize), readRange(read, fatOff, fatOff + fatSize)]).then(function (r) {
+        var fnt = r[0], fat = r[1], ids = {}, budget = MAX_ENTRIES;
         (function walk(dir, prefix, depth) {
           if (depth > 16) return;
           var e = (dir & 0xFFF) * 8, o = u32(fnt, e), fid = u16(fnt, e + 4);
           for (;;) {
+            if (--budget < 0) throw new Error('kein NARC');
             var len = fnt[o++];
             if (!len) break;
             var n = len & 0x7F, name = '';
@@ -76,12 +92,12 @@
         // Overlays: Tabelle im Header (je 32 Byte: Nummer … Datei-Nummer, Flags)
         function overlay(num) {
           var ovOff = u32(h, 0x50), ovSize = u32(h, 0x54);
-          return read(ovOff, ovOff + ovSize).then(function (tab) {
+          return readRange(read, ovOff, ovOff + ovSize).then(function (tab) {
             for (var i = 0; i + 32 <= tab.length; i += 32) {
               if (u32(tab, i) !== num) continue;
               if (tab[i + 31] & 1) return null; // komprimiert – brauchen wir nicht
               var fid = u32(tab, i + 24);
-              return read(u32(fat, fid * 8), u32(fat, fid * 8 + 4));
+              return readRange(read, u32(fat, fid * 8), u32(fat, fid * 8 + 4));
             }
             return null;
           });
@@ -92,7 +108,7 @@
           file: function (path) {
             var id = ids[path];
             if (id == null) return Promise.reject(new Error('Datei fehlt: ' + path));
-            return read(u32(fat, id * 8), u32(fat, id * 8 + 4));
+            return readRange(read, u32(fat, id * 8), u32(fat, id * 8 + 4));
           }
         };
       });

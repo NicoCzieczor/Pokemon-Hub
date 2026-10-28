@@ -196,6 +196,7 @@
     state.romError = '';
     let info;
     try {
+      if (file.size < 1048576 || file.size > 512 * 1048576) throw new Error('size');   // DS-ROMs: 1–512 MB
       info = await Rando.readRom(reader(file), [], [], []);
     } catch (e) {
       state.romError = e && e.message === 'notPlatinum' ? L().errNotPlatinum : L().errNotRom;

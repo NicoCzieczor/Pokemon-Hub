@@ -78,6 +78,7 @@
       errGame: function (g) { return 'Das ist ein Spielstand von ' + g + ' – bisher wird nur Platin unterstützt.'; },
       errUnknown: 'Kein Platin-Spielstand erkannt. Achte darauf, den Ingame-Spielstand (.sav/.dsv) zu nehmen und im Spiel mindestens einmal gespeichert zu haben.',
       errRead: 'Die Datei konnte nicht gelesen werden.',
+      errStore: 'Der Spielstand wird angezeigt, konnte auf diesem Gerät aber nicht dauerhaft gespeichert werden (Speicher voll?). Nach einem Neustart ist der alte Stand zu sehen.',
       warnChecksum: 'Die Prüfsumme des Spielstands stimmt nicht – die Datei ist eventuell beschädigt. Angezeigte Werte können falsch sein.',
       warnFallback: 'Der neueste Speicherblock ist beschädigt (Speichern abgebrochen?). Angezeigt wird der vorherige Spielstand.',
       warnBad: function (n) { return n + (n === 1 ? ' Platz enthält' : ' Plätze enthalten') + ' ein beschädigtes Pokémon („Böses Ei“) und wird ausgeblendet.'; },
@@ -174,6 +175,7 @@
       errGame: function (g) { return 'This is a ' + g + ' save – only Platinum is supported so far.'; },
       errUnknown: 'No Platinum save detected. Make sure you use the in-game save (.sav/.dsv) and have saved in the game at least once.',
       errRead: 'The file could not be read.',
+      errStore: 'The save is shown, but it could not be stored permanently on this device (storage full?). After a restart you will see the previous state.',
       warnChecksum: 'The save checksum doesn\'t match – the file may be corrupted. Values shown could be wrong.',
       warnFallback: 'The newest save block is corrupted (interrupted save?). Showing the previous save instead.',
       warnBad: function (n) { return n + (n === 1 ? ' slot contains' : ' slots contain') + ' a corrupted Pokémon ("Bad Egg") and is hidden.'; },
@@ -286,14 +288,16 @@
           var t = d.transaction('saves', mode);
           var req = fn(t.objectStore('saves'));
           t.oncomplete = function () { res(req && req.result); };
-          t.onerror = function () { rej(t.error); };
+          t.onerror = t.onabort = function () { rej(t.error); };
         });
       });
     }
     return {
       all: function () { return run('readonly', function (s) { return s.getAll(); }).catch(function () { return []; }); },
-      put: function (rec) { return run('readwrite', function (s) { return s.put(rec); }).catch(function () {}); },
-      del: function (slot) { return run('readwrite', function (s) { return s.delete(slot); }).catch(function () {}); }
+      // true = dauerhaft gespeichert bzw. gelöscht; false wird angezeigt (sonst fehlt der Spielstand
+      // nach dem Neustart oder taucht wieder auf, ohne dass man es merkt)
+      put: function (rec) { return run('readwrite', function (s) { return s.put(rec); }).then(function () { return true; }, function () { return false; }); },
+      del: function (slot) { return run('readwrite', function (s) { return s.delete(slot); }).then(function () { return true; }, function () { return false; }); }
     };
   })();
 
@@ -446,7 +450,7 @@
       state.saves.sort(function (a, b) { return a.slot - b.slot; });
       state.active = state.saves.indexOf(sv);
       if (before === 1 && state.saves.length === 2) state.tab = 'link';
-      Store.put(rec);
+      Store.put(rec).then(function (ok) { if (!ok) showError(L().errStore); });
       render();
     }).catch(function () { showError(L().errRead); });
   }
@@ -462,7 +466,7 @@
     var sv = state.saves[idx];
     if (!sv) return;
     state.saves.splice(idx, 1);
-    Store.del(sv.slot);
+    Store.del(sv.slot).then(function (ok) { if (!ok) showError(L().errStore); });
     state.active = Math.max(0, Math.min(state.active, state.saves.length - 1));
     render();
   }

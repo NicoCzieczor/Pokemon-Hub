@@ -69,6 +69,7 @@
     var copy = new Uint8Array(src);
     var g = PtSave.generalBlock(copy);
     if (!g) throw new Error('Kein Platin-Spielstand');
+    if (!g.valid) throw new Error('Dieser Teil des Spielstands ist beschädigt');
     POCKETS.forEach(function (p, pi) {
       var seen = new Set();
       var list = (pockets[pi] || []).filter(function (e) {

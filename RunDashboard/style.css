@@ -1004,3 +1004,22 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* Hinweis, wenn der Browser nicht mehr speichern kann (Speicher voll) */
+.save-warning {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: min(560px, calc(100% - 32px));
+  padding: 12px 16px;
+  border: 1px solid rgb(var(--t-c-ff9b8e));
+  border-radius: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  box-shadow: 0 10px 32px rgba(var(--t-shade), 0.5);
+}
+.save-warning[hidden] { display: none; }

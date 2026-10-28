@@ -896,11 +896,15 @@ function renderPokeList(list, showHeaders) {
   pokeList.appendChild(frag);
 }
 
+// Neueste Auswahl je Seite: eine ältere, langsamere Antwort darf eine neuere nicht überschreiben
+const chooseSeq = {};
 async function choosePokemon(name) {
   const target = modalTarget;
+  const seq = chooseSeq[target] = (chooseSeq[target] || 0) + 1;
   closeModal(pokeModal);
   try {
     const full = await fetchPokemon(name);
+    if (seq !== chooseSeq[target]) return;
     state[target] = full;
     renderAll();
   } catch (e) {

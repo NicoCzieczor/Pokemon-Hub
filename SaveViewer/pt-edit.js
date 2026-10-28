@@ -53,6 +53,8 @@
     var copy = new Uint8Array(buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer));
     var p = place(copy, where);
     if (!p) throw new Error('Kein Platin-Spielstand');
+    // Beschädigter Block: nicht ändern – die neue Prüfsumme würde die übrigen kaputten Daten als gültig ausgeben
+    if (!p.block.valid) throw new Error('Dieser Teil des Spielstands ist beschädigt');
     var r = PtSave.decryptPK4(p.block.bytes, p.offset, p.size);
     if (!r || !r.checksumOk) throw new Error('Pokémon nicht lesbar');
     fn(r.data);
@@ -83,6 +85,7 @@
     var copy = new Uint8Array(buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer));
     var g = PtSave.generalBlock(copy);
     if (!g) throw new Error('Kein Platin-Spielstand');
+    if (!g.valid) throw new Error('Dieser Teil des Spielstands ist beschädigt');
     fn(g.bytes, g.offset + PtSave.LAYOUT.trainer);
     PtSave.writeChecksum(g.bytes, g.offset, g.size);
     return copy;
