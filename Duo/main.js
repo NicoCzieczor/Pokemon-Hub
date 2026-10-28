@@ -145,7 +145,8 @@ const MY_CLIENT_ID = Math.random().toString(36).slice(2) + Date.now().toString(3
 // Abgleich mit der Datenbank: syncBase = zuletzt bekannter Stand dort (geprüft), syncDirty = eigene Änderung
 // noch nicht geschrieben, syncFresh = false, solange der Stand veraltet sein kann (Hintergrund, Verbindung weg)
 // – dann wird erst neu geladen und zusammengeführt, bevor geschrieben wird.
-let syncBase = null, syncDirty = false, syncFresh = false, syncPushing = false, syncChangeNo = 0;
+let syncBase = null, syncRev = null, syncDirty = false, syncFresh = false, syncPushing = false, syncChangeNo = 0;
+let syncCode = null, syncJoined = false;   // Code der Session; Mitgliedschaft in dieser Sitzung bestätigt
 
 // In Session-Modus dürfen BEIDE Spieler ALLES bearbeiten (geteilter Spielstand)
 function sessionCanEdit(_playerIndex) { return true; }
@@ -906,74 +907,39 @@ function syncUpdateCount(connected, total) {
 
 // Wer gerade online ist, kommt aus Realtime-Presence: jedes offene Fenster meldet seinen Platz an.
 // Verlässt ein Spieler die Session oder schließt die Seite/App, sieht der andere das sofort.
-// (Die Zeilen in „players“ regeln nur, wer zur Session gehört; slot=1 hält den Spielstand.)
-function presenceSlots() {
-  const online = new Set();
-  if (!syncChannel) return online;
+// Wer zur Session gehört und welchen Platz hat, regelt die Datenbank (duo_members, siehe supabase/duo-setup.sql).
+function syncRenderPresence() {
+  if (!syncChannel || !sessionMySlot) return;
+  const online = new Set([sessionMySlot]);
   for (const metas of Object.values(syncChannel.presenceState())) {
     for (const m of metas) if (m.slot === 1 || m.slot === 2) online.add(m.slot);
   }
-  return online;
-}
-
-function syncRenderPresence() {
-  if (!syncChannel || !sessionMySlot) return;
-  const online = presenceSlots();
-  online.add(sessionMySlot);
   const other = sessionMySlot === 1 ? 2 : 1;
   if (online.has(other)) syncUpdateStatus('sync-both', 'connected');
   else syncUpdateStatus('sync-waiting', 'waiting', sessionMySlot, other);
   syncUpdateCount(online.size, 2);
 }
 
-// Beim Beitreten auf die erste Anwesenheitsliste warten (höchstens ein paar Sekunden).
-// null = unbekannt – dann gilt ein vorhandener Eintrag als belegt.
-let presenceWaiters = [];
-function waitForPresence(ms = 4000) {
-  return new Promise(resolve => {
-    const done = online => {
-      clearTimeout(timer);
-      presenceWaiters = presenceWaiters.filter(w => w !== done);
-      resolve(online);
-    };
-    const timer = setTimeout(() => done(null), ms);
-    presenceWaiters.push(done);
-  });
-}
-function onPresenceSync() {
-  const online = presenceSlots();
-  presenceWaiters.slice().forEach(w => w(online));
-  syncRenderPresence();
-}
-
 function syncSubscribe() {
   if (syncChannel) { sb.removeChannel(syncChannel); syncChannel = null; }
-  // Nur Änderungen dieser Session schicken lassen, nicht die aller Sessions
-  const filter = 'session_id=eq.' + syncSessionId;
   const channel = sb.channel('duo-sync-' + syncSessionId, { config: { presence: { key: MY_CLIENT_ID } } });
   syncChannel = channel
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players', filter }, payload => {
+    // Nur Änderungen dieser Session; die Datenbank schickt sie ohnehin nur an Mitglieder
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'duo_sessions', filter: 'id=eq.' + syncSessionId }, payload => {
       const row = payload.new;
-      if (!row || row.session_id !== syncSessionId) return;
-      // Aktuellen Stand sofort pushen, damit P2 ihn sieht
-      if (row.slot === 2 && sessionMySlot === 1) setTimeout(onAfterSave, 200);
+      if (!syncActive || !row || row.id !== syncSessionId) return;
+      if (row.state?.lastWriter === MY_CLIENT_ID) return;      // eigenes Echo ignorieren
+      if (syncRev != null && row.rev <= syncRev) return;       // schon bekannt
+      receiveSharedState(row.state, row.rev);
     })
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players', filter }, payload => {
-      const row = payload.new;
-      if (!syncActive || !row || row.session_id !== syncSessionId) return;
-      if (row.slot !== 1) return; // geteilter Spielstand ist nur auf slot=1
-      if (row.team?.lastWriter === MY_CLIENT_ID) return; // eigenes Echo ignorieren
-      receiveSharedState(row.team);
-    })
-    .on('presence', { event: 'sync' }, onPresenceSync)
+    .on('presence', { event: 'sync' }, syncRenderPresence)
     // Wird nach jedem (Wieder-)Verbinden aufgerufen, z. B. wenn das Handy aus dem Hintergrund zurückkommt
     .subscribe(status => {
       if (syncChannel !== channel) return;
       if (status === 'SUBSCRIBED') {
         syncRenderPresence();
-        if (sessionMySlot) channel.track({ slot: sessionMySlot }).catch(e => console.error('Presence-Fehler:', e));
-        // Änderungen aus der Zeit ohne Verbindung nachladen
-        if (syncActive) syncRefresh();
+        channel.track({ slot: sessionMySlot }).catch(e => console.error('Presence-Fehler:', e));
+        syncRefresh();   // Änderungen aus der Zeit ohne Verbindung nachladen
       } else {
         syncFresh = false;   // Verbindung weg: erst neu laden, bevor wieder geschrieben wird
       }
@@ -987,48 +953,78 @@ function showSessionUI(code) {
   document.getElementById('sync-join-area').style.display  = 'none';
   document.getElementById('sync-leave-btn').style.display  = 'inline-flex';
 }
+function showIdleUI() {
+  document.getElementById('sync-code-box').style.display   = 'none';
+  document.getElementById('sync-create-btn').style.display = 'inline-flex';
+  document.getElementById('sync-join-area').style.display  = 'flex';
+  document.getElementById('sync-leave-btn').style.display  = 'none';
+  syncUpdateCount(0, 2);
+}
 
 // Verbindung lokal beenden (ohne Datenbank)
 function syncStop() {
   syncActive = false;
   sessionMySlot = null;
   syncSessionId = null;
-  syncBase = null; syncDirty = false; syncFresh = false;
+  syncCode = null;
+  syncJoined = false;
+  syncBase = null; syncRev = null; syncDirty = false; syncFresh = false;
   clearTimeout(_syncTimer); clearTimeout(_syncRetry);
   if (syncChannel) { sb.removeChannel(syncChannel); syncChannel = null; }
 }
 
-// 6 Zeichen aus 0–9/A–Z, zufällig per crypto; schon vergebene Codes werden übersprungen
-async function newSessionCode() {
-  const abc = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const code = Array.from(crypto.getRandomValues(new Uint8Array(6)), b => abc[b % abc.length]).join('');
-    const { data, error } = await sb.from('sessions').select('id').eq('code', code).maybeSingle();
-    if (error) throw error;
-    if (!data) return code;
-  }
-  throw new Error('Kein freier Session-Code gefunden');
+// Session ist nicht mehr erreichbar (gelöscht oder Platz vergeben): lokal trennen, Code zum erneuten Beitreten eintragen
+function syncLost(key) {
+  const code = syncCode;
+  syncStop();
+  setSyncBase(null, null);
+  localStorage.removeItem('sync-session');
+  showIdleUI();
+  const input = document.getElementById('sync-code-input');
+  if (input && code) input.value = code;
+  syncUpdateStatus(key, 'error');
+}
+
+// Jedes Gerät meldet sich unsichtbar anonym bei Supabase an – nur Mitglieder einer Session dürfen sie lesen
+// und ändern. Ohne Netz wird nicht neu angemeldet, sonst entstünde eine zweite Kennung für dasselbe Gerät.
+async function ensureAuth() {
+  const { data, error } = await sb.auth.getSession();
+  if (data?.session) return;
+  if (error) throw error;
+  const r = await sb.auth.signInAnonymously();
+  if (r.error) throw r.error;
+}
+
+const rpcError = (error, code) => new RegExp(code).test(error?.message || '');
+
+// Beigetreten: Stand übernehmen, Echtzeit abonnieren, Verbindung merken
+function syncEnter(data) {
+  const changed = data.id !== syncSessionId;
+  syncSessionId = data.id;
+  syncCode = data.code;
+  sessionMySlot = data.slot;
+  syncJoined = true;
+  syncActive = true;
+  localStorage.setItem('sync-session', JSON.stringify({ id: data.id, slot: data.slot, code: data.code }));
+  showSessionUI(data.code);
+  receiveSharedState(data.state, data.rev);
+  syncFresh = true;
+  if (changed || !syncChannel) syncSubscribe();
+  syncRenderPresence();
+  if (syncDirty) syncPush();
 }
 
 async function syncCreate() {
   syncUpdateStatus('sync-creating', 'loading');
   try {
-    const code = await newSessionCode();
-    const { data: sess, error: sessErr } = await sb.from('sessions').insert({ code }).select().single();
-    if (sessErr) throw sessErr;
-    // slot=1 hält den GEMEINSAMEN Spielstand
+    await ensureAuth();
+    // Code und Platz 1 vergibt der Server
     const state = getSharedState();
-    const { error: playerErr } = await sb.from('players').insert({ session_id: sess.id, slot: 1, team: state });
-    if (playerErr) throw playerErr;
-    syncSessionId = sess.id;
-    sessionMySlot = 1;
-    setSyncBase(cleanSharedState(state));
-    syncDirty = false; syncFresh = true;
-    syncActive = true;
-    syncSubscribe();
-    showSessionUI(code);
-    localStorage.setItem('sync-session', JSON.stringify({ id: sess.id, slot: 1, code }));
-    syncRenderPresence();
+    const { data, error } = await sb.rpc('duo_create_session', { p_state: state });
+    if (error) throw error;
+    syncStop();
+    syncDirty = false;
+    syncEnter({ ...data, state });
   } catch(e) {
     console.error(e);
     syncUpdateStatus('sync-create-error', 'error');
@@ -1037,69 +1033,36 @@ async function syncCreate() {
 
 async function syncJoin(code) {
   if (!code) return;
-  code = code.toUpperCase();
   syncUpdateStatus('sync-connecting', 'loading');
   try {
-    const { data: sess, error: sessErr } = await sb.from('sessions').select('id').eq('code', code).maybeSingle();
-    if (sessErr) throw sessErr;
-    if (!sess) { syncUpdateStatus('sync-not-found', 'error'); return; }
-    // Erst zuhören, wer gerade online ist: Ein Platz, dessen Spieler offline ist, darf neu belegt werden
-    // (z. B. nach Browserwechsel oder gelöschtem Speicher) – sonst wäre die Session für immer „voll“.
+    await ensureAuth();
+    // Beide Plätze belegt? Ein Platz, dessen Gerät seit 2 Minuten still ist, darf übernommen werden
+    // (z. B. nach Browserwechsel) – das entscheidet der Server.
+    const { data, error } = await sb.rpc('duo_join_session', { p_code: code, p_slot: null, p_takeover: true });
+    if (error) throw error;
+    if (!data) { syncUpdateStatus('sync-not-found', 'error'); return; }
+    if (data.full) { syncUpdateStatus('sync-full', 'error'); return; }
     syncStop();
-    syncSessionId = sess.id;
-    syncSubscribe();
-    const [online, rows] = await Promise.all([
-      waitForPresence(),
-      sb.from('players').select('slot').eq('session_id', sess.id),
-    ]);
-    if (syncSessionId !== sess.id) return;
-    if (rows.error) throw rows.error;
-    const taken = new Set((rows.data || []).map(r => r.slot));
-    let slot = null;
-    if (!taken.has(2)) slot = 2;
-    else if (online && !online.has(2)) slot = 2;
-    else if (online && !online.has(1)) slot = 1;
-    if (!slot) { syncStop(); syncUpdateStatus('sync-full', 'error'); return; }
-    if (!taken.has(slot)) {
-      // slot=2 ist nur Presence-Marker (leer)
-      const { error } = await sb.from('players').insert({ session_id: sess.id, slot, team: {} });
-      if (error) throw error;
-    }
-    sessionMySlot = slot;
-    setSyncBase(null);
-    syncDirty = false; syncFresh = false;
-    syncActive = true;
-    syncChannel?.track({ slot }).catch(e => console.error('Presence-Fehler:', e));
-    showSessionUI(code);
-    localStorage.setItem('sync-session', JSON.stringify({ id: sess.id, slot, code }));
-    syncRenderPresence();
-    await syncRefresh();   // geteilten Spielstand laden
+    syncEnter(data);   // eigener Stand wird durch den gemeinsamen ersetzt (wie bisher)
   } catch(e) {
     console.error(e);
-    syncStop();
-    syncUpdateStatus('sync-connect-error', 'error');
+    syncUpdateStatus(rpcError(e, 'too_many_attempts') ? 'sync-too-many' : 'sync-connect-error', 'error');
   }
 }
 
 async function syncLeave() {
-  const mySlot    = sessionMySlot;
   const mySession = syncSessionId;
   if (syncDirty && syncFresh) await syncPush();   // ausstehende Änderung noch schreiben
   syncStop();
-  setSyncBase(null);
-  if (mySession && mySlot === 2) {
-    // Spieler 2 verlässt → nur Presence-Marker entfernen, Spielstand auf slot=1 bleibt
-    const { error } = await sb.from('players').delete().eq('session_id', mySession).eq('slot', 2);
+  setSyncBase(null, null);
+  if (mySession) {
+    // Nur die eigene Mitgliedschaft endet – der Spielstand bleibt, Beitritt mit Code bleibt möglich
+    const { error } = await sb.rpc('duo_leave_session', { p_session: mySession });
     if (error) console.error('Verlassen:', error);
   }
-  // Spieler 1 verlässt → Spielstand bleibt in Supabase (kann später wieder verbinden)
   localStorage.removeItem('sync-session');
-  document.getElementById('sync-code-box').style.display   = 'none';
-  document.getElementById('sync-create-btn').style.display = 'inline-flex';
-  document.getElementById('sync-join-area').style.display  = 'flex';
-  document.getElementById('sync-leave-btn').style.display  = 'none';
+  showIdleUI();
   syncUpdateStatus('sync-idle', 'idle');
-  syncUpdateCount(0, 2);
 }
 
 async function syncRestore() {
@@ -1107,27 +1070,53 @@ async function syncRestore() {
   if (!raw) return;
   let saved = null;
   try { saved = JSON.parse(raw); } catch {}
-  if (!saved || saved.id == null || (saved.slot !== 1 && saved.slot !== 2)) { localStorage.removeItem('sync-session'); return; }
-  const { data: sess, error } = await sb.from('sessions').select('id').eq('id', saved.id).maybeSingle();
-  // Nur vergessen, wenn Supabase ausdrücklich keine Session mehr findet. Bei Netzfehlern (offline,
-  // Supabase nicht erreichbar) bleibt die Verbindung gespeichert und wird nachgeholt, sobald es geht.
-  if (!error && !sess) { localStorage.removeItem('sync-session'); return; }
+  if (!saved || typeof saved.code !== 'string' || (saved.slot !== 1 && saved.slot !== 2)) { localStorage.removeItem('sync-session'); return; }
+  // Erst lokal wieder „verbunden“ – Änderungen ohne Netz werden später zusammengeführt
   syncSessionId = saved.id;
+  syncCode = saved.code;
   sessionMySlot = saved.slot;
-  syncBase = loadSyncBase(saved.id);
+  ({ state: syncBase, rev: syncRev } = loadSyncBase(saved.id));
   syncDirty = false; syncFresh = false;
   syncActive = true;
-  syncSubscribe();
   showSessionUI(saved.code);
-  if (error) {
-    console.error('Sync:', error);
-    syncUpdateStatus('sync-offline', 'error');
-    syncRetryLater();
-    return;
-  }
-  // Geteilten Spielstand von slot=1 laden — Supabase ist Quelle der Wahrheit
-  await syncRefresh();
-  syncRenderPresence();
+  await syncConnect();
+}
+
+// Mitgliedschaft bestätigen und Stand laden. Über den Code, damit auch Sessions aus der alten Datenbank
+// übernommen werden. Ohne Netz (oder wenn Supabase nicht erreichbar ist) bleibt alles gespeichert und wird
+// nachgeholt, sobald es geht – nur wenn Supabase sagt, dass es die Session nicht mehr gibt, wird getrennt.
+let syncConnecting = null;
+function syncConnect() {
+  if (!syncActive) return Promise.resolve();
+  if (syncConnecting) return syncConnecting;
+  syncConnecting = (async () => {
+    try { await ensureAuth(); }
+    catch (e) { console.error('Sync:', e); syncUpdateStatus('sync-offline', 'error'); syncRetryLater(); return; }
+    const { data, error } = await sb.rpc('duo_join_session', { p_code: syncCode, p_slot: sessionMySlot, p_takeover: false });
+    if (!syncActive) return;
+    if (error) {
+      console.error('Sync:', error);
+      if (rpcError(error, 'too_many_attempts')) { syncLost('sync-too-many'); return; }
+      syncUpdateStatus('sync-offline', 'error');
+      syncRetryLater();
+      return;
+    }
+    if (!data) { syncLost('sync-not-found'); return; }
+    if (data.full) { syncLost('sync-lost'); return; }
+    syncEnter(data);
+  })().finally(() => { syncConnecting = null; });
+  return syncConnecting;
+}
+
+// Lebenszeichen, solange die App sichtbar ist – ein Gerät, das länger still ist, kann abgelöst werden
+let _syncTouch = null;
+function syncHeartbeat() {
+  clearInterval(_syncTouch);
+  _syncTouch = setInterval(async () => {
+    if (!syncActive || !syncJoined || document.visibilityState !== 'visible') return;
+    const { data, error } = await sb.rpc('duo_touch', { p_session: syncSessionId });
+    if (!error && data === false) syncConnect();   // nicht mehr Mitglied → neu beitreten (ohne jemanden abzulösen)
+  }, 45000);
 }
 
 function initSyncUI() {
@@ -1159,28 +1148,31 @@ function initSyncUI() {
     }
   });
   window.addEventListener('online', () => { if (syncActive) syncRefresh(); });
+  syncHeartbeat();
 }
 
 // ── Abgleich mit der Datenbank ────────────────────────────────────────────────
-// Letzter bekannter Stand in der Datenbank – auch lokal gemerkt, damit nach einem Start ohne Netz
-// eigene Änderungen mit denen des Partners zusammengeführt werden können statt sie zu überschreiben.
+// Letzter bekannter Stand in der Datenbank samt Versionsnummer – auch lokal gemerkt, damit nach einem Start
+// ohne Netz eigene Änderungen mit denen des Partners zusammengeführt werden statt sie zu überschreiben.
 const SYNC_BASE_KEY = 'duo-sync-base';
-function setSyncBase(state) {
+function setSyncBase(state, rev) {
   syncBase = state;
+  syncRev = rev ?? null;
   try {
-    if (state && syncSessionId != null) localStorage.setItem(SYNC_BASE_KEY, JSON.stringify({ session: syncSessionId, state }));
+    if (state && syncSessionId != null) localStorage.setItem(SYNC_BASE_KEY, JSON.stringify({ session: syncSessionId, state, rev: syncRev }));
     else localStorage.removeItem(SYNC_BASE_KEY);
   } catch (e) { console.error('Speichern fehlgeschlagen:', e); }
 }
 function loadSyncBase(sessionId) {
   try {
     const saved = JSON.parse(localStorage.getItem(SYNC_BASE_KEY) || 'null');
-    return saved && saved.session === sessionId ? cleanSharedState(saved.state) : null;
-  } catch { return null; }
+    if (saved && saved.session === sessionId) return { state: cleanSharedState(saved.state), rev: Number.isFinite(saved.rev) ? saved.rev : null };
+  } catch {}
+  return { state: null, rev: null };
 }
 
 // Stand aus der Datenbank: übernehmen – oder, wenn hier noch eine eigene Änderung aussteht, zusammenführen
-function receiveSharedState(raw) {
+function receiveSharedState(raw, rev) {
   const server = cleanSharedState(raw);
   if (!server) return;
   if (syncDirty) {
@@ -1190,7 +1182,7 @@ function receiveSharedState(raw) {
   } else {
     applySharedState(server);
   }
-  setSyncBase(server);
+  setSyncBase(server, rev);
 }
 
 let syncRefreshing = null, _syncRetry = null;
@@ -1198,14 +1190,17 @@ function syncRetryLater() { clearTimeout(_syncRetry); _syncRetry = setTimeout(sy
 
 function syncRefresh() {
   if (!syncActive || syncSessionId == null) return Promise.resolve();
+  if (!syncJoined) return syncConnect();
   if (syncRefreshing) return syncRefreshing;
   clearTimeout(_syncRetry);
   const sessionId = syncSessionId;
   syncRefreshing = (async () => {
-    const { data, error } = await sb.from('players').select('team').eq('session_id', sessionId).eq('slot', 1).maybeSingle();
+    const { data, error } = await sb.from('duo_sessions').select('state, rev').eq('id', sessionId).maybeSingle();
     if (sessionId !== syncSessionId) return;
     if (error) { console.error('Sync-Fehler:', error); syncRetryLater(); return; }
-    if (data?.team) receiveSharedState(data.team);
+    // Nichts zu sehen = nicht mehr Mitglied (z. B. Platz von einem anderen Gerät übernommen) → neu beitreten
+    if (!data) { syncJoined = false; return syncConnect(); }
+    if (syncRev == null || data.rev !== syncRev || !syncBase) receiveSharedState(data.state, data.rev);
     syncFresh = true;
     if (syncDirty) syncPush();
   })().finally(() => { syncRefreshing = null; });
@@ -1218,25 +1213,31 @@ function queuePush(delay = 400) {
   _syncTimer = setTimeout(syncPush, delay);
 }
 
-// Geteilter Spielstand liegt immer auf slot=1, egal wer schreibt
+// Speichern nur, wenn die Versionsnummer noch stimmt. Hat inzwischen jemand anderes gespeichert, kommt dessen
+// Stand zurück – dann zusammenführen und erneut speichern.
 async function syncPush() {
   clearTimeout(_syncTimer); _syncTimer = null;
   if (!syncActive || syncSessionId == null || !syncDirty || syncPushing) return;
-  if (!syncFresh) { syncRefresh(); return; }   // erst aktuellen Stand holen; danach wird geschrieben
+  if (!syncFresh || !syncJoined) { syncRefresh(); return; }   // erst aktuellen Stand holen; danach wird geschrieben
   syncPushing = true;
   const sessionId = syncSessionId, changeNo = syncChangeNo, state = getSharedState();
-  const { error } = await sb.from('players').update({ team: state }).eq('session_id', sessionId).eq('slot', 1);
+  const { data, error } = await sb.rpc('duo_save_state', { p_session: sessionId, p_state: state, p_rev: syncRev ?? 0 });
   syncPushing = false;
   if (sessionId !== syncSessionId) return;
   if (error) {
     console.error('Sync-Fehler:', error);
     syncFresh = false;
-    syncRetryLater();   // später: neu laden, zusammenführen, schreiben
+    if (rpcError(error, 'not_member')) { syncJoined = false; syncConnect(); }
+    else syncRetryLater();   // später: neu laden, zusammenführen, schreiben
     return;
   }
-  setSyncBase(cleanSharedState(state));
-  if (changeNo === syncChangeNo) syncDirty = false;
-  else queuePush(0);   // während des Schreibens kam noch etwas dazu
+  if (data?.ok) {
+    setSyncBase(cleanSharedState(state), data.rev);
+    if (changeNo === syncChangeNo) syncDirty = false;
+    else queuePush(0);   // während des Schreibens kam noch etwas dazu
+  } else if (data) {
+    receiveSharedState(data.state, data.rev);   // Konflikt → zusammenführen, danach erneut speichern
+  }
 }
 
 function onAfterSave() {
