@@ -219,7 +219,8 @@ body {
   color: rgb(var(--t-g-b1b3cc));
   font-size: 0.8rem;
 }
-.win-notes .trademark { opacity: 0.65; }
+.win-notes .trademark,
+.win-notes .app-version { opacity: 0.65; }
 .ai-notice {
   display: inline-flex;
   align-items: center;

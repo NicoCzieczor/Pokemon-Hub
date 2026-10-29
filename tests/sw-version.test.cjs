@@ -2,8 +2,8 @@
 // nur teilweise. Bei Fehlschlag: node tools/build-sw-version.js ausführen. Ausführen: node --test "tests/*.test.*"
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { contentVersion, currentVersion } = require('../tools/build-sw-version.js');
+const { contentHash, storedHash } = require('../tools/build-sw-version.js');
 
-test('VERSION in sw.js passt zum Inhalt der Seite', () => {
-  assert.equal(currentVersion(), contentVersion(), 'node tools/build-sw-version.js ausführen');
+test('CONTENT in sw.js passt zum Inhalt der Seite', () => {
+  assert.equal(storedHash(), contentHash(), 'node tools/build-sw-version.js ausführen');
 });

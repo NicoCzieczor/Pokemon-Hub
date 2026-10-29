@@ -23,5 +23,6 @@ npm test
 | `sql.mjs` | `supabase/*.sql` in einem echten Postgres (PGlite) mit nachgebauten Supabase-Teilen |
 | `pages.mjs` | alle Seiten starten fehlerfrei, Laden mit Platzhaltern, Backup, verspätete Antworten |
 | `duo.mjs` | Duo gegen nachgebaute Supabase-Funktionen (`fake-supabase.js`) |
+| `update.mjs` | Service Worker echt: Versionsanzeige, Update bei offener Startseite, offline (auf einer Kopie des Projekts) |
 
 Chrome liegt woanders? `CHROME_PATH` setzen.

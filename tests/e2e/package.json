@@ -4,7 +4,7 @@
   "description": "Browser-, Funktions- und Datenbanktests für den Pokémon Hub (lokal, ohne echte Server)",
   "type": "module",
   "scripts": {
-    "test": "node functions.mjs && node catch.mjs && node sql.mjs && node pages.mjs && node duo.mjs"
+    "test": "node functions.mjs && node catch.mjs && node sql.mjs && node pages.mjs && node duo.mjs && node update.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.2.17",

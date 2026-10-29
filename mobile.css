@@ -275,3 +275,4 @@ body {
 }
 .ai-notice svg { width: 0.625rem; height: 0.625rem; }
 .trademark { opacity: 0.65; text-wrap: balance; }
+.app-version { opacity: 0.65; }

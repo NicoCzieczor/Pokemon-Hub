@@ -52,7 +52,7 @@ function grab(code, name) {
   check('F11 volle Quote: Antwort aus dem Netz kommt trotzdem an', body === 'netz-inhalt', body);
   const cached = { match: async () => new Response('gespeichert'), put: async () => {} };
   check('F16 gespeicherte Datei wird nicht einzeln gegen eine neuere getauscht', (await run(cached, 'neuer')) === 'gespeichert');
-  check('F16 Vorladen umgeht den CDN-Zwischenspeicher (?v=VERSION)', /'v=' \+ VERSION/.test(code) && !/staleWhileRevalidate/.test(code));
+  check('F16 Vorladen umgeht den CDN-Zwischenspeicher (?v=CONTENT)', /'v=' \+ CONTENT/.test(code) && !/staleWhileRevalidate/.test(code));
 }
 
 // ── F13: Zeitball je Generation ──────────────────────────────────────────────

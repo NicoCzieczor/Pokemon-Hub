@@ -65,10 +65,11 @@
   }
 
   // Neue Version: Der neue Service Worker übernimmt sofort. Die offene Seite wird dann neu geladen, damit HTML
-  // und Skripte zusammenpassen – gleich, solange noch nichts angetippt wurde, sonst sobald die App in den
-  // Hintergrund geht oder zurückkommt. Seiten mit ungesicherter Arbeit melden das über window.PokeHubBusy().
-  // Bleibt die App lange offen (Handy), wird beim Zurückkommen alle 10 Minuten nach einer neuen Version gesehen.
+  // und Skripte zusammenpassen – gleich, solange noch nichts angetippt wurde (auf der Startseite immer gleich),
+  // sonst sobald die App in den Hintergrund geht oder zurückkommt. Seiten mit ungesicherter Arbeit melden das
+  // über window.PokeHubBusy(). Solange die App offen ist, wird alle 5 Minuten nach einer neuen Version gesehen.
   function watchUpdates() {
+    var CHECK = 5 * 60 * 1000;
     var hadController = !!navigator.serviceWorker.controller, touched = false, pending = false, lastCheck = Date.now();
     ['pointerdown', 'keydown'].forEach(function (t) {
       window.addEventListener(t, function () { touched = true; }, { capture: true, passive: true });
@@ -78,18 +79,32 @@
       pending = false;
       location.reload();
     }
+    function checkForUpdate() {
+      lastCheck = Date.now();
+      navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); }).catch(function () {});
+    }
     navigator.serviceWorker.addEventListener('controllerchange', function () {
       if (!hadController) { hadController = true; return; }   // erste Installation: die Seite ist schon aktuell
       pending = true;
-      if (!touched) reloadIfIdle();
+      if (!touched || document.getElementById('app-version')) reloadIfIdle();
     });
     document.addEventListener('visibilitychange', function () {
       reloadIfIdle();
-      if (document.visibilityState === 'visible' && Date.now() - lastCheck > 10 * 60 * 1000) {
-        lastCheck = Date.now();
-        navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); }).catch(function () {});
-      }
+      if (document.visibilityState === 'visible' && Date.now() - lastCheck > CHECK) checkForUpdate();
     });
+    setInterval(function () { if (document.visibilityState === 'visible') checkForUpdate(); }, CHECK);
+  }
+
+  // Installierte Version unten auf der Startseite (fragt den Service Worker, der die Seite gerade ausliefert)
+  function showVersion() {
+    var el = document.getElementById('app-version');
+    if (!el || !('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.addEventListener('message', function (e) {
+      if (e.data && e.data.version) { el.textContent = 'Version ' + e.data.version; el.hidden = false; }
+    });
+    function ask() { if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('version'); }
+    ask();
+    navigator.serviceWorker.addEventListener('controllerchange', ask);
   }
   // Bitte den Browser, den Speicher nicht automatisch aufzuräumen.
   try {
@@ -469,6 +484,7 @@
       document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') refreshSaves(); });
     }
     if (imp) imp.addEventListener('click', importData);
+    showVersion();
     applyTheme(storedTheme()); // meta theme-color steht erst jetzt sicher im DOM
     setupThemeButton();
     labelToolNav();

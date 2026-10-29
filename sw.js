@@ -9,10 +9,12 @@
  *  - Kartenblätter der Sinnoh-Karte (Karte/tiles/) ebenso – sie ändern sich nur, wenn die Karte neu gerendert wird.
  *  - Supabase (Duo-Sync) läuft nie über den Speicher, sondern immer live.
  *
- * Nach jeder Änderung an der Seite: node tools/build-sw-version.js – setzt VERSION aus dem Inhalt aller Dateien
- * (tests/sw-version.test.cjs prüft das). Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
+ * Nach jeder Änderung an der Seite: node tools/build-sw-version.js – aktualisiert CONTENT (Abdruck aller Dateien)
+ * und zählt dabei VERSION hoch (tests/sw-version.test.cjs prüft das). Die vorderen Stellen von VERSION dürfen
+ * von Hand angehoben werden. Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v-c8f62fce1f';
+const VERSION = '0.1.0';            // steht unten auf der Startseite
+const CONTENT = '07b4be875e';       // ändert sich mit jeder Datei → neue Version für alle Geräte
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -139,7 +141,7 @@ self.addEventListener('install', event => {
     // Alle Dateien frisch und als zusammengehöriger Stand holen. ?v= umgeht auch den Zwischenspeicher von
     // GitHub Pages, der nach einem Release noch einige Minuten alte Dateien liefern kann.
     await Promise.all(PRECACHE.map(async url => {
-      const res = await fetch(new Request(url + (url.includes('?') ? '&' : '?') + 'v=' + VERSION, { cache: 'reload' }));
+      const res = await fetch(new Request(url + (url.includes('?') ? '&' : '?') + 'v=' + CONTENT, { cache: 'reload' }));
       if (!res.ok) throw new Error('Vorladen fehlgeschlagen: ' + url + ' (' + res.status + ')');
       await cache.put(url, res.redirected ? await unredirect(res) : res);
     }));
@@ -147,6 +149,11 @@ self.addEventListener('install', event => {
     // Nicht abwarten – darf scheitern
     warmImages();
   })());
+});
+
+// Startseite fragt nach der installierten Version
+self.addEventListener('message', event => {
+  if (event.data === 'version' && event.source) event.source.postMessage({ version: VERSION });
 });
 
 self.addEventListener('activate', event => {
