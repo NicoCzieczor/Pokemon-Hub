@@ -61,6 +61,35 @@
         console.warn('[PokéHub] Service Worker nicht registriert:', err);
       });
     });
+    watchUpdates();
+  }
+
+  // Neue Version: Der neue Service Worker übernimmt sofort. Die offene Seite wird dann neu geladen, damit HTML
+  // und Skripte zusammenpassen – gleich, solange noch nichts angetippt wurde, sonst sobald die App in den
+  // Hintergrund geht oder zurückkommt. Seiten mit ungesicherter Arbeit melden das über window.PokeHubBusy().
+  // Bleibt die App lange offen (Handy), wird beim Zurückkommen alle 10 Minuten nach einer neuen Version gesehen.
+  function watchUpdates() {
+    var hadController = !!navigator.serviceWorker.controller, touched = false, pending = false, lastCheck = Date.now();
+    ['pointerdown', 'keydown'].forEach(function (t) {
+      window.addEventListener(t, function () { touched = true; }, { capture: true, passive: true });
+    });
+    function reloadIfIdle() {
+      if (!pending || (window.PokeHubBusy && window.PokeHubBusy())) return;
+      pending = false;
+      location.reload();
+    }
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController) { hadController = true; return; }   // erste Installation: die Seite ist schon aktuell
+      pending = true;
+      if (!touched) reloadIfIdle();
+    });
+    document.addEventListener('visibilitychange', function () {
+      reloadIfIdle();
+      if (document.visibilityState === 'visible' && Date.now() - lastCheck > 10 * 60 * 1000) {
+        lastCheck = Date.now();
+        navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); }).catch(function () {});
+      }
+    });
   }
   // Bitte den Browser, den Speicher nicht automatisch aufzuräumen.
   try {
@@ -170,6 +199,31 @@
     if (timer) { cancel(); return; }
     if (Date.now() - lastSynthetic < 1000) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
+
+  /* ── 4a. Hinweis, wenn der Browser nicht mehr speichern kann (Speicher voll) ── */
+  // Die Seiten rufen PokeHubStorageWarning(true) nach einem fehlgeschlagenen Speichern auf, (false) nach einem
+  // geglückten. Antippen blendet den Hinweis aus.
+  var STORAGE_TEXT = {
+    de: 'Speichern fehlgeschlagen – der Gerätespeicher ist voll. Diese Änderung gilt nur, bis die Seite geschlossen wird. Sichere deine Daten auf der Startseite.',
+    en: 'Saving failed – device storage is full. This change only lasts until the page is closed. Back up your data on the home page.'
+  };
+  function storageWarning(show) {
+    var el = document.getElementById('storage-warning');
+    if (!show) { if (el) el.hidden = true; return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'storage-warning';
+      el.className = 'storage-warning';
+      el.setAttribute('role', 'alert');
+      el.addEventListener('click', function () { el.hidden = true; });
+      document.body.appendChild(el);
+    }
+    var l = 'de';
+    try { l = localStorage.getItem('hub-lang') === 'en' ? 'en' : 'de'; } catch (e) {}
+    el.textContent = STORAGE_TEXT[l];
+    el.hidden = false;
+  }
+  window.PokeHubStorageWarning = storageWarning;
 
   /* ── 4. Speicherstand sichern / laden ──────────────────────────────── */
   // Gesichert werden nur die Einträge des Hubs (andere Seiten unter derselben github.io-Adresse teilen sich den

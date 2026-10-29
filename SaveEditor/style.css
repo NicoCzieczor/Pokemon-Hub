@@ -420,3 +420,12 @@ details.where[open] summary::after { content: '–'; }
   .amount { flex: 1 1 auto; min-width: 60px; padding: 10px 8px; }
   .big-btn { font-size: 1.02rem; }
 }
+
+/* Frühere Fassungen (Sicherungen vor dem Speichern) */
+.backups { flex: 1 1 100%; font-size: 0.86rem; }
+.backups summary { cursor: pointer; color: var(--color-muted); font-weight: 700; }
+.backups p { margin: 6px 0; }
+.backups ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.backups li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.backups li span { min-width: 9em; }
+.backups .small-btn { padding: 5px 10px; font-size: 0.8rem; }

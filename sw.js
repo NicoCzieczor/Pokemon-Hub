@@ -2,17 +2,17 @@
  * Service Worker für den Pokémon Hub.
  *
  * Damit läuft die Seite offline wie eine App:
- *  - Eigene Dateien (HTML, JS, Bilder) werden beim ersten Öffnen komplett gespeichert.
- *    Danach kommen sie sofort aus dem Speicher; im Hintergrund wird nachgeschaut,
- *    ob es eine neuere Version gibt (die ist dann beim nächsten Öffnen da).
+ *  - Eigene Dateien (HTML, JS, Bilder) werden beim ersten Öffnen komplett gespeichert und kommen danach
+ *    sofort aus dem Speicher – immer alle aus derselben Version. Eine neue Version kommt als Ganzes mit einem
+ *    neuen Service Worker (VERSION ändert sich), nicht Datei für Datei; offene Seiten lädt pwa.js dann neu.
  *  - Antworten der PokeAPI und Sprites werden gespeichert, sobald sie einmal geladen wurden.
  *  - Kartenblätter der Sinnoh-Karte (Karte/tiles/) ebenso – sie ändern sich nur, wenn die Karte neu gerendert wird.
  *  - Supabase (Duo-Sync) läuft nie über den Speicher, sondern immer live.
  *
- * Nach größeren Änderungen an der Seite: VERSION hochzählen, dann wird alles frisch geladen.
- * Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
+ * Nach jeder Änderung an der Seite: node tools/build-sw-version.js – setzt VERSION aus dem Inhalt aller Dateien
+ * (tests/sw-version.test.cjs prüft das). Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = 'v31';
+const VERSION = 'v-c8f62fce1f';
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -66,6 +66,7 @@ const PRECACHE = [
   './Duo/style.css',
   './Duo/i18n.js',
   './Duo/level-caps.js',
+  './Duo/mobile-tabs.js',
   './Trio/index.html',
   './Trio/main.js',
   './Catchrate/index.html',
@@ -135,7 +136,13 @@ const IMAGE_HOSTS = new Set(['raw.githubusercontent.com']);
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(STATIC_CACHE);
-    await cache.addAll(PRECACHE.map(url => new Request(url, { cache: 'reload' })));
+    // Alle Dateien frisch und als zusammengehöriger Stand holen. ?v= umgeht auch den Zwischenspeicher von
+    // GitHub Pages, der nach einem Release noch einige Minuten alte Dateien liefern kann.
+    await Promise.all(PRECACHE.map(async url => {
+      const res = await fetch(new Request(url + (url.includes('?') ? '&' : '?') + 'v=' + VERSION, { cache: 'reload' }));
+      if (!res.ok) throw new Error('Vorladen fehlgeschlagen: ' + url + ' (' + res.status + ')');
+      await cache.put(url, res.redirected ? await unredirect(res) : res);
+    }));
     await self.skipWaiting();
     // Nicht abwarten – darf scheitern
     warmImages();
@@ -161,10 +168,11 @@ self.addEventListener('fetch', event => {
   // Teil-Anfragen (Range) und das Randomizer-Jar holt CheerpJ selbst stückweise vom Server – nicht anfassen
   if (url.origin === self.location.origin && (req.headers.has('range') || /\.jar$/.test(url.pathname))) return;
 
-  if (url.origin === self.location.origin && /\/Karte\/tiles\/(\d+|in)\//.test(url.pathname)) {
+  const own = url.href.startsWith(self.registration.scope);   // nur Dateien des Hubs, nicht anderer Seiten auf github.io
+  if (own && /\/Karte\/tiles\/(\d+|in)\//.test(url.pathname)) {
     event.respondWith(cacheFirst(event, TILE_CACHE, TILE_MAX_ENTRIES, false));
-  } else if (url.origin === self.location.origin) {
-    event.respondWith(staleWhileRevalidate(event));
+  } else if (own) {
+    event.respondWith(staticFirst(event));
   } else if (url.hostname === 'pokeapi.co') {
     event.respondWith(cacheFirst(event, API_CACHE, API_MAX_ENTRIES, false));
   } else if (IMAGE_HOSTS.has(url.hostname)) {
@@ -173,15 +181,17 @@ self.addEventListener('fetch', event => {
   // Alles andere (z. B. Supabase) geht ganz normal ins Netz.
 });
 
-/* ── Eigene Dateien: sofort aus dem Speicher, im Hintergrund aktualisieren ── */
-async function staleWhileRevalidate(event) {
+/* ── Eigene Dateien: aus dem Speicher der aktuellen Version ──
+   Nicht vorab Gespeichertes (z. B. Bilder) wird einmal geholt und für diese Version gemerkt. */
+async function staticFirst(event) {
   const req = event.request;
   const isPage = req.mode === 'navigate';
   const cache = await caches.open(STATIC_CACHE);
   const key = cacheKey(req.url, isPage);
   const cached = await cache.match(key, { ignoreSearch: isPage, ignoreVary: true });
+  if (cached) return cached;
 
-  const network = fetch(key, { cache: 'no-cache', credentials: 'same-origin' })
+  const fresh = await fetch(key, { credentials: 'same-origin' })
     .then(async res => {
       if (res.ok) {
         const clean = res.redirected ? await unredirect(res) : res;
@@ -192,12 +202,6 @@ async function staleWhileRevalidate(event) {
       return res;
     })
     .catch(() => null);
-
-  if (cached) {
-    event.waitUntil(network);
-    return cached;
-  }
-  const fresh = await network;
   if (fresh) return fresh;
 
   if (isPage) {

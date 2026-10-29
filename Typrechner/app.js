@@ -142,7 +142,9 @@ function typeIcon(type, size) {
   const bpY = size / 2 - (row * 239 + cy) * scale;
   return `<span class="type-icon" style="width:${size}px;height:${size}px;background-size:${1080 * scale}px ${956 * scale}px;background-position:${bpX}px ${bpY}px"></span>`;
 }
-const badge = (type, hl, size = 16) => `<span class="tbadge${hl ? ' is-hl' : ''}" style="--tc:${COL[type]}">${typeIcon(type, size)}${typeName(type)}</span>`;
+// Texte und Adressen aus der PokeAPI, die in HTML landen
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const badge = (type, hl, size = 16) => `<span class="tbadge${hl ? ' is-hl' : ''}" style="--tc:${COL[type]}">${typeIcon(type, size)}${esc(typeName(type))}</span>`;
 
 // ── Wirkung ───────────────────────────────────────────────────────────────────
 const eff = (atk, def) => DMG.chartFor(state.gen)[atk.toLowerCase()]?.[def.toLowerCase()] ?? 1;
@@ -476,9 +478,9 @@ function exEmpty(text) {
   return `<div class="ex-sprite is-empty">?</div><span class="ex-name muted">${text || '—'}</span>`;
 }
 function exFilled(p) {
-  return `<div class="ex-sprite"><img src="${p.sprite}" alt="" width="80" height="80"></div>
-    <span class="ex-name">${p.name}</span>
-    <div class="ex-types">${p.types.map(x => badge(x)).join('')}</div>`;
+  return `<div class="ex-sprite"><img src="${esc(p.sprite)}" alt="" width="80" height="80"></div>
+    <span class="ex-name">${esc(p.name)}</span>
+    <div class="ex-types">${p.types.filter(x => COL[x]).map(x => badge(x)).join('')}</div>`;
 }
 
 let exVer = 0;

@@ -190,20 +190,30 @@ function updateSliderStyle(v) {
   document.getElementById('hp-slider').style.background =
     `linear-gradient(to right, ${fill} ${pct}%, ${empty} ${pct}%)`;
 }
-function nestMult(level) { return Math.max(1, (41 - Math.max(1, level)) / 10); }
+// Texts and URLs from PokeAPI that end up in HTML
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Nest Ball: Gen 3–4 (40 − level) ÷ 10 (pokeemerald, pokeplatinum), Gen 5+ (41 − level) ÷ 10; at least 1×
+function nestMult(level, gen) { return Math.max(1, ((gen <= 4 ? 40 : 41) - Math.max(1, level)) / 10); }
 // Timer Ball. turns = current round (1 = first round, none passed yet). Gen 3–4: (rounds passed + 10) ÷ 10
 // (pokeemerald: battleTurnCounter starts at 0); Gen 5+: 1 + rounds passed × 1229/4096. Capped at 4×.
 function timerMult(turns, formulaGen) {
   const passed = Math.max(0, turns - 1);
   return Math.min(4, formulaGen >= 5 ? 1 + passed * 1229 / 4096 : (passed + 10) / 10);
 }
+// Level Ball as in the games (pokecrystal, pokeheartgold), integer halving:
+// own level > enemy ×2, own/2 > enemy ×4, own/4 > enemy ×8
 function levelMult(pl, el) {
-  if (el <= 0) return 1;
-  const r = pl / el;
-  return r >= 4 ? 8 : r >= 2 ? 4 : r > 1 ? 2 : 1;
+  if (pl <= el) return 1;
+  if (Math.floor(pl / 2) <= el) return 2;
+  return Math.floor(pl / 4) <= el ? 4 : 8;
 }
-function heavyBonus(kg) {
-  return kg >= 409.6 ? 40 : kg >= 307.2 ? 30 : kg >= 204.8 ? 20 : kg >= 102.4 ? 0 : -20;
+// Heavy Ball, added to the catch rate. Gen 2 (pokecrystal): < 102.4 kg −20, < 204.8 ±0, then +20/+30/+40.
+// HGSS (pokeheartgold): everything below 204.8 kg gets −20 (a bug checks the catch rate instead of the weight).
+function heavyBonus(kg, gen) {
+  if (kg >= 409.6) return 40;
+  if (kg >= 307.2) return 30;
+  if (kg >= 204.8) return 20;
+  return gen === 4 || kg < 102.4 ? -20 : 0;
 }
 
 // ── Game definitions ──────────────────────────────────────────────────────
@@ -266,7 +276,7 @@ const BALLS = [
     desc:'3,5× auf Wasser- und Käfer-Pokémon (Gen 7+; Gen 6: 3×), sonst 1×.' },
   { id:'dive',    name:'Tauchball',   sprite:'dive-ball',    mult:ctx=>ctx.diving?3.5:1,
     desc:'3,5× wenn das Pokémon taucht oder auf dem Wasser angetroffen wird.' },
-  { id:'nest',    name:'Nestball',    sprite:'nest-ball',    mult:ctx=>nestMult(ctx.enemyLevel),
+  { id:'nest',    name:'Nestball',    sprite:'nest-ball',    mult:ctx=>nestMult(ctx.enemyLevel, ctx.gen),
     desc:'Bis zu 3,9× – je niedriger das Level des Pokémon, desto stärker.' },
   { id:'repeat',  name:'Wiederball',  sprite:'repeat-ball',  mult:ctx=>ctx.caughtBefore?(ctx.gen>=7?3.5:3):1,
     desc:'3,5× auf bereits gefangene Pokémon (Gen 7+; Gen 6: 3×), sonst 1×.' },
@@ -380,39 +390,111 @@ function getConds() {
     types:        selectedPokemon?.types    || [],
     weightKg:     selectedPokemon?.weightKg || 0,
     baseSpeed:    selectedPokemon?.baseSpeed || 0,
+    falseSwipe:   falseSwipeActive,
   };
 }
 
-// ── Gen 3+ catch-rate formula ────────────────────────────────────────────
+// ── Exact formulas for Gen 1–4 (from the pret disassemblies) ────────────────
+// The games work with real HP values; we only have a percentage, so max HP is estimated from base HP and the
+// enemy's level (average DVs/IVs, no EVs). Rounding then matches the game closely.
+function estimateHp(conds) {
+  const L = conds.enemyLevel, base = selectedPokemon.baseHp || 50;
+  const max = conds.gen <= 2
+    ? Math.floor((base + 8) * 2 * L / 100) + L + 10
+    : Math.floor((2 * base + 15) * L / 100) + L + 10;
+  const cur = conds.falseSwipe ? 1 : Math.max(1, Math.round(max * conds.hpPercent / 100));
+  return { max, cur: Math.min(cur, max) };
+}
+const isSleepOrFreeze = s => s === 'sleep' || s === 'freeze';
+const APRICORN = new Set(['fast', 'level', 'lure', 'heavy', 'love', 'moon']);
+
+// Gen 1 (pokered ItemUseBall): R1 in 0..N (Poké 255, Great 200, others 150); sleep/freeze subtract 25, other
+// status 12 – below 0 means caught. Otherwise R1 − status must be ≤ catch rate, and R2 (0..255) ≤ F with
+// F = (max HP × 255 ÷ (Great 8, others 12)) ÷ max(1, HP ÷ 4), capped at 255.
+function probGen1(ball, conds) {
+  const rate = selectedPokemon.captureRate, hp = estimateHp(conds);
+  const N = ball.id === 'poke' ? 255 : ball.id === 'great' ? 200 : 150;
+  const S = conds.status === 'none' ? 0 : isSleepOrFreeze(conds.status) ? 25 : 12;
+  const F = Math.min(255, Math.floor(Math.floor(hp.max * 255 / (ball.id === 'great' ? 8 : 12)) / Math.max(1, Math.floor(hp.cur / 4))));
+  const pass = S > N ? 0 : Math.min(N, S + rate) - S + 1;
+  return (Math.min(S, N + 1) + pass * Math.min(1, (F + 1) / 256)) / (N + 1);
+}
+
+// Gen 2 (pokecrystal PokeBallEffect): every ball changes the catch rate itself (capped at 255). Level Ball
+// skips HP and status entirely (bug). a = rate × (3·maxHP − 2·HP) ÷ (3·maxHP), at least 1; sleep/freeze +10
+// (paralysis/poison/burn give nothing – bug); caught if random 0..255 ≤ a → (a + 1) ÷ 256.
+const GEN2_FAST_BALL = new Set([81, 88, 114]);   // bug: only Magnemite, Grimer, Tangela
+function probGen2(ball, conds) {
+  const cap = v => Math.max(1, Math.min(255, v));
+  let r = selectedPokemon.captureRate;
+  switch (ball.id) {
+    case 'ultra': r = cap(r * 2); break;
+    case 'great': case 'safari': case 'sport': r = cap(r + Math.floor(r / 2)); break;
+    case 'heavy': r = cap(r + heavyBonus(selectedPokemon.weightKg, 2)); break;
+    case 'level': return (cap(r * levelMult(conds.playerLevel, conds.enemyLevel)) + 1) / 256;
+    case 'lure': if (conds.fishing) r = cap(r * 3); break;
+    case 'fast': if (GEN2_FAST_BALL.has(selectedPokemon.id)) r = cap(r * 4); break;
+    case 'love': if (conds.sameGender) r = cap(r * 8); break;
+    // Moon Ball: never boosts (bug); Friend Ball: no bonus
+  }
+  const hp = estimateHp(conds);
+  let m3 = hp.max * 3, h2 = hp.cur * 2;
+  if (m3 > 255) { m3 = Math.floor(m3 / 4); h2 = Math.max(1, Math.floor(h2 / 4)); }
+  let a = Math.max(1, Math.floor(r * ((m3 - h2) & 0xFF) / (m3 & 0xFF)));
+  if (isSleepOrFreeze(conds.status)) a = Math.min(255, a + 10);
+  return (a + 1) / 256;
+}
+
+// Gen 3–4 (pokeemerald Cmd_handleballthrow, pokeplatinum/pokeheartgold CalcCatchShakes): ball modifier in tenths;
+// HGSS Apricorn Balls change the catch rate instead (1..255). a = (rate × ball ÷ 10) × (3·maxHP − 2·HP) ÷ (3·maxHP),
+// sleep/freeze ×2, other status ×1.5. a ≥ 255 → caught; otherwise four shake checks with
+// b = 1048560 ÷ √√(16711680 ÷ a) against random 0..65535 → P = (b ÷ 65536)⁴.
+function probGen34(ball, conds) {
+  let r = selectedPokemon.captureRate, mod = 10;
+  if (APRICORN.has(ball.id)) {
+    if (ball.id === 'heavy') r += heavyBonus(selectedPokemon.weightKg, 4);
+    else r *= ball.mult(conds);
+    r = Math.max(1, Math.min(255, Math.floor(r)));
+  } else {
+    mod = Math.round(ball.mult(conds) * 10);
+  }
+  const hp = estimateHp(conds);
+  let a = Math.floor(Math.floor(r * mod / 10) * (hp.max * 3 - hp.cur * 2) / (hp.max * 3));
+  if (isSleepOrFreeze(conds.status)) a *= 2;
+  else if (conds.status !== 'none') a = Math.floor(a * 15 / 10);
+  if (a >= 255) return 1;
+  if (a <= 0) return 0;
+  const b = Math.floor(1048560 / Math.floor(Math.sqrt(Math.floor(Math.sqrt(Math.floor(16711680 / a))))));
+  return Math.pow(Math.min(b, 65536) / 65536, 4);
+}
+
+// ── Gen 5+ (and the Gen 8 remakes): simplified ──────────────────────────────
 // P = min(1, a/255)  where  a = hpFactor × captureRate × ballMult × statusMult
 function computeProb(ball, conds) {
   if (!selectedPokemon) return null;
   if (ball.id === 'master') return 1;
+  if (conds.gen <= 4) {
+    if (conds.formulaGen === 1) return probGen1(ball, conds);
+    if (conds.formulaGen === 2) return probGen2(ball, conds);
+    return probGen34(ball, conds);
+  }
 
   const hpFactor = (3 - 2 * conds.hpPercent / 100) / 3;
-  // Gen I: sleep ×2.5; Gen III–IV: sleep ×2.0; Gen V+: sleep ×2.5. Gen II: no factor – see below
-  const sleepMult = (conds.formulaGen <= 2 || conds.formulaGen >= 5) ? 2.5 : 2.0;
-  const statusMult = conds.formulaGen === 2 ? 1.0
-    : (conds.status === 'sleep' || conds.status === 'freeze') ? sleepMult
+  // Gen III–IV formula (BDSP): sleep ×2.0; Gen V+: sleep ×2.5
+  const sleepMult = conds.formulaGen >= 5 ? 2.5 : 2.0;
+  const statusMult = (conds.status === 'sleep' || conds.status === 'freeze') ? sleepMult
     : (conds.status === 'paralysis' || conds.status === 'poison' || conds.status === 'burn') ? 1.5
     : 1.0;
 
   let a;
   if (ball.additive) {
-    const bonus = heavyBonus(selectedPokemon.weightKg);
+    const bonus = heavyBonus(selectedPokemon.weightKg, conds.gen);
     a = hpFactor * Math.max(0, selectedPokemon.captureRate + bonus) * statusMult;
   } else {
     const m = ball.mult(conds);
     if (!isFinite(m)) return 1;
     if (m <= 0) return 0;
     a = hpFactor * selectedPokemon.captureRate * m * statusMult;
-  }
-  if (conds.formulaGen === 2) {
-    // Gen II (pokecrystal, PokeBallEffect): sleep/freeze add 10 to the finished value instead of a factor;
-    // paralysis/poison/burn should add 5 but give nothing (bug). Caught if random 0–255 ≤ a → (a + 1) ÷ 256.
-    const bonus = (conds.status === 'sleep' || conds.status === 'freeze') ? 10 : 0;
-    const a2 = Math.min(255, Math.max(1, Math.floor(a)) + bonus);
-    return (a2 + 1) / 256;
   }
   const ratio = Math.min(1, Math.max(0, a / 255));
   // Gen VI+ shake check uses exponent 3/16 per check (vs. 1/4 in Gen III–V) → P = ratio^(3/4)
@@ -444,7 +526,7 @@ function decimal(str) { return window.LANG === 'en' ? str : str.replace('.', ','
 
 function multLabel(ball, conds) {
   if (ball.additive) {
-    const b = heavyBonus(selectedPokemon?.weightKg || 0);
+    const b = heavyBonus(selectedPokemon?.weightKg || 0, conds.gen);
     return (b >= 0 ? '+' : '') + b + (window.LANG === 'en' ? ' flat' : ' add.');
   }
   const m = ball.mult(conds);
@@ -454,36 +536,35 @@ function multLabel(ball, conds) {
 
 // ── Formula tooltip content ───────────────────────────────────────────────
 const FORMULA_TOOLTIPS = {
-  1: `<div class="tt-title">Gen-1-Formel (vereinfacht)</div>
-      <div class="tt-formula">P = a ÷ 255<br>a = KP-Faktor × Fangrate × Ball × Status</div>
+  1: `<div class="tt-title">Gen-1-Formel (wie im Spiel)</div>
+      <div class="tt-formula">Zufall 1 (0–255, Superball 0–200, sonst 0–150) − Status ≤ Fangrate<br>und Zufall 2 ≤ F = KP<sub>max</sub> × 255 ÷ (Superball 8, sonst 12) ÷ (KP ÷ 4)</div>
       <ul class="tt-rules">
-        <li>KP-Faktor: (3 − 2 × KP%) ÷ 3</li>
-        <li>Schlaf / Eis: <b>2,5×</b> Statusbonus</li>
-        <li>Paralyse / Gift / Brand: 1,5×</li>
-        <li>Hinweis: Echte Gen-1-Formel nutzt zwei separate RNG-Prüfungen</li>
+        <li>Schlaf / Eis: −25 auf Zufall 1 (darunter: sofort gefangen)</li>
+        <li>Paralyse / Gift / Brand: −12</li>
+        <li>KP aus Basis-KP und Gegner-Level geschätzt</li>
       </ul>`,
-  2: `<div class="tt-title">Gen-2-Formel</div>
-      <div class="tt-formula">P = (a + 1) ÷ 256<br>a = KP-Faktor × Fangrate × Ball + Status</div>
+  2: `<div class="tt-title">Gen-2-Formel (wie im Spiel)</div>
+      <div class="tt-formula">P = (a + 1) ÷ 256<br>a = Fangrate<sub>Ball</sub> × (3·KP<sub>max</sub> − 2·KP) ÷ (3·KP<sub>max</sub>) + Status</div>
       <ul class="tt-rules">
-        <li>KP-Faktor: (3 − 2 × KP%) ÷ 3</li>
-        <li>Schlaf / Eis: <b>+10</b> auf den Wert (kein Faktor)</li>
-        <li>Paralyse / Gift / Brand: <b>kein Bonus (Gen-II-Bug!)</b></li>
-        <li>Neue Bälle: Mondball, Schwerball u.a.</li>
+        <li>Bälle verändern die Fangrate selbst (höchstens 255)</li>
+        <li>Schlaf / Eis: <b>+10</b>; Paralyse / Gift / Brand: <b>nichts (Bug)</b></li>
+        <li>Levelball ignoriert KP und Status, Mondball wirkt nie, Tempoball nur bei Magnetilo, Sleima, Tangela (Bugs)</li>
+        <li>KP aus Basis-KP und Gegner-Level geschätzt</li>
       </ul>`,
-  3: `<div class="tt-title">Gen-3-Formel</div>
-      <div class="tt-formula">P = a ÷ 255<br>a = KP-Faktor × Fangrate × Ball × Status</div>
+  3: `<div class="tt-title">Gen-3-Formel (wie im Spiel)</div>
+      <div class="tt-formula">a = Fangrate × Ball × (3·KP<sub>max</sub> − 2·KP) ÷ (3·KP<sub>max</sub>) × Status<br>P = (b ÷ 65536)<sup>4</sup>, b = 1048560 ÷ ⁴√(16711680 ÷ a)</div>
       <ul class="tt-rules">
-        <li>KP-Faktor: (3 − 2 × KP%) ÷ 3</li>
-        <li>Schlaf / Eis: <b>2,0×</b> Statusbonus (↓ von 2,5× in Gen 1–2)</li>
-        <li>Paralyse / Gift / Brand: 1,5×</li>
+        <li>Schlaf / Eis: <b>2×</b>; Paralyse / Gift / Brand: 1,5×</li>
+        <li>Ganzzahlig gerechnet, vier Schüttelprüfungen</li>
+        <li>KP aus Basis-KP und Gegner-Level geschätzt</li>
       </ul>`,
-  4: `<div class="tt-title">Gen-4-Formel</div>
-      <div class="tt-formula">P = a ÷ 255<br>a = KP-Faktor × Fangrate × Ball × Status</div>
+  4: `<div class="tt-title">Gen-4-Formel (wie im Spiel)</div>
+      <div class="tt-formula">a = Fangrate × Ball × (3·KP<sub>max</sub> − 2·KP) ÷ (3·KP<sub>max</sub>) × Status<br>P = (b ÷ 65536)<sup>4</sup>, b = 1048560 ÷ ⁴√(16711680 ÷ a)</div>
       <ul class="tt-rules">
-        <li>KP-Faktor: (3 − 2 × KP%) ÷ 3</li>
-        <li>Schlaf / Eis: 2,0× Statusbonus</li>
-        <li>Paralyse / Gift / Brand: 1,5×</li>
-        <li>Schnellball: <b>4×</b> im ersten Zug</li>
+        <li>Schlaf / Eis: <b>2×</b>; Paralyse / Gift / Brand: 1,5×</li>
+        <li>Schnellball <b>4×</b> im ersten Zug, Dunkelball 3,5×, Nestball (40 − Level) ÷ 10</li>
+        <li>HGSS: Aprikoko-Bälle verändern die Fangrate selbst (höchstens 255)</li>
+        <li>KP aus Basis-KP und Gegner-Level geschätzt</li>
       </ul>`,
   5: `<div class="tt-title">Gen-5-Formel</div>
       <div class="tt-formula">P = a ÷ 255<br>a = KP-Faktor × Fangrate × Ball × Status</div>
@@ -504,36 +585,35 @@ const FORMULA_TOOLTIPS = {
       </ul>`,
 };
 const FORMULA_TOOLTIPS_EN = {
-  1: `<div class="tt-title">Gen 1 formula (simplified)</div>
-      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+  1: `<div class="tt-title">Gen 1 formula (as in the game)</div>
+      <div class="tt-formula">random 1 (0–255, Great Ball 0–200, others 0–150) − status ≤ catch rate<br>and random 2 ≤ F = HP<sub>max</sub> × 255 ÷ (Great Ball 8, others 12) ÷ (HP ÷ 4)</div>
       <ul class="tt-rules">
-        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
-        <li>Sleep / Freeze: <b>2.5×</b> status bonus</li>
-        <li>Paralysis / Poison / Burn: 1.5×</li>
-        <li>Note: the real Gen 1 formula uses two separate RNG checks</li>
+        <li>Sleep / Freeze: −25 on random 1 (below 0: caught right away)</li>
+        <li>Paralysis / Poison / Burn: −12</li>
+        <li>HP estimated from base HP and enemy level</li>
       </ul>`,
-  2: `<div class="tt-title">Gen 2 formula</div>
-      <div class="tt-formula">P = (a + 1) ÷ 256<br>a = HP factor × catch rate × ball + status</div>
+  2: `<div class="tt-title">Gen 2 formula (as in the game)</div>
+      <div class="tt-formula">P = (a + 1) ÷ 256<br>a = catch rate<sub>ball</sub> × (3·HP<sub>max</sub> − 2·HP) ÷ (3·HP<sub>max</sub>) + status</div>
       <ul class="tt-rules">
-        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
-        <li>Sleep / Freeze: <b>+10</b> to the value (no factor)</li>
-        <li>Paralysis / Poison / Burn: <b>no bonus (Gen II bug!)</b></li>
-        <li>New balls: Moon Ball, Heavy Ball and more</li>
+        <li>Balls change the catch rate itself (at most 255)</li>
+        <li>Sleep / Freeze: <b>+10</b>; Paralysis / Poison / Burn: <b>nothing (bug)</b></li>
+        <li>Level Ball ignores HP and status, Moon Ball never works, Fast Ball only for Magnemite, Grimer, Tangela (bugs)</li>
+        <li>HP estimated from base HP and enemy level</li>
       </ul>`,
-  3: `<div class="tt-title">Gen 3 formula</div>
-      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+  3: `<div class="tt-title">Gen 3 formula (as in the game)</div>
+      <div class="tt-formula">a = catch rate × ball × (3·HP<sub>max</sub> − 2·HP) ÷ (3·HP<sub>max</sub>) × status<br>P = (b ÷ 65536)<sup>4</sup>, b = 1048560 ÷ ⁴√(16711680 ÷ a)</div>
       <ul class="tt-rules">
-        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
-        <li>Sleep / Freeze: <b>2.0×</b> status bonus (↓ from 2.5× in Gen 1–2)</li>
-        <li>Paralysis / Poison / Burn: 1.5×</li>
+        <li>Sleep / Freeze: <b>2×</b>; Paralysis / Poison / Burn: 1.5×</li>
+        <li>Integer math, four shake checks</li>
+        <li>HP estimated from base HP and enemy level</li>
       </ul>`,
-  4: `<div class="tt-title">Gen 4 formula</div>
-      <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
+  4: `<div class="tt-title">Gen 4 formula (as in the game)</div>
+      <div class="tt-formula">a = catch rate × ball × (3·HP<sub>max</sub> − 2·HP) ÷ (3·HP<sub>max</sub>) × status<br>P = (b ÷ 65536)<sup>4</sup>, b = 1048560 ÷ ⁴√(16711680 ÷ a)</div>
       <ul class="tt-rules">
-        <li>HP factor: (3 − 2 × HP%) ÷ 3</li>
-        <li>Sleep / Freeze: 2.0× status bonus</li>
-        <li>Paralysis / Poison / Burn: 1.5×</li>
-        <li>Quick Ball: <b>4×</b> on the first turn</li>
+        <li>Sleep / Freeze: <b>2×</b>; Paralysis / Poison / Burn: 1.5×</li>
+        <li>Quick Ball <b>4×</b> on the first turn, Dusk Ball 3.5×, Nest Ball (40 − level) ÷ 10</li>
+        <li>HGSS: Apricorn Balls change the catch rate itself (at most 255)</li>
+        <li>HP estimated from base HP and enemy level</li>
       </ul>`,
   5: `<div class="tt-title">Gen 5 formula</div>
       <div class="tt-formula">P = a ÷ 255<br>a = HP factor × catch rate × ball × status</div>
@@ -648,17 +728,17 @@ function renderPokemonCard() {
   const typeHtml = (p.types || []).map(typeBadge).join('');
   card.innerHTML = `
     <div class="poke-info">
-      <img class="poke-info-sprite" src="${p.sprite}" alt="${listName(p.id, p.name)}">
+      <img class="poke-info-sprite" src="${esc(p.sprite)}" alt="${esc(listName(p.id, p.name))}">
       <div class="poke-info-body">
         <div class="poke-info-head">
-          <span class="poke-info-name">${listName(p.id, p.name)}</span>
-          <span class="poke-info-id">#${p.id}</span>
+          <span class="poke-info-name">${esc(listName(p.id, p.name))}</span>
+          <span class="poke-info-id">#${esc(p.id)}</span>
         </div>
         <div class="poke-info-types">${typeHtml}</div>
         <div class="poke-info-stats">
-          <span>${tr.catchRateLabel} <b><span class="catch-rate-badge">${p.captureRate}/255</span></b></span>
+          <span>${tr.catchRateLabel} <b><span class="catch-rate-badge">${esc(p.captureRate)}/255</span></b></span>
           <span>${tr.weightLabel} <b>${decimal(p.weightKg.toFixed(1))} kg</b></span>
-          <span>${tr.speedLabel} <b>${p.baseSpeed}</b></span>
+          <span>${tr.speedLabel} <b>${esc(p.baseSpeed)}</b></span>
         </div>
       </div>
       <button type="button" id="btn-pick-pokemon" class="poke-change-btn">${SWAP_ICON}${tr.pokeChangeBtn}</button>
@@ -806,7 +886,7 @@ function renderPokemonList(filter) {
     }
     const li = document.createElement('li');
     li.className = 'pokemon-card';
-    li.innerHTML = `<img src="${p.sprite}" alt="${p.displayName}"><div>${p.displayName}</div>`;
+    li.innerHTML = `<img src="${esc(p.sprite)}" alt="${esc(p.displayName)}"><div>${esc(p.displayName)}</div>`;
     li.addEventListener('click', () => pickPokemon(p));
     list.appendChild(li);
   });
@@ -830,6 +910,7 @@ async function pickPokemon(p) {
       captureRate: species.capture_rate,
       weightKg:    poke.weight / 10,
       baseSpeed:   poke.stats[5].base_stat,
+      baseHp:      poke.stats[0].base_stat,
     };
     renderPokemonCard();
     renderBallGrid();

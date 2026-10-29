@@ -24,6 +24,9 @@
 })(this, function () {
   'use strict';
 
+  // Adresse dieser Datei – sie läuft auch selbst als Worker (readRomFile, ganz unten)
+  var SELF_URL = typeof document !== 'undefined' && document.currentScript ? document.currentScript.src : null;
+
   var FILES = {
     trdata: 'poketool/trainer/trdata.narc',
     trpoke: 'poketool/trainer/trpoke.narc',
@@ -45,7 +48,7 @@
   // Anzahl und Bereiche werden gegen die Dateigröße geprüft – eine kaputte Datei darf den Tab nicht lahmlegen.
   function narc(b) {
     if (b.length < 28 || String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'NARC') throw new Error('kein NARC');
-    var off = 16, btaf = u32(b, off + 4), n = u32(b, off + 8), list = [];
+    var off = 16, btaf = u32(b, off + 4), n = u16(b, off + 8), list = [];   // Anzahl: u16 (danach 2 Byte reserviert)
     if (btaf < 12 || off + btaf > b.length || n > (btaf - 12) / 8) throw new Error('kein NARC');
     for (var i = 0; i < n; i++) list.push([u32(b, off + 12 + i * 8), u32(b, off + 16 + i * 8)]);
     off += btaf;
@@ -238,5 +241,43 @@
     });
   }
 
-  return { readRom: readRom, _internal: { narc: narc, defaultMoves: defaultMoves, Lcrng: Lcrng } };
+  // Wie readRom, aber aus einer Datei (Blob) und in einem eigenen Worker: eine kaputte oder manipulierte ROM
+  // blockiert so nicht die Seite, und nach 30 s wird abgebrochen. Ohne Worker (z. B. file://) im Hauptthread.
+  var TIMEOUT = 30000;
+  function blobReader(blob) {
+    return function (s, e) { return blob.slice(s, e).arrayBuffer().then(function (b) { return new Uint8Array(b); }); };
+  }
+  function readRomFile(blob, ids, femaleClasses, basePersonal) {
+    var worker = null;
+    try { if (SELF_URL && typeof Worker === 'function') worker = new Worker(SELF_URL); } catch (e) { worker = null; }
+    if (!worker) return readRom(blobReader(blob), ids, femaleClasses, basePersonal);
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { worker.terminate(); reject(new Error('timeout')); }, TIMEOUT);
+      function done() { clearTimeout(timer); worker.terminate(); }
+      worker.onmessage = function (e) {
+        done();
+        if (e.data && e.data.error != null) reject(new Error(e.data.error));
+        else resolve(e.data.result);
+      };
+      worker.onerror = function (e) {
+        // Worker ließ sich nicht starten (z. B. Skript nicht ladbar) → im Hauptthread versuchen
+        e.preventDefault();
+        done();
+        readRom(blobReader(blob), ids, femaleClasses, basePersonal).then(resolve, reject);
+      };
+      worker.postMessage({ blob: blob, ids: ids, femaleClasses: femaleClasses, basePersonal: basePersonal });
+    });
+  }
+
+  // Als Worker gestartet: Auftrag annehmen, Ergebnis oder Fehlertext zurückschicken
+  if (typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined' && self instanceof WorkerGlobalScope) {
+    self.onmessage = function (e) {
+      var d = e.data;
+      readRom(blobReader(d.blob), d.ids, d.femaleClasses, d.basePersonal).then(
+        function (result) { self.postMessage({ result: result }); },
+        function (err) { self.postMessage({ error: (err && err.message) || 'error' }); });
+    };
+  }
+
+  return { readRom: readRom, readRomFile: readRomFile, _internal: { narc: narc, defaultMoves: defaultMoves, Lcrng: Lcrng } };
 });

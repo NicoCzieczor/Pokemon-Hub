@@ -391,7 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lcp-toggle').addEventListener('click', () => {
     const panel = document.getElementById('level-cap-panel');
     const collapsed = panel.classList.toggle('lcp-collapsed');
-    document.getElementById('lcp-toggle-icon').classList.toggle('is-collapsed', collapsed);
+    // Desktop: Pfeil im Knopf; Handy: der Knopf selbst ist der Pfeil
+    (document.getElementById('lcp-toggle-icon') || document.getElementById('lcp-toggle')).classList.toggle('is-collapsed', collapsed);
     lcpToggleTitle();
   });
 });

@@ -968,7 +968,8 @@ function syncStop() {
   syncSessionId = null;
   syncCode = null;
   syncJoined = false;
-  syncBase = null; syncRev = null; syncDirty = false; syncFresh = false;
+  syncBase = null; syncRev = null; syncFresh = false;
+  setSyncDirty(false);
   clearTimeout(_syncTimer); clearTimeout(_syncRetry);
   if (syncChannel) { sb.removeChannel(syncChannel); syncChannel = null; }
 }
@@ -1076,7 +1077,9 @@ async function syncRestore() {
   syncCode = saved.code;
   sessionMySlot = saved.slot;
   ({ state: syncBase, rev: syncRev } = loadSyncBase(saved.id));
-  syncDirty = false; syncFresh = false;
+  // Beim letzten Mal nicht mehr hochgeladene Änderung? Dann wird beim Verbinden zusammengeführt
+  syncDirty = localStorage.getItem(SYNC_DIRTY_KEY) === String(saved.id) && !!syncBase;
+  syncFresh = false;
   syncActive = true;
   showSessionUI(saved.code);
   await syncConnect();
@@ -1233,7 +1236,7 @@ async function syncPush() {
   }
   if (data?.ok) {
     setSyncBase(cleanSharedState(state), data.rev);
-    if (changeNo === syncChangeNo) syncDirty = false;
+    if (changeNo === syncChangeNo) setSyncDirty(false);
     else queuePush(0);   // während des Schreibens kam noch etwas dazu
   } else if (data) {
     receiveSharedState(data.state, data.rev);   // Konflikt → zusammenführen, danach erneut speichern
@@ -1242,10 +1245,22 @@ async function syncPush() {
 
 function onAfterSave() {
   if (!syncActive || syncSessionId == null) return;
-  syncDirty = true;
+  setSyncDirty(true);
   syncChangeNo++;
   queuePush();
 }
+
+// Ausstehende Änderung auch dauerhaft merken: Wird die App beendet oder neu geladen, bevor sie in der Datenbank
+// ist, wird sie beim nächsten Start mit dem Stand des Partners zusammengeführt statt überschrieben.
+const SYNC_DIRTY_KEY = 'duo-sync-dirty';
+function setSyncDirty(on) {
+  syncDirty = on;
+  try {
+    if (on) localStorage.setItem(SYNC_DIRTY_KEY, String(syncSessionId)); else localStorage.removeItem(SYNC_DIRTY_KEY);
+  } catch (e) { /* ohne Merker: Änderung gilt dann nur bis zum Neuladen als ausstehend */ }
+}
+// Ausstehende Änderung oder Schreiben läuft: pwa.js lädt eine neue Version dann noch nicht
+window.PokeHubBusy = () => syncDirty || syncPushing;
 
 // ── Save / Load ───────────────────────────────────────────────────────────────
 // Nur auf diesem Gerät; true = geklappt (false z. B. bei vollem Speicher)

@@ -1,0 +1,13 @@
+{
+  "name": "pokehub-e2e",
+  "private": true,
+  "description": "Browser-, Funktions- und Datenbanktests für den Pokémon Hub (lokal, ohne echte Server)",
+  "type": "module",
+  "scripts": {
+    "test": "node functions.mjs && node catch.mjs && node sql.mjs && node pages.mjs && node duo.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.2.17",
+    "puppeteer-core": "23.11.1"
+  }
+}

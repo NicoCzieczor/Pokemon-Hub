@@ -145,6 +145,11 @@
       download: 'Herunterladen',
       downloadAgain: 'Nochmal herunterladen',
       undo: 'Rückgängig',
+      backups: function (n) { return 'Frühere Fassungen dieser Datei (' + n + ')'; },
+      backupsHint: 'Vor jedem Speichern legt der Editor die bisherige Datei hier auf dem Gerät ab (die letzten 5).',
+      backupUse: 'Übernehmen',
+      backupUseTitle: 'In den Editor laden – mit „Speichern“ wird sie dann zurückgeschrieben',
+      backupDownload: 'Herunterladen',
       undone: 'Rückgängig gemacht – der Spielstand ist wieder wie vorher.',
       undoneDownload: 'Die ursprüngliche Datei ist in deinen Downloads. Ersetze den Spielstand damit, dann ist alles wie vorher.',
       errSize: function (kb) { return 'Das ist kein DS-Spielstand (' + kb + ' KB, erwartet sind 512 KB). Nimm die Datei, die beim Speichern im Spiel entsteht (.sav/.dsv) – keinen Savestate.'; },
@@ -265,6 +270,11 @@
       download: 'Download',
       downloadAgain: 'Download again',
       undo: 'Undo',
+      backups: function (n) { return 'Earlier versions of this file (' + n + ')'; },
+      backupsHint: 'Before every save, the editor keeps the previous file here on this device (the last 5).',
+      backupUse: 'Use',
+      backupUseTitle: 'Load into the editor – “Save” then writes it back',
+      backupDownload: 'Download',
       undone: 'Undone – the save file is back to how it was.',
       undoneDownload: 'The original file is in your downloads. Replace your save file with it and everything is back to how it was.',
       errSize: function (kb) { return 'This is not a DS save file (' + kb + ' KB, expected 512 KB). Use the file created when you save in the game (.sav/.dsv) – not a save state.'; },
@@ -280,7 +290,7 @@
   var lang = 'de';
   try { lang = localStorage.getItem('hub-lang') === 'en' ? 'en' : 'de'; } catch (e) {}
   // save: { name, handle, orig (Datei wie gespeichert), work (Arbeitskopie), base/data (gelesen), before (für Rückgängig) }
-  var state = { save: null, tab: 'candy', mon: null, box: 0, pocket: 0, picker: null, busy: false, result: null, error: '' };
+  var state = { save: null, tab: 'candy', mon: null, box: 0, pocket: 0, picker: null, busy: false, result: null, error: '', backups: [] };
 
   var $ = function (id) { return document.getElementById(id); };
   function L() { return I18N[lang]; }
@@ -335,6 +345,61 @@
   }
   function boxName(i) { return (state.save && state.save.data.boxes[i].name) || 'Box ' + (i + 1); }
 
+  /* ── Sicherungen: bisherige Fassung vor jedem Speichern (IndexedDB, je Dateiname die letzten 5) ── */
+  // „Rückgängig“ gilt nur, solange die Seite offen ist – die Sicherungen bleiben auch nach Schließen oder Absturz.
+  var Backups = (function () {
+    var KEEP = 5, dbp = null;
+    function db() {
+      if (!dbp) {
+        dbp = new Promise(function (res, rej) {
+          if (!window.indexedDB) { rej(new Error('no idb')); return; }
+          var r = indexedDB.open('pokehub-saveeditor', 1);
+          r.onupgradeneeded = function () { r.result.createObjectStore('backups', { keyPath: 'id', autoIncrement: true }); };
+          r.onsuccess = function () { res(r.result); };
+          r.onerror = function () { rej(r.error); };
+        });
+      }
+      return dbp;
+    }
+    function run(mode, fn) {
+      return db().then(function (d) {
+        return new Promise(function (res, rej) {
+          var t = d.transaction('backups', mode), req = fn(t.objectStore('backups'));
+          t.oncomplete = function () { res(req && req.result); };
+          t.onerror = t.onabort = function () { rej(t.error); };
+        });
+      });
+    }
+    // Neueste zuerst
+    function list(name) {
+      return run('readonly', function (s) { return s.getAll(); }).then(function (all) {
+        return (all || []).filter(function (b) { return b.name === name; })
+          .sort(function (a, b) { return b.savedAt - a.savedAt; });
+      }).catch(function () { return []; });
+    }
+    function add(name, bytes) {
+      return list(name).then(function (have) {
+        if (have[0] && sameBytes(new Uint8Array(have[0].bytes), bytes)) return have;   // schon gesichert
+        return run('readwrite', function (s) {
+          s.put({ name: name, savedAt: Date.now(), bytes: new Uint8Array(bytes).buffer });
+          have.slice(KEEP - 1).forEach(function (old) { s.delete(old.id); });
+        });
+      }).catch(function (e) { console.error('Sicherung fehlgeschlagen:', e); });
+    }
+    return { list: list, add: add };
+  })();
+
+  function refreshBackups() {
+    var sv = state.save;
+    if (!sv) { state.backups = []; return Promise.resolve(); }
+    return Backups.list(sv.name).then(function (list) {
+      if (state.save === sv) { state.backups = list; render(); }
+    });
+  }
+
+  // Ungespeicherte Änderungen oder laufender Schreibvorgang: pwa.js lädt eine neue Version dann noch nicht
+  window.PokeHubBusy = function () { var sv = state.save; return state.busy || (!!sv && !sameBytes(sv.orig, sv.work)); };
+
   /* ── Datei laden ───────────────────────────────────────────────── */
   function load(file, handle) {
     state.error = '';
@@ -355,6 +420,8 @@
       state.save = { name: file.name, handle: handle || null, orig: bytes, work: bytes, base: data, data: data, before: null };
       var first = data.party[0];
       state.mon = first ? first.where : null;
+      state.backups = [];
+      refreshBackups();
       state.box = data.currentBox < data.boxes.length ? data.currentBox : 0;
     }).catch(function (err) {
       state.error = L().errRead + (err && err.message);
@@ -489,7 +556,9 @@
     state.busy = true;
     render();
     var out = sv.work;
-    writeHandle(sv.handle, out, sv.orig).then(function (ok) {
+    Backups.add(sv.name, sv.orig).then(function () {
+      return writeHandle(sv.handle, out, sv.orig);
+    }).then(function (ok) {
       if (ok === 'conflict') state.result = { kind: 'conflict' };
       else if (ok) { markSaved(); state.result = { kind: 'direct' }; }
       else if (sv.handle && sv.handle.createWritable) state.result = { kind: 'writeFailed' };
@@ -497,6 +566,7 @@
     }).then(function () {
       state.busy = false;
       render();
+      refreshBackups();
     });
   }
 
@@ -506,7 +576,9 @@
     state.busy = true;
     render();
     var before = sv.before;
-    writeHandle(sv.handle, before, sv.orig).then(function (ok) {
+    Backups.add(sv.name, sv.orig).then(function () {
+      return writeHandle(sv.handle, before, sv.orig);
+    }).then(function (ok) {
       if (ok === 'conflict') {
         // Inzwischen hat jemand anderes gespeichert – den alten Stand nicht darüberschreiben
         state.result = { kind: 'conflict' };
@@ -816,7 +888,20 @@
         '<span class="save-card-name">' + esc(t.name) + '</span>' +
         '<span class="save-card-meta">' + esc(l.badges(t.badgeCount)) + ' · ' + esc(l.playTime(t.playTime.h, t.playTime.m)) + ' · ' + esc(sv.name) + '</span>' +
       '</div>' +
-      (team ? '<div class="save-team">' + team + '</div>' : '');
+      (team ? '<div class="save-team">' + team + '</div>' : '') +
+      backupsHtml();
+  }
+
+  function backupsHtml() {
+    var l = L(), list = state.backups;
+    if (!list.length) return '';
+    var fmt = function (t) { return new Date(t).toLocaleString(lang === 'de' ? 'de-DE' : 'en-US', { dateStyle: 'short', timeStyle: 'short' }); };
+    return '<details class="backups"><summary>' + esc(l.backups(list.length)) + '</summary>' +
+      '<p class="muted">' + esc(l.backupsHint) + '</p><ul>' + list.map(function (b) {
+        return '<li><span>' + esc(fmt(b.savedAt)) + '</span>' +
+          '<button type="button" class="small-btn" data-backup="' + b.id + '" data-act="use" title="' + esc(l.backupUseTitle) + '">' + esc(l.backupUse) + '</button>' +
+          '<button type="button" class="small-btn" data-backup="' + b.id + '" data-act="download">⭳ ' + esc(l.backupDownload) + '</button></li>';
+      }).join('') + '</ul></details>';
   }
 
   function resultHtml(r, sv) {
@@ -1004,6 +1089,15 @@
     sv.data = sv.base;
     state.result = null;
     render();
+  });
+  $('save-card').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-backup]');
+    if (!b || !state.save || state.busy) return;
+    var rec = state.backups.filter(function (x) { return String(x.id) === b.dataset.backup; })[0];
+    if (!rec) return;
+    if (b.dataset.act === 'download') downloadFile(new Uint8Array(rec.bytes), state.save.name);
+    // Als Arbeitskopie übernehmen – geprüft wie jede Änderung; zurückgeschrieben wird erst mit „Speichern“
+    else change(function () { return new Uint8Array(rec.bytes); });
   });
   $('result').addEventListener('click', function (e) {
     var b = e.target.closest('[data-act]');

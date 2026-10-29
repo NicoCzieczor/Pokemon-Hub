@@ -271,7 +271,9 @@ const TYPE_DE = {
 };
 const cap = s => String(s || '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 const typeName = type => (isEn() ? cap(type) : (TYPE_DE[type] || cap(type)));
-const typePill = type => `<span class="type-pill" style="background:${TYPE_COLORS[type] || '#888'};color:${TYPE_TEXT[type] || '#fff'}">${typeName(type)}</span>`;
+// Texte und Adressen aus der PokeAPI, die in HTML landen
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const typePill = type => `<span class="type-pill" style="background:${TYPE_COLORS[type] || '#888'};color:${TYPE_TEXT[type] || '#fff'}">${esc(typeName(type))}</span>`;
 const classTag = cls => cls ? `<span class="class-tag class-tag--${cls}">${t(cls)}</span>` : '';
 
 // ── Wesen ─────────────────────────────────────────────────────────────────────
@@ -564,9 +566,9 @@ function renderPick(role) {
     : (state.gen === 1 ? `${s.hp} ${base.hp} · ${s.defense} ${base.defense} · ${s.special} ${base.sp_defense}`
       : `${s.hp} ${base.hp} · ${s.defense} ${base.defense} · ${s.sp_defense} ${base.sp_defense}`);
   el.classList.remove('is-empty');
-  el.innerHTML = `<img class="pick-sprite" src="${p.sprite}" alt="">
+  el.innerHTML = `<img class="pick-sprite" src="${esc(p.sprite)}" alt="">
     <span class="pick-body">
-      <span class="pick-name">${pokeName(p)} <small>#${p.id}</small></span>
+      <span class="pick-name">${esc(pokeName(p))} <small>#${esc(p.id)}</small></span>
       <span class="pick-types">${types.map(typePill).join('')}</span>
       <span class="pick-sub">${mini}</span>
     </span>
@@ -586,7 +588,7 @@ function renderMovePick() {
   const stab = state.atk && g.type && pokeForGen(state.atk, state.gen).types.includes(g.type);
   el.classList.remove('is-empty');
   el.innerHTML = `<span class="pick-body">
-      <span class="pick-name">${moveName(m)}</span>
+      <span class="pick-name">${esc(moveName(m))}</span>
       <span class="pick-types">${g.type ? typePill(g.type) : ''}${classTag(g.damageClass)}${stab ? '<span class="stab-tag">STAB</span>' : ''}</span>
       <span class="pick-sub">${t('power')} <b>${g.power ?? '–'}</b></span>
     </span>
@@ -644,7 +646,7 @@ const breaksScreens = (name, gen) => SCREEN_BREAKERS[name] != null && gen >= SCR
 function renderNote(id, notes) {
   const el = $(id);
   el.hidden = !notes.length;
-  el.innerHTML = notes.map(n => `<span class="note${n.warn ? ' note--warn' : ''}">${n.text}</span>`).join('');
+  el.innerHTML = notes.map(n => `<span class="note${n.warn ? ' note--warn' : ''}">${esc(n.text)}</span>`).join('');
 }
 
 // ── Anzeige: Statuswerte ──────────────────────────────────────────────────────
@@ -747,7 +749,7 @@ function renderMissing() {
     </div>`;
 }
 function renderMessage(msg) {
-  $('results-area').innerHTML = `<div class="res-empty"><p>${msg}</p></div>`;
+  $('results-area').innerHTML = `<div class="res-empty"><p>${esc(msg)}</p></div>`;
 }
 
 function renderResults(r) {
@@ -775,10 +777,10 @@ function renderResults(r) {
 
   $('results-area').innerHTML = `
     <div class="res-matchup">
-      <img src="${state.atk.sprite}" alt=""><b>${pokeName(state.atk)}</b>
-      <span class="res-move">${moveName(state.move)}</span>
+      <img src="${esc(state.atk.sprite)}" alt=""><b>${esc(pokeName(state.atk))}</b>
+      <span class="res-move">${esc(moveName(state.move))}</span>
       <span class="res-vs">${t('vs')}</span>
-      <img src="${state.def.sprite}" alt=""><b>${pokeName(state.def)}</b>
+      <img src="${esc(state.def.sprite)}" alt=""><b>${esc(pokeName(state.def))}</b>
     </div>
     <div class="res-main">
       <div class="res-dmg">
@@ -889,7 +891,7 @@ function renderPokeList(list, showHeaders) {
       frag.appendChild(h);
     }
     const li = document.createElement('li');
-    li.innerHTML = `<button type="button" class="poke-item"><img src="${spriteUrl(p.id)}" alt="" loading="lazy"><span class="pi-name">${listName(p)}</span><span class="pi-id">#${p.id}</span></button>`;
+    li.innerHTML = `<button type="button" class="poke-item"><img src="${spriteUrl(p.id)}" alt="" loading="lazy"><span class="pi-name">${esc(listName(p))}</span><span class="pi-id">#${p.id}</span></button>`;
     li.firstChild.addEventListener('click', () => choosePokemon(p.name));
     frag.appendChild(li);
   });
@@ -978,7 +980,7 @@ function renderMoveList(moves, emptyMessage) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'move-item';
-    btn.innerHTML = `<span class="mi-name">${moveName(m)}</span>
+    btn.innerHTML = `<span class="mi-name">${esc(moveName(m))}</span>
       ${g.type ? typePill(g.type) : ''}
       ${classTag(g.damageClass)}
       <span class="mi-power">${g.power || '–'}</span>`;

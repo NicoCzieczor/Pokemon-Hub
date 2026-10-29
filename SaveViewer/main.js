@@ -809,7 +809,7 @@
     try {
       if (Object.keys(p).length) localStorage.setItem(runKey(), JSON.stringify(p));
       else localStorage.removeItem(runKey());
-    } catch (e) {}
+    } catch (e) { if (window.PokeHubStorageWarning) window.PokeHubStorageWarning(true); }
     renderTabs();
     renderPanel();
   }
@@ -1111,7 +1111,7 @@
       box1: names(plan.box, 0, DUO_BOX), box2: names(plan.box, 1, DUO_BOX),
       graves1: names(plan.grave, 0), graves2: names(plan.grave, 1)
     };
-    try { localStorage.setItem(DUO_IMPORT_KEY, JSON.stringify(data)); } catch (e) { return; }
+    try { localStorage.setItem(DUO_IMPORT_KEY, JSON.stringify(data)); } catch (e) { if (window.PokeHubStorageWarning) window.PokeHubStorageWarning(true); return; }
     location.href = '../Duo/index.html';
   }
 
@@ -1377,7 +1377,7 @@
     if (!s) return;
     var sv = state.saves[+s.dataset.i];
     sv.grave = +s.value;
-    try { localStorage.setItem(graveKey(sv.data), String(sv.grave)); } catch (err) {}
+    try { localStorage.setItem(graveKey(sv.data), String(sv.grave)); } catch (err) { if (window.PokeHubStorageWarning) window.PokeHubStorageWarning(true); }
     renderTabs();
     renderPanel();
   });

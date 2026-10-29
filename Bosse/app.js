@@ -564,9 +564,14 @@ async function loadFile(file) {
 function showSaveError(msg) { $('save-error').hidden = !msg; $('save-error').textContent = msg; }
 
 const teamKey = sv => `bosse-team:${sv.data.trainer.tid}-${sv.data.trainer.sid}`;
+// Speichern; klappt das nicht (Speicher voll), gibt es einen sichtbaren Hinweis statt eines stillen Fehlers
+function store(key, value) {
+  try { localStorage.setItem(key, value); return true; }
+  catch (e) { console.error('Speichern fehlgeschlagen:', e); window.PokeHubStorageWarning?.(true); return false; }
+}
 const allOwn = sv => [...sv.data.party, ...sv.data.boxes.flatMap(b => b.slots)].filter(m => m && !m.isEgg);
 function applySave() {
-  localStorage.setItem('bosse-save', String(state.save));
+  store('bosse-save', String(state.save));
   const sv = currentSave();
   state.team = [];
   if (sv) {
@@ -590,12 +595,12 @@ function applySave() {
 }
 function setStarter(s) {
   state.starter = s;
-  localStorage.setItem('bosse-starter', s);
+  store('bosse-starter', s);
   $('starter-select').value = s;
 }
 function saveTeamChoice() {
   const sv = currentSave();
-  if (sv) localStorage.setItem(teamKey(sv), JSON.stringify(state.team.map(m => m.key)));
+  if (sv) store(teamKey(sv), JSON.stringify(state.team.map(m => m.key)));
 }
 function pickDefaultFight() {
   const fromHash = fightFromHash();
@@ -669,10 +674,9 @@ async function loadRom(file) {
   $('load-rom').disabled = true;
   $('load-rom').textContent = t.romReading;
   try {
-    const read = (s, e) => file.slice(s, e).arrayBuffer().then(b => new Uint8Array(b));
-    const res = await Rando.readRom(read, Object.keys(B.trainers).map(Number), B.fem, PT.personal);
+    const res = await Rando.readRomFile(file, Object.keys(B.trainers).map(Number), B.fem, PT.personal);
     state.rando = { name: file.name, loadedAt: Date.now(), ...res };
-    try { localStorage.setItem('bosse-rando', JSON.stringify(state.rando)); } catch (e) { /* voll: gilt nur für diese Sitzung */ }
+    store('bosse-rando', JSON.stringify(state.rando));   // voll: gilt nur für diese Sitzung (mit Hinweis)
     applySave();
   } catch (e) {
     showSaveError(e && e.message === 'notPlatinum' ? t.romError : `${t.romError} (${e && e.message})`);

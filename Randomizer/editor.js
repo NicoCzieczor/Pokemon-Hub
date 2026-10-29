@@ -84,7 +84,7 @@
       try {
         if (st.base && same(st.data, st.base)) localStorage.removeItem(KEY);
         else localStorage.setItem(KEY, JSON.stringify({ b64: toB64(R.build(st.data)) }));
-      } catch (e) { /* Speicher voll – gilt dann nur bis zum Schließen */ }
+      } catch (e) { window.PokeHubStorageWarning?.(true); }   // gilt dann nur bis zum Schließen
     }
 
     let loading = null;

@@ -61,7 +61,6 @@ const I18N = {
     noEncounters: 'Noch keine Encounters eingetragen.',
     emptyGraveyard: 'Noch leer.',
     deleteEncounterTitle: 'Löschen',
-    saveFailed: 'Speichern fehlgeschlagen – der Gerätespeicher ist voll. Änderungen gehen beim Schließen verloren. Sichere deine Daten auf der Startseite.',
     changeStatusTitle: 'Status wechseln',
     removeGraveyardTitle: 'Entfernen',
     starterBadge: 'Starter',
@@ -166,7 +165,6 @@ const I18N = {
     noEncounters: 'No encounters added yet.',
     emptyGraveyard: 'Still empty.',
     deleteEncounterTitle: 'Delete',
-    saveFailed: 'Saving failed – device storage is full. Changes will be lost when you close the app. Back up your data on the home page.',
     changeStatusTitle: 'Change status',
     removeGraveyardTitle: 'Remove',
     starterBadge: 'Starter',
@@ -2886,26 +2884,15 @@ function save() {
 function writeRuns(data) {
   try {
     localStorage.setItem(RUNS_KEY, JSON.stringify(data));
-    showSaveWarning(false);
+    window.PokeHubStorageWarning?.(false);
     return true;
   } catch (e) {
     console.error('Speichern fehlgeschlagen:', e);
-    showSaveWarning(true);
+    window.PokeHubStorageWarning?.(true);
     return false;
   }
 }
 
-function showSaveWarning(show) {
-  let el = document.getElementById('save-warning');
-  if (!show) { if (el) el.hidden = true; return; }
-  if (!el) {
-    el = Object.assign(document.createElement('div'), { id: 'save-warning', className: 'save-warning' });
-    el.setAttribute('role', 'alert');
-    document.body.appendChild(el);
-  }
-  el.textContent = t('saveFailed');
-  el.hidden = false;
-}
 
 function load() {
   // Try new multi-run format

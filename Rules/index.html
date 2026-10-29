@@ -551,7 +551,10 @@
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
       catch { return []; }
     }
-    function saveRules(rules) { localStorage.setItem(STORAGE_KEY, JSON.stringify(rules)); }
+    function saveRules(rules) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(rules)); }
+      catch (e) { window.PokeHubStorageWarning?.(true); }
+    }
     function renderRules() {
       const rules = loadRules();
       list.querySelectorAll('.custom-rule-item').forEach(el => el.remove());

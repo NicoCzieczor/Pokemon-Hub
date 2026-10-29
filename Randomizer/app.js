@@ -189,15 +189,16 @@
     ctx: () => ({ english: !!state.rom && /^CPU[EP]$/.test(state.rom.code || '') })
   });
 
-  /* ── Original-ROM ──────────────────────────────────────────────── */
-  const reader = blob => (s, e) => blob.slice(s, e).arrayBuffer().then(b => new Uint8Array(b));
+  // Randomisieren läuft: pwa.js lädt eine neue Version dann noch nicht
+  window.PokeHubBusy = () => !!state.phase;
 
+  /* ── Original-ROM ──────────────────────────────────────────────── */
   async function handleRom(file) {
     state.romError = '';
     let info;
     try {
       if (file.size < 1048576 || file.size > 512 * 1048576) throw new Error('size');   // DS-ROMs: 1–512 MB
-      info = await Rando.readRom(reader(file), [], [], []);
+      info = await Rando.readRomFile(file, [], [], []);
     } catch (e) {
       state.romError = e && e.message === 'notPlatinum' ? L().errNotPlatinum : L().errNotRom;
       render();
@@ -350,13 +351,13 @@
     let B = null;
     try { B = await (await fetch('../Bosse/bosses.json')).json(); } catch (e) { /* ohne Boss-Planer */ }
     try {
-      const res = await Rando.readRom(reader(rom), B ? Object.keys(B.trainers).map(Number) : [], B ? B.fem : [], D.personal);
+      const res = await Rando.readRomFile(rom, B ? Object.keys(B.trainers).map(Number) : [], B ? B.fem : [], D.personal);
       let boss = false;
       if (B) {
         try {
           localStorage.setItem('bosse-rando', JSON.stringify(Object.assign({ name: fileName, loadedAt: Date.now() }, res)));
           boss = true;
-        } catch (e) { /* Speicher voll */ }
+        } catch (e) { window.PokeHubStorageWarning?.(true); }
       }
       return { starters: res.starters, boss: boss };
     } catch (e) {
