@@ -150,10 +150,11 @@ section h2 {
   box-shadow: 0 0 0 3px rgba(var(--t-acc2-glow), 0.16);
   background: rgba(var(--t-ink), 0.10);
 }
+/* Innenabstand: Karten heben sich beim Überfahren um 2px – ohne Platz schnitt der Scrollbereich die oberste Reihe ab */
 #pokemon-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px 2px;
   overflow-y: auto;
   max-height: calc(90vh - 200px);
   display: grid;

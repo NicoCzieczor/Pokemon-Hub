@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('box-toggle')?.click();
         }
       }
+      // Routen-Tab: Liste gleich aufklappen
+      if (btn.dataset.tab === 'routes' && document.getElementById('routes-body')?.hidden) {
+        document.getElementById('routes-toggle')?.click();
+      }
     });
   });
 });

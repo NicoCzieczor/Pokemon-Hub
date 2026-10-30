@@ -45,13 +45,14 @@
 <header>
   <h1><span data-i18n="title">Karte von Sinnoh</span> <span class="game-badge" data-i18n="gameBadge">Platin</span></h1>
   <p data-i18n="subtitle">Items, versteckte Items, TMs, Trainer und wilde Pokémon – an ihrer echten Stelle im Spiel.</p>
+  <div class="map-rando" id="map-rando"></div>
 </header>
 
 <main class="map-layout">
   <section class="map-card">
     <div class="map-toolbar">
       <div class="search-wrap">
-        <input id="map-search" type="search" autocomplete="off" spellcheck="false" placeholder="Ort, Item, TM oder Trainer suchen…" data-i18n-placeholder="searchPlaceholder">
+        <input id="map-search" type="search" autocomplete="off" spellcheck="false" placeholder="Ort, Pokémon, Item, TM oder Trainer suchen…" data-i18n-placeholder="searchPlaceholder">
         <div id="search-results" class="search-results" hidden></div>
       </div>
       <div class="filter-chips" id="filter-chips">
@@ -84,6 +85,8 @@
 </div>
 
 <script src="../vendor/leaflet/leaflet.js"></script>
+<script src="../pokemon-names.js"></script>
+<script src="../rando-state.js"></script>
 <script src="trainer-classes.js"></script>
 <script src="app.js"></script>
 </body>

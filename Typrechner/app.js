@@ -297,11 +297,20 @@ ROLES.forEach(role => {
 document.querySelectorAll('.gen-chip').forEach(btn => {
   btn.addEventListener('click', () => {
     state.gen = +btn.dataset.gen;
-    try { localStorage.setItem('hub-gen', String(state.gen)); } catch (e) { /* egal */ }
+    if (window.PokeHubGame) window.PokeHubGame.setGen(state.gen);
+    else try { localStorage.setItem('hub-gen', String(state.gen)); } catch (e) { /* egal */ }
     // Typen, die es in der Generation noch nicht gab, fliegen raus
     ROLES.forEach(r => { if (state[r] && !inGen(state[r], state.gen)) state[r] = null; });
     renderAll();
   });
+});
+// Aktives Spiel woanders geändert (Chip, andere Seite): Generation übernehmen
+document.addEventListener('hubgamechange', e => {
+  const g = e.detail && e.detail.gen;
+  if (!g || g === state.gen) return;
+  state.gen = g;
+  ROLES.forEach(r => { if (state[r] && !inGen(state[r], state.gen)) state[r] = null; });
+  renderAll();
 });
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────

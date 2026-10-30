@@ -13,6 +13,12 @@
  *   pins[key] = partnerKey → fest verknüpft (muss in beide Richtungen eingetragen sein)
  *   pins[key] = null       → bewusst ohne Partner (wird nicht automatisch verknüpft)
  *   pins[key] = 'x'        → ignoriert (gehört nicht zum Run)
+ *
+ * Festlegungen („Fixes“) lösen einen Regelverstoß gleich hier, ohne erst im Spiel umzuräumen: Das Paar
+ * zählt dann z. B. als „beide im Team“. Eine Festlegung gilt nur, solange beide noch so stehen wie beim
+ * Festlegen – wird im Spiel umgeräumt, zählt wieder der Spielstand.
+ *   fixes[pairId] = { s: [Status, Status], to: 'team' | 'box' | 'dead' }
+ *   pairId = beide Schlüssel sortiert, mit „|“ verbunden; s in derselben Reihenfolge.
  */
 (function (root, factory) {
   var api = factory();
@@ -40,13 +46,28 @@
 
   function isDead(e) { return e.status === 'dead' || e.status === 'fainted'; }
 
+  function pairId(a, b) { return a < b ? a + '|' + b : b + '|' + a; }
+  // Status beider wie im Spielstand, in der Reihenfolge von pairId
+  function gameStatus(p) {
+    var sa = p.a.gameStatus || p.a.status, sb = p.b.gameStatus || p.b.status;
+    return p.a.key < p.b.key ? [sa, sb] : [sb, sa];
+  }
+  function needsFix(e, to) {
+    if (to === 'dead') return !isDead(e);
+    if (to === 'box') return e.status === 'team';
+    return e.status !== 'team';
+  }
+
   /**
    * A, B: Listen von Einträgen { m, key, own, status, order }
    *   own    – vom Spieler selbst gefangen (Trainer-ID passt)
    *   status – 'team' | 'box' | 'daycare' | 'dead' (Friedhof) | 'fainted' (K.O. im Team)
+   * Greift eine Festlegung, bekommt der Eintrag den festgelegten status; der Status aus dem Spielstand
+   * steht dann in gameStatus. Das Paar ist mit fixed markiert.
    */
-  function compute(A, B, pins) {
+  function compute(A, B, pins, fixes) {
     pins = pins || {};
+    fixes = fixes || {};
     var mapA = {}, mapB = {};
     A.forEach(function (e) { mapA[e.key] = e; });
     B.forEach(function (e) { mapB[e.key] = e; });
@@ -118,7 +139,22 @@
     sortUnpaired(unpairedA);
     sortUnpaired(unpairedB);
 
-    // 3. Regelverstöße
+    // 3. Festlegungen; passt eine nicht mehr zum Spielstand (dort umgeräumt), ist sie überholt
+    var stale = [];
+    pairs.forEach(function (p) {
+      var id = pairId(p.a.key, p.b.key), f = fixes[id];
+      if (!f) return;
+      var s = gameStatus(p);
+      if (!f.s || f.s[0] !== s[0] || f.s[1] !== s[1]) { stale.push(id); return; }
+      [p.a, p.b].forEach(function (e) {
+        if (!needsFix(e, f.to)) return;
+        e.gameStatus = e.status;
+        e.status = f.to;
+      });
+      p.fixed = true;
+    });
+
+    // 4. Regelverstöße
     var warnings = [];
     pairs.forEach(function (p) {
       var da = isDead(p.a), db = isDead(p.b);
@@ -139,7 +175,8 @@
       unpairedB: unpairedB,
       ignoredA: ignoredA,
       ignoredB: ignoredB,
-      warnings: warnings
+      warnings: warnings,
+      staleFixes: stale
     };
   }
 
@@ -199,6 +236,26 @@
     return out;
   }
 
+  /* ── Festlegungen (gibt immer ein neues Objekt zurück) ─────────────── */
+  // Paar p (aus compute) zählt ab jetzt als to: 'team' | 'box' | 'dead'
+  function fix(fixes, p, to) {
+    var out = copy(fixes);
+    out[pairId(p.a.key, p.b.key)] = { s: gameStatus(p), to: to };
+    return out;
+  }
+
+  function unfix(fixes, a, b) {
+    var out = copy(fixes);
+    delete out[pairId(a, b)];
+    return out;
+  }
+
+  function dropFixes(fixes, ids) {
+    var out = copy(fixes);
+    ids.forEach(function (id) { delete out[id]; });
+    return out;
+  }
+
   return {
     monKey: monKey,
     encounterLocation: encounterLocation,
@@ -210,6 +267,9 @@
     confirm: confirm,
     ignore: ignore,
     restore: restore,
+    fix: fix,
+    unfix: unfix,
+    dropFixes: dropFixes,
     isDead: isDead
   };
 });

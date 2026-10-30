@@ -13,8 +13,8 @@
  * und zählt dabei VERSION hoch (tests/sw-version.test.cjs prüft das). Die vorderen Stellen von VERSION dürfen
  * von Hand angehoben werden. Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = '0.1.0';            // steht unten auf der Startseite
-const CONTENT = '07b4be875e';       // ändert sich mit jeder Datei → neue Version für alle Geräte
+const VERSION = '0.1.21';            // steht unten auf der Startseite
+const CONTENT = 'e7b394ed55';       // ändert sich mit jeder Datei → neue Version für alle Geräte
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -41,6 +41,9 @@ const PRECACHE = [
   './pwa.js',
   './theme.css',
   './pokemon-names.js',
+  './pokemon-types.js',
+  './locations.js',
+  './rando-state.js',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -66,6 +69,7 @@ const PRECACHE = [
   './Duo/main.js',
   './Duo/shared-state.js',
   './Duo/style.css',
+  './Duo/routes.css',
   './Duo/i18n.js',
   './Duo/level-caps.js',
   './Duo/mobile-tabs.js',
@@ -90,6 +94,7 @@ const PRECACHE = [
   './Karte/style.css',
   './Karte/app.js',
   './Karte/platin.json',
+  './Karte/encounter-areas.js',
   './Karte/trainer-classes.js',
   './Bosse/index.html',
   './Bosse/style.css',

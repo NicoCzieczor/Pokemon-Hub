@@ -983,15 +983,32 @@ button { font: inherit; }
 .ctx-menu button.ctx-danger { color: rgb(var(--t-c-fc8181)); }
 .ctx-menu button.ctx-danger:hover { background: rgba(252,129,129,0.12); }
 
-/* ── Box + Graveyard row ── */
+/* ── Box + Routen + Graveyard row ── */
 #box-graveyard-row {
   display: flex;
   gap: 16px;
   align-items: flex-start;
 }
-#box-graveyard-row #box-section {
-  flex: 1;
+/* Box und Routen: zu = gleich breit; ist eine offen, nimmt sie den Platz und die andere wird schmal (main.js) */
+#box-graveyard-row #box-section,
+#box-graveyard-row #routes-section {
+  flex: 1 1 0px;
   min-width: 0;
+  transition: flex-grow 0.3s ease, flex-basis 0.3s ease;
+}
+#box-graveyard-row #box-section.is-shrunk,
+#box-graveyard-row #routes-section.is-shrunk { flex: 0 0 190px; }
+#box-graveyard-row .is-shrunk .box-toggle-btn,
+#box-graveyard-row .is-shrunk .routes-toggle-btn { gap: 10px; white-space: nowrap; }
+#box-graveyard-row .is-shrunk .box-toggle-btn > span:first-child,
+#box-graveyard-row .is-shrunk .routes-toggle-btn > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: reduce) {
+  #box-graveyard-row #box-section, #box-graveyard-row #routes-section { transition: none; }
+}
+/* Schmales Fenster: Friedhof unter die Zeile, damit Box und Routen genug Platz haben */
+@media (max-width: 900px) {
+  #box-graveyard-row { flex-wrap: wrap; }
+  #box-graveyard-row #graveyard-section { flex: 1 1 100%; width: auto; position: static; }
 }
 
 /* ── Graveyard sidebar ── */

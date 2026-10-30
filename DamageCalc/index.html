@@ -98,20 +98,37 @@
         <label class="field"><span data-i18n="levelLabel">Level</span><input type="number" id="atk-level" value="50" min="1" max="100" inputmode="numeric"></label>
         <label class="field"><span data-i18n="natureLabel">Wesen</span><select id="atk-nature"></select></label>
       </div>
+      <div class="field-row field-row--even">
+        <label class="field"><span data-i18n="abilityLabel">Fähigkeit</span><select id="atk-ability"></select></label>
+        <label class="field"><span data-i18n="itemLabel">Item</span><select id="atk-item"></select></label>
+      </div>
       <div class="stat-table">
-        <div class="st-head"><span></span><span>EV</span><span class="iv-head">IV</span><span data-i18n="statValue">Wert</span></div>
+        <div class="st-head"><span></span><span>EV</span><span class="iv-head">IV</span><span data-i18n="stageHead" data-i18n-title="stageTitle" title="Statuswert-Stufe: +2 nach Schwerttanz, −1 durch Einschüchterung …">Stufe</span><span data-i18n="statValue">Wert</span></div>
         <div class="st-row" id="atk-atk-row">
           <span class="st-name" data-i18n="atkStat">Angriff</span>
           <input type="number" id="atk-atk-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
           <input type="number" id="atk-atk-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <select id="atk-atk-stage" class="stage-sel" data-i18n-aria="stageHead" aria-label="Stufe"></select>
           <output id="atk-atk-final">–</output>
         </div>
         <div class="st-row" id="atk-spa-row">
           <span class="st-name" id="atk-spa-label">Sp. Angriff</span>
           <input type="number" id="atk-spa-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
           <input type="number" id="atk-spa-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <select id="atk-spa-stage" class="stage-sel" data-i18n-aria="stageHead" aria-label="Stufe"></select>
           <output id="atk-spa-final">–</output>
         </div>
+        <div class="st-row" id="atk-spe-row">
+          <span class="st-name" data-i18n="speStat">Initiative</span>
+          <input type="number" id="atk-spe-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
+          <input type="number" id="atk-spe-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <select id="atk-spe-stage" class="stage-sel" data-i18n-aria="stageHead" aria-label="Stufe"></select>
+          <output id="atk-spe-final">–</output>
+        </div>
+      </div>
+      <div class="mini-togs">
+        <label class="mini-tog"><input type="checkbox" id="atk-par"><span data-i18n="parLabel">Paralysiert</span></label>
+        <label class="mini-tog" id="atk-pinch-wrap" hidden><input type="checkbox" id="atk-pinch"><span data-i18n="pinchLabel">KP unter ⅓</span></label>
       </div>
       <p class="card-note" id="atk-note" hidden></p>
     </section>
@@ -135,26 +152,52 @@
         <label class="field"><span data-i18n="levelLabel">Level</span><input type="number" id="def-level" value="50" min="1" max="100" inputmode="numeric"></label>
         <label class="field"><span data-i18n="natureLabel">Wesen</span><select id="def-nature"></select></label>
       </div>
+      <div class="field-row field-row--even">
+        <label class="field"><span data-i18n="abilityLabel">Fähigkeit</span><select id="def-ability"></select></label>
+        <label class="field"><span data-i18n="itemLabel">Item</span><select id="def-item"></select></label>
+      </div>
       <div class="stat-table">
-        <div class="st-head"><span></span><span>EV</span><span class="iv-head">IV</span><span data-i18n="statValue">Wert</span></div>
+        <div class="st-head"><span></span><span>EV</span><span class="iv-head">IV</span><span data-i18n="stageHead" data-i18n-title="stageTitle" title="Statuswert-Stufe: +2 nach Schwerttanz, −1 durch Einschüchterung …">Stufe</span><span data-i18n="statValue">Wert</span></div>
         <div class="st-row" id="def-hp-row">
           <span class="st-name" data-i18n="hpStat">KP</span>
           <input type="number" id="def-hp-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
           <input type="number" id="def-hp-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <span></span>
           <output id="def-hp-final">–</output>
         </div>
         <div class="st-row" id="def-def-row">
           <span class="st-name" data-i18n="defStat">Verteidigung</span>
           <input type="number" id="def-def-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
           <input type="number" id="def-def-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <select id="def-def-stage" class="stage-sel" data-i18n-aria="stageHead" aria-label="Stufe"></select>
           <output id="def-def-final">–</output>
         </div>
         <div class="st-row" id="def-spd-row">
           <span class="st-name" id="def-spd-label">Sp. Vert.</span>
           <input type="number" id="def-spd-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
           <input type="number" id="def-spd-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <select id="def-spd-stage" class="stage-sel" data-i18n-aria="stageHead" aria-label="Stufe"></select>
           <output id="def-spd-final">–</output>
         </div>
+        <div class="st-row" id="def-spe-row">
+          <span class="st-name" data-i18n="speStat">Initiative</span>
+          <input type="number" id="def-spe-ev" value="0" min="0" max="252" step="4" inputmode="numeric" aria-label="EV">
+          <input type="number" id="def-spe-iv" value="31" min="0" max="31" inputmode="numeric" aria-label="IV">
+          <select id="def-spe-stage" class="stage-sel" data-i18n-aria="stageHead" aria-label="Stufe"></select>
+          <output id="def-spe-final">–</output>
+        </div>
+      </div>
+      <div class="mini-togs">
+        <label class="mini-tog"><input type="checkbox" id="def-par"><span data-i18n="parLabel">Paralysiert</span></label>
+      </div>
+      <!-- Aktuelle KP: als Zahl (eigenes Pokémon) oder in Prozent (Balken des Gegners); leer = volle KP -->
+      <div class="hp-now" id="def-hp-now-row">
+        <span class="hp-now-label" data-i18n="hpNowLabel">Aktuelle KP</span>
+        <input type="number" id="def-hp-now" min="1" inputmode="numeric" placeholder="–" data-i18n-aria="hpNowLabel" aria-label="Aktuelle KP">
+        <span class="hp-now-of" id="def-hp-now-of"></span>
+        <input type="number" id="def-hp-pct" min="1" max="100" inputmode="numeric" placeholder="100" data-i18n-aria="hpNowPct" aria-label="Aktuelle KP in Prozent">
+        <span class="hp-now-unit">%</span>
+        <button type="button" class="mini-btn" id="def-hp-full" data-i18n="hpFull" hidden>voll</button>
       </div>
       <p class="card-note" id="def-note" hidden></p>
     </section>

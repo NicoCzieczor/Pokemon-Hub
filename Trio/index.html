@@ -509,7 +509,11 @@
     <div id="save-status" aria-live="polite"></div>
 
     <section id="weakness-section">
-      <h2>Team-Typ-Analyse</h2>
+      <div class="weakness-head">
+        <h2>Team-Typ-Analyse</h2>
+        <label class="type-gen-pick"><span>Typen wie in</span>
+          <select id="type-gen-select"></select></label>
+      </div>
       <div id="team-weakness-panel">
         <p class="weakness-empty">Füge Pokémon zu einem Team hinzu, um die Typ-Analyse zu sehen.</p>
       </div>
@@ -556,6 +560,8 @@
   </div>
 
   <script src="../pokemon-names.js"></script>
+  <script src="../DamageCalc/mechanics.js"></script>
+  <script src="../pokemon-types.js"></script>
   <script type="module" src="main.js"></script>
 </body>
 </html>

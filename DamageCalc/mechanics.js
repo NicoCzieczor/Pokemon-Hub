@@ -103,6 +103,49 @@
     return Math.floor((2 * base + iv + Math.floor(ev / 4)) * level / 100) + level + 10;
   }
 
+  // ── Statuswert-Stufen (−6 … +6) ──────────────────────────────────────────────
+  // Gen 1–2: Faktor aus der Tabelle des Spiels in Hundertsteln, danach 1 … 999.
+  // Ab Gen 3: (2 + Stufe) / 2 bzw. 2 / (2 − Stufe), abgerundet (gleiche Werte wie die Tabelle in Gen 3/4).
+  const STAGE_GEN12 = [25, 28, 33, 40, 50, 66, 100, 150, 200, 250, 300, 350, 400];
+  function applyStage(stat, stage, gen) {
+    const s = Math.max(-6, Math.min(6, Math.trunc(stage) || 0));
+    if (!s) return stat;
+    if (gen <= 2) return Math.min(999, Math.max(1, Math.floor(stat * STAGE_GEN12[s + 6] / 100)));
+    return s > 0 ? Math.floor(stat * (2 + s) / 2) : Math.floor(stat * 2 / (2 - s));
+  }
+  // Welche Stufen bei einem Volltreffer zählen:
+  //   Gen 1 – keine; Gen 2 – keine, wenn die Angriffs-Stufe nicht höher ist als die Verteidigungs-Stufe, sonst beide;
+  //   ab Gen 3 – die für den Angreifer guten (Angriff nur ab 0 aufwärts, Verteidigung nur ab 0 abwärts).
+  function critStages(atkStage, defStage, gen) {
+    if (gen === 1) return { atk: 0, def: 0 };
+    if (gen === 2) return atkStage <= defStage ? { atk: 0, def: 0 } : { atk: atkStage, def: defStage };
+    return { atk: Math.max(0, atkStage), def: Math.min(0, defStage) };
+  }
+
+  // ── Modifikatoren (Fähigkeiten, Items) ─────────────────────────────────────
+  // Bis Gen 4 nacheinander abgerundet; ab Gen 5 als Kette in 4096steln, am Ende gerundet wie im Spiel.
+  function chainMods(mods) {
+    let M = 4096;
+    for (const m of mods) M = (M * Math.round(m * 4096) + 2048) >> 12;
+    return M;
+  }
+  function applyMods(value, mods, gen) {
+    if (!mods || !mods.length) return value;
+    if (gen <= 4) return Math.max(1, mods.reduce((v, m) => Math.floor(v * m), value));
+    return Math.max(1, pokeRound(value * chainMods(mods) / 4096));
+  }
+
+  // ── Initiative ─────────────────────────────────────────────────────────────
+  // o = { stage, scarf (Wahlschal), double (Wassertempo/Chlorophyll bei passendem Wetter), paralyzed }
+  // Paralyse: ×¼ bis Gen 6, ab Gen 7 ×½
+  function speedOf(raw, o, gen) {
+    let s = applyStage(raw, o.stage || 0, gen);
+    if (o.scarf) s = Math.floor(s * 1.5);
+    if (o.double) s *= 2;
+    if (o.paralyzed) s = Math.floor(s * (gen >= 7 ? 0.5 : 0.25));
+    return Math.max(1, s);
+  }
+
   // ── Schaden ────────────────────────────────────────────────────────────────
   const rollCount = gen => (gen <= 2 ? 39 : 16);
 
@@ -118,8 +161,9 @@
 
   /*
    * p = { gen, level, power, atk, def, physical, stab, effs:[…], crit, burn, screens,
-   *       weather:'sun'|'rain'|null, moveType, explosion }
-   * atk/def sind die fertigen Werte (mit Wesen), ohne Verbrennung und Schild.
+   *       weather:'sun'|'rain'|null, moveType, explosion,
+   *       stabMod (1,5 bzw. 2 mit Anpassung), lifeOrb (nur Gen 4), finalMods:[…] (Gen 4+, z. B. Filter 0,75) }
+   * atk/def/power sind die fertigen Werte (mit Wesen, Stufen, Fähigkeiten, Items), ohne Verbrennung und Schild.
    * Ergebnis: alle möglichen Schadenswerte, aufsteigend (Gen 1–2: 39, ab Gen 3: 16).
    */
   function damageRolls(p) {
@@ -185,11 +229,13 @@
     if (w !== 1) d = Math.floor(d * w);
     d += 2;
     if (p.crit) d *= 2;
+    if (p.lifeOrb) d = Math.floor(d * 1.3);
     const rolls = [];
     for (let r = 85; r <= 100; r++) {
       let x = Math.floor(d * r / 100);
-      if (p.stab) x = Math.floor(x * 1.5);
+      if (p.stab) x = Math.floor(x * (p.stabMod || 1.5));
       for (const e of p.effs) x = Math.floor(x * e);
+      for (const m of p.finalMods || []) x = Math.floor(x * m);
       rolls.push(Math.max(1, x));
     }
     return rolls;
@@ -201,13 +247,14 @@
     if (w !== 1) d = pokeRound(d * w);
     if (p.crit) d = Math.floor(d * (p.gen >= 6 ? 1.5 : 2));
     const eff = product(p.effs);
+    const final = chainMods([...(p.screens && !p.crit ? [0.5] : []), ...(p.finalMods || [])]);
     const rolls = [];
     for (let r = 85; r <= 100; r++) {
       let x = Math.floor(d * r / 100);
-      if (p.stab) x = pokeRound(x * 1.5);
+      if (p.stab) x = pokeRound(x * (p.stabMod || 1.5));
       x = Math.floor(x * eff);
       if (p.burn && p.physical) x = Math.floor(x / 2);
-      x = p.screens && !p.crit ? pokeRound(Math.max(1, x / 2)) : Math.max(1, x);
+      x = final === 4096 ? Math.max(1, x) : Math.max(1, pokeRound(x * final / 4096));
       rolls.push(x);
     }
     return rolls;
@@ -215,15 +262,17 @@
 
   // ── KO-Chance ──────────────────────────────────────────────────────────────
   // Jeder Treffer würfelt neu. Gesucht: kleinste Trefferzahl mit KO-Chance > 0 und deren Wahrscheinlichkeit.
-  function koChance(rolls, hp, maxHits = 8) {
-    if (!hp || !rolls.length || rolls[rolls.length - 1] <= 0) return null;
-    const n = rolls.length;
+  // first = Schadenswerte des ersten Treffers, falls anders (Resistenz-Beere, Multischuppe wirken nur einmal)
+  function koChance(rolls, hp, maxHits = 8, first = rolls) {
+    if (!hp || !rolls.length || Math.max(rolls[rolls.length - 1], first[first.length - 1]) <= 0) return null;
     let dist = new Map([[0, 1]]);
     for (let hits = 1; hits <= maxHits; hits++) {
-      if (rolls[0] * hits >= hp) return { hits, chance: 1 };
+      const list = hits === 1 ? first : rolls;
+      if (first[0] + rolls[0] * (hits - 1) >= hp) return { hits, chance: 1 };
+      const n = list.length;
       const next = new Map();
       for (const [sum, pr] of dist) {
-        for (const r of rolls) {
+        for (const r of list) {
           const s = Math.min(hp, sum + r);
           next.set(s, (next.get(s) || 0) + pr / n);
         }
@@ -235,14 +284,15 @@
     return null;
   }
   // Ab wie vielen Treffern der KO sicher ist (auch mit dem niedrigsten Wurf)
-  function sureHits(rolls, hp) {
+  function sureHits(rolls, hp, first = rolls) {
     if (!hp || !rolls.length || rolls[0] <= 0) return null;
-    return Math.ceil(hp / rolls[0]);
+    if (first[0] >= hp) return 1;
+    return 1 + Math.ceil((hp - first[0]) / rolls[0]);
   }
 
   const DMG = {
     chartFor, typeEffs, product, damageClassFor,
-    calcStat, calcHP, rollCount, damageRolls, koChance, sureHits,
+    calcStat, calcHP, applyStage, critStages, chainMods, applyMods, speedOf, rollCount, damageRolls, koChance, sureHits,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = DMG;
   else root.DMG = DMG;

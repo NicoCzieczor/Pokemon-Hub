@@ -33,7 +33,7 @@ const I18N = {
     resist2: '×½ resistent', resist4: '×¼ sehr resistent', immune: '×0 immun',
     catPhysical: 'Phys.', catSpecial: 'Spez.', catStatus: 'Status',
     chooseVersion: 'Version wählen…', chooseGame: 'Spiel wählen…',
-    gameLabel: 'Spiel', gameHint: 'gilt für Entwicklung, Attacken und Fundorte',
+    gameLabel: 'Spiel', gameHint: 'gilt für Typen, Werte, Entwicklung, Attacken und Fundorte',
     evoFor: 'Bedingungen in', evoOr: 'oder', evoFrom: 'erst ab {g}', evoNotInGame: 'in diesem Spiel nicht möglich',
     loadError: 'Dieses Pokémon konnte nicht geladen werden.', retry: 'Nochmal versuchen',
     locLoadError: 'Fundorte konnten nicht geladen werden.',
@@ -71,7 +71,7 @@ const I18N = {
     resist2: '×½ resistant', resist4: '×¼ very resistant', immune: '×0 immune',
     catPhysical: 'Phys.', catSpecial: 'Spec.', catStatus: 'Status',
     chooseVersion: 'Choose version…', chooseGame: 'Choose game…',
-    gameLabel: 'Game', gameHint: 'applies to evolution, moves and locations',
+    gameLabel: 'Game', gameHint: 'applies to types, stats, evolution, moves and locations',
     evoFor: 'Conditions in', evoOr: 'or', evoFrom: 'from {g}', evoNotInGame: 'not possible in this game',
     loadError: 'This Pokémon could not be loaded.', retry: 'Try again',
     locLoadError: 'Locations could not be loaded.',
@@ -85,35 +85,12 @@ window.LANG = I18N[localStorage.getItem(LANG_KEY)] ? localStorage.getItem(LANG_K
 function t(k) { return I18N[window.LANG]?.[k] || I18N.de[k] || k; }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const ALL_TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
 
 const TYPE_LABELS_DE = { normal:'Normal',fire:'Feuer',water:'Wasser',electric:'Elektro',grass:'Pflanze',ice:'Eis',fighting:'Kampf',poison:'Gift',ground:'Boden',flying:'Flug',psychic:'Psycho',bug:'Käfer',rock:'Gestein',ghost:'Geist',dragon:'Drache',dark:'Unlicht',steel:'Stahl',fairy:'Fee' };
 const TYPE_LABELS_EN = { normal:'Normal',fire:'Fire',water:'Water',electric:'Electric',grass:'Grass',ice:'Ice',fighting:'Fighting',poison:'Poison',ground:'Ground',flying:'Flying',psychic:'Psychic',bug:'Bug',rock:'Rock',ghost:'Ghost',dragon:'Dragon',dark:'Dark',steel:'Steel',fairy:'Fairy' };
 function typeLabel(t) { return (window.LANG === 'en' ? TYPE_LABELS_EN : TYPE_LABELS_DE)[t] || t; }
 
 const TYPE_COLORS = { normal:'#bbbbaa',fire:'#ff421c',water:'#2c9be3',electric:'#ffdc00',grass:'#62bc5a',ice:'#74cfc0',fighting:'#bb5544',poison:'#9553cd',ground:'#a67439',flying:'#96caff',psychic:'#ff6380',bug:'#92c12a',rock:'#bbaa66',ghost:'#6e4370',dragon:'#5670be',dark:'#4e4545',steel:'#aaaabb',fairy:'#ec8fe6' };
-
-// Gen 6+ type chart: TYPE_CHART[attacking][defending]
-const TYPE_CHART = {
-  normal:   {rock:0.5,ghost:0,steel:0.5},
-  fire:     {fire:0.5,water:0.5,grass:2,ice:2,bug:2,rock:0.5,dragon:0.5,steel:2},
-  water:    {fire:2,water:0.5,grass:0.5,ground:2,rock:2,dragon:0.5},
-  electric: {water:2,electric:0.5,grass:0.5,ground:0,flying:2,dragon:0.5},
-  grass:    {fire:0.5,water:2,grass:0.5,poison:0.5,ground:2,flying:0.5,bug:0.5,rock:2,dragon:0.5,steel:0.5},
-  ice:      {fire:0.5,water:0.5,grass:2,ice:0.5,ground:2,flying:2,dragon:2,steel:0.5},
-  fighting: {normal:2,ice:2,poison:0.5,flying:0.5,psychic:0.5,bug:0.5,rock:2,ghost:0,dark:2,steel:2,fairy:0.5},
-  poison:   {grass:2,poison:0.5,ground:0.5,rock:0.5,ghost:0.5,steel:0,fairy:2},
-  ground:   {fire:2,electric:2,grass:0.5,poison:2,flying:0,bug:0.5,rock:2,steel:2},
-  flying:   {electric:0.5,grass:2,fighting:2,bug:2,rock:0.5,steel:0.5},
-  psychic:  {fighting:2,poison:2,psychic:0.5,dark:0,steel:0.5},
-  bug:      {fire:0.5,grass:2,fighting:0.5,poison:0.5,flying:0.5,psychic:2,ghost:0.5,dark:2,steel:0.5,fairy:0.5},
-  rock:     {fire:2,ice:2,fighting:0.5,ground:0.5,flying:2,bug:2,steel:0.5},
-  ghost:    {normal:0,psychic:2,ghost:2,dark:0.5},
-  dragon:   {dragon:2,steel:0.5,fairy:0},
-  dark:     {fighting:0.5,psychic:2,ghost:2,dark:0.5,fairy:0.5},
-  steel:    {fire:0.5,water:0.5,electric:0.5,ice:2,rock:2,steel:0.5,fairy:2},
-  fairy:    {fire:0.5,fighting:2,poison:0.5,dragon:2,dark:2,steel:0.5},
-};
 
 // Alle Editionen, neueste zuerst. Die Reihenfolge ist wichtig: Sie entscheidet, welche alten Attackenwerte
 // (past_values) und welche Entwicklungs-Methode in einem Spiel gelten. Die Namen müssen exakt den PokeAPI-Namen entsprechen.
@@ -319,6 +296,7 @@ const STAT_META = [
 const cacheP = new Map(), cacheS = new Map(), cacheA = new Map(), cacheM = new Map(), cacheE = new Map(), cacheL = new Map(), cacheLA = new Map();
 
 // ── API ────────────────────────────────────────────────────────────────────────
+const GEN_ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix'];
 async function apiPokemon(idOrName) {
   const k = String(idOrName).toLowerCase();
   if (cacheP.has(k)) return cacheP.get(k);
@@ -332,6 +310,11 @@ async function apiPokemon(idOrName) {
     types: d.types.map(t => t.type.name),
     abilities: d.abilities.map(a => ({ name: a.ability.name, isHidden: a.is_hidden, slot: a.slot })),
     stats: d.stats.map(s => ({ name: s.stat.name, value: s.base_stat })),
+    // PokéAPI: „generation“ = letzte Generation, in der die alten Werte galten (Gen 1: ein Spezial-Wert)
+    pastStats: (d.past_stats || []).map(e => ({
+      gen: GEN_ROMAN.indexOf(e.generation.name.replace('generation-', '')) + 1,
+      stats: Object.fromEntries(e.stats.map(x => [x.stat.name, x.base_stat])),
+    })),
     height: d.height, weight: d.weight,
     baseExp: d.base_experience,
     moves: d.moves,
@@ -718,13 +701,10 @@ function typeBadge(type) {
   return `<span class="type-badge" style="background:${escHtml(color)}">${escHtml(typeLabel(type))}</span>`;
 }
 
-function calcEffectiveness(defTypes) {
+// Typentabelle der Generation (../pokemon-types.js → DMG.chartFor, wie im Schadens-Rechner)
+function calcEffectiveness(defTypes, gen) {
   const result = {};
-  ALL_TYPES.forEach(atk => {
-    let m = 1;
-    defTypes.forEach(def => { m *= (TYPE_CHART[atk]?.[def] ?? 1); });
-    result[atk] = m;
-  });
+  window.PokemonTypes.typeList(gen).forEach(atk => { result[atk] = window.PokemonTypes.effectiveness(atk, defTypes, gen); });
   return result;
 }
 
@@ -878,7 +858,6 @@ function renderIdentity(p, s) {
   document.getElementById('identity-gen').textContent = `${t('genLabel')} ${getGeneration(s.id)}`;
   document.getElementById('identity-size').textContent = `${(p.height / 10).toFixed(1)}m · ${(p.weight / 10).toFixed(1)}kg`;
   document.getElementById('identity-genera').textContent = s.genera;
-  document.getElementById('identity-types').innerHTML = p.types.map(typeBadge).join('');
 
   const qs = document.getElementById('identity-quick-stats');
   const genderText = s.genderRate === -1 ? t('genderless') : s.genderRate === 0 ? '100% ♂\uFE0E' : s.genderRate === 8 ? '100% ♀\uFE0E' : `${Math.round((8 - s.genderRate) / 8 * 100)}% ♂ · ${Math.round(s.genderRate / 8 * 100)}% ♀`;
@@ -896,11 +875,33 @@ function renderIdentity(p, s) {
   } else flavorEl.style.display = 'none';
 }
 
+// ── Render: Typen, Werte und Schwächen so, wie sie im gewählten Spiel waren ────
+function renderForGen(p) {
+  const gen = currentVersionGroup ? vgGeneration(currentVersionGroup) : 9;
+  const types = window.PokemonTypes.typesInGen(p, gen);
+  document.getElementById('identity-types').innerHTML = types.map(typeBadge).join('');
+  renderStats(p, gen);
+  renderEffectiveness(types, gen);
+}
+
 // ── Render: Stats ─────────────────────────────────────────────────────────────
-function renderStats(p) {
-  const statsMap = Object.fromEntries(p.stats.map(s => [s.name, s.value]));
+// Basiswerte, wie sie in Generation gen waren; Gen 1 hatte statt Sp. Angriff/Sp. Vert. einen Spezial-Wert
+function statsForGen(p, gen) {
+  const map = Object.fromEntries(p.stats.map(s => [s.name, s.value]));
+  for (const key of Object.keys(map)) {
+    const hit = (p.pastStats || []).filter(e => e.gen >= gen && e.stats[key] != null).sort((a, b) => a.gen - b.gen)[0];
+    if (hit) map[key] = hit.stats[key];
+  }
+  if (gen === 1) map.special = (p.pastStats || []).find(e => e.stats.special != null)?.stats.special ?? map['special-attack'];
+  return map;
+}
+const STAT_SPECIAL = { key:'special', labelDE:'Spezial', labelEN:'Special', css:'#60A5FA' };
+
+function renderStats(p, gen) {
+  const statsMap = statsForGen(p, gen);
+  const meta = gen === 1 ? STAT_META.filter(m => m.key !== 'special-defense').map(m => m.key === 'special-attack' ? STAT_SPECIAL : m) : STAT_META;
   let total = 0;
-  const rows = STAT_META.map(m => {
+  const rows = meta.map(m => {
     const v = statsMap[m.key] ?? 0;
     total += v;
     const pct = Math.min(100, Math.round(v / 255 * 100));
@@ -919,10 +920,10 @@ function renderStats(p) {
 }
 
 // ── Render: Type effectiveness ────────────────────────────────────────────────
-function renderEffectiveness(types) {
-  const eff = calcEffectiveness(types);
+function renderEffectiveness(types, gen) {
+  const eff = calcEffectiveness(types, gen);
   const groups = { 4: [], 2: [], 0.5: [], 0.25: [], 0: [] };
-  ALL_TYPES.forEach(atk => {
+  window.PokemonTypes.typeList(gen).forEach(atk => {
     const m = eff[atk];
     if (groups[m]) groups[m].push(atk);
   });
@@ -1104,7 +1105,9 @@ async function renderMoves(p, seq = loadSeq) {
     ? [...vgs].reverse().map(vg => `<option value="${escHtml(vg)}">${escHtml(vgLabel(vg))}</option>`).join('')
     : `<option value="">${escHtml(t('noData'))}</option>`;
   if (!currentVersionGroup) {
-    currentVersionGroup = defaultVersionGroup(vgs, currentSpecies?.id ?? 0);
+    // Start: das aktive Spiel des Hubs, sofern das Pokémon dort vorkommt
+    const hubVG = window.PokeHubGame && window.PokeHubGame.dexVersion();
+    currentVersionGroup = hubVG && vgs.includes(hubVG) ? hubVG : defaultVersionGroup(vgs, currentSpecies?.id ?? 0);
   } else if (!vgs.includes(currentVersionGroup)) {
     currentVersionGroup = closestVersionGroup(currentVersionGroup, vgs) || defaultVersionGroup(vgs, currentSpecies?.id ?? 0);
   }
@@ -1391,14 +1394,13 @@ async function loadPokemon(nameOrId) {
   trigger.innerHTML = `<img class="search-trigger-sprite" src="${escHtml(p.sprite)}" alt=""><span class="search-trigger-name">${escHtml(s.displayName || p.name)}</span><span class="search-trigger-id">#${String(s.id).padStart(3,'0')}</span>`;
 
   renderIdentity(p, s);
-  renderStats(p);
-  renderEffectiveness(p.types);
   renderDetails(s, p);
 
   renderAbilities(p, seq);
   renderEvolution(s, seq);
   renderForms(s, p.name);
-  renderMoves(p, seq);        // setzt das Spiel – Entwicklung und Fundorte richten sich danach
+  renderMoves(p, seq);        // setzt das Spiel – Typen, Werte, Entwicklung und Fundorte richten sich danach
+  renderForGen(p);
   renderLocations(p.name, seq);
 
   applyLanguage();
@@ -1496,10 +1498,19 @@ document.getElementById('shiny-btn').addEventListener('click', () => {
   document.getElementById('identity-sprite').className = 'identity-sprite' + (isShiny ? ' is-shiny' : '');
 });
 
+// Aktives Spiel des Hubs geändert (Chip, andere Seite): hier mitwechseln, falls es das Pokémon dort gibt
+document.addEventListener('hubgamechange', () => {
+  const vg = window.PokeHubGame && window.PokeHubGame.dexVersion();
+  const sel = document.getElementById('version-select');
+  if (!vg || vg === currentVersionGroup || ![...sel.options].some(o => o.value === vg)) return;
+  sel.value = vg;
+  sel.dispatchEvent(new Event('change'));
+});
+
 // Das Spiel oben gilt für Attacken, Entwicklungs-Bedingungen und Fundorte
 document.getElementById('version-select').addEventListener('change', e => {
   currentVersionGroup = e.target.value;
-  if (currentPokemon) renderMoveTable(currentPokemon);
+  if (currentPokemon) { renderMoveTable(currentPokemon); renderForGen(currentPokemon); }
   drawEvolution();
   if (locState) {
     locState.refresh();

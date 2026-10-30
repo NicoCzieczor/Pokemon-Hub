@@ -7,6 +7,7 @@
  *   poketool/personal/pl_personal.narc   Basiswerte, Typen, Fähigkeiten (falls der Randomizer sie ändert)
  *   poketool/personal/wotbl.narc   Level-Attacken (für Pokémon ohne eigene Attacken)
  *   overlay_0078                   die drei Starter
+ *   fielddata/encountdata/pl_enc_data.narc   wilde Pokémon je Gebiet (Reihenfolge wie encounters.order bei pret)
  *
  * Wesen, Fähigkeit und DVs werden wie im Spiel berechnet (pret/pokeplatinum, src/trainer_data.c und
  * src/pokemon.c): Startwert = DV-Stufe + Level + Art + Trainer-Nummer, so viele LCRNG-Schritte wie die
@@ -16,6 +17,7 @@
  *
  * Ergebnis im Format von bosses.json: p = [[art, form, level, item, attacken[], wesen, fähigkeit, dvs]],
  * dvs als Zahl (alle gleich) oder als Liste [KP, Ang, Vert, Init, SpAng, SpVert].
+ * wild: je Encounter-Tabelle (siehe readWild) oder null, wenn die Datei fehlt.
  */
 (function (root, factory) {
   var api = factory();
@@ -31,7 +33,8 @@
     trdata: 'poketool/trainer/trdata.narc',
     trpoke: 'poketool/trainer/trpoke.narc',
     personal: 'poketool/personal/pl_personal.narc',
-    learnsets: 'poketool/personal/wotbl.narc'
+    learnsets: 'poketool/personal/wotbl.narc',
+    encounters: 'fielddata/encountdata/pl_enc_data.narc'
   };
 
   // Starter-Arten: overlay_0078, drei u32 ab 0x1BC0 (im Original 387, 390, 393; so ändert sie auch der Randomizer)
@@ -115,6 +118,31 @@
           }
         };
       });
+    });
+  }
+
+  // Wilde Pokémon einer Tabelle (pret tools/jsoncnv/encounter.py, 424 Byte):
+  //   0x00 Land-Rate, 0x04 12 × (Level u32, Art u32), 0x64 Schwarm 2, 0x6C Tag 2, 0x74 Nacht 2, 0x7C Radar 4,
+  //   0x8C Formen/Icognito 6, 0xA4 Dual-Slot 10 (Rubin, Saphir, Smaragd, Feuerrot, Blattgrün je 2),
+  //   0xCC Surfen, 0xF8 (unbenutzt), 0x124 Angel, 0x150 Profiangel, 0x17C Superangel – je Rate + 5 × (max, min, 2 frei, Art u32)
+  // → { r, land: [[level, art] × 12], swarm, day, night, radar, dual, surf/old/good/super: { r, s: [[min, max, art] × 5] } }
+  function readWild(entries) {
+    var sp = function (b, o) { var v = u32(b, o); return v >= 1 && v <= 493 ? v : 0; };
+    var list = function (b, o, n) { var out = []; for (var i = 0; i < n; i++) out.push(sp(b, o + i * 4)); return out; };
+    var water = function (b, o) {
+      var s = [];
+      for (var i = 0; i < 5; i++) s.push([b[o + 5 + i * 8], b[o + 4 + i * 8], sp(b, o + 8 + i * 8)]);
+      return { r: u32(b, o), s: s };
+    };
+    return entries.map(function (b) {
+      if (b.length < 0x1A8) return null;
+      var land = [];
+      for (var i = 0; i < 12; i++) land.push([u32(b, 4 + i * 8) & 0xFF, sp(b, 8 + i * 8)]);
+      return {
+        r: u32(b, 0), land: land, swarm: list(b, 0x64, 2), day: list(b, 0x6C, 2), night: list(b, 0x74, 2),
+        radar: list(b, 0x7C, 4), dual: list(b, 0xA4, 10),
+        surf: water(b, 0xCC), old: water(b, 0x124), good: water(b, 0x150), super: water(b, 0x17C)
+      };
     });
   }
 
@@ -204,7 +232,8 @@
     var fem = new Set(femaleClasses);
     return readFs(read).then(function (fs) {
       return Promise.all([fs.file(FILES.trdata), fs.file(FILES.trpoke), fs.file(FILES.personal), fs.file(FILES.learnsets),
-        fs.overlay(STARTER_OVERLAY).catch(function () { return null; })])
+        fs.overlay(STARTER_OVERLAY).catch(function () { return null; }),
+        fs.file(FILES.encounters).catch(function () { return null; })])
         .then(function (r) {
           var trdata = narc(r[0]), trpoke = narc(r[1]);
           var personal = personalFrom(narc(r[2]), basePersonal);
@@ -236,7 +265,9 @@
             starters = [0, 4, 8].map(function (k) { return u32(ov, STARTER_OFFSET + k); });
             if (!starters.every(function (s) { return s >= 1 && s <= 493; })) starters = null;
           }
-          return { code: fs.code, trainers: trainers, personal: changed, starters: starters };
+          var wild = null;
+          try { wild = r[5] ? readWild(narc(r[5])) : null; } catch (e) { wild = null; }   // ohne wilde Pokémon geht der Rest trotzdem
+          return { code: fs.code, trainers: trainers, personal: changed, starters: starters, wild: wild };
         });
     });
   }
@@ -279,5 +310,5 @@
     };
   }
 
-  return { readRom: readRom, readRomFile: readRomFile, _internal: { narc: narc, defaultMoves: defaultMoves, Lcrng: Lcrng } };
+  return { readRom: readRom, readRomFile: readRomFile, _internal: { narc: narc, defaultMoves: defaultMoves, Lcrng: Lcrng, readWild: readWild } };
 });

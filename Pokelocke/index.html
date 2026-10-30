@@ -664,7 +664,11 @@
 
     <!-- Weakness Analysis -->
     <section id="weakness-section">
-      <h2 data-i18n="weakness-title">Team-Typ-Analyse</h2>
+      <div class="weakness-head">
+        <h2 data-i18n="weakness-title">Team-Typ-Analyse</h2>
+        <label class="type-gen-pick"><span data-i18n="type-gen-label">Typen wie in</span>
+          <select id="type-gen-select"></select></label>
+      </div>
       <div id="team-weakness-panel">
         <p class="weakness-empty" data-i18n="weakness-empty">Füge Pokémon zum Team hinzu, um die Typ-Analyse zu sehen.</p>
       </div>
@@ -715,7 +719,7 @@
       'info-title':'Pokémon-Info',
       'info-placeholder':'Wähle ein Pokémon aus dem Team oder dem Info-Slot, um Typ, Statuswerte und Attacken zu sehen.',
       'info-gen-section':'Info-Generation', 'info-gen-label':'Generation auswählen',
-      'info-slot-empty':'Info-Pokémon wählen', 'weakness-title':'Team-Typ-Analyse',
+      'info-slot-empty':'Info-Pokémon wählen', 'weakness-title':'Team-Typ-Analyse', 'type-gen-label':'Typen wie in',
       'weakness-empty':'Füge Pokémon zum Team hinzu, um die Typ-Analyse zu sehen.',
       'modal-title':'Wähle ein Pokémon', 'gen-label':'Generation:', 'search-placeholder':'Suche...',
       'modal-close':'Schließen',
@@ -753,7 +757,7 @@
       'info-title':'Pokémon Info',
       'info-placeholder':'Select a Pokémon from the team or the info slot to see type, stats and moves.',
       'info-gen-section':'Info Generation', 'info-gen-label':'Select generation',
-      'info-slot-empty':'Select Info Pokémon', 'weakness-title':'Team Type Analysis',
+      'info-slot-empty':'Select Info Pokémon', 'weakness-title':'Team Type Analysis', 'type-gen-label':'Types as in',
       'weakness-empty':'Add Pokémon to your team to see the type analysis.',
       'modal-title':'Choose a Pokémon', 'gen-label':'Generation:', 'search-placeholder':'Search...',
       'modal-close':'Close',
@@ -824,6 +828,8 @@
   });
   </script>
   <script src="../pokemon-names.js"></script>
+  <script src="../DamageCalc/mechanics.js"></script>
+  <script src="../pokemon-types.js"></script>
   <script type="module" src="main.js"></script>
   <script>
   const LEVEL_CAPS = {
@@ -1125,10 +1131,31 @@
     ]},
   };
 
+  // Aktives Spiel des Hubs (pwa.js); ohne pwa.js die gemerkte Wahl bzw. das Spiel des aktiven Runs
+  const LCP_GAME_KEY = 'hub-lcp-game';
+  const RUN_GAME_ALIAS = { bdsp: 'strahl-diamant-leucht-perl', 'omega-rot-alpha-saphir': 'omega-rubin-alpha-saphir' };
+  function preferredLcpGame() {
+    const hub = window.PokeHubGame && window.PokeHubGame.levelCaps();
+    if (LEVEL_CAPS[hub]) return hub;
+    try {
+      const saved = localStorage.getItem(LCP_GAME_KEY);
+      if (LEVEL_CAPS[saved]) return saved;
+      const data = JSON.parse(localStorage.getItem('pokemon-run-dashboard-runs') || 'null');
+      const game = data?.runs?.[data.active || 0]?.game;
+      const key = RUN_GAME_ALIAS[game] || game;
+      if (LEVEL_CAPS[key]) return key;
+    } catch (e) { /* ohne Speicher: erstes Spiel */ }
+    return Object.keys(LEVEL_CAPS)[0];
+  }
+  function rememberLcpGame(key) {
+    try { localStorage.setItem(LCP_GAME_KEY, key); } catch (e) { /* nur nicht gemerkt */ }
+    if (window.PokeHubGame) window.PokeHubGame.fromLevelCaps(key);
+  }
+
   function buildGameSelect() {
     const sel = document.getElementById('lcp-game-select');
     if (!sel) return;
-    const cur = sel.value || Object.keys(LEVEL_CAPS)[0];
+    const cur = sel.value || preferredLcpGame();
     sel.innerHTML = '';
     Object.entries(LEVEL_CAPS).forEach(([key, game]) => {
       const opt = document.createElement('option');
@@ -1210,7 +1237,12 @@
   document.addEventListener('DOMContentLoaded', () => {
     const sel = document.getElementById('lcp-game-select');
     buildGameSelect();
-    sel.addEventListener('change', e => renderLevelCaps(e.target.value));
+    sel.addEventListener('change', e => { rememberLcpGame(e.target.value); renderLevelCaps(e.target.value); });
+    // Aktives Spiel woanders geändert: Leiste nachziehen
+    document.addEventListener('hubgamechange', () => {
+      const k = window.PokeHubGame && window.PokeHubGame.levelCaps();
+      if (LEVEL_CAPS[k] && sel.value !== k) { sel.value = k; renderLevelCaps(k); }
+    });
     renderLevelCaps(sel.value);
 
     document.getElementById('lcp-toggle').addEventListener('click', () => {

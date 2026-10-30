@@ -454,8 +454,9 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
   color: var(--color-muted); font-size: 0.75rem; font-weight: 800; white-space: nowrap;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-.mini-btn:hover { color: rgb(var(--t-white)); border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
+.mini-btn:hover:not(:disabled) { color: rgb(var(--t-white)); border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
 .mini-btn--primary { color: var(--color-accent-strong); border-color: rgba(var(--t-acc2), 0.4); }
+.mini-btn:disabled { opacity: 0.45; cursor: default; }
 .src { font-size: 0.6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
 .src--auto { background: rgb(var(--t-c-8ef0b4)); color: rgb(var(--t-on-acc)); }
 .src--check { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
@@ -479,6 +480,8 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
 .lchip.st-dead, .lchip.st-fainted { border-color: rgba(255,95,109,0.3); background: rgba(255,95,109,0.06); }
 .lchip.st-dead img { filter: grayscale(1) brightness(0.8); }
 .lchip.st-team { border-color: rgba(var(--t-acc), 0.25); }
+/* Nur für Duo festgelegt, im Spiel steht es noch woanders */
+.lchip.is-fixed { border-style: dashed; border-color: rgba(var(--t-acc2), 0.55); }
 
 /* Liste: eine Zeile je Paar bzw. Pokémon ohne Partner – Ort | Spieler 1 | Kette | Spieler 2 | Knöpfe */
 .lk-head, .lk-row { display: grid; grid-template-columns: 170px minmax(0,1fr) 30px minmax(0,1fr) 190px; gap: 6px 10px; align-items: center; }
@@ -497,11 +500,16 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
 .lk-loc b { color: rgb(var(--t-white)); font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .lk-a, .lk-b { min-width: 0; }
 .lk-act { display: flex; gap: 5px; justify-content: flex-end; flex-wrap: wrap; }
+/* Regelverstoß direkt lösen: Knöpfe unter dem Paar */
+.lk-fix { grid-column: 2 / -1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lk-fix > span { color: var(--color-muted); font-size: 0.75rem; font-weight: 700; }
 /* Gruppe in „Zu klären“: Überschrift + einmal der Hinweis, was zu tun ist */
 .lk-group { display: grid; gap: 2px; margin: 12px 0 6px; padding: 8px 12px; border-left: 3px solid rgb(var(--t-c-ffd23f)); border-radius: 0 10px 10px 0; background: rgba(var(--t-ink), 0.04); }
 .lk-group:first-of-type { margin-top: 0; }
 .lk-group b { display: flex; align-items: center; gap: 8px; color: rgb(var(--t-white)); font-size: 0.88rem; }
 .lk-group span { color: var(--color-muted); font-size: 0.8rem; }
+.lk-editor { justify-self: start; margin-top: 2px; color: var(--color-accent); font-size: 0.8rem; font-weight: 700; text-decoration: none; }
+.lk-editor:hover { text-decoration: underline; }
 /* Fehlender Partner: der leere Platz ist der Knopf */
 .lk-empty {
   display: grid; width: 100%; min-height: 40px; padding: 4px 10px; border-radius: 14px; text-align: left;
@@ -547,12 +555,15 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
   .lk-a { grid-area: a; } .lk-b { grid-area: b; }
   .lk-row > .pair-link { grid-area: link; } .lk-row > .pair-link svg { width: 20px; height: 20px; }
   .lk-act { grid-area: act; }
+  .lk-fix { grid-column: 1 / -1; }
 }
 @media (max-width: 600px) {
   .tab { font-size: 0.7rem; }
   .lchip { padding-right: 6px; gap: 3px; }
   .lchip img { width: 34px; height: 34px; }
   .lc-name { font-size: 0.8rem; }
+  /* „Box → Team“ braucht den Platz – das Level steht in der Detailansicht */
+  .lchip.is-fixed .lc-lv { display: none; }
   .sl-btns { margin-left: 0; }
   .pick-list { grid-template-columns: 1fr; }
 }

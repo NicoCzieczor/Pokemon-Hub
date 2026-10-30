@@ -11,7 +11,8 @@
  * CheerpJ-Dateisystem: /app/… = Dateien vom Webserver (das Jar), /str/… = Daten aus JavaScript
  * (ROM, Einstellungen), /files/… = Browser-Speicher (Ausgabe; wird danach wieder gelöscht).
  * Die Original-ROM bleibt in IndexedDB, damit sie nur einmal ausgewählt werden muss.
- * Nach dem Würfeln liest rando.js die Teams aus der neuen ROM und gibt sie an den Boss-Planer weiter.
+ * Nach dem Würfeln liest rando.js Teams und wilde Pokémon aus der neuen ROM – das ist dann der Randomizer-Stand des
+ * Hubs (rando-state.js) für Boss-Planer, Karte, Run-Dashboard und Duo.
  */
 (function () {
   'use strict';
@@ -74,7 +75,7 @@
           ? 'Die Datei <code>' + f + '</code> landet im Ordner „Download“. <b>melonDS:</b> Verschieb sie in deinen Spiele-Ordner – oder füg in den Einstellungen von melonDS einmalig den Ordner „Download“ als ROM-Ordner hinzu, dann taucht jedes neue Spiel von selbst auf.'
           : 'Die Datei <code>' + f + '</code> landet in der App „Dateien“ → Downloads. Von dort in deine Emulator-App holen – bei <b>Delta</b>: + → Dateien → die Datei wählen.';
       },
-      bossReady: '✓ Der Boss-Planer kennt die Teams aus diesem Spiel schon.',
+      bossReady: '✓ Boss-Planer, Karte und Run-Dashboard kennen dieses Spiel schon (Trainer und wilde Pokémon).',
       bossOpen: 'Boss-Planer öffnen',
       log: 'Spoiler-Log',
       setTitle: 'Einstellungen',
@@ -127,7 +128,7 @@
           ? 'The file <code>' + f + '</code> ends up in the "Download" folder. <b>melonDS:</b> move it into your games folder – or add the "Download" folder once as a ROM folder in the melonDS settings, then every new game shows up by itself.'
           : 'The file <code>' + f + '</code> ends up in the Files app → Downloads. Add it to your emulator app from there – in <b>Delta</b>: + → Files → choose the file.';
       },
-      bossReady: '✓ The Boss Planner already knows the teams from this game.',
+      bossReady: '✓ The boss planner, map and run dashboard already know this game (trainers and wild Pokémon).',
       bossOpen: 'Open Boss Planner',
       log: 'Spoiler log',
       setTitle: 'Settings',

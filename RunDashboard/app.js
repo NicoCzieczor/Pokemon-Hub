@@ -28,6 +28,9 @@ const I18N = {
     method: 'Art',
     add: 'Hinzufügen',
     randomizer: 'Randomizer',
+    randoFrom: 'aus deiner Randomizer-ROM „{name}“.',
+    randoLoadHint: 'Randomizer-Run: Lade oben deine randomisierte Platin-ROM – dann stehen hier die gewürfelten Pokémon der Route.',
+    randoOldHint: 'Der Randomizer-Stand ist älter und kennt die wilden Pokémon noch nicht – lade die ROM oben einmal neu.',
     graveyard: 'Graveyard',
     notesTitle: 'Run-Notizen',
     notesPlaceholder: 'Strategien, Regeln, besondere Encounters...',
@@ -60,7 +63,8 @@ const I18N = {
     cpUnmark: 'Klick zum Rücksetzen',
     noEncounters: 'Noch keine Encounters eingetragen.',
     emptyGraveyard: 'Noch leer.',
-    deleteEncounterTitle: 'Löschen',
+    deleteEncounterTitle: 'Encounter löschen',
+    killTitle: 'Gestorben – optional mit Ort / Gegner',
     changeStatusTitle: 'Status wechseln',
     removeGraveyardTitle: 'Entfernen',
     starterBadge: 'Starter',
@@ -89,6 +93,19 @@ const I18N = {
     'status.open': 'Offen',
     'placeUsed': 'eingetragen',
     'status.failed': 'Verpasst',
+    'status.dead': 'Gestorben',
+    statusMenuLabel: 'Status',
+    deathCauseLabel: 'Wo / gegen wen? (optional)',
+    deathCausePlaceholder: 'z. B. Volkner, Lv. 49',
+    deathCauseSave: 'Speichern',
+    dupe: 'Dupe',
+    dupeTitle: 'Dupe – aus derselben Entwicklungsreihe hast du schon {p}',
+    eeveeToggle: 'Evoli-Ausnahme',
+    eeveeToggleTitle: 'Dupes-Klausel: Jede Evoli-Entwicklung zählt als eigene Art',
+    undo: 'Rückgängig',
+    undoEncounter: 'Encounter gelöscht',
+    undoGrave: 'Aus dem Graveyard entfernt',
+    undoRevived: 'Wieder auf „Gefangen“ gesetzt',
     'method.wild': 'Wild',
     'method.grass': 'Gras',
     'method.fishing': 'Angeln',
@@ -132,6 +149,9 @@ const I18N = {
     method: 'Method',
     add: 'Add',
     randomizer: 'Randomizer',
+    randoFrom: 'from your randomizer ROM “{name}”.',
+    randoLoadHint: 'Randomizer run: load your randomized Platinum ROM above – then the randomized Pokémon of the route show up here.',
+    randoOldHint: 'The randomizer data is older and does not know the wild Pokémon yet – load the ROM again above.',
     graveyard: 'Graveyard',
     notesTitle: 'Run Notes',
     notesPlaceholder: 'Strategies, rules, special encounters...',
@@ -164,7 +184,8 @@ const I18N = {
     cpUnmark: 'click to reset',
     noEncounters: 'No encounters added yet.',
     emptyGraveyard: 'Still empty.',
-    deleteEncounterTitle: 'Delete',
+    deleteEncounterTitle: 'Delete encounter',
+    killTitle: 'Died – optionally with place / opponent',
     changeStatusTitle: 'Change status',
     removeGraveyardTitle: 'Remove',
     starterBadge: 'Starter',
@@ -193,6 +214,19 @@ const I18N = {
     'status.open': 'Open',
     'placeUsed': 'logged',
     'status.failed': 'Missed',
+    'status.dead': 'Dead',
+    statusMenuLabel: 'Status',
+    deathCauseLabel: 'Where / against whom? (optional)',
+    deathCausePlaceholder: 'e.g. Volkner, Lv. 49',
+    deathCauseSave: 'Save',
+    dupe: 'Dupe',
+    dupeTitle: 'Dupe – you already have {p} from the same evolution line',
+    eeveeToggle: 'Eevee exception',
+    eeveeToggleTitle: 'Dupes clause: every Eeveelution counts as its own species',
+    undo: 'Undo',
+    undoEncounter: 'Encounter deleted',
+    undoGrave: 'Removed from the graveyard',
+    undoRevived: 'Set back to “Caught”',
     'method.wild': 'Wild',
     'method.grass': 'Grass',
     'method.fishing': 'Fishing',
@@ -266,6 +300,9 @@ const TYPE_LABELS_EN = {
   Normal: 'Normal',
   'div.': 'various',
 };
+
+// Orte je Spiel und ihre englischen Namen: ../locations.js (teilen sich Run-Dashboard und Duo)
+const { STARTER_LOCATION, LOCATION_PRESETS, LOCATION_SPECIALS, LOCATION_EXTRAS, LOCATION_ORDER } = window.PokeHubLocations;
 
 const TRAINER_LABELS_EN = {
   Rocko: 'Brock',
@@ -361,324 +398,6 @@ const CHECKPOINT_LABELS = {
   },
 };
 
-const LOCATION_LABELS_EN = {
-  'Starter-Pokémon': 'Starter Pokémon',
-  'Geschenk / Tausch': 'Gift / Trade',
-  'Sendeturm / Geschenk': 'TV Station / Gift',
-  'Dyna-Raid': 'Dynamax Raid',
-  'Tera-Raid': 'Tera Raid',
-  Massenausbruch: 'Mass Outbreak',
-  Alabastia: 'Pallet Town',
-  'Vertania City': 'Viridian City',
-  'Marmoria City': 'Pewter City',
-  'Azuria City': 'Cerulean City',
-  'Orania City': 'Vermilion City',
-  Lavandia: 'Lavender Town',
-  'Prismania City': 'Celadon City',
-  'Saffronia City': 'Saffron City',
-  'Fuchsania City': 'Fuchsia City',
-  Zinnoberinsel: 'Cinnabar Island',
-  'Vertania-Wald': 'Viridian Forest',
-  Mondberg: 'Mt. Moon',
-  Felstunnel: 'Rock Tunnel',
-  'Digda-Höhle': "Diglett's Cave",
-  Seeschauminseln: 'Seafoam Islands',
-  'Pokémon-Haus': 'Pokémon Mansion',
-  Siegesstraße: 'Victory Road',
-  Kraftwerk: 'Power Plant',
-  'Unbekannter Dungeon': 'Cerulean Cave',
-  'Azuria-Höhle': 'Cerulean Cave',
-  'Pokémon-Turm': 'Pokémon Tower',
-  'Kanto-Untergrundpfad': 'Kanto Underground Path',
-  'MS Anne': 'S.S. Anne',
-  Silberberg: 'Mt. Silver',
-  'Eiland 1': 'One Island',
-  'Eiland 2': 'Two Island',
-  'Eiland 3': 'Three Island',
-  'Eiland 4': 'Four Island',
-  'Eiland 5': 'Five Island',
-  'Eiland 6': 'Six Island',
-  'Eiland 7': 'Seven Island',
-  Schatzgestade: 'Treasure Beach',
-  Glutberg: 'Mt. Ember',
-  'Kap Kante': 'Cape Brink',
-  Beerenforst: 'Berry Forest',
-  Eiskaskadenhöhle: 'Icefall Cave',
-  Musterbuschwald: 'Pattern Bush',
-  Bondbrücke: 'Bond Bridge',
-  Wasserirrgarten: 'Water Labyrinth',
-  'Fünf-Eiland-Weide': 'Five Isle Meadow',
-  Trainerturm: 'Trainer Tower',
-  Wandelhöhle: 'Altering Cave',
-  Entstehungsinsel: 'Birth Island',
-  Glühweg: 'Kindle Road',
-  Schluchteingang: 'Canyon Entrance',
-  Wasserweg: 'Water Path',
-  'Grüner Pfad': 'Green Path',
-  'Fern-Eiland': 'Outcast Island',
-  'Tri-Eiland Hafen': 'Three Isle Port',
-  Ferienparadies: 'Resort Gorgeous',
-  Gedenksäule: 'Memorial Pillar',
-  'Verlorene Höhle': 'Lost Cave',
-  Ruinental: 'Ruin Valley',
-  '7-Schatzschlucht': 'Sevault Canyon',
-  'Tanibo-Ruinen': 'Tanoby Ruins',
-  Nabelfels: 'Navel Rock',
-  Neuborkia: 'New Bark Town',
-  'Rosalia City': 'Cherrygrove City',
-  'Viola City': 'Violet City',
-  'Dukatia City': 'Goldenrod City',
-  'Teak City': 'Ecruteak City',
-  'Oliviana City': 'Olivine City',
-  'Anemonia City': 'Cianwood City',
-  Mahagonia: 'Mahogany Town',
-  'Ebenholz City': 'Blackthorn City',
-  Dunkelhöhle: 'Dark Cave',
-  'Knofensa-Turm': 'Sprout Tower',
-  Einheitstunnel: 'Union Cave',
-  'Flegmon-Brunnen': 'Slowpoke Well',
-  Steineichenwald: 'Ilex Forest',
-  Nationalpark: 'National Park',
-  Turmruine: 'Burned Tower',
-  Glockenturm: 'Bell Tower',
-  Strudelinseln: 'Whirl Islands',
-  Kesselberg: 'Mt. Mortar',
-  'See des Zorns': 'Lake of Rage',
-  Eispfad: 'Ice Path',
-  Drachenhöhle: "Dragon's Den",
-  'Tohjo-Fälle': 'Tohjo Falls',
-  'Alph-Ruinen': 'Ruins of Alph',
-  'Johto-Safari-Zone': 'Johto Safari Zone',
-  Felsenherzturm: 'Embedded Tower',
-  'Sinjoh-Ruinen': 'Sinjoh Ruins',
-  'Team Rocket-Hauptquartier': 'Team Rocket HQ',
-  'Steineichenwald-Schrein': 'Ilex Forest shrine',
-  Wurzelheim: 'Littleroot Town',
-  Rosaltstadt: 'Oldale Town',
-  'Blütenburg City': 'Petalburg City',
-  'Metarost City': 'Rustboro City',
-  Faustauhaven: 'Dewford Town',
-  'Graphitport City': 'Slateport City',
-  'Malvenfroh City': 'Mauville City',
-  'Bad Lavastadt': 'Lavaridge Town',
-  Laubwechselfeld: 'Fallarbor Town',
-  Wiesenflur: 'Verdanturf Town',
-  'Baumhausen City': 'Fortree City',
-  'Moosbach City': 'Mossdeep City',
-  Xeneroville: 'Sootopolis City',
-  Floßbrunn: 'Pacifidlog Town',
-  Blütenburgwald: 'Petalburg Woods',
-  Granithöhle: 'Granite Cave',
-  Wüstenruine: 'Desert Ruins',
-  'Feuriger Pfad': 'Fiery Path',
-  Schlotberg: 'Mt. Chimney',
-  Steilpass: 'Jagged Pass',
-  Meteorfälle: 'Meteor Falls',
-  'Metarost-Tunnel': 'Rusturf Tunnel',
-  Pyroberg: 'Mt. Pyre',
-  Küstenhöhle: 'Shoal Cave',
-  Tiefseehöhle: 'Seafloor Cavern',
-  Himmelturm: 'Sky Pillar',
-  Wunderturm: 'Mirage Tower',
-  Wüstenunterführung: 'Desert Underpass',
-  Schiffswrack: 'Abandoned Ship',
-  Urzeithöhle: 'Cave of Origin',
-  'Neu Malvenfroh': 'New Mauville',
-  'Team Aquas Versteck': 'Team Aqua Hideout',
-  'Team Magmas Versteck': 'Team Magma Hideout',
-  Inselhöhle: 'Island Cave',
-  Grabmal: 'Ancient Tomb',
-  Terrahöhle: 'Terra Cave',
-  Ozeanhöhle: 'Marine Cave',
-  Ferneiland: 'Faraway Island',
-  'Insel im Süden': 'Southern Island',
-  Höhlenatelier: 'Artisan Cave',
-  Wunderinsel: 'Mirage Island',
-  'Prachtpolis City': 'Ever Grande City',
-  'Seegrasulb City': 'Lilycove City',
-  'Kampfzone (Hoenn)': 'Hoenn Battle Frontier',
-  Zweiblattdorf: 'Twinleaf Town',
-  Sandgemme: 'Sandgem Town',
-  Jubelstadt: 'Jubilife City',
-  Erzelingen: 'Oreburgh City',
-  'Erzelingen-Tor': 'Oreburgh Gate',
-  Flori: 'Floaroma Town',
-  Windkraftwerk: 'Valley Windworks',
-  Verwüsteter: 'Ravaged',
-  'Verwüsteter Pfad': 'Ravaged Path',
-  Ewigwald: 'Eterna Forest',
-  Ewigenau: 'Eterna City',
-  Herzhofen: 'Hearthome City',
-  Trostu: 'Solaceon Town',
-  Schleiede: 'Veilstone City',
-  Weideburg: 'Pastoria City',
-  Blizzach: 'Snowpoint City',
-  Fleetburg: 'Canalave City',
-  Sonnewik: 'Sunyshore City',
-  'Pokémon Liga': 'Pokémon League',
-  Eiseninsel: 'Iron Island',
-  Kahlberg: 'Stark Mountain',
-  'See der Wahrheit': 'Lake Verity',
-  'Bizarre Höhle': 'Wayward Cave',
-  Kraterberg: 'Mt. Coronet',
-  'Turm der Ruhenden': 'Lost Tower',
-  Kühnheitsufer: 'Valor Lakefront',
-  'See der Kühnheit': 'Lake Valor',
-  Großmoor: 'Great Marsh',
-  Ruinengrotte: 'Ruin Maniac Cave',
-  Stärkeufer: 'Acuity Lakefront',
-  'See der Stärke': 'Lake Acuity',
-  Speersäule: 'Spear Pillar',
-  Zerrwelt: 'Distortion World',
-  'Höhle der Umkehr': 'Turnback Cave',
-  Scheidequelle: 'Sendoff Spring',
-  'Alte Villa': 'Old Chateau',
-  'Erzelingen-Mine': 'Oreburgh Mine',
-  'Feurio-Hütte': 'Fuego Ironworks',
-  'Trostu-Ruinen': 'Solaceon Ruins',
-  'Pokémon-Landgut': 'Trophy Garden',
-  'Blizzach-Tempel': 'Snowpoint Temple',
-  'Auen von Flori': 'Floaroma Meadow',
-  Elyses: 'Celestic Town',
-  'Maniac-Tunnel': 'Maniac Tunnel',
-  Erholungsareal: 'Resort Area',
-  Blumenparadies: 'Flower Paradise',
-  Neumondinsel: 'Newmoon Island',
-  Vollmondinsel: 'Fullmoon Island',
-  'Halle des Beginns': 'Hall of Origin',
-  'Wandernde Pokémon': 'Roaming Pokémon',
-  Avenitia: 'Nuvema Town',
-  Gavina: 'Accumula Town',
-  'Orion City': 'Striaton City',
-  'Septerna City': 'Nacrene City',
-  'Stratos City': 'Castelia City',
-  'Rayono City': 'Nimbasa City',
-  'Marea City': 'Driftveil City',
-  'Panaero City': 'Mistralton City',
-  'Nevaio City': 'Icirrus City',
-  'Twindrake City': 'Opelucid City',
-  Traumbrache: 'Dreamyard',
-  Grundwassersenke: 'Wellspring Cave',
-  Ewigenwald: 'Pinwheel Forest',
-  Wüstenresort: 'Desert Resort',
-  'Alter Palast': 'Relic Castle',
-  'Hain der Täuschung': 'Lostlorn Forest',
-  Elektrolithhöhle: 'Chargestone Cave',
-  'Turm des Himmels': 'Celestial Tower',
-  'Moor von Nevaio': 'Moor of Icirrus',
-  Wunderbrücke: 'Marvelous Bridge',
-  Riesengrotte: 'Giant Chasm',
-  'Weißer Wald / Schwarze Stadt': 'White Forest / Black City',
-  'Panaero-Höhle': 'Mistralton Cave',
-  Freiheitsgarten: 'Liberty Garden',
-  Tiefkühlcontainer: 'Cold Storage',
-  Drachenstiege: 'Dragonspiral Tower',
-  'Schloss von N': "N's Castle",
-  'Schrein der Ernte': 'Abundant Shrine',
-  'Höhle der Schulung': "Challenger's Cave",
-  Wendelberg: 'Twist Mountain',
-  'Marea-Zugbrücke': 'Driftveil Drawbridge',
-  'Bucht von Ondula': 'Undella Bay',
-  Ondula: 'Undella Town',
-  Dorfbrücke: 'Village Bridge',
-  'Kammer der Weisung': 'Guidance Chamber',
-  'Kammer der Prüfung': 'Trial Chamber',
-  Escissia: 'Vaniville Town',
-  Aquarellia: 'Aquacorde Town',
-  'Nouvaria-Wald': 'Santalune Forest',
-  'Nouvaria City': 'Santalune City',
-  'Illumina City': 'Lumiose City',
-  'Parfum-Palast': 'Parfum Palace',
-  'Relievera City': 'Cyllage City',
-  Petrophia: 'Ambrette Town',
-  'Yantara City': 'Shalour City',
-  'Tempera City': 'Coumarine City',
-  'Romantia City': 'Laverre City',
-  Frescora: 'Dendemille Town',
-  'Fluxia City': 'Anistar City',
-  'Fractalia City': 'Snowbelle City',
-  Glitzerhöhle: 'Glittering Cave',
-  Spiegelhöhle: 'Reflection Cave',
-  Azurbucht: 'Azure Bay',
-  Frosthöhle: 'Frost Cavern',
-  Omegahöhle: 'Terminus Cave',
-  'Omega-Höhle': 'Terminus Cave',
-  'Pokémon-Dorf': 'Pokémon Village',
-  Kontaktsafari: 'Friend Safari',
-  Geolinkhöhle: 'Connecting Cave',
-  Hotelruine: 'Lost Hotel',
-  Meerestitanenhöhle: "Sea Spirit's Den",
-  'Flare-Geheimbasis': 'Team Flare Secret HQ',
-  Geheimdungeon: 'Unknown Dungeon',
-  'Turm der Erkenntnis': 'Tower of Mastery',
-  Mosaia: 'Couriway Town',
-  'Kalos (wandernd)': 'Kalos (Roaming)',
-  Furlongham: 'Postwick',
-  Brassbury: 'Wedgehurst',
-  'Engine City': 'Motostoke',
-  Schlummerwald: 'Slumbering Weald',
-  Turffield: 'Turffield',
-  Keelton: 'Hulbury',
-  Passbeck: 'Stow-on-Side',
-  Fairballey: 'Ballonlea',
-  Circhester: 'Circhester',
-  Spikeford: 'Spikemuth',
-  'Score City': 'Wyndon',
-  Wipfelscheinwald: 'Glimwood Tangle',
-  'Naturzone: Waipio-Ebene': 'Wild Area: Rolling Fields',
-  'Naturzone: Milza-See': 'Wild Area: Axewell Lake',
-  'Naturzone: Wachturmruine': 'Wild Area: Watchtower Ruins',
-  'Naturzone: Brückental': 'Wild Area: Bridge Field',
-  'Naturzone: Sandsturmkessel': 'Wild Area: Dusty Bowl',
-  'Naturzone: Spiegel des Giganten': "Wild Area: Giant's Mirror",
-  'Naturzone: Milotic-See': 'Wild Area: Miloch Lake',
-  Rüstungsinsel: 'Isle of Armor',
-  'Kronen-Schneelande': 'Crown Tundra',
-  Energiewerk: 'Energy Plant',
-  'Dyna-Riesennest': 'Max Lair',
-  Kronentempel: 'Crown Shrine',
-  'Hügel des Dyna-Baums': 'Dyna Tree Hill',
-  Gipfelruinen: 'Rock Peak Ruins',
-  'Eisberg-Ruinen': 'Iceberg Ruins',
-  'Eisen-Ruinen': 'Iron Ruins',
-  Zwiespaltruinen: 'Split-Decision Ruins',
-  'Ballsee-Ufer': 'Ballimere Lake',
-  'Cucharico-Pfad': 'Poco Path',
-  'Mesalona City': 'Mesagoza',
-  'Südliche Zone 1': 'South Province Area One',
-  'Südliche Zone 2': 'South Province Area Two',
-  'Südliche Zone 3': 'South Province Area Three',
-  'Südliche Zone 4': 'South Province Area Four',
-  'Südliche Zone 5': 'South Province Area Five',
-  'Südliche Zone 6': 'South Province Area Six',
-  'Östliche Zone 1': 'East Province Area One',
-  'Östliche Zone 2': 'East Province Area Two',
-  'Östliche Zone 3': 'East Province Area Three',
-  'Westliche Zone 1': 'West Province Area One',
-  'Westliche Zone 2': 'West Province Area Two',
-  'Westliche Zone 3': 'West Province Area Three',
-  'Nördliche Zone 1': 'North Province Area One',
-  'Nördliche Zone 2': 'North Province Area Two',
-  'Nördliche Zone 3': 'North Province Area Three',
-  Brutzelwüste: 'Asado Desert',
-  'Caldero-See': 'Casseroya Lake',
-  Montanata: 'Glaseado Mountain',
-  Schmierhain: 'Tagtree Thicket',
-  'Asarilla-Grotte': 'Alfornada Cavern',
-  'Zone Null': 'Area Zero',
-  'Labor Null': 'Zero Lab',
-  'Schrein des modrigen Holzes': 'Grasswither Shrine',
-  'Schrein des entzweiten Eises': 'Icerend Shrine',
-  'Schrein der unreinen Erde': 'Groundblight Shrine',
-  'Schrein der finsteren Flamme': 'Firescourge Shrine',
-  Moldrid: 'Artazon',
-  'Fermanca City': 'Levincia',
-  'Garrafosa City': 'Cascarrafa',
-  Asarilla: 'Alfornada',
-  Frigomonta: 'Montenevera',
-  Bolardin: 'Medali',
-  Pinchores: 'Porto Marinada',
-};
 
 function gameLabel(gameKey) {
   return window.LANG === 'en'
@@ -702,15 +421,7 @@ function checkpointNameLabel(entry, index, gameKey = state.game) {
 }
 
 function locationLabel(location) {
-  if (!location || window.LANG !== 'en') return location || '';
-  return LOCATION_LABELS_EN[location] || location
-    .replaceAll('Pokémon Liga', 'Pokémon League')
-    .replaceAll('Geschenk', 'Gift')
-    .replaceAll('Tausch', 'Trade')
-    .replaceAll('Höhle', 'Cave')
-    .replaceAll('Wald', 'Forest')
-    .replaceAll('See', 'Lake')
-    .replaceAll('Stadt', 'City');
+  return window.PokeHubLocations.label(location, window.LANG);
 }
 
 function pokemonNameLabel(pokemon) {
@@ -1021,455 +732,10 @@ const LEVEL_CAPS = {
   ]},
 };
 
-const LOCATION_PRESETS = {
-  'rot-blau': [
-    'Route 1', 'Route 2', 'Vertania-Wald', 'Route 3', 'Mondberg', 'Route 4', 'Route 5', 'Route 6',
-    'Route 24', 'Route 25', 'Route 7', 'Route 8', 'Route 9', 'Route 10', 'Felstunnel', 'Route 11', 'Digda-Höhle',
-    'Route 12', 'Route 13', 'Route 14', 'Route 15', 'Route 16', 'Route 17', 'Route 18',
-    'Safari-Zone', 'Route 19', 'Seeschauminseln', 'Route 20', 'Pokémon-Haus', 'Route 21',
-    'Route 22', 'Route 23', 'Siegesstraße', 'Kraftwerk', 'Unbekannter Dungeon', 'Geschenk / Tausch'
-  ],
-  'gelb': [
-    'Route 1', 'Route 2', 'Vertania-Wald', 'Route 3', 'Mondberg', 'Route 4', 'Route 5', 'Route 6',
-    'Route 24', 'Route 25', 'Route 7', 'Route 8', 'Route 9', 'Route 10', 'Felstunnel', 'Route 11', 'Digda-Höhle',
-    'Route 12', 'Route 13', 'Route 14', 'Route 15', 'Route 16', 'Route 17', 'Route 18',
-    'Safari-Zone', 'Route 19', 'Seeschauminseln', 'Route 20', 'Pokémon-Haus', 'Route 21',
-    'Route 22', 'Route 23', 'Siegesstraße', 'Kraftwerk', 'Unbekannter Dungeon', 'Geschenk / Tausch'
-  ],
-  'feuerrot-blattgruen': [
-    'Route 1', 'Route 2', 'Vertania-Wald', 'Route 3', 'Mondberg', 'Route 4', 'Route 5', 'Route 6',
-    'Route 24', 'Route 25', 'Route 7', 'Route 8', 'Route 9', 'Route 10', 'Felstunnel', 'Route 11', 'Digda-Höhle',
-    'Route 12', 'Route 13', 'Route 14', 'Route 15', 'Route 16', 'Route 17', 'Route 18',
-    'Safari-Zone', 'Route 19', 'Seeschauminseln', 'Route 20', 'Pokémon-Haus', 'Route 21',
-    'Route 22', 'Route 23', 'Siegesstraße', 'Kraftwerk', 'Eiland 1', 'Schatzgestade', 'Glutberg',
-    'Eiland 2', 'Kap Kante', 'Eiland 3', 'Beerenforst', 'Eiland 4', 'Eiskaskadenhöhle',
-    'Eiland 5', 'Eiland 6', 'Musterbuschwald', 'Eiland 7', 'Trainerturm', 'Geschenk / Tausch'
-  ],
-  'letsgo': [
-    'Route 1', 'Route 2', 'Vertania-Wald', 'Route 3', 'Mondberg', 'Route 4', 'Route 5', 'Route 6',
-    'Route 24', 'Route 25', 'Route 7', 'Route 8', 'Route 9', 'Route 10', 'Felstunnel', 'Route 11', 'Digda-Höhle',
-    'Route 12', 'Route 13', 'Route 14', 'Route 15', 'Route 16', 'Route 17', 'Route 18',
-    'Route 19', 'Seeschauminseln', 'Route 20', 'Pokémon-Haus', 'Route 21',
-    'Route 22', 'Route 23', 'Siegesstraße', 'Kraftwerk', 'Azuria-Höhle', 'Geschenk / Tausch'
-  ],
-  'gold-silber': [
-    'Route 29', 'Route 46', 'Route 30', 'Route 31', 'Dunkelhöhle', 'Knofensa-Turm', 'Route 32',
-    'Einheitstunnel', 'Route 33', 'Flegmon-Brunnen', 'Steineichenwald', 'Route 34', 'Route 35',
-    'Nationalpark', 'Route 36', 'Route 37', 'Turmruine', 'Route 38', 'Route 39', 'Route 40',
-    'Strudelinseln', 'Route 41', 'Route 42', 'Kesselberg', 'Route 43', 'See des Zorns',
-    'Eispfad', 'Route 44', 'Route 45', 'Drachenhöhle', 'Tohjo-Fälle', 'Route 26', 'Route 27',
-    'Siegesstraße', 'Route 1', 'Route 2', 'Vertania-Wald', 'Route 3', 'Mondberg', 'Route 4',
-    'Route 5', 'Route 6', 'Route 7', 'Route 8', 'Route 9', 'Route 10', 'Route 11', 'Digda-Höhle',
-    'Route 12', 'Route 13', 'Route 14', 'Route 15', 'Route 16', 'Route 17', 'Route 18',
-    'Route 19', 'Route 20', 'Seeschauminseln', 'Route 21', 'Route 22', 'Route 24', 'Route 25',
-    'Kraftwerk', 'Azuria-Höhle', 'Silberberg', 'Geschenk / Tausch'
-  ],
-  'kristall': [
-    'Route 29', 'Route 46', 'Route 30', 'Route 31', 'Dunkelhöhle', 'Knofensa-Turm', 'Route 32',
-    'Einheitstunnel', 'Route 33', 'Flegmon-Brunnen', 'Steineichenwald', 'Route 34', 'Route 35',
-    'Nationalpark', 'Route 36', 'Route 37', 'Turmruine', 'Route 38', 'Route 39', 'Route 40',
-    'Strudelinseln', 'Route 41', 'Route 42', 'Kesselberg', 'Route 43', 'See des Zorns',
-    'Eispfad', 'Route 44', 'Route 45', 'Drachenhöhle', 'Tohjo-Fälle', 'Route 26', 'Route 27',
-    'Siegesstraße', 'Route 1', 'Route 2', 'Vertania-Wald', 'Route 3', 'Mondberg', 'Route 4',
-    'Route 5', 'Route 6', 'Route 7', 'Route 8', 'Route 9', 'Route 10', 'Route 11', 'Digda-Höhle',
-    'Route 12', 'Route 13', 'Route 14', 'Route 15', 'Route 16', 'Route 17', 'Route 18',
-    'Route 19', 'Route 20', 'Seeschauminseln', 'Route 21', 'Route 22', 'Route 24', 'Route 25',
-    'Kraftwerk', 'Azuria-Höhle', 'Silberberg', 'Geschenk / Tausch'
-  ],
-  'heartgold-soulsilver': [
-    'Route 29', 'Route 46', 'Route 30', 'Route 31', 'Dunkelhöhle', 'Knofensa-Turm', 'Route 32',
-    'Einheitstunnel', 'Route 33', 'Flegmon-Brunnen', 'Steineichenwald', 'Route 34', 'Route 35',
-    'Nationalpark', 'Route 36', 'Route 37', 'Turmruine', 'Route 38', 'Route 39', 'Route 40',
-    'Strudelinseln', 'Route 41', 'Route 42', 'Kesselberg', 'Route 43', 'See des Zorns',
-    'Eispfad', 'Route 44', 'Route 45', 'Drachenhöhle', 'Tohjo-Fälle', 'Route 26', 'Route 27',
-    'Siegesstraße', 'Route 1', 'Route 2', 'Vertania-Wald', 'Route 3', 'Mondberg', 'Route 4',
-    'Route 5', 'Route 6', 'Route 7', 'Route 8', 'Route 9', 'Route 10', 'Route 11', 'Digda-Höhle',
-    'Route 12', 'Route 13', 'Route 14', 'Route 15', 'Route 16', 'Route 17', 'Route 18',
-    'Route 19', 'Route 20', 'Seeschauminseln', 'Route 21', 'Route 22', 'Route 24', 'Route 25',
-    'Kraftwerk', 'Azuria-Höhle', 'Silberberg', 'Geschenk / Tausch'
-  ],
-  'rubin-saphir': [
-    'Route 101', 'Route 102', 'Route 103', 'Route 104', 'Blütenburgwald', 'Route 105', 'Route 106',
-    'Granithöhle', 'Route 107', 'Route 108', 'Route 109', 'Route 110', 'Route 111', 'Wüstenruine',
-    'Feuriger Pfad', 'Route 112', 'Schlotberg', 'Steilpass', 'Route 113', 'Route 114', 'Meteorfälle',
-    'Route 115', 'Metarost-Tunnel', 'Route 116', 'Route 117', 'Route 118', 'Route 119', 'Route 120',
-    'Route 121', 'Safari-Zone', 'Route 122', 'Pyroberg', 'Route 123', 'Route 124', 'Route 125',
-    'Küstenhöhle', 'Route 126', 'Route 127', 'Route 128', 'Tiefseehöhle', 'Route 129', 'Route 130',
-    'Route 131', 'Himmelturm', 'Route 132', 'Route 133', 'Route 134', 'Siegesstraße',
-    'Wunderturm', 'Wüstenunterführung', 'Geschenk / Tausch'
-  ],
-  'smaragd': [
-    'Route 101', 'Route 102', 'Route 103', 'Route 104', 'Blütenburgwald', 'Route 105', 'Route 106',
-    'Granithöhle', 'Route 107', 'Route 108', 'Route 109', 'Route 110', 'Route 111', 'Wüstenruine',
-    'Feuriger Pfad', 'Route 112', 'Schlotberg', 'Steilpass', 'Route 113', 'Route 114', 'Meteorfälle',
-    'Route 115', 'Metarost-Tunnel', 'Route 116', 'Route 117', 'Route 118', 'Route 119', 'Route 120',
-    'Route 121', 'Safari-Zone', 'Route 122', 'Pyroberg', 'Route 123', 'Route 124', 'Route 125',
-    'Küstenhöhle', 'Route 126', 'Route 127', 'Route 128', 'Tiefseehöhle', 'Route 129', 'Route 130',
-    'Route 131', 'Himmelturm', 'Route 132', 'Route 133', 'Route 134', 'Siegesstraße',
-    'Wunderturm', 'Wüstenunterführung', 'Geschenk / Tausch'
-  ],
-  'omega-rot-alpha-saphir': [
-    'Route 101', 'Route 102', 'Route 103', 'Route 104', 'Blütenburgwald', 'Route 105', 'Route 106',
-    'Granithöhle', 'Route 107', 'Route 108', 'Route 109', 'Route 110', 'Route 111', 'Wüstenruine',
-    'Feuriger Pfad', 'Route 112', 'Schlotberg', 'Steilpass', 'Route 113', 'Route 114', 'Meteorfälle',
-    'Route 115', 'Metarost-Tunnel', 'Route 116', 'Route 117', 'Route 118', 'Route 119', 'Route 120',
-    'Route 121', 'Safari-Zone', 'Route 122', 'Pyroberg', 'Route 123', 'Route 124', 'Route 125',
-    'Küstenhöhle', 'Route 126', 'Route 127', 'Route 128', 'Tiefseehöhle', 'Route 129', 'Route 130',
-    'Route 131', 'Himmelturm', 'Route 132', 'Route 133', 'Route 134', 'Siegesstraße',
-    'Wunderturm', 'Wüstenunterführung', 'Geschenk / Tausch'
-  ],
-  'diamant-perl': [
-    'Route 201', 'See der Wahrheit', 'Route 202', 'Route 203', 'Erzelingen-Tor', 'Route 204',
-    'Verwüsteter Pfad', 'Flori', 'Windkraftwerk', 'Route 205', 'Ewigwald', 'Route 206',
-    'Bizarre Höhle', 'Route 207', 'Kraterberg', 'Route 208', 'Route 209', 'Turm der Ruhenden',
-    'Route 210', 'Route 211', 'Route 212', 'Großmoor', 'Route 213', 'Route 214', 'Ruinengrotte',
-    'Route 215', 'Route 216', 'Route 217', 'Stärkeufer', 'See der Stärke', 'Route 218',
-    'Route 219', 'Route 220', 'Route 221', 'Route 222', 'Route 223', 'Siegesstraße',
-    'Route 224', 'Route 225', 'Route 226', 'Route 227', 'Kahlberg', 'Route 228', 'Route 229',
-    'Route 230', 'Sendeturm / Geschenk'
-  ],
-  'platin': [
-    'Route 201', 'See der Wahrheit', 'Route 202', 'Route 203', 'Erzelingen-Tor', 'Route 204',
-    'Verwüsteter Pfad', 'Flori', 'Windkraftwerk', 'Route 205', 'Ewigwald', 'Route 206',
-    'Bizarre Höhle', 'Route 207', 'Kraterberg', 'Route 208', 'Route 209', 'Turm der Ruhenden',
-    'Route 210', 'Route 211', 'Route 212', 'Großmoor', 'Route 213', 'Route 214', 'Ruinengrotte',
-    'Route 215', 'Route 216', 'Route 217', 'Stärkeufer', 'See der Stärke', 'Route 218',
-    'Route 219', 'Route 220', 'Route 221', 'Route 222', 'Route 223', 'Siegesstraße',
-    'Route 224', 'Route 225', 'Route 226', 'Route 227', 'Kahlberg', 'Route 228', 'Route 229',
-    'Route 230', 'Sendeturm / Geschenk'
-  ],
-  'bdsp': [
-    'Route 201', 'See der Wahrheit', 'Route 202', 'Route 203', 'Erzelingen-Tor', 'Route 204',
-    'Verwüsteter Pfad', 'Flori', 'Windkraftwerk', 'Route 205', 'Ewigwald', 'Route 206',
-    'Bizarre Höhle', 'Route 207', 'Kraterberg', 'Route 208', 'Route 209', 'Turm der Ruhenden',
-    'Route 210', 'Route 211', 'Route 212', 'Großmoor', 'Route 213', 'Route 214', 'Ruinengrotte',
-    'Route 215', 'Route 216', 'Route 217', 'Stärkeufer', 'See der Stärke', 'Route 218',
-    'Route 219', 'Route 220', 'Route 221', 'Route 222', 'Route 223', 'Siegesstraße',
-    'Route 224', 'Route 225', 'Route 226', 'Route 227', 'Kahlberg', 'Route 228', 'Route 229',
-    'Route 230', 'Sendeturm / Geschenk'
-  ],
-  'schwarz-weiss': [
-    'Route 1', 'Route 2', 'Traumbrache', 'Route 3', 'Grundwassersenke', 'Ewigenwald', 'Route 4',
-    'Wüstenresort', 'Alter Palast', 'Route 5', 'Route 16', 'Hain der Täuschung', 'Route 6',
-    'Elektrolithhöhle', 'Route 7', 'Turm des Himmels', 'Route 17', 'Route 18', 'P2-Labor',
-    'Route 8', 'Moor von Nevaio', 'Route 9', 'Route 10', 'Siegesstraße', 'Route 11', 'Wunderbrücke',
-    'Route 12', 'Route 13', 'Riesengrotte', 'Route 14', 'Weißer Wald / Schwarze Stadt',
-    'Route 15', 'Panaero-Höhle', 'Freiheitsgarten', 'Geschenk / Tausch'
-  ],
-  'schwarz2-weiss2': [
-    'Route 19', 'Route 20', 'Route 1', 'Route 2', 'Traumbrache', 'Route 3', 'Grundwassersenke',
-    'Ewigenwald', 'Route 4', 'Wüstenresort', 'Alter Palast', 'Route 5', 'Route 16', 'Hain der Täuschung',
-    'Route 6', 'Elektrolithhöhle', 'Route 7', 'Turm des Himmels', 'Route 17', 'Route 18', 'P2-Labor',
-    'Route 8', 'Moor von Nevaio', 'Route 9', 'Route 10', 'Siegesstraße', 'Route 11', 'Wunderbrücke',
-    'Route 12', 'Route 13', 'Riesengrotte', 'Route 14', 'Weißer Wald / Schwarze Stadt',
-    'Route 15', 'Panaero-Höhle', 'Freiheitsgarten', 'Route 21', 'Route 22', 'Route 23',
-    'Kehrtwendeberg', 'Relic-Steg', 'PKW-Turnier', 'Geschenk / Tausch'
-  ],
-  'x-y': [
-    'Route 2', 'Nouvaria-Wald', 'Route 3', 'Route 4', 'Route 5', 'Route 6', 'Parfum-Palast',
-    'Route 7', 'Route 8', 'Glitzerhöhle', 'Route 9', 'Route 10', 'Route 11', 'Spiegelhöhle',
-    'Route 12', 'Azurbucht', 'Route 13', 'Route 14', 'Route 15', 'Route 16', 'Frosthöhle',
-    'Route 17', 'Route 18', 'Omega-Höhle', 'Route 19', 'Route 20', 'Pokémon-Dorf', 'Route 21',
-    'Route 22', 'Siegesstraße', 'Kontaktsafari', 'Geschenk / Tausch'
-  ],
-  'sonne-mond': [
-    'Route 1', 'Route 2', 'Route 3', 'Pflanzenhöhle', 'Melemele-Wiese', 'Zehnkaratberg',
-    'Route 4', 'Route 5', 'Route 6', 'Bachweilerberg', 'Route 7', 'Wela-Vulkanpark',
-    'Route 8', 'Üppiger Wald', 'Digda-Tunnel', 'Route 9', 'Route 10', 'Route 11', 'Route 12',
-    'Route 13', 'Rosenroter Berg', 'Route 14', 'Haina-Wüste', 'Route 15', "Ula'ula-Wiese",
-    'Route 16', 'Route 17', 'Poni-Wildnis', 'Alter Poni-Pfad', 'Poni-Ebene', 'Poni-Wiese',
-    'Lösungs-Höhle', 'Berg Lanakila', 'Geschenk / Tausch'
-  ],
-  'ultrasonne-ultramond': [
-    'Route 1', 'Route 2', 'Route 3', 'Pflanzenhöhle', 'Melemele-Wiese', 'Zehnkaratberg',
-    'Route 4', 'Route 5', 'Route 6', 'Bachweilerberg', 'Route 7', 'Wela-Vulkanpark',
-    'Route 8', 'Üppiger Wald', 'Digda-Tunnel', 'Route 9', 'Route 10', 'Route 11', 'Route 12',
-    'Route 13', 'Rosenroter Berg', 'Route 14', 'Haina-Wüste', 'Route 15', "Ula'ula-Wiese",
-    'Route 16', 'Route 17', 'Poni-Wildnis', 'Alter Poni-Pfad', 'Poni-Ebene', 'Poni-Wiese',
-    'Lösungs-Höhle', 'Berg Lanakila', 'Geschenk / Tausch'
-  ],
-  'schwert-schild': [
-    'Route 1', 'Route 2', 'Schlummerwald', 'Galar-Mine 1', 'Route 3', 'Route 4', 'Galar-Mine 2',
-    'Route 5', 'Route 6', 'Route 7', 'Route 8', 'Route 9', 'Route 10', 'Wipfelscheinwald',
-    'Dyna-Raid', 'Naturzone: Waipio-Ebene', 'Naturzone: Milza-See', 'Naturzone: Wachturmruine',
-    'Naturzone: Brückental', 'Naturzone: Sandsturmkessel', 'Naturzone: Spiegel des Giganten',
-    'Naturzone: Milotic-See', 'Rüstungsinsel', 'Kronen-Schneelande', 'Geschenk / Tausch'
-  ],
-  'karmesin-purpur': [
-    'Cucharico-Pfad', 'Südliche Zone 1', 'Südliche Zone 2', 'Südliche Zone 3', 'Südliche Zone 4',
-    'Südliche Zone 5', 'Südliche Zone 6', 'Östliche Zone 1', 'Östliche Zone 2', 'Östliche Zone 3',
-    'Westliche Zone 1', 'Westliche Zone 2', 'Westliche Zone 3', 'Nördliche Zone 1', 'Nördliche Zone 2',
-    'Nördliche Zone 3', 'Brutzelwüste', 'Caldero-See', 'Montanata', 'Schmierhain', 'Asarilla-Grotte',
-    'Felstunnel', 'Zone Null', 'Tera-Raid', 'Geschenk / Tausch'
-  ],
-};
 
-const LOCATION_SPECIALS = {
-  'rot-blau': [
-    'Pokémon-Turm', 'Kanto-Untergrundpfad'
-  ],
-  'gelb': [
-    'Pokémon-Turm', 'Kanto-Untergrundpfad'
-  ],
-  'feuerrot-blattgruen': [
-    'Pokémon-Turm', 'Azuria-Höhle', 'MS Anne', 'Wandelhöhle', 'Glühweg', 'Schluchteingang',
-    'Wasserweg', 'Grüner Pfad', 'Fern-Eiland', 'Ferienparadies', 'Gedenksäule',
-    'Verlorene Höhle', 'Ruinental', '7-Schatzschlucht', 'Tanibo-Ruinen',
-    'Tri-Eiland Hafen', 'Entstehungsinsel', 'Nabelfels', 'Wandernde Pokémon'
-  ],
-  'letsgo': [
-    'Pokémon-Turm', 'Kanto-Untergrundpfad', 'Wandernde Pokémon'
-  ],
-  'gold-silber': [
-    'Alph-Ruinen', 'Glockenturm', 'Johto-Safari-Zone', 'Route 47', 'Route 48',
-    'Route 28', 'Felstunnel', 'Felsenherzturm', 'Sinjoh-Ruinen',
-    'Team Rocket-Hauptquartier', 'Steineichenwald-Schrein', 'Wandernde Pokémon'
-  ],
-  'kristall': [
-    'Alph-Ruinen', 'Glockenturm', 'Johto-Safari-Zone', 'Route 47', 'Route 48',
-    'Route 28', 'Felstunnel', 'Felsenherzturm', 'Sinjoh-Ruinen',
-    'Team Rocket-Hauptquartier', 'Steineichenwald-Schrein', 'Wandernde Pokémon'
-  ],
-  'heartgold-soulsilver': [
-    'Alph-Ruinen', 'Glockenturm', 'Johto-Safari-Zone', 'Route 47', 'Route 48',
-    'Route 28', 'Felstunnel', 'Felsenherzturm', 'Sinjoh-Ruinen',
-    'Team Rocket-Hauptquartier', 'Steineichenwald-Schrein', 'Wandernde Pokémon'
-  ],
-  'rubin-saphir': [
-    'Schiffswrack', 'Urzeithöhle', 'Team Aquas Versteck', 'Team Magmas Versteck',
-    'Inselhöhle', 'Grabmal', 'Terrahöhle', 'Ozeanhöhle',
-    'Ferneiland', 'Wandelhöhle', 'Entstehungsinsel', 'Nabelfels', 'Wandernde Pokémon'
-  ],
-  'smaragd': [
-    'Schiffswrack', 'Urzeithöhle', 'Neu Malvenfroh', 'Team Aquas Versteck',
-    'Team Magmas Versteck', 'Inselhöhle', 'Grabmal', 'Terrahöhle', 'Ozeanhöhle',
-    'Ferneiland', 'Insel im Süden', 'Entstehungsinsel', 'Nabelfels', 'Wandelhöhle',
-    'Höhlenatelier', 'Wunderinsel', 'Prachtpolis City', 'Seegrasulb City',
-    'Kampfzone (Hoenn)', 'Wandernde Pokémon'
-  ],
-  'omega-rot-alpha-saphir': [
-    'Schiffswrack', 'Urzeithöhle', 'Neu Malvenfroh', 'Team Aquas Versteck',
-    'Team Magmas Versteck', 'Inselhöhle', 'Grabmal', 'Terrahöhle', 'Ozeanhöhle',
-    'Ferneiland', 'Insel im Süden', 'Entstehungsinsel', 'Nabelfels', 'Wandelhöhle',
-    'Höhlenatelier', 'Wunderinsel', 'Prachtpolis City', 'Seegrasulb City',
-    'Kampfzone (Hoenn)', 'Wandernde Pokémon'
-  ],
-  'diamant-perl': [
-    'Speersäule', 'Zerrwelt', 'Höhle der Umkehr', 'Scheidequelle', 'Alte Villa',
-    'Erzelingen-Mine', 'Feurio-Hütte', 'Trostu-Ruinen', 'Pokémon-Landgut',
-    'Blizzach-Tempel', 'Auen von Flori', 'Elyses', 'Maniac-Tunnel', 'Erholungsareal',
-    'Blumenparadies', 'Neumondinsel', 'Vollmondinsel', 'Halle des Beginns',
-    'Sinjoh-Ruinen', 'Wandernde Pokémon'
-  ],
-  'platin': [
-    'Speersäule', 'Zerrwelt', 'Höhle der Umkehr', 'Scheidequelle', 'Alte Villa',
-    'Erzelingen-Mine', 'Feurio-Hütte', 'Trostu-Ruinen', 'Pokémon-Landgut',
-    'Blizzach-Tempel', 'Auen von Flori', 'Elyses', 'Maniac-Tunnel', 'Erholungsareal',
-    'Blumenparadies', 'Neumondinsel', 'Vollmondinsel', 'Halle des Beginns',
-    'Sinjoh-Ruinen', 'Wandernde Pokémon'
-  ],
-  'bdsp': [
-    'Speersäule', 'Zerrwelt', 'Höhle der Umkehr', 'Scheidequelle', 'Alte Villa',
-    'Erzelingen-Mine', 'Feurio-Hütte', 'Trostu-Ruinen', 'Pokémon-Landgut',
-    'Blizzach-Tempel', 'Auen von Flori', 'Elyses', 'Maniac-Tunnel', 'Erholungsareal',
-    'Blumenparadies', 'Neumondinsel', 'Vollmondinsel', 'Halle des Beginns',
-    'Sinjoh-Ruinen', 'Wandernde Pokémon'
-  ],
-  'schwarz-weiss': [
-    'Tiefkühlcontainer', 'Drachenstiege', 'Schloss von N', 'Schrein der Ernte',
-    'Höhle der Schulung', 'Wendelberg', 'Marea-Zugbrücke', 'Bucht von Ondula',
-    'Ondula', 'Dorfbrücke', 'Kammer der Weisung', 'Kammer der Prüfung'
-  ],
-  'schwarz2-weiss2': [
-    'Tiefkühlcontainer', 'Drachenstiege', 'Schrein der Ernte', 'Höhle der Schulung',
-    'Wendelberg', 'Marea-Zugbrücke', 'Bucht von Ondula', 'Ondula', 'Dorfbrücke',
-    'Kammer der Weisung', 'Kammer der Prüfung', 'Riesengraben'
-  ],
-  'x-y': [
-    'Geolinkhöhle', 'Hotelruine', 'Meerestitanenhöhle', 'Flare-Geheimbasis',
-    'Geheimdungeon', 'Turm der Erkenntnis', 'Mosaia', 'Kalos (wandernd)'
-  ],
-  'sonne-mond': [
-    'Melemele-See', 'Akala-Außenbereich', 'Po-Stadt', 'Wandernde Pokémon'
-  ],
-  'ultrasonne-ultramond': [
-    'Melemele-See', 'Akala-Außenbereich', 'Po-Stadt', 'Wandernde Pokémon'
-  ],
-  'schwert-schild': [
-    'Energiewerk', 'Dyna-Riesennest', 'Kronentempel', 'Hügel des Dyna-Baums',
-    'Gipfelruinen', 'Eisberg-Ruinen', 'Eisen-Ruinen', 'Zwiespaltruinen',
-    'Ballsee-Ufer'
-  ],
-  'karmesin-purpur': [
-    'Labor Null', 'Schrein des modrigen Holzes', 'Schrein des entzweiten Eises',
-    'Schrein der unreinen Erde', 'Schrein der finsteren Flamme'
-  ],
-};
 
-const LOCATION_EXTRAS = {
-  'rot-blau': [
-    'Alabastia', 'Vertania City', 'Marmoria City', 'Azuria City', 'Orania City',
-    'Lavandia', 'Prismania City', 'Saffronia City', 'Fuchsania City', 'Zinnoberinsel'
-  ],
-  'feuerrot-blattgruen': [
-    'Alabastia', 'Vertania City', 'Marmoria City', 'Azuria City', 'Orania City',
-    'Lavandia', 'Prismania City', 'Saffronia City', 'Fuchsania City', 'Zinnoberinsel',
-    'Bondbrücke', 'Wasserirrgarten', 'Fünf-Eiland-Weide'
-  ],
-  'heartgold-soulsilver': [
-    'Neuborkia', 'Rosalia City', 'Viola City', 'Azalea City', 'Dukatia City',
-    'Teak City', 'Oliviana City', 'Anemonia City', 'Mahagonia', 'Ebenholz City',
-    'Alabastia', 'Vertania City', 'Marmoria City', 'Azuria City', 'Orania City',
-    'Lavandia', 'Prismania City', 'Saffronia City', 'Fuchsania City', 'Zinnoberinsel'
-  ],
-  'smaragd': [
-    'Wurzelheim', 'Rosaltstadt', 'Blütenburg City', 'Metarost City', 'Faustauhaven',
-    'Graphitport City', 'Malvenfroh City', 'Bad Lavastadt', 'Laubwechselfeld',
-    'Wiesenflur', 'Baumhausen City', 'Moosbach City', 'Xeneroville', 'Floßbrunn'
-  ],
-  'platin': [
-    'Zweiblattdorf', 'Sandgemme', 'Jubelstadt', 'Erzelingen', 'Flori', 'Ewigenau',
-    'Herzhofen', 'Trostu', 'Weideburg', 'Schleiede', 'Blizzach', 'Fleetburg',
-    'Sonnewik', 'Pokémon Liga', 'Eiseninsel', 'Kühnheitsufer', 'Stärkeufer'
-  ],
-  'schwarz-weiss': [
-    'Avenitia', 'Gavina', 'Orion City', 'Septerna City', 'Stratos City', 'Rayono City',
-    'Marea City', 'Panaero City', 'Nevaio City', 'Twindrake City', 'Pokémon Liga'
-  ],
-  'x-y': [
-    'Escissia', 'Aquarellia', 'Nouvaria City', 'Illumina City', 'Relievera City',
-    'Petrophia', 'Yantara City', 'Tempera City', 'Romantia City', 'Frescora',
-    'Fluxia City', 'Fractalia City', 'Pokémon Liga'
-  ],
-  'schwert-schild': [
-    'Furlongham', 'Brassbury', 'Engine City', 'Turffield', 'Keelton',
-    'Passbeck', 'Fairballey', 'Circhester', 'Spikeford', 'Score City'
-  ],
-  'karmesin-purpur': [
-    'Cabo Poco', 'Mesalona City', 'Moldrid', 'Fermanca City', 'Garrafosa City',
-    'Asarilla', 'Frigomonta', 'Bolardin', 'Pinchores', 'Tera-Raid', 'Massenausbruch'
-  ],
-};
 
-const LOCATION_ORDER = {
-  'rot-blau': [
-    'Alabastia', 'Route 1', 'Vertania City', 'Route 22', 'Route 2', 'Vertania-Wald',
-    'Marmoria City', 'Route 3', 'Mondberg', 'Route 4', 'Azuria City', 'Route 24', 'Route 25',
-    'Route 5', 'Route 6', 'Orania City', 'Digda-Höhle', 'Route 11', 'Route 9', 'Route 10',
-    'Felstunnel', 'Lavandia', 'Route 8', 'Route 7', 'Prismania City', 'Saffronia City',
-    'Route 16', 'Route 17', 'Route 18', 'Fuchsania City', 'Safari-Zone', 'Route 12',
-    'Route 13', 'Route 14', 'Route 15', 'Route 19', 'Route 20', 'Seeschauminseln',
-    'Zinnoberinsel', 'Pokémon-Haus', 'Route 21', 'Kraftwerk', 'Route 23', 'Siegesstraße',
-    'Unbekannter Dungeon', 'Geschenk / Tausch'
-  ],
-  'feuerrot-blattgruen': [
-    'Alabastia', 'Route 1', 'Vertania City', 'Route 22', 'Route 2', 'Vertania-Wald',
-    'Marmoria City', 'Route 3', 'Mondberg', 'Route 4', 'Azuria City', 'Route 24', 'Route 25',
-    'Route 5', 'Route 6', 'Orania City', 'Digda-Höhle', 'Route 11', 'Route 9', 'Route 10',
-    'Felstunnel', 'Lavandia', 'Route 8', 'Route 7', 'Prismania City', 'Saffronia City',
-    'Route 16', 'Route 17', 'Route 18', 'Fuchsania City', 'Safari-Zone', 'Route 12',
-    'Route 13', 'Route 14', 'Route 15', 'Route 19', 'Route 20', 'Seeschauminseln',
-    'Zinnoberinsel', 'Pokémon-Haus', 'Route 21', 'Kraftwerk', 'Route 23', 'Siegesstraße',
-    'Eiland 1', 'Schatzgestade', 'Glutberg', 'Eiland 2', 'Kap Kante', 'Eiland 3',
-    'Bondbrücke', 'Beerenforst', 'Eiland 4', 'Eiskaskadenhöhle', 'Eiland 5',
-    'Wasserirrgarten', 'Fünf-Eiland-Weide', 'Eiland 6', 'Musterbuschwald', 'Eiland 7',
-    'Trainerturm', 'Geschenk / Tausch'
-  ],
-  'heartgold-soulsilver': [
-    'Neuborkia', 'Route 29', 'Route 46', 'Rosalia City', 'Route 30', 'Route 31',
-    'Dunkelhöhle', 'Viola City', 'Knofensa-Turm', 'Route 32', 'Einheitstunnel',
-    'Route 33', 'Azalea City', 'Flegmon-Brunnen', 'Steineichenwald', 'Route 34',
-    'Dukatia City', 'Route 35', 'Nationalpark', 'Route 36', 'Route 37', 'Teak City',
-    'Turmruine', 'Route 38', 'Route 39', 'Oliviana City', 'Route 40', 'Route 41',
-    'Strudelinseln', 'Anemonia City', 'Route 42', 'Kesselberg', 'Mahagonia',
-    'Route 43', 'See des Zorns', 'Route 44', 'Eispfad', 'Ebenholz City',
-    'Route 45', 'Drachenhöhle', 'Tohjo-Fälle', 'Route 27', 'Route 26',
-    'Siegesstraße', 'Alabastia', 'Route 1', 'Vertania City', 'Route 2',
-    'Vertania-Wald', 'Marmoria City', 'Route 3', 'Mondberg', 'Route 4',
-    'Azuria City', 'Route 24', 'Route 25', 'Route 5', 'Route 6', 'Orania City',
-    'Route 11', 'Digda-Höhle', 'Route 9', 'Route 10', 'Kraftwerk', 'Route 8',
-    'Lavandia', 'Saffronia City', 'Route 7', 'Prismania City', 'Route 16',
-    'Route 17', 'Route 18', 'Fuchsania City', 'Route 12', 'Route 13', 'Route 14',
-    'Route 15', 'Route 19', 'Route 20', 'Seeschauminseln', 'Zinnoberinsel',
-    'Route 21', 'Azuria-Höhle', 'Silberberg', 'Geschenk / Tausch'
-  ],
-  'smaragd': [
-    'Wurzelheim', 'Route 101', 'Rosaltstadt', 'Route 103', 'Route 102',
-    'Blütenburg City', 'Route 104', 'Blütenburgwald', 'Metarost City',
-    'Route 116', 'Metarost-Tunnel', 'Route 105', 'Route 106', 'Faustauhaven',
-    'Granithöhle', 'Route 107', 'Route 108', 'Route 109', 'Graphitport City',
-    'Route 110', 'Malvenfroh City', 'Route 117', 'Wiesenflur', 'Route 111',
-    'Feuriger Pfad', 'Route 112', 'Schlotberg', 'Steilpass', 'Bad Lavastadt',
-    'Route 113', 'Laubwechselfeld', 'Route 114', 'Meteorfälle', 'Route 115',
-    'Wüstenruine', 'Route 118', 'Route 119', 'Baumhausen City', 'Route 120',
-    'Route 121', 'Safari-Zone', 'Route 122', 'Pyroberg', 'Route 123',
-    'Route 124', 'Moosbach City', 'Route 125', 'Küstenhöhle', 'Route 126',
-    'Xeneroville', 'Route 127', 'Route 128', 'Tiefseehöhle', 'Route 129',
-    'Route 130', 'Route 131', 'Himmelturm', 'Route 132', 'Route 133',
-    'Route 134', 'Siegesstraße', 'Wunderturm', 'Wüstenunterführung',
-    'Geschenk / Tausch'
-  ],
-  'platin': [
-    'Zweiblattdorf', 'See der Wahrheit', 'Route 201', 'Sandgemme', 'Route 202',
-    'Jubelstadt', 'Route 203', 'Erzelingen-Tor', 'Erzelingen', 'Route 204',
-    'Verwüsteter Pfad', 'Flori', 'Windkraftwerk', 'Route 205', 'Ewigwald',
-    'Ewigenau', 'Route 206', 'Bizarre Höhle', 'Route 207', 'Kraterberg',
-    'Route 208', 'Herzhofen', 'Route 209', 'Turm der Ruhenden', 'Trostu',
-    'Route 210', 'Route 215', 'Schleiede', 'Route 214', 'Ruinengrotte',
-    'Kühnheitsufer', 'See der Kühnheit', 'Route 213', 'Weideburg',
-    'Großmoor', 'Route 212', 'Route 211', 'Route 216', 'Route 217',
-    'Stärkeufer', 'See der Stärke', 'Blizzach', 'Fleetburg', 'Route 218',
-    'Eiseninsel', 'Route 219', 'Route 220', 'Route 221', 'Sonnewik',
-    'Route 222', 'Route 223', 'Pokémon Liga', 'Siegesstraße', 'Route 224',
-    'Route 225', 'Route 226', 'Route 227', 'Kahlberg', 'Route 228',
-    'Route 229', 'Route 230', 'Sendeturm / Geschenk'
-  ],
-  'schwarz-weiss': [
-    'Avenitia', 'Route 1', 'Gavina', 'Route 2', 'Orion City', 'Traumbrache',
-    'Route 3', 'Septerna City', 'Grundwassersenke', 'Ewigenwald', 'Stratos City',
-    'Route 4', 'Wüstenresort', 'Alter Palast', 'Rayono City', 'Route 5',
-    'Route 16', 'Hain der Täuschung', 'Route 6', 'Marea City', 'Elektrolithhöhle',
-    'Panaero City', 'Route 7', 'Turm des Himmels', 'Route 8', 'Moor von Nevaio',
-    'Nevaio City', 'Route 9', 'Twindrake City', 'Route 10', 'Siegesstraße',
-    'Route 11', 'Wunderbrücke', 'Route 12', 'Route 13', 'Riesengrotte',
-    'Route 14', 'Weißer Wald / Schwarze Stadt', 'Route 15', 'Panaero-Höhle',
-    'Route 17', 'Route 18', 'P2-Labor', 'Freiheitsgarten', 'Geschenk / Tausch'
-  ],
-  'x-y': [
-    'Escissia', 'Route 2', 'Nouvaria-Wald', 'Nouvaria City', 'Route 3',
-    'Illumina City', 'Route 4', 'Route 5', 'Route 6', 'Parfum-Palast',
-    'Route 7', 'Route 8', 'Relievera City', 'Route 9', 'Glitzerhöhle',
-    'Petrophia', 'Route 10', 'Yantara City', 'Route 11', 'Spiegelhöhle',
-    'Route 12', 'Tempera City', 'Azurbucht', 'Route 13', 'Route 14',
-    'Romantia City', 'Route 15', 'Route 16', 'Frosthöhle', 'Frescora',
-    'Route 17', 'Route 18', 'Fluxia City', 'Omega-Höhle', 'Route 19',
-    'Fractalia City', 'Route 20', 'Pokémon-Dorf', 'Route 21', 'Route 22',
-    'Siegesstraße', 'Kontaktsafari', 'Geschenk / Tausch'
-  ],
-  'schwert-schild': [
-    'Furlongham', 'Route 1', 'Brassbury', 'Route 2', 'Schlummerwald',
-    'Engine City', 'Route 3', 'Galar-Mine 1', 'Route 4', 'Turffield',
-    'Galar-Mine 2', 'Keelton', 'Route 5', 'Passbeck', 'Fairballey',
-    'Route 6', 'Wipfelscheinwald', 'Route 7', 'Route 8', 'Circhester',
-    'Route 9', 'Spikeford', 'Route 10', 'Score City', 'Naturzone: Waipio-Ebene',
-    'Naturzone: Milza-See', 'Naturzone: Wachturmruine', 'Naturzone: Brückental',
-    'Naturzone: Sandsturmkessel', 'Naturzone: Spiegel des Giganten',
-    'Naturzone: Milotic-See', 'Dyna-Raid', 'Rüstungsinsel', 'Kronen-Schneelande',
-    'Geschenk / Tausch'
-  ],
-  'karmesin-purpur': [
-    'Cabo Poco', 'Cucharico-Pfad', 'Mesalona City', 'Südliche Zone 1',
-    'Südliche Zone 2', 'Südliche Zone 4', 'Südliche Zone 3', 'Moldrid',
-    'Östliche Zone 1', 'Östliche Zone 2', 'Östliche Zone 3', 'Fermanca City',
-    'Westliche Zone 1', 'Brutzelwüste', 'Garrafosa City', 'Westliche Zone 2',
-    'Asarilla', 'Asarilla-Grotte', 'Westliche Zone 3', 'Caldero-See',
-    'Montanata', 'Schmierhain', 'Nördliche Zone 1', 'Nördliche Zone 2',
-    'Nördliche Zone 3', 'Zone Null', 'Felstunnel', 'Tera-Raid', 'Massenausbruch',
-    'Geschenk / Tausch'
-  ],
-};
 
-const STARTER_LOCATION = 'Starter-Pokémon';
 
 // Cover liegen im Hub (Bulbagarden erlaubt kein Einbetten auf fremden Seiten – die Bilder luden dort nie)
 function cover(name) { return 'covers/' + name + '.webp'; }
@@ -2633,8 +1899,10 @@ const state = {
   game: 'karmesin-purpur',
   checkpoint: 0,
   randomizer: false,
+  eeveeException: false,
   encounters: [],
   graveyard: [],
+  notes: '',
 };
 
 let allRuns = [];
@@ -2664,11 +1932,17 @@ const els = {
   encounterStatus: document.getElementById('encounter-status'),
   encounterMethod: document.getElementById('encounter-method'),
   randomizerToggle: document.getElementById('randomizer-toggle'),
+  randoSlot: document.getElementById('rando-state-slot'),
+  eeveeToggle: document.getElementById('eevee-toggle'),
+  undoToast: document.getElementById('undo-toast'),
+  undoText: document.getElementById('undo-text'),
+  undoBtn: document.getElementById('undo-btn'),
   encounterList: document.getElementById('encounter-list'),
   graveyardForm: document.getElementById('graveyard-form'),
   graveyardName: document.getElementById('graveyard-name'),
   graveyardPreview: document.getElementById('graveyard-preview'),
   graveyardList: document.getElementById('graveyard-list'),
+  runNotes: document.getElementById('run-notes'),
   resetRun: document.getElementById('reset-run'),
   resetConfirm: document.getElementById('reset-confirm'),
   resetConfirmYes: document.getElementById('reset-confirm-yes'),
@@ -2739,15 +2013,17 @@ function toggleLanguage() {
 const RUNS_KEY = 'pokemon-run-dashboard-runs';
 
 function freshRun() {
-  return { runName: '', game: 'karmesin-purpur', checkpoint: 0, randomizer: false, encounters: [], graveyard: [] };
+  return { runName: '', game: 'karmesin-purpur', checkpoint: 0, randomizer: false, eeveeException: false, encounters: [], graveyard: [], notes: '' };
 }
 
 function coerceRun(data) {
   const run = Object.assign(freshRun(), data);
   if (!LEVEL_CAPS[run.game]) run.game = 'karmesin-purpur';
   run.randomizer = Boolean(run.randomizer);
+  run.eeveeException = Boolean(run.eeveeException);
   run.encounters = Array.isArray(run.encounters) ? run.encounters : [];
   run.graveyard = Array.isArray(run.graveyard) ? run.graveyard : [];
+  run.notes = typeof run.notes === 'string' ? run.notes : '';
   return run;
 }
 
@@ -2757,8 +2033,10 @@ function applyRun(run) {
   state.game = r.game;
   state.checkpoint = r.checkpoint;
   state.randomizer = r.randomizer;
+  state.eeveeException = r.eeveeException;
   state.encounters = r.encounters;
   state.graveyard = r.graveyard;
+  state.notes = r.notes;
 }
 
 function renderRunSelect() {
@@ -2782,10 +2060,14 @@ function renderRunSelect() {
   document.getElementById('app').classList.toggle('is-empty', allRuns.length === 0);
 }
 
+// Gewählter oder neuer Run: sein Spiel wird das aktive Spiel des Hubs (pwa.js)
+const announceRunGame = () => window.PokeHubGame?.set(state.game);
+
 function switchToRun(idx) {
   save();
   activeRunIdx = idx;
   applyRun(allRuns[idx]);
+  announceRunGame();
   save(); // gewählten Run auch als aktiven merken, sonst öffnet die Seite beim nächsten Mal den vorherigen
   render();
   renderRunSelect();
@@ -2836,6 +2118,7 @@ function createNewRun(game, name) {
   allRuns.push(run);
   activeRunIdx = allRuns.length - 1;
   applyRun(run);
+  announceRunGame();
   save();
   render();
   renderRunSelect();
@@ -2851,6 +2134,7 @@ function deleteRun(idx) {
   if (activeRunIdx >= allRuns.length) activeRunIdx = allRuns.length - 1;
   else if (idx < activeRunIdx) activeRunIdx--;
   applyRun(allRuns[activeRunIdx]);
+  announceRunGame();
   save();
   render();
   renderRunSelect();
@@ -2987,6 +2271,10 @@ function renderLocationOptions() {
 function renderRandomizerToggle() {
   els.randomizerToggle.classList.toggle('is-active', state.randomizer);
   els.randomizerToggle.setAttribute('aria-pressed', String(state.randomizer));
+  // Randomizer-Run in Platin: Chip „Randomizer: ROM ×“ bzw. „Randomizer-ROM laden“ daneben
+  if (els.randoSlot) els.randoSlot.hidden = !(state.randomizer && state.game === 'platin' && window.PokeHubRando);
+  els.eeveeToggle.classList.toggle('is-active', state.eeveeException);
+  els.eeveeToggle.setAttribute('aria-pressed', String(state.eeveeException));
 }
 
 function statusLabel(status) {
@@ -2994,6 +2282,7 @@ function statusLabel(status) {
     caught: t('status.caught'),
     open: t('status.open'),
     failed: t('status.failed'),
+    dead: t('status.dead'),
   }[status] || t('status.open');
 }
 
@@ -3188,6 +2477,18 @@ function enrichPokémonNames(list) {
   });
 }
 
+// Randomizer-Run in Platin: Pokémon der Route aus dem Randomizer-Stand (rando-state.js, Karte/encounter-areas.js)
+// → { ids, name } | { missing } (kein Stand) | { old } (Stand ohne wilde Pokémon) | null (Ort ohne Daten)
+function randoRouteSpecies(location) {
+  if (state.game !== 'platin' || !window.PokeHubRando) return null;
+  const rd = window.PokeHubRando.get();
+  if (!rd) return { missing: true };
+  if (location === STARTER_LOCATION) return rd.starters ? { ids: rd.starters, name: rd.name } : null;
+  if (!Array.isArray(rd.wild)) return { old: true };
+  const ids = window.PokeHubRando.speciesAt(rd, location);
+  return ids ? { ids, name: rd.name } : null;
+}
+
 async function prepareEncounterPokémonScope() {
   routePokémonRequestId += 1;
   const requestId = routePokémonRequestId;
@@ -3206,7 +2507,19 @@ async function prepareEncounterPokémonScope() {
 
   if (state.randomizer) {
     els.pokemonGeneration.disabled = true;
-    renderRouteHint('');
+    const rr = randoRouteSpecies(location);
+    if (rr && rr.ids && rr.ids.length) {
+      const byId = new Map(allPokémonList.map(p => [p.id, p]));
+      routePokémonList = rr.ids.map(id => byId.get(id) || {
+        id, name: String(id), displayName: window.pokemonName(id, null) || `#${id}`,
+        sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
+      });
+      routePokémonState = { active: true, loading: false, location, message: `${locationLabel(location)}: ${rr.ids.length} ${t('possibleEncounters')}` };
+      renderRouteHint(`<strong>${escapeHtml(locationLabel(location))}</strong>: ${rr.ids.length} ${escapeHtml(t('possibleEncounters'))} ${escapeHtml(t('randoFrom', { name: rr.name }))}`);
+      enrichPokémonNames(routePokémonList);
+    } else {
+      renderRouteHint(rr && rr.missing ? escapeHtml(t('randoLoadHint')) : rr && rr.old ? escapeHtml(t('randoOldHint')) : '');
+    }
     renderPokémonList(els.pokemonSearch.value);
     return;
   }
@@ -3341,8 +2654,10 @@ function renderStats() {
   els.statCaught.textContent = state.encounters.filter(e => e.status === 'caught').length;
   els.statOpen.textContent = state.encounters.filter(e => e.status === 'open').length;
   els.statFailed.textContent = state.encounters.filter(e => e.status === 'failed').length;
-  els.statGraveyard.textContent = state.graveyard.length;
+  els.statGraveyard.textContent = graveyardEntries().length;
 }
+
+const TRASH_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 
 function renderEncounters() {
   if (state.encounters.length === 0) {
@@ -3350,34 +2665,49 @@ function renderEncounters() {
     return;
   }
 
-  const nextStatusLabel = { caught: t('status.open'), open: t('status.failed'), failed: t('status.caught') };
   els.encounterList.innerHTML = state.encounters.map((entry, index) => `
-    <div class="encounter-row" data-encounter-index="${index}">
+    <div class="encounter-row${entry.status === 'dead' ? ' is-dead' : ''}" data-encounter-index="${index}">
       <div class="encounter-place" title="${escapeHtml(locationLabel(entry.place))}">${escapeHtml(locationLabel(entry.place))}</div>
       <div class="pokemon-cell encounter-pokemon" title="${escapeHtml(pokemonDisplayName(entry.pokemon) || '-')}">
         ${pokemonSprite(entry.pokemon) ? `<img src="${escapeHtml(pokemonSprite(entry.pokemon))}" alt="">` : ''}
         <span>${escapeHtml(pokemonDisplayName(entry.pokemon) || '-')}</span>
       </div>
       <span class="status-pill method-${escapeHtml(entry.method || 'wild')}">${escapeHtml(methodLabel(entry.method))}</span>
-      <span class="status-pill status-${escapeHtml(entry.status)} is-action" role="button" tabindex="0" data-status-index="${index}" title="${escapeHtml('→ ' + (nextStatusLabel[entry.status] || '?'))}">${statusLabel(entry.status)}</span>
-      <button class="icon-btn delete-btn" data-delete-index="${index}" title="${escapeHtml(t('deleteEncounterTitle'))}" aria-label="${escapeHtml(t('deleteEncounterTitle'))}">&#215;</button>
+      <span class="status-pill status-${escapeHtml(entry.status)} is-action" role="button" tabindex="0" aria-haspopup="menu" data-status-index="${index}" title="${escapeHtml(entry.status === 'dead' && entry.death ? entry.death : t('changeStatusTitle'))}">${statusLabel(entry.status)}</span>
+      ${entry.status === 'caught'
+        ? `<button type="button" class="icon-btn kill-btn" data-kill-index="${index}" title="${escapeHtml(t('killTitle'))}" aria-label="${escapeHtml(t('killTitle'))}">†</button>`
+        : '<span class="kill-slot" aria-hidden="true"></span>'}
+      <button class="icon-btn delete-btn" data-delete-index="${index}" title="${escapeHtml(t('deleteEncounterTitle'))}" aria-label="${escapeHtml(t('deleteEncounterTitle'))}">${TRASH_ICON}</button>
     </div>
   `).join('');
 }
 
+// Graveyard = gestorbene Encounters (mit Ort und Ursache) + frühere, von Hand eingetragene Pokémon
+function graveyardEntries() {
+  const fromEncounters = state.encounters
+    .map((entry, index) => ({ entry, index }))
+    .filter(x => x.entry.status === 'dead')
+    .map(x => ({ pokemon: x.entry.pokemon, place: x.entry.place, cause: x.entry.death || '', ref: `e${x.index}` }));
+  return [...fromEncounters, ...state.graveyard.map((pokemon, index) => ({ pokemon, place: '', cause: '', ref: `g${index}` }))];
+}
+
 function renderGraveyard() {
-  if (state.graveyard.length === 0) {
+  const entries = graveyardEntries();
+  if (entries.length === 0) {
     els.graveyardList.innerHTML = `<div class="empty">${escapeHtml(t('emptyGraveyard'))}</div>`;
     return;
   }
 
-  els.graveyardList.innerHTML = state.graveyard.map((entry, index) => `
-    <span class="tag" data-graveyard-index="${index}">
-      ${pokemonSprite(entry) ? `<img src="${escapeHtml(pokemonSprite(entry))}" alt="">` : ''}
-      <span>${escapeHtml(pokemonDisplayName(entry))}</span>
-      <button class="tag-remove-btn" data-graveyard-remove="${index}" title="${escapeHtml(t('removeGraveyardTitle'))}" aria-label="${escapeHtml(t('removeGraveyardTitle'))}">&#215;</button>
+  els.graveyardList.innerHTML = entries.map(({ pokemon, place, cause, ref }) => {
+    const sub = [place ? locationLabel(place) : '', cause].filter(Boolean).join(' · ');
+    return `
+    <span class="tag" data-graveyard-ref="${ref}"${sub ? ` title="${escapeHtml(sub)}"` : ''}>
+      ${pokemonSprite(pokemon) ? `<img src="${escapeHtml(pokemonSprite(pokemon))}" alt="">` : ''}
+      <span class="tag-text">${escapeHtml(pokemonDisplayName(pokemon))}${cause ? `<small>${escapeHtml(cause)}</small>` : ''}</span>
+      <button class="tag-remove-btn" data-graveyard-remove="${ref}" title="${escapeHtml(t('removeGraveyardTitle'))}" aria-label="${escapeHtml(t('removeGraveyardTitle'))}">&#215;</button>
     </span>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // Generation der Pokémon-Auswahl passend zum Spiel des Runs – auch beim Anlegen oder Wechseln
@@ -3402,7 +2732,9 @@ function render() {
   renderStats();
   renderEncounters();
   renderGraveyard();
+  renderNotes();
   renderRunSelect();
+  hideUndo();
 }
 
 function showResetConfirm() {
@@ -3479,20 +2811,91 @@ function renderPokémonList(filter = '') {
     return;
   }
 
+  const showDupes = pickerTarget === 'encounter';
   els.pokemonList.innerHTML = filtered.slice(0, 120).map(pokemon => {
     const displayName = pokemonDisplayName(pokemon);
+    const dupeOf = showDupes ? dupeInfo.get(pokemon.id) : null;
     return `
-      <li data-pokemon-id="${pokemon.id}">
+      <li data-pokemon-id="${pokemon.id}"${dupeOf ? ` class="is-dupe" title="${escapeHtml(t('dupeTitle', { p: pokemonDisplayName(dupeOf) }))}"` : ''}>
         <img src="${escapeHtml(pokemon.sprite)}" alt="${escapeHtml(displayName)}">
         <div class="pokemon-card-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
         ${pokemon.isStarter ? `<div class="pokemon-card-badge">${escapeHtml(t('starterBadge'))}</div>` : ''}
+        ${dupeOf ? `<div class="pokemon-card-badge is-dupe">${escapeHtml(t('dupe'))}</div>` : ''}
       </li>
     `;
   }).join('');
 }
 
+// ── Dupes-Klausel ─────────────────────────────────────────────────────────────
+// Dupe = aus derselben Entwicklungsreihe ist schon ein Pokémon gefangen (auch wenn es inzwischen gestorben ist).
+// Mit „Evoli-Ausnahme“ zählt jede Evoli-Entwicklung als eigene Art. Entwicklungsreihen kommen von PokéAPI
+// (einmal geladen, danach aus dem Speicher); ohne Netz zählt nur dieselbe Art.
+const EEVEE_LINE = new Set([133, 134, 135, 136, 196, 197, 470, 471, 700]);
+const evoLineCache = new Map();    // Art-ID → Promise<Set<Art-ID>>
+const formSpeciesCache = new Map(); // Formen (ID > 10000) → Art-ID
+let dupeInfo = new Map();          // Art-ID → Pokémon, wegen dem es ein Dupe ist
+let dupeRequest = 0;
+const speciesIdFromUrl = url => { const m = /\/pokemon-species\/(\d+)\//.exec(url || ''); return m ? Number(m[1]) : null; };
+
+function evoLine(speciesId) {
+  if (!evoLineCache.has(speciesId)) {
+    evoLineCache.set(speciesId, (async () => {
+      const species = await (await fetch(`${POKEAPI_BASE_URL}/pokemon-species/${speciesId}`)).json();
+      const chain = await (await fetch(species.evolution_chain.url)).json();
+      const ids = new Set();
+      (function walk(node) {
+        const id = speciesIdFromUrl(node.species.url);
+        if (id) ids.add(id);
+        node.evolves_to.forEach(walk);
+      })(chain.chain);
+      return ids;
+    })().catch(() => { evoLineCache.delete(speciesId); return new Set([speciesId]); }));
+  }
+  return evoLineCache.get(speciesId);
+}
+
+async function speciesIdOf(pokemon) {
+  let id = typeof pokemon === 'object' && pokemon ? pokemon.id : null;
+  if (!id) {
+    // Von Hand eingetippter Name: in der Pokémon-Liste suchen
+    const name = String(pokemonDisplayName(pokemon) || '').toLowerCase();
+    const hit = name && [...allPokémonList, ...pokemonList].find(p => [p.displayName, p.germanName, p.englishName, p.name].some(n => String(n || '').toLowerCase() === name));
+    id = hit ? hit.id : null;
+  }
+  if (!id || id <= 10000) return id;
+  if (!formSpeciesCache.has(id)) {
+    formSpeciesCache.set(id, fetch(`${POKEAPI_BASE_URL}/pokemon/${id}`).then(r => r.json()).then(d => speciesIdFromUrl(d.species?.url))
+      .catch(() => { formSpeciesCache.delete(id); return null; }));
+  }
+  return formSpeciesCache.get(id);
+}
+
+async function refreshDupes() {
+  const request = ++dupeRequest;
+  const owned = [...state.encounters.filter(e => e.status === 'caught' || e.status === 'dead').map(e => e.pokemon), ...state.graveyard];
+  const eevee = state.eeveeException;
+  const lines = await Promise.all(owned.map(async pokemon => {
+    const id = await speciesIdOf(pokemon);
+    if (!id) return null;
+    return { pokemon, ids: eevee && EEVEE_LINE.has(id) ? new Set([id]) : await evoLine(id) };
+  }));
+  if (request !== dupeRequest) return;
+  const info = new Map();
+  lines.filter(Boolean).forEach(({ pokemon, ids }) => ids.forEach(id => { if (!info.has(id)) info.set(id, pokemon); }));
+  dupeInfo = info;
+  if (els.pokemonModal.style.display === 'flex' && pickerTarget === 'encounter') renderPokémonList(els.pokemonSearch.value);
+}
+
+els.eeveeToggle.addEventListener('click', () => {
+  state.eeveeException = !state.eeveeException;
+  save();
+  renderRandomizerToggle();
+  refreshDupes();
+});
+
 function openPokémonModal(target) {
   pickerTarget = target;
+  if (target === 'encounter') refreshDupes();
   els.pokemonModalTitle.textContent = target === 'graveyard' ? t('graveyardPokemonSearch') : t('encounterPokemonSearch');
   els.pokemonSearch.value = '';
   els.pokemonGeneration.value = String(currentPokémonGeneration);
@@ -3590,24 +2993,148 @@ els.encounterForm.addEventListener('submit', event => {
   renderLocationOptions();   // Ort ist jetzt belegt → nächster freier Ort
 });
 
-function cycleEncounterStatus(index) {
-  const entry = state.encounters[index];
-  if (!entry) return;
-  const order = ['caught', 'open', 'failed'];
-  entry.status = order[(order.indexOf(entry.status) + 1) % order.length];
-  save();
+// ── Status, Todesursache, Rückgängig ──────────────────────────────────────────
+const STATUS_ORDER = ['caught', 'open', 'failed', 'dead'];
+
+function renderAfterChange() {
   renderStats();
   renderEncounters();
+  renderGraveyard();
+  renderLocationOptions();   // gelöschter Ort ist wieder frei
 }
+
+function samePokemon(a, b) {
+  if (a && b && typeof a === 'object' && typeof b === 'object' && a.id && b.id) return a.id === b.id;
+  return pokemonDisplayName(a).toLowerCase() === pokemonDisplayName(b).toLowerCase();
+}
+
+function setEncounterStatus(index, status, cause = '') {
+  const entry = state.encounters[index];
+  if (!entry) return;
+  entry.status = status;
+  if (status === 'dead') {
+    entry.death = cause.trim();
+    // Vor dem Status „Gestorben“ von Hand in den Graveyard eingetragen? Dann ist es dieser Tod – nicht doppelt zeigen
+    const manual = state.graveyard.findIndex(p => samePokemon(p, entry.pokemon));
+    if (manual >= 0) state.graveyard.splice(manual, 1);
+  } else {
+    delete entry.death;
+  }
+  save();
+  renderAfterChange();
+  refreshDupes();
+}
+
+// Löschen sofort, aber ein paar Sekunden lang mit „Rückgängig“
+let undoSnapshot = null, undoTimer = null;
+function withUndo(message, change) {
+  const snapshot = { run: activeRunIdx, encounters: JSON.parse(JSON.stringify(state.encounters)), graveyard: JSON.parse(JSON.stringify(state.graveyard)) };
+  change();
+  save();
+  renderAfterChange();
+  refreshDupes();
+  undoSnapshot = snapshot;
+  els.undoText.textContent = message;
+  els.undoToast.hidden = false;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndo, 7000);
+}
+function hideUndo() {
+  clearTimeout(undoTimer);
+  undoTimer = null;
+  undoSnapshot = null;
+  if (els.undoToast) els.undoToast.hidden = true;
+}
+els.undoBtn.addEventListener('click', () => {
+  const snap = undoSnapshot;
+  hideUndo();
+  if (!snap || snap.run !== activeRunIdx) return;
+  state.encounters = snap.encounters;
+  state.graveyard = snap.graveyard;
+  save();
+  renderAfterChange();
+  refreshDupes();
+});
 
 function deleteEncounter(index) {
   if (!state.encounters[index]) return;
-  state.encounters.splice(index, 1);
-  save();
-  renderStats();
-  renderEncounters();
-  renderLocationOptions();   // Ort wieder frei
+  withUndo(t('undoEncounter'), () => state.encounters.splice(index, 1));
 }
+
+// Menü am Status: Gefangen / Offen / Verpasst / Gestorben (+ optionale Ursache)
+const statusMenu = document.createElement('div');
+statusMenu.className = 'status-menu';
+statusMenu.setAttribute('role', 'menu');
+statusMenu.hidden = true;
+document.body.appendChild(statusMenu);
+let statusMenuIndex = -1;
+
+function placeStatusMenu(anchor) {
+  const r = anchor.getBoundingClientRect();
+  statusMenu.hidden = false;
+  const w = statusMenu.offsetWidth, h = statusMenu.offsetHeight;
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+  const top = r.bottom + 6 + h > window.innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+  statusMenu.style.left = `${left}px`;
+  statusMenu.style.top = `${top}px`;
+}
+
+function openStatusMenu(index, anchor, askCause = false) {
+  const entry = state.encounters[index];
+  if (!entry) return;
+  statusMenuIndex = index;
+  if (askCause) {
+    statusMenu.innerHTML = `<form class="status-menu-cause">
+        <label for="death-cause">${escapeHtml(t('deathCauseLabel'))}</label>
+        <input id="death-cause" type="text" maxlength="80" autocomplete="off" placeholder="${escapeHtml(t('deathCausePlaceholder'))}" value="${escapeHtml(entry.status === 'dead' ? entry.death || '' : '')}">
+        <button class="btn btn-primary" type="submit">${escapeHtml(t('deathCauseSave'))}</button>
+      </form>`;
+    placeStatusMenu(anchor);
+    const input = statusMenu.querySelector('input');
+    input.focus();
+    input.select();
+    return;
+  }
+  statusMenu.innerHTML = STATUS_ORDER.map(status => `<button type="button" role="menuitemradio" aria-checked="${status === entry.status}" class="status-pill status-${status}${status === entry.status ? ' is-current' : ''}" data-set-status="${status}">${escapeHtml(statusLabel(status))}${status === 'dead' ? ' …' : ''}</button>`).join('');
+  placeStatusMenu(anchor);
+  statusMenu.querySelector('.is-current')?.focus();
+}
+
+function closeStatusMenu() {
+  statusMenu.hidden = true;
+  statusMenuIndex = -1;
+}
+
+statusMenu.addEventListener('click', event => {
+  // Der Inhalt wird gleich ersetzt – der Klick darf nicht als „außerhalb“ beim Dokument ankommen
+  event.stopPropagation();
+  const btn = event.target.closest('[data-set-status]');
+  if (!btn) return;
+  const index = statusMenuIndex;
+  const status = btn.dataset.setStatus;
+  if (status === 'dead') {
+    openStatusMenu(index, els.encounterList.querySelector(`[data-status-index="${index}"]`) || btn, true);
+    return;
+  }
+  closeStatusMenu();
+  setEncounterStatus(index, status);
+});
+statusMenu.addEventListener('submit', event => {
+  event.preventDefault();
+  const index = statusMenuIndex;
+  const cause = statusMenu.querySelector('input')?.value || '';
+  closeStatusMenu();
+  setEncounterStatus(index, 'dead', cause);
+});
+document.addEventListener('click', event => {
+  if (statusMenu.hidden || statusMenu.contains(event.target) || event.target.closest('[data-status-index], [data-kill-index]')) return;
+  closeStatusMenu();
+});
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && !statusMenu.hidden) closeStatusMenu(); });
+// Beim Eintippen der Ursache (Handy: Tastatur schiebt die Seite) offen lassen
+const closeUnlessTyping = () => { if (!statusMenu.querySelector('form')) closeStatusMenu(); };
+window.addEventListener('resize', closeUnlessTyping);
+document.addEventListener('scroll', event => { if (!statusMenu.contains(event.target)) closeUnlessTyping(); }, true);
 
 els.encounterList.addEventListener('click', event => {
   const deleteBtn = event.target.closest('[data-delete-index]');
@@ -3615,16 +3142,24 @@ els.encounterList.addEventListener('click', event => {
     deleteEncounter(Number(deleteBtn.dataset.deleteIndex));
     return;
   }
+  // † = gestorben: gleich nach Ort / Gegner fragen
+  const killBtn = event.target.closest('[data-kill-index]');
+  if (killBtn) {
+    openStatusMenu(Number(killBtn.dataset.killIndex), killBtn, true);
+    return;
+  }
   const statusPill = event.target.closest('[data-status-index]');
   if (!statusPill) return;
-  cycleEncounterStatus(Number(statusPill.dataset.statusIndex));
+  const index = Number(statusPill.dataset.statusIndex);
+  if (!statusMenu.hidden && statusMenuIndex === index) { closeStatusMenu(); return; }
+  openStatusMenu(index, statusPill);
 });
 
 els.encounterList.addEventListener('keydown', event => {
   const statusPill = event.target.closest('[data-status-index]');
   if (!statusPill || (event.key !== 'Enter' && event.key !== ' ')) return;
   event.preventDefault();
-  cycleEncounterStatus(Number(statusPill.dataset.statusIndex));
+  openStatusMenu(Number(statusPill.dataset.statusIndex), statusPill);
 });
 
 els.encounterList.addEventListener('contextmenu', event => {
@@ -3634,10 +3169,42 @@ els.encounterList.addEventListener('contextmenu', event => {
   deleteEncounter(Number(row.dataset.encounterIndex));
 });
 
+// ── Notizen ───────────────────────────────────────────────────────────────────
+// Gespeichert wird kurz nach dem Tippen, beim Verlassen des Feldes und beim Schließen der Seite.
+let notesTimer = null;
+function renderNotes() {
+  if (document.activeElement !== els.runNotes) els.runNotes.value = state.notes;
+}
+function flushNotes() {
+  if (notesTimer === null) return;
+  clearTimeout(notesTimer);
+  notesTimer = null;
+  save();
+}
+els.runNotes.addEventListener('input', () => {
+  state.notes = els.runNotes.value;
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(flushNotes, 400);
+});
+els.runNotes.addEventListener('blur', flushNotes);
+window.addEventListener('pagehide', flushNotes);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushNotes(); });
+// Kein App-Update (Neuladen der Seite) mitten im Tippen
+window.PokeHubBusy = () => notesTimer !== null || document.activeElement === els.runNotes;
+
 function addGraveyardEntry() {
   const name = els.graveyardName.value.trim();
   if (!name && !selectedGraveyardPokémon) return;
-  state.graveyard.push(selectedGraveyardPokémon || name);
+  const pokemon = selectedGraveyardPokémon || name;
+  const caught = state.encounters.findIndex(e => e.status === 'caught' && samePokemon(e.pokemon, pokemon));
+  if (caught >= 0) {
+    els.graveyardName.value = '';
+    selectedGraveyardPokémon = null;
+    renderSelectedPokémonPreview('graveyard', null);
+    setEncounterStatus(caught, 'dead');
+    return;
+  }
+  state.graveyard.push(pokemon);
   els.graveyardName.value = '';
   selectedGraveyardPokémon = null;
   renderSelectedPokémonPreview('graveyard', null);
@@ -3651,25 +3218,27 @@ els.graveyardForm.addEventListener('submit', event => {
   addGraveyardEntry();
 });
 
+// e<n> = gestorbener Encounter (wird wieder „Gefangen“), g<n> = Eintrag von Hand
+function removeGraveyardRef(ref) {
+  const index = Number(ref.slice(1));
+  if (ref[0] === 'e') {
+    withUndo(t('undoRevived'), () => {
+      const entry = state.encounters[index];
+      if (entry) { entry.status = 'caught'; delete entry.death; }
+    });
+  } else {
+    withUndo(t('undoGrave'), () => state.graveyard.splice(index, 1));
+  }
+}
 els.graveyardList.addEventListener('click', event => {
   const removeBtn = event.target.closest('[data-graveyard-remove]');
-  if (!removeBtn) return;
-  const index = Number(removeBtn.dataset.graveyardRemove);
-  state.graveyard.splice(index, 1);
-  save();
-  renderStats();
-  renderGraveyard();
+  if (removeBtn) removeGraveyardRef(removeBtn.dataset.graveyardRemove);
 });
-
 els.graveyardList.addEventListener('contextmenu', event => {
-  const item = event.target.closest('[data-graveyard-index]');
+  const item = event.target.closest('[data-graveyard-ref]');
   if (!item) return;
   event.preventDefault();
-  const index = Number(item.dataset.graveyardIndex);
-  state.graveyard.splice(index, 1);
-  save();
-  renderStats();
-  renderGraveyard();
+  removeGraveyardRef(item.dataset.graveyardRef);
 });
 
 els.resetRun.addEventListener('click', showResetConfirm);
@@ -3792,6 +3361,12 @@ els.pokemonList.addEventListener('click', event => {
   const id = Number(item.dataset.pokemonId);
   const pokemon = [...routePokémonList, ...pokemonList, ...allPokémonList].find(entry => entry.id === id);
   if (pokemon) pickPokémon(pokemon);
+});
+
+// Randomizer-Stand (rando-state.js): Chip neben dem Randomizer-Schalter; ändert er sich, Vorschläge neu
+if (window.PokeHubRando && els.randoSlot) window.PokeHubRando.chip(els.randoSlot);
+document.addEventListener('hubrandochange', () => {
+  if (pickerTarget === 'encounter' && els.pokemonModal.style.display === 'flex') prepareEncounterPokémonScope();
 });
 
 load();

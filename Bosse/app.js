@@ -20,7 +20,7 @@ const TEXT = {
     loadSave: 'Spielstand laden', starter: 'Dein Starter', weather: 'Wetter',
     loadRom: 'Randomizer-ROM laden', romActive: 'Randomisiert:', romRemove: 'Randomizer-Daten entfernen – wieder die Original-Teams',
     romReading: 'Lese ROM …', romError: 'Das ist keine Pokémon-Platin-ROM (.nds).',
-    romHint: 'Für Randomizer-Runs: Lade deine randomisierte ROM (.nds) – dann zeigt der Planer die echten Teams deines Spiels. Gelesen werden nur die Trainerdaten (ca. 120 KB), die Datei bleibt auf deinem Gerät.',
+    romHint: 'Für Randomizer-Runs: Lade deine randomisierte ROM (.nds) – dann zeigt der Planer die echten Teams deines Spiels. Gelesen werden nur Trainer und wilde Pokémon (ca. 200 KB) – das gilt dann auch für Karte und Run-Dashboard. Die Datei bleibt auf deinem Gerät.',
     randoTag: 'Randomizer',
     wNone: 'Kein Wetter', wSun: 'Sonne', wRain: 'Regen', wSand: 'Sandsturm',
     tabStory: 'Story', tabPost: 'Nach der Liga', tabAll: 'Alle Trainer',
@@ -32,6 +32,17 @@ const TEXT = {
     noSaveTitle: 'Kein Spielstand geladen',
     noSaveText: 'Lade deinen Platin-Spielstand – dann siehst du für jedes Gegner-Pokémon, wer aus deinem Team es am besten schafft. Spielstände aus dem Save-Viewer sind sofort da.',
     badges: n => `${n} Orden`, addBox: '+ Box', resetTeam: '↺ Team', removeMon: 'Aus der Planung nehmen',
+    manualTab: 'Eigenes Team', addMon: '+ Pokémon', fromSolo: 'Aus Solo', fromDuo1: 'Aus Duo (Spieler 1)', fromDuo2: 'Aus Duo (Spieler 2)',
+    pickSpecies: 'Pokémon wählen', editMon: 'Bearbeiten', replaceTeam: 'Dein eigenes Team hier ersetzen?', allToCap: lv => `Alle auf Lv. ${lv}`,
+    manualNote: 'Ohne Spielstand: DVs 15, keine EVs, kein Item angenommen. Antippen zum Bearbeiten.',
+    noTeamTitle: 'Noch kein Team', noTeamText: 'Lade deinen Platin-Spielstand – oder stelle dein Team von Hand zusammen bzw. übernimm es aus Solo oder Duo (oben unter „Eigenes Team“).',
+    levelLabel: 'Level', natureLabel: 'Wesen', abilityLabel: 'Fähigkeit', movesLabel: 'Attacken', noMove: '—',
+    learnable: 'Lernt es in Platin', otherMoves: 'Alle anderen Attacken', suggestMoves: 'Level-Attacken vorschlagen',
+    changeMon: 'Anderes Pokémon', done: 'Fertig', removeFromTeam: 'Entfernen',
+    movesOffline: 'Die Lernliste konnte nicht geladen werden (offline?) – Attacken bitte selbst wählen.',
+    randoMoves: 'Randomizer: Vorgeschlagen sind die Attacken aus dem Original-Platin – bitte anpassen.',
+    notInPlatinum: n => `${n} Pokémon gibt es in Platin nicht und ${n === 1 ? 'wurde' : 'wurden'} übersprungen.`,
+    importFailed: 'Übernahme fehlgeschlagen – PokéAPI nicht erreichbar (offline?).',
     close: 'Schließen', fightLabel: 'Kampf',
     next: 'Nächster Kampf', fightNo: (i, n) => `Kampf ${i} von ${n}`, levelCap: 'Level-Cap',
     double: 'Doppelkampf', tagWith: p => `zusammen mit ${p}`, heals: 'Heilt im Kampf', onMap: 'Auf der Karte',
@@ -71,7 +82,7 @@ const TEXT = {
     loadSave: 'Load save file', starter: 'Your starter', weather: 'Weather',
     loadRom: 'Load randomizer ROM', romActive: 'Randomized:', romRemove: 'Remove randomizer data – back to the original teams',
     romReading: 'Reading ROM …', romError: 'This is not a Pokémon Platinum ROM (.nds).',
-    romHint: 'For randomizer runs: load your randomized ROM (.nds) and the planner shows the real teams of your game. Only the trainer data is read (about 120 KB); the file stays on your device.',
+    romHint: 'For randomizer runs: load your randomized ROM (.nds) and the planner shows the real teams of your game. Only trainers and wild Pokémon are read (about 200 KB) – this then also applies to the map and run dashboard. The file stays on your device.',
     randoTag: 'Randomizer',
     wNone: 'No weather', wSun: 'Sun', wRain: 'Rain', wSand: 'Sandstorm',
     tabStory: 'Story', tabPost: 'Post-game', tabAll: 'All trainers',
@@ -83,6 +94,17 @@ const TEXT = {
     noSaveTitle: 'No save file loaded',
     noSaveText: 'Load your Platinum save file – then you see, for every enemy Pokémon, who on your team handles it best. Saves from the Save Viewer are available right away.',
     badges: n => `${n} badges`, addBox: '+ Box', resetTeam: '↺ Team', removeMon: 'Remove from planning',
+    manualTab: 'Own team', addMon: '+ Pokémon', fromSolo: 'From Solo', fromDuo1: 'From Duo (player 1)', fromDuo2: 'From Duo (player 2)',
+    pickSpecies: 'Choose Pokémon', editMon: 'Edit', replaceTeam: 'Replace your own team here?', allToCap: lv => `All to Lv. ${lv}`,
+    manualNote: 'Without a save: IVs 15, no EVs, no item assumed. Tap to edit.',
+    noTeamTitle: 'No team yet', noTeamText: 'Load your Platinum save file – or build your team by hand or take it over from Solo or Duo (above under “Own team”).',
+    levelLabel: 'Level', natureLabel: 'Nature', abilityLabel: 'Ability', movesLabel: 'Moves', noMove: '—',
+    learnable: 'Learns it in Platinum', otherMoves: 'All other moves', suggestMoves: 'Suggest level-up moves',
+    changeMon: 'Other Pokémon', done: 'Done', removeFromTeam: 'Remove',
+    movesOffline: 'The learnset could not be loaded (offline?) – please pick the moves yourself.',
+    randoMoves: 'Randomizer: the suggested moves are from vanilla Platinum – please adjust.',
+    notInPlatinum: n => `${n} Pokémon ${n === 1 ? 'does' : 'do'} not exist in Platinum and ${n === 1 ? 'was' : 'were'} skipped.`,
+    importFailed: 'Import failed – PokéAPI not reachable (offline?).',
     close: 'Close', fightLabel: 'Battle',
     next: 'Next battle', fightNo: (i, n) => `Battle ${i} of ${n}`, levelCap: 'Level cap',
     double: 'Double battle', tagWith: p => `together with ${p}`, heals: 'Heals in battle', onMap: 'On the map',
@@ -570,10 +592,190 @@ function store(key, value) {
   catch (e) { console.error('Speichern fehlgeschlagen:', e); window.PokeHubStorageWarning?.(true); return false; }
 }
 const allOwn = sv => [...sv.data.party, ...sv.data.boxes.flatMap(b => b.slots)].filter(m => m && !m.isEgg);
+
+// ── Eigenes Team ohne Spielstand ──────────────────────────────────────────────
+// Tab „Eigenes Team“ (state.save = -1, ohne Spielstände immer). Einträge { species, level, moves, nature, ability }
+// liegen in localStorage (auch im Backup). Angenommen: DVs 15, keine EVs, kein Item.
+const MANUAL = -1;
+const MANUAL_KEY = 'bosse-manual-team';
+const MANUAL_IV = 15;
+const isManual = () => state.save === MANUAL || !state.saves.length;
+function loadManual() {
+  try {
+    const v = JSON.parse(localStorage.getItem(MANUAL_KEY) || '[]');
+    return Array.isArray(v) ? v.filter(e => e && e.species >= 1 && e.species <= 493).slice(0, 6) : [];
+  } catch (e) { return []; }
+}
+const saveManual = list => store(MANUAL_KEY, JSON.stringify(list.slice(0, 6)));
+function manualMon(e, i) {
+  const per = personalOf(e.species, 0);
+  const ivs = new Array(6).fill(MANUAL_IV);
+  return {
+    side: 'me', species: e.species, form: 0, level: e.level, item: 0, moves: (e.moves || []).filter(Boolean),
+    nature: e.nature || 0, ability: e.ability || per[10] || 0, ivs, friendship: 70,
+    types: per[6] === per[7] ? [per[6]] : [per[6], per[7]],
+    stats: PtSave.calcStats(per.slice(0, 6), ivs, [0, 0, 0, 0, 0, 0], e.level, e.nature || 0, e.species),
+    name: T().species[e.species] || `#${e.species}`, key: `manual-${i}`, manual: true,
+  };
+}
+
+// Lernliste in Platin von PokéAPI (danach aus dem Speicher): Level-Attacken in Reihenfolge, alle lernbaren
+const learnCache = new Map();
+function platinumLearnset(nameOrId) {
+  const k = String(nameOrId).toLowerCase();
+  if (!learnCache.has(k)) {
+    const p = fetch(`https://pokeapi.co/api/v2/pokemon/${k}`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+      const species = +(/\/pokemon-species\/(\d+)\//.exec(d.species.url) || [])[1];
+      const levelUp = [], all = new Set();
+      d.moves.forEach(m => {
+        const id = +(/\/move\/(\d+)\//.exec(m.move.url) || [])[1];
+        if (!id || id > 467) return;
+        m.version_group_details.forEach(v => {
+          if (v.version_group.name !== 'platinum') return;
+          all.add(id);
+          if (v.move_learn_method.name === 'level-up') levelUp.push([v.level_learned_at, id]);
+        });
+      });
+      levelUp.sort((a, b) => a[0] - b[0]);
+      return { species, levelUp, all };
+    });
+    p.catch(() => learnCache.delete(k));
+    learnCache.set(k, p);
+  }
+  return learnCache.get(k);
+}
+// Wie im Spiel: Level-Attacken der Reihe nach, bei vier bekannten fliegt die älteste raus
+function defaultMoves(levelUp, level) {
+  const known = [];
+  for (const [lv, mv] of levelUp) {
+    if (lv > level) break;
+    if (known.includes(mv)) continue;
+    if (known.length === 4) known.shift();
+    known.push(mv);
+  }
+  return known;
+}
+const currentCap = () => { const tt = state.fight != null && trainerOf(state.fight); return tt ? capOf(tt) : 5; };
+
+// Neuer Eintrag mit Vorschlag: Level = Level-Cap des gewählten Kampfs, Attacken = Level-Attacken bis dahin
+// Ergebnis: { entry } | { notInPlatinum: true } | { offline: true }
+async function newManualEntry(nameOrId) {
+  const level = Math.max(1, Math.min(100, currentCap()));
+  let ls = null;
+  try { ls = await platinumLearnset(nameOrId); } catch (e) {
+    if (!(+nameOrId >= 1)) return { offline: true };   // Name ohne PokéAPI: Art unbekannt
+  }
+  const species = ls ? ls.species : +nameOrId;
+  if (!(species >= 1 && species <= 493)) return { notInPlatinum: true };
+  const per = personalOf(species, 0);
+  return { entry: { species, level, moves: ls ? defaultMoves(ls.levelUp, level) : [], nature: 0, ability: per[10] || 0 }, offline: !ls };
+}
+
+// Teams aus Solo und Duo (Team-Builder speichern PokéAPI-Namen)
+function teamSources() {
+  const t = tr();
+  const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+  const names = list => (Array.isArray(list) ? list.map(x => (typeof x === 'string' ? x : x && x.name)).filter(Boolean) : []);
+  const solo = read('pokemon-team-builder-state'), duo = read('pokemon-duo-nuzlocke-state');
+  return [['solo', t.fromSolo, names(solo && solo.team)], ['duo1', t.fromDuo1, names(duo && duo.team1)], ['duo2', t.fromDuo2, names(duo && duo.team2)]]
+    .filter(([, , n]) => n.length);
+}
+async function importTeam(names) {
+  if (loadManual().length && !confirm(tr().replaceTeam)) return;
+  const results = await Promise.all(names.slice(0, 6).map(n => newManualEntry(n)));
+  const entries = results.filter(r => r.entry).map(r => r.entry);
+  const skipped = results.filter(r => r.notInPlatinum).length;
+  if (results.some(r => r.offline && !r.entry)) { state.manualHint = tr().importFailed; render(); return; }
+  saveManual(entries);
+  state.manualHint = [skipped ? tr().notInPlatinum(skipped) : '', results.some(r => r.offline) ? tr().movesOffline : ''].filter(Boolean).join(' ');
+  applySave();
+}
+
+// ── Eigenes Team: ein Pokémon bearbeiten ──────────────────────────────────────
+let editorLearn = null;
+async function openEditor(i) {
+  state.editing = i;
+  $('mon-editor').hidden = false;
+  renderEditor();
+  const e = loadManual()[i];
+  if (!e) return;
+  try { editorLearn = await platinumLearnset(e.species); } catch (err) { editorLearn = null; }
+  if (state.editing === i && !$('mon-editor').hidden) renderEditor();
+}
+function closeEditor() { $('mon-editor').hidden = true; state.editing = null; }
+function updateManual(i, change) {
+  const list = loadManual();
+  if (!list[i]) return;
+  change(list[i]);
+  saveManual(list);
+  applySave();
+}
+function renderEditor() {
+  const t = tr(), i = state.editing, e = loadManual()[i];
+  if (!e) { closeEditor(); return; }
+  const per = personalOf(e.species, 0);
+  const abilities = [...new Set([per[10], per[11]].filter(Boolean))];
+  const learn = editorLearn && editorLearn.species === e.species ? editorLearn.all : null;
+  const moves = T().moves.map((n, id) => [id, n]).filter(([id, n]) => id > 0 && id <= 467 && n)
+    .sort((a, b) => a[1].localeCompare(b[1], window.LANG));
+  const opt = ([id, n], cur) => `<option value="${id}"${id === cur ? ' selected' : ''}>${esc(n)}</option>`;
+  const moveSelect = slot => {
+    const cur = (e.moves || [])[slot] || 0;
+    const groups = learn
+      ? `<optgroup label="${esc(t.learnable)}">${moves.filter(([id]) => learn.has(id)).map(m => opt(m, cur)).join('')}</optgroup>
+         <optgroup label="${esc(t.otherMoves)}">${moves.filter(([id]) => !learn.has(id)).map(m => opt(m, cur)).join('')}</optgroup>`
+      : moves.map(m => opt(m, cur)).join('');
+    return `<select data-move-slot="${slot}" aria-label="${esc(t.movesLabel)} ${slot + 1}"><option value="0">${esc(t.noMove)}</option>${groups}</select>`;
+  };
+  $('editor-title').textContent = t.editMon;
+  $('editor-body').innerHTML = `
+    <div class="editor-head"><img src="${spriteUrl(e.species)}" alt=""><b>${esc(T().species[e.species])}</b>
+      <button type="button" class="chip-btn" id="editor-change">${esc(t.changeMon)}</button></div>
+    <div class="editor-row">
+      <label class="editor-field">${esc(t.levelLabel)}<input type="number" id="editor-level" min="1" max="100" inputmode="numeric" value="${e.level}"></label>
+      <label class="editor-field">${esc(t.natureLabel)}<select id="editor-nature">${T().natures.map((n, k) => `<option value="${k}"${k === (e.nature || 0) ? ' selected' : ''}>${esc(natureText(k))}</option>`).join('')}</select></label>
+      <label class="editor-field">${esc(t.abilityLabel)}<select id="editor-ability">${abilities.map(a => `<option value="${a}"${a === e.ability ? ' selected' : ''}>${esc(T().abilities[a])}</option>`).join('')}</select></label>
+    </div>
+    <div class="editor-field">${esc(t.movesLabel)}<div class="editor-moves">${[0, 1, 2, 3].map(moveSelect).join('')}</div></div>
+    ${state.rando ? `<p class="editor-hint">${esc(t.randoMoves)}</p>` : ''}
+    ${!editorLearn ? `<p class="editor-hint">${esc(t.movesOffline)}</p>` : ''}
+    <div class="editor-actions">
+      <span><button type="button" class="chip-btn" id="editor-suggest"${editorLearn ? '' : ' disabled'}>${esc(t.suggestMoves)}</button>
+        <button type="button" class="chip-btn" id="editor-remove">${esc(t.removeFromTeam)}</button></span>
+      <button type="button" class="btn-ghost" id="editor-done">${esc(t.done)}</button>
+    </div>`;
+  $('editor-level').addEventListener('change', ev => {
+    const lv = Math.max(1, Math.min(100, Math.floor(+ev.target.value) || 1));
+    ev.target.value = lv;
+    updateManual(i, x => { x.level = lv; });
+  });
+  $('editor-nature').addEventListener('change', ev => updateManual(i, x => { x.nature = +ev.target.value; }));
+  $('editor-ability').addEventListener('change', ev => updateManual(i, x => { x.ability = +ev.target.value; }));
+  $('editor-body').querySelectorAll('[data-move-slot]').forEach(sel => sel.addEventListener('change', () => {
+    const picked = [...$('editor-body').querySelectorAll('[data-move-slot]')].map(s => +s.value).filter(Boolean);
+    updateManual(i, x => { x.moves = [...new Set(picked)]; });
+    renderEditor();
+  }));
+  $('editor-suggest').addEventListener('click', () => {
+    if (!editorLearn) return;
+    updateManual(i, x => { x.moves = defaultMoves(editorLearn.levelUp, x.level); });
+    renderEditor();
+  });
+  $('editor-remove').addEventListener('click', () => {
+    const list = loadManual();
+    list.splice(i, 1);
+    saveManual(list);
+    closeEditor();
+    applySave();
+  });
+  $('editor-change').addEventListener('click', () => { closeEditor(); openPicker('species', i); });
+  $('editor-done').addEventListener('click', closeEditor);
+}
 function applySave() {
   store('bosse-save', String(state.save));
-  const sv = currentSave();
+  const sv = isManual() ? null : currentSave();
   state.team = [];
+  if (!sv) state.team = loadManual().map(manualMon);
   if (sv) {
     // Starter aus dem Spielstand: eigenes Pokémon aus einer Starter-Familie, das früheste zählt
     // (randomisiert: eins der drei Starter-Pokémon aus der ROM, solange es sich nicht entwickelt hat)
@@ -646,16 +848,30 @@ function renderTeamBar() {
   $('save-tabs').innerHTML = state.saves.map((sv, i) => {
     const tn = sv.data.trainer;
     return `<button type="button" class="save-tab${i === state.save ? ' is-on' : ''}" data-save="${i}">${esc(tn.name)} <small>${esc(t.badges(tn.badgeCount))}</small></button>`;
-  }).join('');
+  }).join('') + `<button type="button" class="save-tab${isManual() ? ' is-on' : ''}" data-save="${MANUAL}">${esc(t.manualTab)}</button>`;
   document.querySelectorAll('[data-save]').forEach(b => b.addEventListener('click', () => { state.save = +b.dataset.save; applySave(); }));
-  const sv = currentSave();
+  const sv = isManual() ? null : currentSave();
   const custom = sv && localStorage.getItem(teamKey(sv));
-  $('team-strip').innerHTML = sv
+  $('team-strip').innerHTML = !sv ? manualStrip() : sv
     ? state.team.map((m, i) => `<span class="team-chip">${iconImg(m.species)}<span>${esc(m.name)} <small>Lv. ${m.level}</small></span><button type="button" data-drop="${i}" title="${esc(t.removeMon)}" aria-label="${esc(t.removeMon)}">×</button></span>`).join('')
       + (state.team.length < 6 ? `<button type="button" class="chip-btn" id="add-box">${esc(t.addBox)}</button>` : '')
       + (custom ? `<button type="button" class="chip-btn" id="reset-team">${esc(t.resetTeam)}</button>` : '')
     : '';
   document.querySelectorAll('[data-drop]').forEach(b => b.addEventListener('click', () => { state.team.splice(+b.dataset.drop, 1); saveTeamChoice(); render(); }));
+  // Eigenes Team
+  document.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEditor(+b.dataset.edit)));
+  document.querySelectorAll('[data-drop-manual]').forEach(b => b.addEventListener('click', () => {
+    const list = loadManual();
+    list.splice(+b.dataset.dropManual, 1);
+    saveManual(list);
+    applySave();
+  }));
+  $('add-manual')?.addEventListener('click', () => openPicker('species'));
+  $('manual-to-cap')?.addEventListener('click', () => { const cap = currentCap(); saveManual(loadManual().map(e => ({ ...e, level: cap }))); applySave(); });
+  document.querySelectorAll('[data-import]').forEach(b => b.addEventListener('click', () => {
+    const src = teamSources().find(s => s[0] === b.dataset.import);
+    if (src) importTeam(src[2]);
+  }));
   $('add-box')?.addEventListener('click', openPicker);
   $('reset-team')?.addEventListener('click', () => { localStorage.removeItem(teamKey(currentSave())); applySave(); });
   [...$('starter-select').options].forEach(o => { o.textContent = T().species[starterSpecies(o.value)]; });
@@ -665,6 +881,20 @@ function renderTeamBar() {
   $('rando-chip').hidden = !rd;
   $('rando-chip').innerHTML = rd ? `${esc(t.romActive)} <b>${esc(rd.name)}</b><button type="button" id="rando-remove" title="${esc(t.romRemove)}" aria-label="${esc(t.romRemove)}">×</button>` : '';
   $('rando-remove')?.addEventListener('click', removeRando);
+}
+
+function manualStrip() {
+  const t = tr();
+  const chips = state.team.map((m, i) => `<span class="team-chip is-manual">${iconImg(m.species)}<span data-edit="${i}" role="button" tabindex="0" title="${esc(t.editMon)}">${esc(m.name)} <small>Lv. ${m.level}</small></span><button type="button" data-drop-manual="${i}" title="${esc(t.removeMon)}" aria-label="${esc(t.removeMon)}">×</button></span>`).join('');
+  const add = state.team.length < 6 ? `<button type="button" class="chip-btn" id="add-manual">${esc(t.addMon)}</button>` : '';
+  // Anderer Kampf gewählt: alle mit einem Tipp auf dessen Level-Cap (Attacken bleiben)
+  const cap = currentCap();
+  const toCap = state.team.some(m => m.level !== cap) ? `<button type="button" class="chip-btn" id="manual-to-cap">${esc(t.allToCap(cap))}</button>` : '';
+  const imports = teamSources().map(([k, label]) => `<button type="button" class="chip-btn" data-import="${k}">${esc(label)}</button>`).join('');
+  const note = state.manualHint
+    ? `<p class="manual-note is-warn">${esc(state.manualHint)}</p>`
+    : (state.team.length ? `<p class="manual-note">${esc(t.manualNote)}</p>` : '');
+  return chips + add + toCap + imports + note;
 }
 
 // ── Randomisierte ROM ─────────────────────────────────────────────────────────
@@ -685,6 +915,12 @@ async function loadRom(file) {
     $('load-rom').textContent = t.loadRom;
   }
 }
+// Stand in einem anderen Tab geladen oder entfernt (Karte, Run-Dashboard, Randomizer)
+window.addEventListener('storage', e => {
+  if (e.key !== 'bosse-rando' && e.key !== null) return;
+  state.rando = loadRando();
+  applySave();
+});
 function removeRando() {
   state.rando = null;
   localStorage.removeItem('bosse-rando');
@@ -726,7 +962,7 @@ function selectFight(id, rerender = true, fromList = false) {
   const inGroup = list => B[list].some(g => Object.values(g.ids).includes(id));
   if (!fromList) state.list = inGroup('story') ? 'story' : inGroup('post') ? 'post' : 'all';
   history.replaceState(null, '', `#t=${id}`);
-  if (rerender) { renderList(); renderFight(); }
+  if (rerender) { renderTeamBar(); renderList(); renderFight(); }   // Teamleiste: „Alle auf Lv. …“ folgt dem Kampf
 }
 function fightFromHash() {
   const h = decodeURIComponent(location.hash.slice(1));
@@ -784,10 +1020,13 @@ function renderFight() {
         ${warnings.map(w => `<p class="alert is-cap">${esc(w)}</p>`).join('')}
         ${threats.length ? threats.map(w => `<p class="alert is-danger">${esc(w)}</p>`).join('') : `<p class="alert is-ok">✓ ${esc(t.noThreats)}</p>`}
       </div>`
-      : `<div class="no-save"><b>${esc(t.noSaveTitle)}</b><p>${esc(t.noSaveText)}</p><button type="button" class="btn-ghost" data-load>${esc(t.loadSave)}</button></div>`}
+      : `<div class="no-save"><b>${esc(isManual() ? t.noTeamTitle : t.noSaveTitle)}</b><p>${esc(isManual() ? t.noTeamText : t.noSaveText)}</p>
+          <button type="button" class="btn-ghost" data-load>${esc(t.loadSave)}</button>
+          ${isManual() ? `<button type="button" class="btn-ghost" data-add-manual>${esc(t.addMon)}</button>` : ''}</div>`}
     <div class="foe-grid">${foes.map((f, fi) => foeCard(f, tt.p[fi], duels[fi], fi)).join('')}</div>`;
 
   $('fight').querySelector('[data-load]')?.addEventListener('click', () => $('file-input').click());
+  $('fight').querySelector('[data-add-manual]')?.addEventListener('click', () => openPicker('species'));
   $('fight').querySelectorAll('.tag-link').forEach(b => b.addEventListener('click', () => selectFight(+b.dataset.fight)));
   $('fight').querySelectorAll('[data-duel]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.duel;
@@ -876,13 +1115,37 @@ function duelDetails(d) {
 }
 
 // ── Box-Auswahl ───────────────────────────────────────────────────────────────
-function openPicker() {
+// mode 'box' = aus dem Spielstand; 'species' = alle Pokémon aus Platin fürs eigene Team (replace = Index zum Ersetzen)
+function openPicker(mode = 'box', replace = null) {
+  state.pickMode = mode;
+  state.pickReplace = replace;
+  $('picker-title').textContent = mode === 'species' ? tr().pickSpecies : tr().pickTitle;
   $('box-picker').hidden = false;
   $('picker-search').value = '';
   renderPicker();
   $('picker-search').focus();
 }
+function renderSpeciesPicker() {
+  const q = $('picker-search').value.trim().toLowerCase();
+  const names = sp => [PT.text.de.species[sp], PT.text.en.species[sp]].join(' ').toLowerCase();
+  const list = [];
+  for (let sp = 1; sp <= 493; sp++) if (!q || names(sp).includes(q) || String(sp) === q) list.push(sp);
+  $('picker-list').innerHTML = list.map(sp => `<button type="button" class="pick" data-species="${sp}">${iconImg(sp)}<span>${esc(T().species[sp])}</span><small>#${sp}</small></button>`).join('');
+  $('picker-list').querySelectorAll('[data-species]').forEach(b => b.addEventListener('click', async () => {
+    $('box-picker').hidden = true;
+    const res = await newManualEntry(+b.dataset.species);
+    if (!res.entry) return;
+    const list = loadManual();
+    let i = state.pickReplace;
+    if (i != null && list[i]) list[i] = res.entry; else { list.push(res.entry); i = list.length - 1; }
+    saveManual(list);
+    state.manualHint = res.offline ? tr().movesOffline : '';
+    applySave();
+    openEditor(i);
+  }));
+}
 function renderPicker() {
+  if (state.pickMode === 'species') { renderSpeciesPicker(); return; }
   const sv = currentSave();
   if (!sv) return;
   const q = $('picker-search').value.toLowerCase();
@@ -908,11 +1171,12 @@ function applyLang() {
   document.querySelectorAll('[data-i18n-aria]').forEach(el => { const v = t[el.dataset.i18nAria]; if (typeof v === 'string') el.setAttribute('aria-label', v); });
   $('lang-toggle').textContent = window.LANG.toUpperCase();
   // Team neu benennen (Artnamen hängen an der Sprache)
-  const sv = currentSave();
+  const sv = isManual() ? null : currentSave();
   if (sv) {
     const pool = new Map(allOwn(sv).map(m => [monKey(m), m]));
     state.team = state.team.map(m => (pool.get(m.key) ? ownMon(pool.get(m.key)) : m));
-  }
+  } else state.team = loadManual().map(manualMon);
+  if (!$('mon-editor').hidden) renderEditor();
   if (B) render();
 }
 
@@ -955,6 +1219,10 @@ $('fight-select').addEventListener('change', e => selectFight(+e.target.value, t
 $('picker-close').addEventListener('click', () => { $('box-picker').hidden = true; });
 $('box-picker').addEventListener('click', e => { if (e.target === $('box-picker')) $('box-picker').hidden = true; });
 $('picker-search').addEventListener('input', renderPicker);
+$('editor-close').addEventListener('click', closeEditor);
+$('mon-editor').addEventListener('click', e => { if (e.target === $('mon-editor')) closeEditor(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('mon-editor').hidden) closeEditor(); });
+$('team-strip').addEventListener('keydown', e => { const el = e.target.closest('[data-edit]'); if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openEditor(+el.dataset.edit); } });
 window.addEventListener('hashchange', () => { if (!B) return; const id = fightFromHash(); if (id != null && id !== state.fight) selectFight(id); });
 
 init();

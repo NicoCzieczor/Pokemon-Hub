@@ -525,7 +525,7 @@ select option {
 
 .encounter-row {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(110px, 0.9fr) 112px 128px 34px;
+  grid-template-columns: minmax(130px, 1fr) minmax(110px, 0.9fr) 112px 128px 34px 34px;
   gap: 10px;
   align-items: center;
   padding: 8px 12px;
@@ -544,6 +544,22 @@ select option {
 .encounter-row:hover .delete-btn,
 .encounter-row:focus-within .delete-btn {
   opacity: 1;
+}
+
+/* † = gestorben: immer sichtbar, damit der Tod nicht nur im Statusmenü steckt */
+.encounter-row .kill-btn {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  color: rgb(var(--t-c-ff8a93));
+  border-color: rgba(var(--t-c-ff5f6d), 0.35);
+  background: rgba(var(--t-c-ff5f6d), 0.08);
+}
+.encounter-row .kill-btn:hover,
+.encounter-row .kill-btn:focus-visible {
+  color: rgb(var(--t-white));
+  background: rgba(var(--t-c-ff5f6d), 0.5);
+  border-color: rgb(var(--t-c-ff5f6d));
 }
 
 .encounter-place {
@@ -599,7 +615,7 @@ select option {
 }
 
 .status-pill.is-action::after {
-  content: ' ↻';
+  content: ' ▾';
   font-size: 0.7em;
   opacity: 0.5;
 }
@@ -617,6 +633,64 @@ select option {
 .status-caught { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-8ff0a4)); border-color: rgb(var(--t-c-8ff0a4)); }
 .status-open { color: rgb(var(--t-on-acc)); background: rgb(var(--t-acc)); border-color: rgb(var(--t-acc)); }
 .status-failed { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-ff9b8e)); border-color: rgb(var(--t-c-ff9b8e)); }
+.status-dead { color: rgb(var(--t-c-ff8a93)); background: rgba(var(--t-c-ff5f6d), 0.14); border-color: rgba(var(--t-c-ff5f6d), 0.55); }
+.encounter-row.is-dead .encounter-pokemon img { filter: grayscale(1) brightness(0.8); }
+.encounter-row.is-dead .encounter-pokemon span { color: var(--color-muted); text-decoration: line-through; text-decoration-color: rgba(var(--t-c-ff5f6d), 0.6); }
+
+/* Statusmenü (Klick auf den Status) */
+.status-menu {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgb(var(--t-n-16193f));
+  border: 1px solid rgba(var(--t-ink), 0.14);
+  box-shadow: 0 18px 48px rgba(var(--t-shade), 0.5);
+}
+.status-menu[hidden] { display: none; }
+.status-menu .status-pill { justify-self: stretch; text-align: left; cursor: pointer; opacity: 0.7; }
+.status-menu .status-pill:hover, .status-menu .status-pill:focus-visible { opacity: 1; outline: none; filter: brightness(1.1); }
+.status-menu .status-pill.is-current { opacity: 1; box-shadow: 0 0 0 2px rgba(var(--t-ink), 0.35); }
+.status-menu-cause { display: flex; flex-direction: column; gap: 6px; width: min(260px, 80vw); }
+.status-menu-cause label { font-size: 0.72rem; font-weight: 700; color: var(--color-muted); }
+.status-menu-cause input { padding: 8px 10px; }
+.status-menu-cause .btn-primary { padding: 8px 12px; border-radius: 10px; }
+
+/* Dupes in der Pokémon-Auswahl: nur markiert, wählbar bleibt es */
+#pokemon-list li.is-dupe img { opacity: 0.55; }
+#pokemon-list .pokemon-card-badge.is-dupe { background: transparent; color: rgb(var(--t-c-ffd23f)); border-color: rgba(var(--t-c-ffd23f), 0.6); }
+
+/* Zwei Schalter nebeneinander im Kopf des Encounter-Trackers */
+.panel-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+/* Graveyard: Ursache klein unter dem Namen */
+.tag-text { display: inline-flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.tag-text small { font-size: 0.68rem; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Rückgängig nach dem Löschen */
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 8px 8px 16px;
+  border-radius: 14px;
+  background: rgb(var(--t-n-16193f));
+  border: 1px solid rgba(var(--t-ink), 0.14);
+  box-shadow: 0 18px 48px rgba(var(--t-shade), 0.5);
+  font-size: 0.86rem;
+}
+.undo-toast[hidden] { display: none; }
+.undo-toast .btn { padding: 6px 12px; border-radius: 10px; color: var(--color-accent-strong); font-weight: 800; }
 .method-starter { color: rgb(var(--t-on-acc)); background: rgb(var(--t-acc)); border-color: rgb(var(--t-acc)); }
 
 .icon-btn {
@@ -782,10 +856,11 @@ textarea {
   font-weight: 700;
 }
 
+/* Innenabstand: Karten heben sich beim Überfahren um 2px – ohne Platz schnitt der Scrollbereich die oberste Reihe ab */
 #pokemon-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px 2px;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -979,10 +1054,10 @@ textarea {
   /* Encounter-Liste: zwei Zeilen statt fünf je Eintrag –
      oben der Ort mit dem Löschknopf, darunter Pokémon, Art und Status */
   .encounter-row {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      "place place del"
-      "mon method status";
+      "place place kill del"
+      "mon method status status";
     gap: 4px 8px;
     padding: 8px 10px;
   }
@@ -992,6 +1067,13 @@ textarea {
   .encounter-row .status-pill.is-action { grid-area: status; }
   .encounter-row .status-pill { padding: 3px 8px; font-size: 0.68rem; }
 
+  .encounter-row .kill-btn,
+  .encounter-row .kill-slot {
+    grid-area: kill;
+    justify-self: end;
+    width: 28px;
+    height: 28px;
+  }
   .encounter-row .delete-btn {
     grid-area: del;
     justify-self: end;
@@ -1004,3 +1086,7 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* Randomizer-Stand neben dem Schalter (rando-state.js) */
+.rd-rando { align-self: center; }
+.rd-rando[hidden] { display: none; }

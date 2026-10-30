@@ -28,6 +28,7 @@
   <title>Duo</title>
   <link rel="stylesheet" href="../Pokelocke/base.css" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="routes.css" />
 </head>
 <script>
   (function(){
@@ -143,6 +144,33 @@
         </div>
       </section>
 
+      <!-- Routen: Fangort jedes Paares und verpasste Routen (Spiel des Duo-Runs, mit dem Partner geteilt).
+           Teilt sich die Zeile mit der Box: Ist eine offen, wird die andere schmal. -->
+      <section id="routes-section">
+        <button type="button" id="routes-toggle" class="routes-toggle-btn" aria-expanded="false" aria-controls="routes-body">
+          <span data-i18n="routes">Routen</span>
+          <span class="routes-toggle-end"><span id="routes-count" class="routes-count"></span><span id="routes-toggle-icon" class="routes-toggle-icon">▼</span></span>
+        </button>
+        <div id="routes-body" hidden>
+          <div class="routes-head">
+            <label class="routes-game"><span data-i18n="routes-game">Spiel des Runs</span>
+              <select id="routes-game-select"></select></label>
+            <div class="routes-filter" role="group">
+              <button type="button" data-route-filter="all" data-i18n="routes-filter-all">Alle</button>
+              <button type="button" data-route-filter="open" data-i18n="routes-filter-open">Offen</button>
+              <button type="button" data-route-filter="done" data-i18n="routes-filter-done">Eingetragen</button>
+            </div>
+          </div>
+          <p id="routes-hint" class="routes-hint" hidden></p>
+          <div id="routes-wild" class="routes-wild" hidden>
+            <label class="routes-wild-toggle"><input type="checkbox" id="routes-wild-toggle" checked> <span data-i18n="routes-wild-show">Wilde Pokémon zeigen</span></label>
+            <div id="routes-wild-src"></div>
+          </div>
+          <div class="routes-cols" aria-hidden="true"><span></span><span data-i18n="player1">Spieler 1</span><span></span><span data-i18n="player2">Spieler 2</span><span></span></div>
+          <div id="routes-list"></div>
+        </div>
+      </section>
+
       <section id="graveyard-section">
         <button id="graveyard-toggle" class="graveyard-toggle-btn">
           <span data-i18n="graveyard">Friedhof</span>
@@ -186,7 +214,11 @@
     <div id="save-status" aria-live="polite"></div>
 
     <section id="weakness-section">
-      <h2 data-i18n="weakness-title">Team-Typ-Analyse</h2>
+      <div class="weakness-head">
+        <h2 data-i18n="weakness-title">Team-Typ-Analyse</h2>
+        <label class="type-gen-pick"><span data-i18n="type-gen-label">Typen wie in</span>
+          <select id="type-gen-select"></select></label>
+      </div>
       <div id="team-weakness-panel">
         <p class="weakness-empty" data-i18n="weakness-empty">Füge Pokémon zu einem Team hinzu, um die Typ-Analyse zu sehen.</p>
       </div>
@@ -196,6 +228,7 @@
 
   <div id="ctx-menu" class="ctx-menu">
     <button id="ctx-remove" data-i18n="ctx-remove">Entfernen</button>
+    <button id="ctx-route" data-i18n="ctx-route">Fangort …</button>
     <button id="ctx-kill" class="ctx-danger" data-i18n="ctx-kill">Gestorben</button>
   </div>
 
@@ -232,6 +265,11 @@
 <script src="i18n.js"></script>
 <script src="../vendor/supabase-2.117.2.js"></script>
 <script src="../pokemon-names.js"></script>
+<script src="../DamageCalc/mechanics.js"></script>
+<script src="../pokemon-types.js"></script>
+<script src="../locations.js"></script>
+<script src="../rando-state.js"></script>
+<script src="../Karte/encounter-areas.js"></script>
 <script type="module" src="main.js"></script>
 <script src="level-caps.js"></script>
 </body>

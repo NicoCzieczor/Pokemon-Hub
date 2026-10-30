@@ -267,3 +267,16 @@ canvas {
   body > #app h1 { font-size: 1.6rem; }
   body > #app h1 + p { font-size: 0.86rem; line-height: 1.45; }
 }
+
+/* ── Typ-Analyse: Überschrift mit „Typen wie in Gen …“ (Solo, Duo, Trio; pokemon-types.js) ── */
+#weakness-section .weakness-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 14px; }
+#weakness-section .weakness-head h2 { margin: 0; }
+.type-gen-pick { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; font-size: 0.82rem; color: var(--color-muted); }
+.type-gen-pick > span { white-space: nowrap; }
+#type-gen-select {
+  min-width: 0; max-width: 100%; padding: 7px 10px; border-radius: 10px;
+  border: 1px solid rgba(var(--t-ink), 0.14); background: rgba(var(--t-ink), 0.06); color: rgb(var(--t-g-edf2f7));
+  font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-overflow: ellipsis;
+}
+#type-gen-select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc)); }
+#type-gen-select:focus { outline: none; border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(var(--t-acc2-glow), 0.18); }

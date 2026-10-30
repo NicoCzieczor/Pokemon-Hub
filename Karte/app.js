@@ -19,7 +19,7 @@ const TRANSLATIONS = {
     title: 'Karte von Sinnoh',
     gameBadge: 'Platin',
     subtitle: 'Items, versteckte Items, TMs, Trainer und wilde Pokémon – an ihrer echten Stelle im Spiel.',
-    searchPlaceholder: 'Ort, Item, TM oder Trainer suchen…',
+    searchPlaceholder: 'Ort, Pokémon, Item, TM oder Trainer suchen…',
     fItem: 'Items', fHidden: 'Versteckt', fTm: 'TMs', fGift: 'Geschenke', fTrainer: 'Trainer', fEntrance: 'Eingänge',
     loading: 'Karte wird geladen…',
     loadError: 'Die Kartendaten konnten nicht geladen werden.',
@@ -49,12 +49,22 @@ const TRANSLATIONS = {
     areaN: 'Bereich {n}',
     interiorMaps: 'Innenkarten', showInside: 'In der Innenkarte zeigen', noMap: 'ohne Karte', backToMap: 'Sinnoh-Karte',
     toPlanner: 'Im Boss-Planer: Team, Attacken und wie dein Team dagegen abschneidet',
+    kMon: 'Wild', monPlaces: '{n} Orte', monPlace1: '1 Ort',
+    monNoWild: 'nicht wild auf der Karte', monNotInGame: 'gibt es in Platin nicht',
+    monWhere: 'Wild an {n} Orten', monWhere1: 'Wild an 1 Ort',
+    monSorted: 'Sortiert nach der besten Chance – tippe auf einen Ort, um ihn zu öffnen.',
+    monNoWildText: '{p} steht auf der Karte nicht als wildes Pokémon. Vielleicht bekommst du es in Platin auf anderem Weg: Honigbaum, Geschenk, Ei, Tausch oder eine besondere Begegnung.',
+    monNotInGameText: '{p} gibt es erst ab Gen {g} – in Platin nicht.',
+    toDex: 'Im Pokédex ansehen →',
+    wildRando: 'Gewürfelt', wildOrig: 'Original',
+    wildRandoNote: 'Wilde Pokémon aus deiner Randomizer-ROM „{n}“.',
+    wildRandoOld: 'Der geladene Randomizer-Stand ist älter und kennt die wilden Pokémon noch nicht – lade die ROM oben einmal neu.',
   },
   en: {
     title: 'Map of Sinnoh',
     gameBadge: 'Platinum',
     subtitle: 'Items, hidden items, TMs, trainers and wild Pokémon – at their real spot in the game.',
-    searchPlaceholder: 'Search place, item, TM or trainer…',
+    searchPlaceholder: 'Search place, Pokémon, item, TM or trainer…',
     fItem: 'Items', fHidden: 'Hidden', fTm: 'TMs', fGift: 'Gifts', fTrainer: 'Trainers', fEntrance: 'Entrances',
     loading: 'Loading map…',
     loadError: 'The map data could not be loaded.',
@@ -84,6 +94,16 @@ const TRANSLATIONS = {
     areaN: 'Area {n}',
     interiorMaps: 'Inside maps', showInside: 'Show on the inside map', noMap: 'no map', backToMap: 'Sinnoh map',
     toPlanner: 'In the Boss Planner: team, moves and how your team does against it',
+    kMon: 'Wild', monPlaces: '{n} places', monPlace1: '1 place',
+    monNoWild: 'not wild on the map', monNotInGame: 'not in Platinum',
+    monWhere: 'Wild in {n} places', monWhere1: 'Wild in 1 place',
+    monSorted: 'Sorted by the best chance – tap a place to open it.',
+    monNoWildText: '{p} is not listed as a wild Pokémon on the map. You may get it another way in Platinum: Honey Tree, gift, egg, trade or a special encounter.',
+    monNotInGameText: '{p} only exists from Gen {g} – not in Platinum.',
+    toDex: 'Open in the Pokédex →',
+    wildRando: 'Randomized', wildOrig: 'Original',
+    wildRandoNote: 'Wild Pokémon from your randomizer ROM “{n}”.',
+    wildRandoOld: 'The loaded randomizer data is older and does not know the wild Pokémon yet – load the ROM again above.',
   },
 };
 const tr = () => TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
@@ -138,6 +158,8 @@ const layers = {};     // Marker je Art
 const shown = new Set();
 let selected = -1;
 let currentTab = 'items';
+let monView = null;    // Pokémon, dessen Fundorte das Panel zeigt
+let monBack = null;    // Ort wurde aus diesem Pokémon-Panel geöffnet (Rückweg + Markierung)
 let selLayer = null, labelLayer = null, focusMarker = null;
 let seaLayer = null, sheetPanes = [], landBounds = null;
 // Innenkarten (Höhlen, Gebäude …): interiors.json wird erst beim ersten Öffnen geladen
@@ -254,7 +276,8 @@ async function init() {
   setupInteriorBar();
   $('map-loading').hidden = true;
   const fromHash = locationFromHash();
-  if (fromHash.li >= 0) {
+  if (fromHash.mon) renderMon(fromHash.mon, { fly: true });
+  else if (fromHash.li >= 0) {
     selectLocation(fromHash.li, { fly: !fromHash.map });
     if (fromHash.map) openInterior(fromHash.map);
   } else renderDirectory();
@@ -539,9 +562,15 @@ function renderInteriorBar() {
 }
 
 // ── Ort auswählen ─────────────────────────────────────────────────────────────
-function drawSelection(li) {
+// Einen Ort hervorheben – oder mehrere (alle Fundorte eines Pokémon)
+function drawSelection(sel) {
   selLayer.clearLayers();
-  if (li < 0) return;
+  const lis = (Array.isArray(sel) ? sel : [sel]).filter(li => li >= 0);
+  if (!lis.length) return;
+  lis.forEach(drawArea);
+  labelLayer.eachLayer(m => m.getElement()?.classList.toggle('is-selected', lis.includes(m.locIndex)));
+}
+function drawArea(li) {
   const CH = D.chunk;
   const own = (r, c) => D.chunks[r]?.[c] === li;
   const segments = [];
@@ -562,7 +591,6 @@ function drawSelection(li) {
   for (const [x, z] of D.locations[li].entrances || []) {
     selLayer.addLayer(L.circleMarker(llg(x + 0.5, z + 0.5), { radius: 11, color: '#b48cff', weight: 2, fill: false, interactive: false }));
   }
-  labelLayer.eachLayer(m => m.getElement()?.classList.toggle('is-selected', m.locIndex === li));
 }
 
 function locationBounds(li) {
@@ -579,6 +607,8 @@ function selectLocation(li, opts = {}) {
   // Ein anderer Ort aus Liste, Suche oder Karte: zurück auf die Oberwelt
   if (inMap && !opts.keepInterior) closeInterior({ fly: false });
   selected = li;
+  // Vom Pokémon-Panel aus geöffnet: Rückweg dorthin und das Pokémon in „Wilde Pokémon“ markieren
+  monBack = opts.fromMon ?? null;
   const l = D.locations[li];
   if (opts.tab) currentTab = opts.tab;
   else if (!opts.keepTab) currentTab = l.items.length ? 'items' : l.trainers.length ? 'trainers' : 'wild';
@@ -592,10 +622,12 @@ function selectLocation(li, opts = {}) {
   if (opts.fromMap && matchMedia('(max-width: 900px)').matches) showMobileChip(li);
 }
 const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-// #ort oder #ort~innenkarte
+// #ort oder #ort~innenkarte; #pokemon-417 = Fundorte eines Pokémon
 function locationFromHash() {
   const [h, inner] = decodeURIComponent(location.hash.slice(1)).split('~');
   if (!h) return { li: -1 };
+  const mon = /^pokemon-(\d+)$/.exec(h);
+  if (mon) return { li: -1, mon: +mon[1] };
   const map = inner && Object.keys(D.maps || {}).find(k => k.toLowerCase() === inner);
   return { li: D.locations.findIndex(l => slug(l.en) === h), map };
 }
@@ -613,6 +645,7 @@ function showMobileChip(li) {
 function renderDirectory() {
   if (inMap) closeInterior({ fly: false });
   selected = -1;
+  monView = monBack = null;
   drawSelection(-1);
   history.replaceState(null, '', location.pathname);
   const byType = { towns: [], routes: [], places: [] };
@@ -659,10 +692,14 @@ function renderLocation(li, focus) {
     ? `<div class="ent-row map-row"><span>${esc(t('interiorMaps'))}:</span>${mapKeys.map(k => `<button type="button" class="mini-btn map-btn${k === inMap ? ' is-on' : ''}" data-map="${esc(k)}">${ICON_MAP}${esc(areaName(D.maps[k].area) || locName(l))}</button>`).join('')}</div>`
     : '';
   const tab = (key, label, count, disabled) => `<button type="button" class="tab${currentTab === key ? ' is-active' : ''}" data-tab="${key}"${disabled ? ' disabled' : ''}>${esc(label)}${count != null ? ` <small>${count}</small>` : ''}</button>`;
-  const wildCount = l.wild.length;
+  const wildCount = l.wild.length;   // Tab auch dann, wenn der gewürfelte Stand hier nichts hat (Schalter zum Original)
+  const backMon = monBack != null && MONS.get(monBack);
   $('side-content').innerHTML = `
     <div class="side-head">
-      <button type="button" class="back-btn" id="back-btn">← ${esc(t('back'))}</button>
+      <div class="back-row">
+        <button type="button" class="back-btn" id="back-btn">← ${esc(t('back'))}</button>
+        ${backMon ? `<button type="button" class="back-btn" id="back-mon">← ${esc(nm(backMon))}</button>` : ''}
+      </div>
       <h2>${esc(locName(l))}</h2>
       <p class="loc-sub">${esc(sub)}</p>
       ${stats.length ? `<div class="stat-chips">${stats.map(s => `<span>${esc(s)}</span>`).join('')}</div>` : ''}
@@ -675,6 +712,7 @@ function renderLocation(li, focus) {
     </div>
     <div class="tab-body" id="tab-body"></div>`;
   $('back-btn').addEventListener('click', renderDirectory);
+  $('back-mon')?.addEventListener('click', () => renderMon(monBack, { fly: true }));
   $('side-content').querySelector('.via-link')?.addEventListener('click', e => selectLocation(+e.currentTarget.dataset.loc, { fly: true }));
   $('side-content').querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => {
     const [x, z] = b.dataset.goto.split(',').map(Number);
@@ -690,6 +728,7 @@ function renderLocation(li, focus) {
   }
   const body = $('tab-body');
   body.innerHTML = currentTab === 'items' ? itemsHTML(l) : currentTab === 'trainers' ? trainersHTML(l) : wildHTML(l);
+  body.querySelectorAll('[data-wild-mode]').forEach(b => b.addEventListener('click', () => setWildMode(b.dataset.wildMode)));
   // Stecknadel: auf der Oberwelt hinfliegen bzw. die Innenkarte öffnen, in der das Item oder der Trainer steht
   body.querySelectorAll('[data-pos]').forEach(b => b.addEventListener('click', () => {
     const [x, z, y] = parsePos(b.dataset.pos), inside = b.dataset.map;
@@ -697,7 +736,13 @@ function renderLocation(li, focus) {
     else if (inside) openInterior(inside, { focus: [x, z, y], ref: b.closest('[data-ref]')?.dataset.ref });
     else { if (inMap) closeInterior({ fly: false }); flyToTile(x, z, y); }
   }));
-  if (focus) {
+  // Gesuchtes Pokémon in der Liste der wilden Pokémon markieren
+  if (backMon && currentTab === 'wild') {
+    const hits = body.querySelectorAll(`[data-mon="${monBack}"]`);
+    hits.forEach(el => el.classList.add('is-flash'));
+    if (focus === 'mon') hits[0]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  if (focus && focus !== 'mon') {
     const row = body.querySelector(`[data-ref="${focus}"]`);
     if (row) {
       row.classList.add('is-flash');
@@ -775,13 +820,50 @@ function trainersHTML(l) {
   }).join('')}</div>`;
 }
 
+// ── Randomizer: wilde Pokémon aus der gewürfelten ROM (rando-state.js), das Original per Schalter ──
+let wildMode = 'rando';   // 'rando' | 'orig' – zählt nur, wenn ein Stand mit wilden Pokémon geladen ist
+const randoState = () => (window.PokeHubRando ? window.PokeHubRando.get() : null);
+const randoWild = () => { const s = randoState(); return s && Array.isArray(s.wild) ? s.wild : null; };
+const usingRando = () => wildMode === 'rando' && !!randoWild();
+// Wilde Pokémon eines Ortes im gerade gezeigten Stand; Einträge ohne Tabellen-Nummer bleiben wie im Original
+function wildOf(l) {
+  const rw = usingRando() ? randoWild() : null;
+  if (!rw) return l.wild;
+  const N = window.POKEMON_NAMES || { de: [], en: [] };
+  const named = list => list.map(s => ({ ...s, de: N.de[s.id] || `#${s.id}`, en: N.en[s.id] || N.de[s.id] || `#${s.id}` }));
+  return l.wild.map(w => {
+    if (w.enc == null) return w;
+    const tbl = window.PokeHubRando.wildTable(rw[w.enc]);
+    const out = { area: w.area, enc: w.enc };
+    if (tbl) for (const k of Object.keys(tbl)) out[k] = named(tbl[k]);
+    return out;
+  }).filter(w => Object.keys(w).some(k => k !== 'area' && k !== 'enc'));
+}
+// Schalter „Gewürfelt / Original“ über der Liste (nur mit geladenem Randomizer-Stand)
+function wildModeHTML() {
+  const s = randoState();
+  if (!s) return '';
+  if (!Array.isArray(s.wild)) return `<p class="wild-rando-note">${esc(t('wildRandoOld'))}</p>`;
+  const btn = (k, label) => `<button type="button" class="wild-mode-btn${wildMode === k ? ' is-on' : ''}" data-wild-mode="${k}" aria-pressed="${wildMode === k}">${esc(label)}</button>`;
+  return `<div class="wild-mode"><span class="wild-mode-seg" role="group">${btn('rando', t('wildRando'))}${btn('orig', t('wildOrig'))}</span>` +
+    (wildMode === 'rando' ? `<small>${esc(t('wildRandoNote', { n: s.name }))}</small>` : '') + '</div>';
+}
+function setWildMode(mode) {
+  wildMode = mode;
+  buildSearchIndex();
+  if (selected >= 0) renderLocation(selected); else if (monView != null) renderMon(monView); else renderDirectory();
+}
+// Stand geladen, entfernt oder in einem anderen Tab geändert: wieder „Gewürfelt“ zeigen, alles neu aufbauen
+document.addEventListener('hubrandochange', () => { if (D) setWildMode('rando'); });
+
 function wildHTML(l) {
-  if (!l.wild.length) return `<p class="empty">${esc(t('noWild'))}</p>`;
+  const wild = wildOf(l);
+  if (!wild.length) return wildModeHTML() + `<p class="empty">${esc(t('noWild'))}</p>`;
   const lv = s => (s.min === s.max ? `${s.min}` : `${s.min}–${s.max}`);
   const monCell = s => `<span class="wild-mon"><img src="${monSprite(s.id)}" alt="" loading="lazy">${esc(nm(s))}</span>`;
   const simple = (title, list) => (list?.length ? `<div class="wild-block">
       <h4>${esc(title)}</h4>
-      <table class="wild-table"><tbody>${list.map(s => `<tr><td>${monCell(s)}</td><td class="lv">${t('level')} ${lv(s)}</td><td class="pct">${s.p} %</td></tr>`).join('')}</tbody></table>
+      <table class="wild-table"><tbody>${list.map(s => `<tr data-mon="${s.id}"><td>${monCell(s)}</td><td class="lv">${t('level')} ${lv(s)}</td><td class="pct">${s.p} %</td></tr>`).join('')}</tbody></table>
     </div>` : '');
   const grass = w => {
     if (!w.morning?.length) return '';
@@ -797,23 +879,117 @@ function wildHTML(l) {
     return `<div class="wild-block">
         <h4>${esc(t('grass'))}</h4>
         <table class="wild-table"><thead><tr><th></th><th>${t('level')}</th><th>${esc(t('morning'))}</th><th>${esc(t('day'))}</th><th>${esc(t('night'))}</th></tr></thead>
-        <tbody>${rows.map(r => `<tr><td>${monCell(r.any)}</td><td class="lv">${r.lvl}</td><td class="pct">${pct(r.pm)}</td><td class="pct">${pct(r.pd)}</td><td class="pct">${pct(r.pn)}</td></tr>`).join('')}</tbody></table>
+        <tbody>${rows.map(r => `<tr data-mon="${r.any.id}"><td>${monCell(r.any)}</td><td class="lv">${r.lvl}</td><td class="pct">${pct(r.pm)}</td><td class="pct">${pct(r.pd)}</td><td class="pct">${pct(r.pn)}</td></tr>`).join('')}</tbody></table>
       </div>`;
   };
   const extras = w => {
     const chips = [['swarm', w.swarm], ['radar', w.radar], ['dualSlot', w.dualSlot]].filter(([, list]) => list?.length);
     if (!chips.length) return '';
-    return `<div class="wild-extras">${chips.map(([key, list]) => `<div><span class="extra-label">${esc(t(key))}:</span> ${list.map(s => `<span class="extra-mon"><img src="${monSprite(s.id)}" alt="" loading="lazy">${esc(nm(s))}</span>`).join('')}</div>`).join('')}</div>`;
+    return `<div class="wild-extras">${chips.map(([key, list]) => `<div><span class="extra-label">${esc(t(key))}:</span> ${list.map(s => `<span class="extra-mon" data-mon="${s.id}"><img src="${monSprite(s.id)}" alt="" loading="lazy">${esc(nm(s))}</span>`).join('')}</div>`).join('')}</div>`;
   };
-  return l.wild.map(w => `<div class="wild-area">
-      ${l.wild.length > 1 || w.area ? `<h3>${esc(w.area ? areaName(w.area) : t('outside'))}</h3>` : ''}
+  return wildModeHTML() + wild.map(w => `<div class="wild-area">
+      ${wild.length > 1 || w.area ? `<h3>${esc(w.area ? areaName(w.area) : t('outside'))}</h3>` : ''}
       ${grass(w)}${simple(t('surf'), w.surf)}${simple(t('oldRod'), w.oldRod)}${simple(t('goodRod'), w.goodRod)}${simple(t('superRod'), w.superRod)}${extras(w)}
     </div>`).join('');
+}
+
+// ── Ein Pokémon: wo es wild vorkommt ──────────────────────────────────────────
+const ROD_KEYS = ['surf', 'oldRod', 'goodRod', 'superRod'];
+const SPECIAL_KEYS = ['swarm', 'radar', 'dualSlot'];
+const METHOD_ORDER = ['grass', ...ROD_KEYS, ...SPECIAL_KEYS];
+const genOfId = id => [151, 251, 386, 493, 649, 721, 809, 905].findIndex(n => id <= n) + 1 || 9;
+
+function methodText(e) {
+  const lv = e.min == null ? '' : ` · ${t('level')} ${e.min === e.max ? e.min : `${e.min}–${e.max}`}`;
+  if (e.key === 'grass') {
+    const times = ['morning', 'day', 'night'];
+    const pct = times.every(k => e[k] === e.morning) ? `${e.morning} %` : times.filter(k => e[k]).map(k => `${t(k)} ${e[k]} %`).join(' · ');
+    return `${t('grass')} ${pct}${lv}`;
+  }
+  return e.p != null ? `${t(e.key)} ${e.p} %${lv}` : t(e.key);
+}
+
+function renderMon(id, opts = {}) {
+  if (inMap) closeInterior({ fly: false });
+  selected = -1;
+  monView = id;
+  monBack = null;
+  history.replaceState(null, '', `#pokemon-${id}`);
+  const m = MONS.get(id);
+  const name = m ? nm(m) : speciesName(id);
+  const head = `<button type="button" class="back-btn" id="back-btn">← ${esc(t('back'))}</button>
+      <h2 class="mon-head"><img src="${monSprite(id)}" alt="" onerror="this.style.visibility='hidden'">${esc(name)}</h2>`;
+  const dex = id <= 1025 ? `<a class="mini-btn" href="../PokemonInfo/index.html#${id}">${esc(t('toDex'))}</a>` : '';
+  if (!m) {
+    drawSelection(-1);
+    $('side-content').innerHTML = `<div class="side-head">${head}
+        <p>${esc(t(id > 493 ? 'monNotInGameText' : 'monNoWildText', { p: name, g: genOfId(id) }))}</p>${dex}</div>`;
+    $('back-btn').addEventListener('click', renderDirectory);
+    return;
+  }
+  // Beste Chance zuerst; Orte nur mit Schwarm, Pokéradar oder GBA-Modul ans Ende
+  const places = [...m.places].map(([li, list]) => ({ li, list, best: bestChance(list) }))
+    .sort((a, b) => b.best - a.best || locName(D.locations[a.li]).localeCompare(locName(D.locations[b.li]), window.LANG));
+  const n = places.length;
+  $('side-content').innerHTML = `<div class="side-head">${head}
+      <p>${esc(n === 1 ? t('monWhere1') : t('monWhere', { n }))} · ${esc(t('monSorted'))}</p>${dex}</div>
+    <div class="mon-places">${places.map(({ li, list }) => {
+      const l = D.locations[li];
+      const chips = [...list].sort((a, b) => METHOD_ORDER.indexOf(a.key) - METHOD_ORDER.indexOf(b.key) || a.area.localeCompare(b.area))
+        .map(e => `<span class="mp-chip${SPECIAL_KEYS.includes(e.key) ? ' is-special' : ''}">${e.area ? `<b>${esc(areaName(e.area))}</b> ` : ''}${esc(methodText(e))}</span>`).join('');
+      return `<button type="button" class="mon-place" data-loc="${li}"><span class="mp-name">${esc(locName(l))}<small>${esc(typeLabel(l))}</small></span><span class="mp-methods">${chips}</span></button>`;
+    }).join('')}</div>`;
+  $('back-btn').addEventListener('click', renderDirectory);
+  $('side-content').querySelectorAll('.mon-place').forEach(b => b.addEventListener('click', () =>
+    selectLocation(+b.dataset.loc, { tab: 'wild', fly: true, focus: 'mon', fromMon: id })));
+  // Alle Fundorte auf der Karte (Gebäude/Höhlen ohne eigene Fläche über ihren Zugang)
+  const areas = [...new Set(places.map(({ li }) => { const l = D.locations[li]; return l.chunks || l.entrances ? li : (l.via ?? -1); }))].filter(li => li >= 0);
+  drawSelection(areas);
+  if (opts.fly && areas.length) {
+    const b = areas.map(locationBounds).filter(Boolean).reduce((acc, x) => acc.extend(x));
+    map.flyToBounds(b, { padding: [40, 40], maxZoom: 2, duration: 0.6 });
+  }
 }
 
 // ── Suche ─────────────────────────────────────────────────────────────────────
 let searchIndex = [];
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/[^a-z0-9]/g, '');
+// Wilde Pokémon: je Art alle Orte mit Methode, Chance und Level (MONS: id → { id, de, en, places: Map li → [Einträge] })
+// Eintrag: { key: 'grass', morning, day, night, min, max, area } | { key: 'surf' … 'superRod', p, min, max, area }
+//          | { key: 'swarm' | 'radar' | 'dualSlot', area }
+let MONS = new Map();
+function buildMonIndex() {
+  MONS = new Map();
+  const add = (s, li, entry) => {
+    if (!MONS.has(s.id)) MONS.set(s.id, { id: s.id, de: s.de, en: s.en, places: new Map() });
+    const places = MONS.get(s.id).places;
+    if (!places.has(li)) places.set(li, []);
+    const list = places.get(li);
+    // Gleiche Methode im gleichen Bereich (z. B. zwei Teile einer Route): beste Chance, ganzer Level-Bereich
+    const same = list.find(e => e.key === entry.key && e.area === entry.area);
+    if (!same) { list.push(entry); return; }
+    for (const k of ['p', 'morning', 'day', 'night']) if (entry[k] > (same[k] || 0)) same[k] = entry[k];
+    if (entry.min != null) { same.min = Math.min(same.min, entry.min); same.max = Math.max(same.max, entry.max); }
+  };
+  D.locations.forEach((l, li) => wildOf(l).forEach(w => {
+    const area = w.area || '';
+    const grass = new Map();
+    ['morning', 'day', 'night'].forEach(time => (w[time] || []).forEach(s => {
+      const g = grass.get(s.id) || { s, e: { key: 'grass', morning: 0, day: 0, night: 0, min: s.min, max: s.max, area } };
+      g.e[time] = s.p;
+      g.e.min = Math.min(g.e.min, s.min);
+      g.e.max = Math.max(g.e.max, s.max);
+      grass.set(s.id, g);
+    }));
+    grass.forEach(g => add(g.s, li, g.e));
+    ROD_KEYS.forEach(key => (w[key] || []).forEach(s => add(s, li, { key, p: s.p, min: s.min, max: s.max, area })));
+    SPECIAL_KEYS.forEach(key => (w[key] || []).forEach(s => add(s, li, { key, area })));
+  }));
+}
+const bestChance = list => Math.max(0, ...list.map(e => (e.key === 'grass' ? Math.max(e.morning, e.day, e.night) : e.p || 0)));
+// Name eines Pokémon, das auf der Karte nicht wild vorkommt (pokemon-names.js)
+const speciesName = id => (window.pokemonName && window.pokemonName(id, null)) || `#${id}`;
+
 function buildSearchIndex() {
   searchIndex = [];
   D.locations.forEach((l, li) => {
@@ -821,6 +997,13 @@ function buildSearchIndex() {
     l.items.forEach((it, i) => searchIndex.push({ type: 'item', li, i, keys: [it.de, it.en, it.move?.de, it.move?.en].filter(Boolean).map(norm) }));
     l.trainers.forEach((tr, i) => searchIndex.push({ type: 'trainer', li, i, keys: [TrainerClasses.trainerName(tr.name, true, tr.cls), TrainerClasses.trainerName(tr.name, false, tr.cls), CLASS_NAMES[tr.cls]?.[0], CLASS_NAMES[tr.cls]?.[1]].filter(Boolean).map(norm) }));
   });
+  buildMonIndex();
+  MONS.forEach(m => searchIndex.push({ type: 'mon', id: m.id, keys: [m.de, m.en].map(norm) }));
+  // Alle anderen Pokémon: damit „Evoli“ nicht einfach „Nichts gefunden“ ergibt
+  const N = window.POKEMON_NAMES;
+  if (N) for (let id = 1; id < N.de.length; id++) {
+    if (!MONS.has(id) && N.de[id]) searchIndex.push({ type: 'nomon', id, keys: [N.de[id], N.en[id]].map(norm) });
+  }
 }
 function runSearch(q) {
   const key = norm(q);
@@ -830,12 +1013,19 @@ function runSearch(q) {
   for (const e of searchIndex) {
     let best = -1;
     for (const k of e.keys) { if (k === key) best = Math.max(best, 3); else if (k.startsWith(key)) best = Math.max(best, 2); else if (k.includes(key)) best = Math.max(best, 1); }
-    if (best >= 0) scored.push({ e, s: best + (e.type === 'loc' ? 0.5 : 0) });
+    // Nicht wilde Pokémon nur bei passendem Anfang – sonst füllen sie die Liste
+    if (e.type === 'nomon' && (best < 2 || key.length < 3)) continue;
+    if (best >= 0) scored.push({ e, s: best + (e.type === 'loc' ? 0.5 : e.type === 'mon' ? 0.3 : e.type === 'nomon' ? -0.5 : 0) });
   }
   scored.sort((a, b) => b.s - a.s);
   const top = scored.slice(0, 14);
   if (!top.length) { box.innerHTML = `<div class="sr-empty">${esc(t('noResults'))}</div>`; box.hidden = false; return; }
   box.innerHTML = top.map(({ e }, n) => {
+    if (e.type === 'mon' || e.type === 'nomon') {
+      const m = MONS.get(e.id), np = m ? m.places.size : 0;
+      const sub = m ? `${t('kMon')} · ${np === 1 ? t('monPlace1') : t('monPlaces', { n: np })}` : t(e.id > 493 ? 'monNotInGame' : 'monNoWild');
+      return `<button type="button" class="sr${m ? '' : ' sr--off'}" data-n="${n}"><img class="sr-ico" src="${monSprite(e.id)}" alt="" onerror="this.style.visibility='hidden'"><span class="sr-main">${esc(m ? nm(m) : speciesName(e.id))}</span><small>${esc(sub)}</small></button>`;
+    }
     const l = D.locations[e.li];
     if (e.type === 'loc') return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">${ICON_MAP}</span><span class="sr-main">${esc(locName(l))}</span><small>${esc(typeLabel(l))}</small></button>`;
     if (e.type === 'item') {
@@ -853,6 +1043,11 @@ function pickResult(e) {
   $('search-results').hidden = true;
   $('map-search').blur();
   if (e.type === 'loc') { selectLocation(e.li, { fly: true }); return; }
+  if (e.type === 'mon' || e.type === 'nomon') {
+    renderMon(e.id, { fly: true });
+    if (matchMedia('(max-width: 900px)').matches) $('side').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
   const l = D.locations[e.li];
   const entry = e.type === 'item' ? l.items[e.i] : l.trainers[e.i];
   const ref = `${e.type === 'item' ? 'i' : 't'}${e.i}`;
@@ -879,13 +1074,14 @@ function applyLang() {
   $('lang-toggle').textContent = window.LANG.toUpperCase();
   if (!D) return;
   labelLayer?.eachLayer(m => { const el = m.getElement()?.querySelector('span'); if (el) el.textContent = locName(D.locations[m.locIndex]); });
-  if (selected >= 0) renderLocation(selected); else renderDirectory();
+  if (selected >= 0) renderLocation(selected); else if (monView != null) renderMon(monView); else renderDirectory();
   renderInteriorBar();
 }
 // Direktlinks wie …/Karte/#route-206 oder #mt-coronet~mt_coronet_2f auch ohne Neuladen
 window.addEventListener('hashchange', () => {
   if (!D) return;
-  const { li, map: inner } = locationFromHash();
+  const { li, map: inner, mon } = locationFromHash();
+  if (mon) { if (mon !== monView || selected >= 0) renderMon(mon, { fly: true }); return; }
   if (li < 0) return;
   if (li !== selected) selectLocation(li, { fly: !inner });
   if (inner && inner !== inMap) openInterior(inner);
@@ -899,4 +1095,6 @@ $('lang-toggle').addEventListener('click', () => {
   applyLang();
 });
 
+// Randomizer-Stand: Chip „Randomizer: Name ×“ bzw. „Randomizer-ROM laden“ im Kopf
+if (window.PokeHubRando) window.PokeHubRando.chip($('map-rando'));
 init();

@@ -470,12 +470,13 @@
     parse: parse,
     calcStats: calcStats,
     levelFromExp: levelFromExp,
+    personalEntry: personalEntry,
     generalBlock: generalBlock,
     storageBlock: storageBlock,
     writeChecksum: writeChecksum,
     decryptPK4: decryptPK4,
     encryptPK4: encryptPK4,
-    LAYOUT: { party: PT.party, trainer: PT.trainer, boxCount: BOX_COUNT, boxSlots: BOX_SLOTS, sizeStored: SIZE_STORED, sizeParty: SIZE_PARTY },
+    LAYOUT: { party: PT.party, trainer: PT.trainer, dex: PT.dex, boxCount: BOX_COUNT, boxSlots: BOX_SLOTS, sizeStored: SIZE_STORED, sizeParty: SIZE_PARTY },
     // für Tests
     _internal: { crypt: crypt, crc16: crc16, decryptPK4: decryptPK4, BLOCK_POSITION: BLOCK_POSITION, normalize: normalize, detect: detect }
   };

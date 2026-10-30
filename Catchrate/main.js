@@ -251,7 +251,19 @@ const GAMES = [
     balls:['poke','great','ultra','master','net','dive','nest','repeat','timer','luxury','premier','dusk','heal','quick','cherish','moon','love','lure','fast','level','heavy','dream','beast','sport'] },
 ];
 
-let selectedGameId = 'sv';
+// Spiel = aktives Spiel des Hubs (pwa.js); sonst die eigene gemerkte Wahl, das Spiel zur Generation (hub-gen) oder Karmesin/Purpur
+const GAME_KEY = 'catchrate-game';
+const GEN_DEFAULT_GAME = { 1: 'rby', 2: 'gsc', 3: 'rse', 4: 'dpp', 5: 'bw', 6: 'xy', 7: 'sm', 8: 'swsh', 9: 'sv' };
+function initialGameId() {
+  const hub = window.PokeHubGame && window.PokeHubGame.catchrate();
+  if (GAMES.some(g => g.id === hub)) return hub;
+  try {
+    const saved = localStorage.getItem(GAME_KEY);
+    if (GAMES.some(g => g.id === saved)) return saved;
+    return GEN_DEFAULT_GAME[+localStorage.getItem('hub-gen')] || 'sv';
+  } catch (e) { return 'sv'; }
+}
+let selectedGameId = initialGameId();
 function currentGame() { return GAMES.find(g => g.id === selectedGameId) || GAMES.at(-1); }
 function gameLabel(game) {
   const t = TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
@@ -1019,10 +1031,19 @@ async function init() {
 
   // Game selector
   document.getElementById('game-select').value = selectedGameId;
+  // Aktives Spiel woanders geändert (Chip, andere Seite): wie eine eigene Wahl übernehmen
+  document.addEventListener('hubgamechange', () => {
+    const id = window.PokeHubGame && window.PokeHubGame.catchrate();
+    const sel = document.getElementById('game-select');
+    if (id && id !== selectedGameId && GAMES.some(g => g.id === id)) { sel.value = id; sel.dispatchEvent(new Event('change')); }
+  });
   updateFormulaBadge();
   updateConditionVisibility();
   document.getElementById('game-select').addEventListener('change', e => {
     selectedGameId = e.target.value;
+    // Eigene Wahl merken (gilt bei „Kein Spiel“) und als aktives Spiel des Hubs setzen
+    try { localStorage.setItem(GAME_KEY, selectedGameId); } catch (err) { /* nur nicht gemerkt */ }
+    if (window.PokeHubGame) window.PokeHubGame.fromCatchrate(selectedGameId);
     if (selectedBallId && !new Set(currentGame().balls).has(selectedBallId)) selectedBallId = null;
     if (selectedGenFilter !== null && !GEN_RANGES.some(r => r.gen === selectedGenFilter && r.from <= currentGame().maxDex))
       selectedGenFilter = null;

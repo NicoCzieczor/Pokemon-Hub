@@ -250,8 +250,8 @@
   var HUB_KEYS = ['hub-lang', 'hub-theme', 'hub-gen', 'dc-gen',
     'pokemon-run-dashboard-state', 'pokemon-run-dashboard-runs', 'nuzlocke-custom-rules',
     'pokemon-team-builder-state', 'pokemon-duo-nuzlocke-state', 'pokemon-trio-nuzlocke-state',
-    'rando-settings', 'bosse-rando', 'bosse-starter', 'bosse-save', 'saveviewer-duo-p1'];
-  var HUB_PREFIXES = ['bosse-team:', 'saveviewer-links-', 'saveviewer-grave-'];
+    'rando-settings', 'bosse-rando', 'bosse-starter', 'bosse-save', 'saveviewer-duo-p1', 'hub-lcp-game', 'catchrate-game', 'bosse-manual-team', 'hub-active-game'];
+  var HUB_PREFIXES = ['bosse-team:', 'saveviewer-links-', 'saveviewer-fixes-', 'saveviewer-grave-'];
   var MAX_SAVE_BYTES = 4 * 1024 * 1024;
   var TEXT = {
     de: {
@@ -298,7 +298,7 @@
     if (k === 'hub-lang') return v === 'de' || v === 'en';
     if (k === 'hub-theme') return THEMES.indexOf(v) >= 0;
     if (k === 'hub-gen' || k === 'dc-gen' || k === 'bosse-save' || k.indexOf('saveviewer-grave-') === 0) return /^-?\d{1,4}$/.test(v);
-    if (k === 'bosse-starter' || k === 'saveviewer-duo-p1') return v.length <= 64;
+    if (k === 'bosse-starter' || k === 'saveviewer-duo-p1' || k === 'hub-lcp-game' || k === 'catchrate-game' || k === 'hub-active-game') return v.length <= 64;
     try { var j = JSON.parse(v); return j !== null && typeof j === 'object'; } catch (e) { return false; }
   }
 
@@ -490,10 +490,182 @@
     labelToolNav();
     phoneLinks();
     setupToolNav();
+    setupGameChip();
     // Sprachwechsel: Leiste neu beschriften (die Seite hat 'hub-lang' dann schon umgestellt)
     var langBtn = document.getElementById('lang-toggle') || document.getElementById('lang-btn');
-    if (langBtn) langBtn.addEventListener('click', function () { setTimeout(labelToolNav, 0); });
+    if (langBtn) langBtn.addEventListener('click', function () { setTimeout(function () { labelToolNav(); updateGameChips(); }, 0); });
   });
+
+  /* ── 8. Aktives Spiel des Hubs ─────────────────────────────────────── */
+  // Ein Spiel für alle Tools (hub-active-game, Schlüssel wie im Run-Dashboard). Standard: keins – dann nutzt
+  // jedes Tool seine eigene Einstellung. Daraus folgen die Generation (hub-gen:
+  // Schadens- und Typrechner, „Typen wie in“) sowie die Auswahl im Fangrate-Rechner, in der Level-Cap-Leiste und
+  // – als Start – im Pokédex. Das Run-Dashboard setzt es beim Wählen oder Anlegen eines Runs; die Wahl eines Spiels
+  // auf einer Seite gilt überall, eine bloße Generation nicht (siehe setGen). Seiten hören auf das Ereignis
+  // 'hubgamechange' (detail: { game, gen }).
+  var HUB_GAME_KEY = 'hub-active-game';
+  // [Schlüssel, Gen, kurz de, kurz en, lang de, lang en, Fangrate, Level-Cap-Leiste, Pokédex-Edition]
+  var HUB_GAMES = [
+    ['rot-blau', 1, 'Rot/Blau', 'Red/Blue', 'Rot / Blau', 'Red / Blue', 'rby', 'rot-blau', 'red-blue'],
+    ['gelb', 1, 'Gelb', 'Yellow', 'Gelb', 'Yellow', 'rby', 'gelb', 'yellow'],
+    ['gold-silber', 2, 'Gold/Silber', 'Gold/Silver', 'Gold / Silber', 'Gold / Silver', 'gsc', 'gold-silber', 'gold-silver'],
+    ['kristall', 2, 'Kristall', 'Crystal', 'Kristall', 'Crystal', 'gsc', 'kristall', 'crystal'],
+    ['rubin-saphir', 3, 'Rubin/Saphir', 'Ruby/Sapphire', 'Rubin / Saphir', 'Ruby / Sapphire', 'rse', 'rubin-saphir', 'ruby-sapphire'],
+    ['smaragd', 3, 'Smaragd', 'Emerald', 'Smaragd', 'Emerald', 'rse', 'smaragd', 'emerald'],
+    ['feuerrot-blattgruen', 3, 'FR/BG', 'FR/LG', 'Feuerrot / Blattgrün', 'FireRed / LeafGreen', 'frlg', 'feuerrot-blattgruen', 'firered-leafgreen'],
+    ['diamant-perl', 4, 'Diamant/Perl', 'Diamond/Pearl', 'Diamant / Perl', 'Diamond / Pearl', 'dpp', 'diamant-perl', 'diamond-pearl'],
+    ['platin', 4, 'Platin', 'Platinum', 'Platin', 'Platinum', 'dpp', 'platin', 'platinum'],
+    ['heartgold-soulsilver', 4, 'HG/SS', 'HG/SS', 'HeartGold / SoulSilver', 'HeartGold / SoulSilver', 'hgss', 'heartgold-soulsilver', 'heartgold-soulsilver'],
+    ['schwarz-weiss', 5, 'Schwarz/Weiß', 'Black/White', 'Schwarz / Weiß', 'Black / White', 'bw', 'schwarz-weiss', 'black-white'],
+    ['schwarz2-weiss2', 5, 'S2/W2', 'B2/W2', 'Schwarz 2 / Weiß 2', 'Black 2 / White 2', 'bw2', 'schwarz2-weiss2', 'black-2-white-2'],
+    ['x-y', 6, 'X/Y', 'X/Y', 'X / Y', 'X / Y', 'xy', 'x-y', 'x-y'],
+    ['omega-rot-alpha-saphir', 6, 'ΩR/αS', 'OR/AS', 'Omega Rubin / Alpha Saphir', 'Omega Ruby / Alpha Sapphire', 'oras', 'omega-rubin-alpha-saphir', 'omega-ruby-alpha-sapphire'],
+    ['sonne-mond', 7, 'Sonne/Mond', 'Sun/Moon', 'Sonne / Mond', 'Sun / Moon', 'sm', 'sonne-mond', 'sun-moon'],
+    ['ultrasonne-ultramond', 7, 'US/UM', 'US/UM', 'Ultrasonne / Ultramond', 'Ultra Sun / Ultra Moon', 'usum', 'ultrasonne-ultramond', 'ultra-sun-ultra-moon'],
+    ['letsgo', 7, "Let's Go", "Let's Go", "Let's Go Pikachu / Evoli", "Let's Go Pikachu / Eevee", null, null, 'lets-go-pikachu-lets-go-eevee'],
+    ['schwert-schild', 8, 'Schwert/Schild', 'Sword/Shield', 'Schwert / Schild', 'Sword / Shield', 'swsh', 'schwert-schild', 'sword-shield'],
+    ['bdsp', 8, 'SD/LP', 'BD/SP', 'Strahlender Diamant / Leuchtende Perle', 'Brilliant Diamond / Shining Pearl', 'bdsp', 'strahl-diamant-leucht-perl', 'brilliant-diamond-shining-pearl'],
+    ['karmesin-purpur', 9, 'Karmesin/Purpur', 'Scarlet/Violet', 'Karmesin / Purpur', 'Scarlet / Violet', 'sv', 'karmesin-purpur', 'scarlet-violet']
+  ];
+  var GAME_TEXT = {
+    de: { choose: 'Spiel wählen', title: 'Aktives Spiel', hint: 'Gilt für alle Tools: Generation, Fangrate, Level-Caps, Pokédex.', none: 'Kein Spiel – jedes Tool nutzt seine eigene Einstellung' },
+    en: { choose: 'Choose game', title: 'Active game', hint: 'Applies to all tools: generation, catch rate, level caps, Pokédex.', none: 'No game – every tool uses its own setting' }
+  };
+  function gameRow(k) {
+    for (var i = 0; i < HUB_GAMES.length; i++) if (HUB_GAMES[i][0] === k) return HUB_GAMES[i];
+    return null;
+  }
+  function byColumn(col, v) {
+    for (var i = 0; v && i < HUB_GAMES.length; i++) if (HUB_GAMES[i][col] === v) return HUB_GAMES[i][0];
+    return null;
+  }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { if (window.PokeHubStorageWarning) window.PokeHubStorageWarning(true); } }
+  function currentGame() { var k = lsGet(HUB_GAME_KEY); return gameRow(k) ? k : null; }
+  function announceGame() {
+    var row = gameRow(currentGame());
+    document.dispatchEvent(new CustomEvent('hubgamechange', { detail: { game: row ? row[0] : null, gen: row ? row[1] : (+lsGet('hub-gen') || null) } }));
+    updateGameChips();
+  }
+  function setGame(k) {
+    var row = gameRow(k);
+    if (!row) return;
+    var changed = currentGame() !== k || +lsGet('hub-gen') !== row[1];
+    lsSet(HUB_GAME_KEY, k);
+    lsSet('hub-gen', String(row[1]));
+    if (changed) announceGame();
+  }
+  function setGen(g) {
+    g = +g;
+    if (!(g >= 1 && g <= 9)) return;
+    // Eine Generation ist kein Spielwechsel. Mit aktivem Spiel gilt sie nur zum Nachschauen auf der Seite und wird
+    // nicht gemerkt (beim nächsten Öffnen wieder die des Spiels – sonst rechnet man im Run mit falschen Typen).
+    // Ohne Spiel merkt sich der Hub die Generation wie früher.
+    if (currentGame()) return;
+    if (+lsGet('hub-gen') !== g) { lsSet('hub-gen', String(g)); announceGame(); }
+  }
+  function clearGame() {
+    if (!currentGame()) return;
+    try { localStorage.removeItem(HUB_GAME_KEY); } catch (e) { /* egal */ }
+    announceGame();
+  }
+  // Wahl in einem Tool (Fangrate, Level-Cap-Leiste): nur wechseln, wenn das aktive Spiel nicht schon passt
+  function fromTool(col, v) {
+    var row = gameRow(currentGame());
+    if (row && row[col] === v) return;
+    var k = byColumn(col, v);
+    if (k) setGame(k);
+  }
+  // Die erste Fassung übernahm das Spiel automatisch (z. B. aus dem aktiven Run) unter 'hub-game' – das war nicht
+  // gewählt. Standard ist jetzt kein Spiel, der alte Wert fliegt einmalig raus.
+  try { localStorage.removeItem('hub-game'); } catch (e) { /* egal */ }
+  // Andere Tabs desselben Hubs
+  window.addEventListener('storage', function (e) { if (e.key === HUB_GAME_KEY) announceGame(); });
+
+  function col(i) { return function (k) { var r = gameRow(k || currentGame()); return r ? r[i] : null; }; }
+  window.PokeHubGame = {
+    list: HUB_GAMES.map(function (r) { return r[0]; }),
+    get: currentGame, set: setGame, setGen: setGen, clear: clearGame,
+    gen: col(1), catchrate: col(6), levelCaps: col(7), dexVersion: col(8),
+    // Name eines Spiels (Schlüssel wie im Run-Dashboard) für Auswahllisten
+    label: function (k, lang) { var r = gameRow(k); return r ? r[lang === 'en' ? 5 : 4] : ''; },
+    fromCatchrate: function (id) { fromTool(6, id); },
+    fromLevelCaps: function (key) { fromTool(7, key); }
+  };
+
+  // Chip „Platin ▾“: in der Navigation direkt neben Home (immer sichtbar), auf den Startseiten im Kopf
+  var gameChips = [], gamePop = null, gamePopAnchor = null;
+  function gameLang() { return lsGet('hub-lang') === 'en' ? 'en' : 'de'; }
+  function updateGameChips() {
+    var en = gameLang() === 'en', t = GAME_TEXT[gameLang()], row = gameRow(currentGame());
+    gameChips.forEach(function (b) {
+      b.querySelector('span').textContent = row ? row[en ? 3 : 2] : t.choose;
+      b.title = t.title + (row ? ': ' + row[en ? 5 : 4] : '') + ' – ' + t.hint;
+      b.classList.toggle('is-unset', !row);
+    });
+  }
+  function setupGameChip() {
+    var nav = document.querySelector('.tool-nav'), slot = document.querySelector('[data-hub-game]');
+    if (!nav && !slot) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'hub-game-chip';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<rect x="2" y="6" width="20" height="12" rx="4"/><path d="M7 10v4M5 12h4"/><circle cx="15.5" cy="11" r="1"/><circle cx="18" cy="13.5" r="1"/></svg><span></span><i aria-hidden="true">▾</i>';
+    if (nav) nav.insertBefore(btn, nav.querySelector('.tool-nav-track') || nav.firstChild);
+    else slot.appendChild(btn);
+    gameChips.push(btn);
+    btn.addEventListener('click', function (e) { e.stopPropagation(); toggleGamePop(btn); });
+    updateGameChips();
+  }
+  function toggleGamePop(anchor) {
+    if (gamePop && !gamePop.hidden && gamePopAnchor === anchor) { gamePop.hidden = true; return; }
+    if (!gamePop) {
+      gamePop = document.createElement('div');
+      gamePop.className = 'hub-game-pop';
+      gamePop.setAttribute('role', 'listbox');
+      document.body.appendChild(gamePop);
+      gamePop.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var b = e.target.closest('[data-game]');
+        if (!b) return;
+        if (b.getAttribute('data-game')) setGame(b.getAttribute('data-game')); else clearGame();
+        gamePop.hidden = true;
+      });
+      document.addEventListener('click', function () { if (gamePop && !gamePop.hidden) gamePop.hidden = true; });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && gamePop && !gamePop.hidden) { gamePop.hidden = true; if (gamePopAnchor) gamePopAnchor.focus(); }
+      });
+      // Nur bei anderer Breite (Drehen, Fenster) – am Handy feuert 'resize' schon, wenn die Adressleiste beim Scrollen verschwindet
+      var popWidth = window.innerWidth;
+      window.addEventListener('resize', function () {
+        if (window.innerWidth === popWidth) return;
+        popWidth = window.innerWidth;
+        if (gamePop) gamePop.hidden = true;
+      });
+    }
+    gamePopAnchor = anchor;
+    var lang = gameLang(), en = lang === 'en', t = GAME_TEXT[lang], cur = currentGame();
+    var html = '<p class="hub-game-hint"><b>' + t.title + '</b> · ' + t.hint + '</p>';
+    for (var g = 1; g <= 9; g++) {
+      var opts = HUB_GAMES.filter(function (r) { return r[1] === g; }).map(function (r) {
+        return '<button type="button" role="option" aria-selected="' + (r[0] === cur) + '" class="hub-game-opt' + (r[0] === cur ? ' is-on' : '') +
+          '" data-game="' + r[0] + '">' + (en ? r[5] : r[4]) + '</button>';
+      }).join('');
+      html += '<div class="hub-game-gen"><span>Gen ' + g + '</span><div>' + opts + '</div></div>';
+    }
+    html += '<button type="button" role="option" aria-selected="' + !cur + '" class="hub-game-opt hub-game-none' + (cur ? '' : ' is-on') + '" data-game="">' + t.none + '</button>';
+    gamePop.innerHTML = html;
+    gamePop.hidden = false;
+    var r = anchor.getBoundingClientRect(), w = gamePop.offsetWidth, h = gamePop.offsetHeight;
+    gamePop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    gamePop.style.top = (r.bottom + 6 + h > window.innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
+    // Gewähltes Spiel in den Blick holen; ohne Spiel (Fokus auf „Kein Spiel“ unten) bleibt die Liste oben
+    gamePop.scrollTop = 0;
+    var on = gamePop.querySelector('.is-on');
+    if (on) { on.focus({ preventScroll: true }); if (cur) on.scrollIntoView({ block: 'nearest' }); }
+  }
 
   /* ── 7. Navigationsleiste beschriften, Handy-Links ─────────────────── */
   // Die Beschriftung der Leiste steht an einer Stelle für alle Seiten (vorher hatte jede Seite

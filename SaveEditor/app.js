@@ -1,6 +1,7 @@
 /*
  * Save-Editor (früher „Sonderbonbons“) – einen Platin-Spielstand ändern, so einfach wie möglich:
- * Sonderbonbons, Attacken / getragenes Item / Freundschaft der Pokémon (Team und Boxen), der ganze Beutel,
+ * Sonderbonbons, Attacken / getragenes Item / Freundschaft der Pokémon (Team und Boxen), Pokémon verschieben
+ * (Team ↔ Box wie am PC im Spiel), der ganze Beutel,
  * Geld und Münzen.
  *
  * Gelesen und geschrieben wird mit PtSave (pt-save.js), PtBag (pt-bag.js) und PtEdit (pt-edit.js) aus dem
@@ -15,8 +16,7 @@
   var SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
   var ICON_SPR = SPR + '/pokemon/versions/generation-vii/icons/';
   var PT_SPR = SPR + '/pokemon/versions/generation-iv/platinum/';
-  var MEDICINE = 4, KEY_ITEMS = 1, TMS = 2;           // Taschen (PtBag.POCKETS)
-  var CANDY_MAX = PtBag.POCKETS[MEDICINE].max;        // 999
+  var KEY_ITEMS = 1, TMS = 2;                         // Taschen (PtBag.POCKETS)
   var HELD_POCKETS = [0, 4, 5, 6, 7];                 // was ein Pokémon tragen kann (ohne Basis-Items, TMs, Briefe)
   // Typfarben wie im restlichen Hub, Reihenfolge = PKHeX-Typ-Index
   var TYPE_HEX = ['#bbbbaa', '#bb5544', '#96caff', '#9553cd', '#a67439', '#bbaa66', '#92c12a', '#6e4370', '#aaaabb',
@@ -30,7 +30,7 @@
   var I18N = {
     de: {
       title1: 'Save-', title2: 'Editor',
-      subtitle: 'Ändere deinen Platin-Spielstand: Sonderbonbons, Attacken, Items, Beutel und Geld – ohne extra Programm.',
+      subtitle: 'Ändere deinen Platin-Spielstand: Pokémon (verschieben, Attacken, Items), Beutel samt Sonderbonbons und Geld – ohne extra Programm.',
       s1Title: 'Im Spiel speichern, Emulator schließen',
       s1Text: 'Speichere ganz normal im Spiel (Menü → Bericht). Schließe danach den Emulator komplett – am Handy auch aus der App-Übersicht wegwischen. Sonst überschreibt er deine Datei gleich wieder.',
       s2Title: 'Spielstand auswählen',
@@ -51,16 +51,9 @@
       discard: 'Alle Änderungen verwerfen',
       discardConfirm: 'Alle Änderungen verwerfen? Der Spielstand bleibt dann wie er ist.',
       footNote: 'Geändert wird nur der aktuelle Spielstand in der Datei, die Prüfsummen werden neu berechnet – wie bei PKHeX. Die Datei behält Namen und Format.',
-      tabs: { candy: 'Sonderbonbons', mons: 'Pokémon', bag: 'Beutel', money: 'Geld' },
+      tabs: { mons: 'Pokémon', bag: 'Beutel', money: 'Geld' },
       badges: function (n) { return n === 1 ? '1 Orden' : n + ' Orden'; },
       playTime: function (h, m) { return 'Spielzeit ' + h + ':' + String(m).padStart(2, '0'); },
-      // Sonderbonbons
-      candyHave: function (n) { return 'Im Beutel: <b>' + n + '</b>'; },
-      candyAfter: function (n) { return 'Nach dem Speichern: <b>' + n + '</b>'; },
-      amountMax: 'Voll (999)',
-      candyReset: 'Zurücksetzen',
-      candyMaxed: 'Mehr als 999 geht nicht.',
-      candyHint: 'Die Bonbons landen in der Medizin-Tasche.',
       // Pokémon
       team: 'Team',
       boxes: 'Boxen',
@@ -70,6 +63,36 @@
       pickMon: 'Wähle ein Pokémon aus.',
       inTeam: 'im Team',
       inBox: function (b) { return 'in ' + b; },
+      shift: 'Verschieben',
+      shiftWhere: function (n) { return 'Wohin mit <b>' + n + '</b>? Tippe einen Platz im Team oder in der Box an – ist er belegt, wird getauscht.'; },
+      shiftCancel: 'Abbrechen',
+      shiftFree: 'Freier Platz',
+      shiftHint: 'Verschieben: Pokémon antippen → „Verschieben“ → Ziel antippen. Am PC geht auch Ziehen.',
+      shiftFull: 'Das Team ist voll. Lege erst ein Pokémon ab – oder tippe ein Team-Pokémon an, dann wird getauscht.',
+      shiftLast: 'Im Team muss mindestens ein kampffähiges Pokémon bleiben (kein Ei) – wie im Spiel.',
+      shiftMail: 'Ein Pokémon mit Brief kann nicht in die Box – im Spiel auch nicht, der Brieftext ginge verloren. Nimm den Brief erst ab (Getragenes Item → ×).',
+      shiftBroken: 'Dieser Teil des Spielstands ist beschädigt – hier wird nichts verschoben.',
+      placeTeam: 'Team',
+      chSlot: function (box, a, b) { return box + ': Platz ' + a + ' → ' + b; },
+      chTeamOrder: 'neue Reihenfolge',
+      chNew: function (p) { return 'neu (' + p + ')'; },
+      chReleased: 'freigelassen',
+      addNew: '+ Pokémon hinzufügen',
+      addTitle: 'Neues Pokémon',
+      addSpecies: 'Art', addPickSpecies: 'Art wählen …', pickSpecies: 'Pokémon wählen',
+      addLevel: 'Level',
+      addIvs: 'DVs', addIvsRandom: 'Zufällig (wie gefangen)', addIvsPerfect: 'Perfekt (alle 31)',
+      addMore: 'Mehr: Wesen, Geschlecht, Fähigkeit, Shiny, Ball, Fangort',
+      addNature: 'Wesen', addGender: 'Geschlecht', addAbility: 'Fähigkeit', addShiny: 'Shiny', addBall: 'Ball', addLoc: 'Fangort',
+      addRandom: 'Zufällig', male: '♂ männlich', female: '♀ weiblich', onlyMale: 'nur ♂', onlyFemale: 'nur ♀', genderless: 'geschlechtslos',
+      addPlace: 'Platz wählen →', addCancel: 'Abbrechen',
+      addNote: function (n, id) { return 'Trainer: ' + n + ' (ID ' + id + '). Attacken wie bei einem wilden Pokémon auf diesem Level – danach wie gewohnt änderbar. Im Pokédex wird es als gefangen eingetragen.'; },
+      addWhere: function (n) { return 'Wohin mit dem neuen <b>' + n + '</b>? Tippe einen freien Platz im Team oder in der Box an.'; },
+      addTaken: 'Der Platz ist belegt – tippe einen freien Platz an.',
+      addLoading: 'Attacken werden geladen …',
+      addNoMoves: 'Die Attacken ließen sich nicht laden (offline?) – „Tackle“ ist eingetragen, ändere sie unten.',
+      release: 'Freilassen',
+      releaseConfirm: function (n) { return n + ' freilassen? Es verschwindet aus dem Spielstand. Bis du speicherst, kannst du alles noch verwerfen.'; },
       moves: 'Attacken',
       addMove: '+ Attacke hinzufügen',
       forget: 'Vergessen',
@@ -162,7 +185,7 @@
     },
     en: {
       title1: 'Save ', title2: 'Editor',
-      subtitle: 'Change your Platinum save file: Rare Candies, moves, items, bag and money – no extra program.',
+      subtitle: 'Change your Platinum save file: Pokémon (move them, moves, items), the bag incl. Rare Candies, and money – no extra program.',
       s1Title: 'Save in the game, close the emulator',
       s1Text: 'Save normally in the game (menu → Save). Then close the emulator completely – on a phone, also swipe it away from the recent apps. Otherwise it will overwrite your file again.',
       s2Title: 'Choose your save file',
@@ -183,15 +206,9 @@
       discard: 'Discard all changes',
       discardConfirm: 'Discard all changes? The save file stays as it is.',
       footNote: 'Only the current save in the file is changed and the checksums are recalculated – just like PKHeX. The file keeps its name and format.',
-      tabs: { candy: 'Rare Candies', mons: 'Pokémon', bag: 'Bag', money: 'Money' },
+      tabs: { mons: 'Pokémon', bag: 'Bag', money: 'Money' },
       badges: function (n) { return n === 1 ? '1 badge' : n + ' badges'; },
       playTime: function (h, m) { return 'Play time ' + h + ':' + String(m).padStart(2, '0'); },
-      candyHave: function (n) { return 'In the bag: <b>' + n + '</b>'; },
-      candyAfter: function (n) { return 'After saving: <b>' + n + '</b>'; },
-      amountMax: 'Full (999)',
-      candyReset: 'Reset',
-      candyMaxed: 'More than 999 is not possible.',
-      candyHint: 'The candies go into the Medicine pocket.',
       team: 'Party',
       boxes: 'Boxes',
       boxOption: function (name, n) { return name + ' (' + n + ')'; },
@@ -200,6 +217,36 @@
       pickMon: 'Choose a Pokémon.',
       inTeam: 'in the party',
       inBox: function (b) { return 'in ' + b; },
+      shift: 'Move',
+      shiftWhere: function (n) { return 'Where to put <b>' + n + '</b>? Tap a party or box slot – if it is taken, they swap.'; },
+      shiftCancel: 'Cancel',
+      shiftFree: 'Free slot',
+      shiftHint: 'Moving: tap a Pokémon → “Move” → tap the target. On a computer you can also drag.',
+      shiftFull: 'The party is full. Deposit a Pokémon first – or tap a party Pokémon to swap.',
+      shiftLast: 'At least one Pokémon that can battle (not an egg) has to stay in the party – just like in the game.',
+      shiftMail: 'A Pokémon holding Mail cannot go into the box – the game doesn’t allow it either, the message would be lost. Take the Mail first (Held item → ×).',
+      shiftBroken: 'This part of the save file is damaged – nothing is moved here.',
+      placeTeam: 'Party',
+      chSlot: function (box, a, b) { return box + ': slot ' + a + ' → ' + b; },
+      chTeamOrder: 'new order',
+      chNew: function (p) { return 'new (' + p + ')'; },
+      chReleased: 'released',
+      addNew: '+ Add Pokémon',
+      addTitle: 'New Pokémon',
+      addSpecies: 'Species', addPickSpecies: 'Choose species …', pickSpecies: 'Choose a Pokémon',
+      addLevel: 'Level',
+      addIvs: 'IVs', addIvsRandom: 'Random (like a catch)', addIvsPerfect: 'Perfect (all 31)',
+      addMore: 'More: nature, gender, ability, shiny, ball, location',
+      addNature: 'Nature', addGender: 'Gender', addAbility: 'Ability', addShiny: 'Shiny', addBall: 'Ball', addLoc: 'Met at',
+      addRandom: 'Random', male: '♂ male', female: '♀ female', onlyMale: 'male only', onlyFemale: 'female only', genderless: 'genderless',
+      addPlace: 'Choose a slot →', addCancel: 'Cancel',
+      addNote: function (n, id) { return 'Trainer: ' + n + ' (ID ' + id + '). Moves like a wild Pokémon at this level – you can change them afterwards. It is registered as caught in the Pokédex.'; },
+      addWhere: function (n) { return 'Where should the new <b>' + n + '</b> go? Tap a free party or box slot.'; },
+      addTaken: 'This slot is taken – tap a free one.',
+      addLoading: 'Loading moves …',
+      addNoMoves: 'The moves could not be loaded (offline?) – “Tackle” was set, change it below.',
+      release: 'Release',
+      releaseConfirm: function (n) { return 'Release ' + n + '? It disappears from the save file. Until you save, you can still discard everything.'; },
       moves: 'Moves',
       addMove: '+ Add a move',
       forget: 'Forget',
@@ -290,9 +337,12 @@
   var lang = 'de';
   try { lang = localStorage.getItem('hub-lang') === 'en' ? 'en' : 'de'; } catch (e) {}
   // save: { name, handle, orig (Datei wie gespeichert), work (Arbeitskopie), base/data (gelesen), before (für Rückgängig) }
-  var state = { save: null, tab: 'candy', mon: null, box: 0, pocket: 0, picker: null, busy: false, result: null, error: '', backups: [] };
+  // shift = Platz des Pokémon, das gerade verschoben wird (wKey); shiftNote = warum es nicht ging;
+  // add = Formular für ein neues Pokémon (placing: jetzt einen freien Platz antippen)
+  var state = { save: null, tab: 'mons', mon: null, box: 0, pocket: 0, picker: null, busy: false, result: null, error: '', backups: [], shift: null, shiftNote: '', add: null };
 
   var $ = function (id) { return document.getElementById(id); };
+  function narrow() { return !!(window.matchMedia && matchMedia('(max-width: 860px)').matches); }
   function L() { return I18N[lang]; }
   function T() { return D.text[lang]; }
   function esc(s) {
@@ -333,6 +383,24 @@
     if (w.area === 'party') return data.party.filter(function (m) { return m.where.slot === w.slot; })[0] || null;
     var b = data.boxes[w.box];
     return (b && b.slots[w.slot]) || null;
+  }
+  // Ein Pokémon erkennt man an PID + Trainer-ID – das bleibt auch beim Verschieben gleich
+  function monId(m) { return m.pid + '-' + m.tid + '-' + m.sid; }
+  function allMons(d) {
+    var out = d.party.slice();
+    d.boxes.forEach(function (bx) { bx.slots.forEach(function (m) { if (m) out.push(m); }); });
+    return out;
+  }
+  // Dasselbe Pokémon im zuletzt gespeicherten Stand (egal, wo es dort lag)
+  function origOf(m) {
+    if (!m || !state.save) return null;
+    var id = monId(m);
+    return allMons(state.save.base).filter(function (o) { return monId(o) === id; })[0] || null;
+  }
+  function placeName(w) { return w.area === 'party' ? L().placeTeam : boxName(w.box); }
+  function isChanged(m) {
+    var o = origOf(m);
+    return !o || monDiff(o, m).length > 0 || wKey(o.where) !== wKey(m.where);   // ohne Gegenstück = neu
   }
   // Was ist an einem Pokémon anders? → Liste von Teilen
   function monDiff(a, b) {
@@ -405,6 +473,9 @@
     state.error = '';
     state.result = null;
     state.picker = null;
+    state.shift = null;
+    state.shiftNote = '';
+    state.add = null;
     return file.arrayBuffer().then(function (buf) {
       var bytes = new Uint8Array(buf);
       var data = PtSave.parse(bytes, D);
@@ -461,11 +532,33 @@
   }
   function editMon(w, fn) { change(function (b) { return PtEdit.editMon(b, w, fn); }); }
 
-  function bagOf(bytes) { return PtBag.read(bytes) || PtBag.POCKETS.map(function () { return []; }); }
-  function countIn(bytes, pocket, id) {
-    var e = bagOf(bytes)[pocket].filter(function (x) { return x.id === id; })[0];
-    return e ? e.count : 0;
+  // Verschieben (PtEdit.moveMon): danach bleibt das Pokémon ausgewählt. Geht es nicht, steht der Grund über der
+  // Liste; bei vollem Team bleibt der Verschiebe-Modus an, damit man gleich ein anderes Ziel antippen kann.
+  function shiftTo(fromKey, toKey) {
+    var sv = state.save, l = L(), from = wParse(fromKey), to = wParse(toKey);
+    state.shift = null;
+    state.shiftNote = '';
+    if (sv && from && to && fromKey !== toKey) {
+      try {
+        var r = PtEdit.moveMon(sv.work, from, to, D);
+        var data = PtSave.parse(r.bytes, D);
+        if (!data.ok) throw new Error('check');
+        sv.work = r.bytes;
+        sv.data = data;
+        state.mon = r.where;
+        state.result = null;
+      } catch (err) {
+        var code = err && err.code;
+        if (code === 'full') state.shift = fromKey;
+        state.shiftNote = code === 'full' ? l.shiftFull : code === 'last' ? l.shiftLast : code === 'mail' ? l.shiftMail
+          : code === 'broken' ? l.shiftBroken : l.errEdit + (err && err.message);
+      }
+    }
+    render();
   }
+
+  function bagOf(bytes) { return PtBag.read(bytes) || PtBag.POCKETS.map(function () { return []; }); }
+
   function setCount(pocket, id, count) {
     change(function (b) {
       var bag = bagOf(b), list = bag[pocket], P = PtBag.POCKETS[pocket];
@@ -504,9 +597,20 @@
       d.boxes.forEach(function (bx) { bx.slots.forEach(function (m) { if (m) fn(m); }); });
     }
     mons(b, function (m) {
-      var parts = monDiff(monAt(a, m.where), m);
+      var o = origOf(m), parts = monDiff(o, m);
+      if (!o) parts.push(l.chNew(placeName(m.where)));
+      else if (o.where.area !== m.where.area || o.where.box !== m.where.box) parts.push(l.chFrom(placeName(o.where), placeName(m.where)));
+      else if (o && o.where.area === 'box' && o.where.slot !== m.where.slot) parts.push(l.chSlot(boxName(m.where.box), o.where.slot + 1, m.where.slot + 1));
       if (parts.length) out.push('<b>' + esc(monName(m)) + '</b> ' + esc(parts.join(', ')));
     });
+    var now = {};
+    mons(b, function (m) { now[monId(m)] = true; });
+    mons(a, function (m) { if (!now[monId(m)]) out.push('<b>' + esc(monName(m)) + '</b> ' + esc(l.chReleased)); });
+    // Reihenfolge im Team: nur die Pokémon, die vorher und nachher im Team sind (Aufrücken zählt nicht)
+    var ids = function (d) { return d.party.map(monId); };
+    var before = ids(a), after = ids(b);
+    var kept = function (list, other) { return list.filter(function (id) { return other.indexOf(id) >= 0; }).join(); };
+    if (kept(before, after) !== kept(after, before)) out.push('<b>' + esc(l.team) + '</b> ' + esc(l.chTeamOrder));
     return out;
   }
 
@@ -589,6 +693,8 @@
       if (!ok) downloadFile(before, sv.name);
       sv.orig = sv.work = before;
       sv.base = sv.data = PtSave.parse(before, D);
+      state.shift = null;
+      if (state.mon && !monAt(sv.data, state.mon)) state.mon = sv.data.party[0] ? sv.data.party[0].where : null;
       sv.before = null;
       state.result = { kind: ok ? 'undone' : 'undoneDownload' };
       state.busy = false;
@@ -607,37 +713,24 @@
   }
 
   /* ── Anzeige: Reiter ───────────────────────────────────────────── */
-  function candyHtml() {
-    var sv = state.save, l = L();
-    var have = countIn(sv.orig, MEDICINE, PtBag.RARE_CANDY), now = countIn(sv.work, MEDICINE, PtBag.RARE_CANDY);
-    var med = bagOf(sv.work)[MEDICINE];
-    var blocked = now >= CANDY_MAX || (!now && med.length >= PtBag.POCKETS[MEDICINE].slots);
-    return '<div class="give">' +
-      '<div class="candy-now">' + itemImg(PtBag.RARE_CANDY, 'candy-img') +
-        '<span>' + l.candyHave(num(have)) + (now !== have ? ' <span class="candy-arrow">→</span> ' + l.candyAfter(num(now)) : '') + '</span>' +
-        (now !== have ? '<button type="button" class="small-btn" data-act="candy-reset">↶ ' + esc(l.candyReset) + '</button>' : '') +
-      '</div>' +
-      '<div class="amounts" role="group">' +
-        [10, 25, 50, 100].map(function (n) {
-          return '<button type="button" class="amount" data-act="candy" data-n="' + n + '"' + (blocked ? ' disabled' : '') + '>+' + n + '</button>';
-        }).join('') +
-        '<button type="button" class="amount" data-act="candy" data-n="max"' + (blocked ? ' disabled' : '') + '>' + esc(l.amountMax) + '</button>' +
-      '</div>' +
-      '<p class="give-preview">' + esc(now >= CANDY_MAX ? l.candyMaxed : !now && blocked ? l.errPocket : l.candyHint) + '</p>' +
-    '</div>';
-  }
-
-  function monCard(m, active, changed) {
-    return '<button type="button" class="ed-pk' + (active ? ' is-active' : '') + (changed ? ' is-changed' : '') + '" data-act="mon" data-w="' + wKey(m.where) + '">' +
+  function monCard(m, cls) {
+    return '<button type="button" class="ed-pk' + cls + '" data-act="mon" data-w="' + wKey(m.where) + '" draggable="true">' +
       icon(m) + '<span><b>' + esc(monName(m)) + '</b><small>' + (m.isEgg ? '' : 'Lv. ' + m.level) + '</small></span></button>';
   }
 
+  // Team und Box. Beim Verschieben (state.shift = Platz des Pokémon) sind auch leere Plätze Ziele;
+  // im Team steht dann „+ Freier Platz“ (= ans Ende, das Team bleibt lückenlos).
   function monsHtml() {
     var sv = state.save, l = L(), d = sv.data, cur = wKey(state.mon || { area: 'x' });
-    var changedKey = function (m) { return monDiff(monAt(sv.base, m.where), m).length > 0; };
-    var team = d.party.length ? '<div class="ed-team">' + d.party.map(function (m) {
-      return monCard(m, wKey(m.where) === cur, changedKey(m));
-    }).join('') + '</div>' : '<p class="muted">' + esc(l.noTeam) + '</p>';
+    var cls = function (m) {
+      var k = wKey(m.where);
+      return (k === cur ? ' is-active' : '') + (isChanged(m) ? ' is-changed' : '') + (k === state.shift ? ' is-shifting' : '');
+    };
+    var free = d.party.length < 6 ? '<button type="button" class="ed-pk ed-pk-free" data-act="mon" data-w="p' + d.party.length + '">' +
+      '<i aria-hidden="true">+</i><span><b>' + esc(l.shiftFree) + '</b></span></button>' : '';
+    var team = (d.party.length || state.shift) ? '<div class="ed-team">' + d.party.map(function (m) {
+      return monCard(m, cls(m));
+    }).join('') + free + '</div>' : '<p class="muted">' + esc(l.noTeam) + '</p>';
 
     var opts = d.boxes.map(function (b, i) {
       var n = b.slots.filter(Boolean).filter(function (m) { return m.species; }).length;
@@ -645,35 +738,164 @@
     }).join('');
     var box = d.boxes[state.box];
     var slots = box.slots.map(function (m, i) {
-      if (!m) return '<span class="ed-slot is-empty"></span>';
+      if (!m) return '<button type="button" class="ed-slot is-empty" data-act="mon" data-w="b' + state.box + '-' + i + '" tabindex="-1" aria-label="' + esc(l.shiftFree) + '"></button>';
       var k = wKey(m.where);
-      return '<button type="button" class="ed-slot' + (k === cur ? ' is-active' : '') + (changedKey(m) ? ' is-changed' : '') + '" data-act="mon" data-w="' + k + '" title="' + esc(monName(m) + (m.isEgg ? '' : ' · Lv. ' + m.level)) + '">' + icon(m) + '</button>';
+      return '<button type="button" class="ed-slot' + cls(m) + '" data-act="mon" data-w="' + k + '" draggable="true" title="' + esc(monName(m) + (m.isEgg ? '' : ' · Lv. ' + m.level)) + '">' + icon(m) + '</button>';
     }).join('');
 
-    return '<div class="ed-mons">' +
-      '<div class="ed-list">' +
+    var moving = state.shift && monAt(d, wParse(state.shift));
+    var placing = state.add && state.add.placing;
+    var bar = moving ? '<div class="ed-shiftbar" role="status"><span>' + l.shiftWhere(esc(monName(moving))) + '</span>' +
+      '<button type="button" class="small-btn" data-act="shift-cancel">' + esc(l.shiftCancel) + '</button></div>'
+      : placing ? '<div class="ed-shiftbar" role="status"><span>' + (state.add.loading ? esc(l.addLoading) : l.addWhere(esc(T().species[state.add.species]))) + '</span>' +
+      '<button type="button" class="small-btn" data-act="add-back">' + esc(l.shiftCancel) + '</button></div>' : '';
+    var note = state.shiftNote ? '<p class="ed-shiftnote" role="alert">' + esc(state.shiftNote) + '</p>' : '';
+
+    return '<div class="ed-mons' + (moving || placing ? ' is-shifting' : '') + '">' +
+      '<div class="ed-list" id="ed-list">' + bar + note +
         '<h3>' + esc(l.team) + '</h3>' + team +
         '<h3>' + esc(l.boxes) + '</h3>' +
         '<select class="ed-select" data-act="box">' + opts + '</select>' +
         '<div class="ed-box">' + slots + '</div>' +
+        (state.add ? '' : '<button type="button" class="ed-add" data-act="add-new">' + esc(l.addNew) + '</button>') +
+        '<p class="ed-hint">' + esc(l.shiftHint) + '</p>' +
       '</div>' +
-      '<div class="ed-detail" id="ed-detail">' + monDetailHtml(monAt(d, state.mon)) + '</div>' +
+      '<div class="ed-detail" id="ed-detail">' + (state.add ? addFormHtml() : monDetailHtml(monAt(d, state.mon))) + '</div>' +
     '</div>';
+  }
+
+  /* ── Neues Pokémon ─────────────────────────────────────────────── */
+  var BALLS = [4, 3, 2, 1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 5];   // Pokéball zuerst, Safariball zuletzt
+  function newAdd() { return { species: 0, level: 5, ivs: 'random', nature: '', gender: '', ability: '', shiny: false, ball: 4, loc: 0, more: false }; }
+
+  // Formular: Art und Level, DVs zufällig/perfekt, „Mehr“ für Wesen, Geschlecht, Fähigkeit, Shiny, Ball, Fangort
+  function addFormHtml() {
+    var a = state.add, l = L(), t = T(), sv = state.save, sp = a.species;
+    var p = sp ? PtSave.personalEntry(D, sp, 0) : null;
+    var opt = function (v, text, cur) { return '<option value="' + v + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(text) + '</option>'; };
+    var field = function (label, html) { return '<label class="ed-field"><span>' + esc(label) + '</span>' + html + '</label>'; };
+    var gender = '', ability = '';
+    if (p) {
+      var ratio = p[8];
+      gender = ratio > 0 && ratio < 254
+        ? '<select class="ed-select" data-act="add-gender">' + opt('', l.addRandom, a.gender) + opt(0, l.male, a.gender) + opt(1, l.female, a.gender) + '</select>'
+        : '<span class="ed-fixed">' + esc(ratio === 255 ? l.genderless : ratio === 254 ? l.onlyFemale : l.onlyMale) + '</span>';
+      ability = p[11] && p[11] !== p[10]
+        ? '<select class="ed-select" data-act="add-ability">' + opt('', l.addRandom, a.ability) + opt(0, t.abilities[p[10]], a.ability) + opt(1, t.abilities[p[11]], a.ability) + '</select>'
+        : '<span class="ed-fixed">' + esc(t.abilities[p[10]]) + '</span>';
+    }
+    var natures = opt('', l.addRandom, a.nature) + t.natures.map(function (n, i) { return opt(i, n, a.nature); }).join('');
+    var balls = BALLS.map(function (id) { return opt(id, itemName(id), a.ball); }).join('');
+    // Fangorte in Sinnoh (Spielreihenfolge; ab 126 beginnen Johto und Kanto)
+    var locs = opt(0, t.loc0[0], a.loc) + t.loc0.slice(1, 126).map(function (n, i) { return n ? opt(i + 1, n, a.loc) : ''; }).join('');
+    var tr = sv.data.trainer;
+    return '<div class="ed-mon-head"><div class="ed-mon-title"><b>' + esc(l.addTitle) + '</b></div></div>' +
+      '<div class="ed-add-form">' +
+        field(l.addSpecies, '<button type="button" class="ed-move-btn" data-act="add-species">' +
+          (sp ? icon({ species: sp }) + '<span><b>' + esc(t.species[sp]) + '</b><small>#' + sp + '</small></span>' : '<span><b>' + esc(l.addPickSpecies) + '</b></span>') + '</button>') +
+        field(l.addLevel, '<input type="number" class="ed-qty" min="1" max="100" step="1" value="' + a.level + '" data-act="add-level">') +
+        field(l.addIvs, '<span class="ed-seg" role="group">' + ['random', 'perfect'].map(function (v) {
+          return '<button type="button" class="ed-seg-btn' + (a.ivs === v ? ' is-on' : '') + '" data-act="add-ivs" data-v="' + v + '" aria-pressed="' + (a.ivs === v) + '">' +
+            esc(v === 'random' ? l.addIvsRandom : l.addIvsPerfect) + '</button>';
+        }).join('') + '</span>') +
+        '<details class="ed-more"' + (a.more ? ' open' : '') + '><summary data-act="add-more">' + esc(l.addMore) + '</summary><div class="ed-more-grid">' +
+          field(l.addNature, '<select class="ed-select" data-act="add-nature">' + natures + '</select>') +
+          (p ? field(l.addGender, gender) + field(l.addAbility, ability) : '') +
+          field(l.addShiny, '<input type="checkbox" data-act="add-shiny"' + (a.shiny ? ' checked' : '') + '>') +
+          field(l.addBall, '<select class="ed-select" data-act="add-ball">' + balls + '</select>') +
+          field(l.addLoc, '<select class="ed-select" data-act="add-loc">' + locs + '</select>') +
+        '</div></details>' +
+        '<div class="btn-row">' +
+          '<button type="button" class="small-btn is-on" data-act="add-place"' + (sp ? '' : ' disabled') + '>' + esc(l.addPlace) + '</button>' +
+          '<button type="button" class="small-btn" data-act="add-cancel">' + esc(l.addCancel) + '</button>' +
+        '</div>' +
+        '<p class="ed-hint">' + esc(l.addNote(tr.name, tr.tid)) + '</p>' +
+      '</div>';
+  }
+
+  // Level-Attacken in Platin (PokéAPI), wie beim Boss-Planer: der Reihe nach, bei vier fliegt die älteste raus
+  var learnCache = {};
+  function levelMoves(species, level) {
+    var p = learnCache[species];
+    if (!p) {
+      p = learnCache[species] = fetch('https://pokeapi.co/api/v2/pokemon/' + species).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      }).then(function (d) {
+        var list = [];
+        d.moves.forEach(function (m) {
+          var id = +((/\/move\/(\d+)\//.exec(m.move.url) || [])[1]);
+          if (!id || id > 467) return;
+          m.version_group_details.forEach(function (v) {
+            if (v.version_group.name === 'platinum' && v.move_learn_method.name === 'level-up') list.push([v.level_learned_at, id]);
+          });
+        });
+        return list.sort(function (x, y) { return x[0] - y[0]; });
+      });
+      p.catch(function () { delete learnCache[species]; });
+    }
+    return p.then(function (list) {
+      var known = [];
+      list.forEach(function (e) {
+        if (e[0] > level || known.indexOf(e[1]) >= 0) return;
+        if (known.length === 4) known.shift();
+        known.push(e[1]);
+      });
+      return known.length ? known : null;
+    });
+  }
+
+  // Freien Platz angetippt: Attacken abwarten, Pokémon erzeugen und dort ablegen
+  function placeNew(key) {
+    var a = state.add, sv = state.save, l = L(), to = wParse(key);
+    if (!a || a.loading || !to) return;
+    if (monAt(sv.data, to)) { state.shiftNote = l.addTaken; render(); return; }
+    a.loading = true;
+    state.shiftNote = '';
+    render();
+    (a.moves || Promise.resolve(null)).then(null, function () { return null; }).then(function (moves) {
+      a.loading = false;
+      if (state.add !== a || state.save !== sv) return;   // inzwischen abgebrochen oder andere Datei
+      try {
+        var num = function (v) { return v === '' ? null : +v; };
+        var dec = PtEdit.createMon(sv.work, {
+          species: a.species, level: a.level, moves: moves || [], ivs: a.ivs, shiny: a.shiny, ball: a.ball, location: a.loc,
+          nature: num(a.nature), gender: num(a.gender), ability: num(a.ability)
+        }, D);
+        var r = PtEdit.addMon(sv.work, to, dec, D);
+        var data = PtSave.parse(r.bytes, D);
+        if (!data.ok) throw new Error('check');
+        sv.work = r.bytes;
+        sv.data = data;
+        state.mon = r.where;
+        state.add = null;
+        state.result = null;
+        state.shiftNote = moves ? '' : l.addNoMoves;
+      } catch (err) {
+        var code = err && err.code;
+        state.shiftNote = code === 'full' ? l.shiftFull : code === 'taken' ? l.addTaken : code === 'broken' ? l.shiftBroken : l.errEdit + (err && err.message);
+      }
+      render();
+    });
   }
 
   function monDetailHtml(m) {
     var l = L(), t = T(), sv = state.save;
     if (!m) return '<p class="muted">' + esc(l.pickMon) + '</p>';
-    var orig = monAt(sv.base, m.where);
-    var changed = monDiff(orig, m).length > 0;
+    var changed = monDiff(origOf(m), m).length > 0;
     var where = m.where.area === 'party' ? l.inTeam : l.inBox(boxName(m.where.box));
+    var shifting = state.shift === wKey(m.where);
     var head = '<div class="ed-mon-head">' +
       (m.isEgg ? icon(m) : '<img class="ed-mon-img" src="' + PT_SPR + m.species + '.png" alt="" loading="lazy">') +
       '<div class="ed-mon-title"><b>' + esc(monName(m)) + '</b>' +
         '<span>' + (m.isEgg ? '' : 'Lv. ' + m.level + ' · ') + esc(where) + '</span>' +
         (m.isEgg ? '' : '<div class="types">' + m.types.map(typeBadge).join('') + '</div>') +
       '</div>' +
-      (changed ? '<button type="button" class="small-btn" data-act="mon-reset">↶ ' + esc(l.resetMon) + '</button>' : '') +
+      '<div class="ed-mon-actions">' +
+        '<button type="button" class="small-btn' + (shifting ? ' is-on' : '') + '" data-act="' + (shifting ? 'shift-cancel' : 'shift') + '" aria-pressed="' + shifting + '">⇄ ' + esc(l.shift) + '</button>' +
+        (changed ? '<button type="button" class="small-btn" data-act="mon-reset">↶ ' + esc(l.resetMon) + '</button>' : '') +
+        '<button type="button" class="small-btn ed-danger" data-act="release">' + esc(l.release) + '</button>' +
+      '</div>' +
     '</div>';
     if (m.isEgg) return head + '<p class="muted">' + esc(l.egg) + '</p>';
 
@@ -752,15 +974,21 @@
 
   function renderEditor() {
     var l = L();
-    $('ed-tabs').innerHTML = ['candy', 'mons', 'bag', 'money'].map(function (k) {
+    $('ed-tabs').innerHTML = ['mons', 'bag', 'money'].map(function (k) {
       return '<button type="button" role="tab" class="ed-tab' + (k === state.tab ? ' is-active' : '') + '" data-act="tab" data-tab="' + k + '" aria-selected="' + (k === state.tab) + '">' + esc(l.tabs[k]) + '</button>';
     }).join('');
-    $('ed-panel').innerHTML = state.tab === 'mons' ? monsHtml() : state.tab === 'bag' ? bagHtml() : state.tab === 'money' ? moneyHtml() : candyHtml();
+    $('ed-panel').innerHTML = state.tab === 'mons' ? monsHtml() : state.tab === 'bag' ? bagHtml() : moneyHtml();
   }
 
   /* ── Auswahlliste (Attacken, Items) ────────────────────────────── */
   function pickerOptions(p) {
     var t = T(), l = L(), out = [];
+    if (p.kind === 'species') {
+      for (var sp = 1; sp <= 493; sp++) {
+        out.push({ id: sp, name: t.species[sp], html: icon({ species: sp }) + '<span><b>' + esc(t.species[sp]) + '</b><small>#' + sp + '</small></span>' });
+      }
+      return out;                                   // Pokédex-Reihenfolge
+    }
     if (p.kind === 'move') {
       var m = monAt(state.save.data, state.mon), known = m ? m.moves : [];
       for (var id = 1; id < t.moves.length; id++) {
@@ -832,7 +1060,7 @@
     var p = state.picker, l = L();
     $('picker').hidden = !p;
     if (!p) return;
-    $('picker-title').textContent = p.kind === 'move' ? l.pickMove : p.kind === 'held' ? l.pickItem : l.pickBag(l.pockets[p.pocket]);
+    $('picker-title').textContent = p.kind === 'species' ? l.pickSpecies : p.kind === 'move' ? l.pickMove : p.kind === 'held' ? l.pickItem : l.pickBag(l.pockets[p.pocket]);
     $('picker-q').placeholder = l.search;
     $('picker-close').setAttribute('aria-label', l.close);
     renderPickerList();
@@ -855,6 +1083,13 @@
     var p = state.picker;
     if (!p) return;
     closePicker();
+    if (p.kind === 'species') {
+      if (!state.add) return;
+      state.add.species = id;
+      state.add.gender = state.add.ability = '';     // hängen von der Art ab
+      render();
+      return;
+    }
     if (p.kind === 'move') {
       var m = monAt(state.save.data, state.mon);
       if (!m) return;
@@ -1016,23 +1251,70 @@
 
   // Klicks im Editor
   $('ed').addEventListener('click', function (e) {
+    // „Mehr“ beim neuen Pokémon: offen/zu merken (der Browser klappt danach selbst um)
+    var more = e.target.closest('summary[data-act="add-more"]');
+    if (more && state.add) state.add.more = !more.parentNode.open;
     var b = e.target.closest('button[data-act]');
     if (!b || b.disabled || !state.save || state.busy) return;
     var act = b.dataset.act, sv = state.save;
     if (act === 'tab') { state.tab = b.dataset.tab; render(); }
-    else if (act === 'candy') {
-      var now = countIn(sv.work, MEDICINE, PtBag.RARE_CANDY);
-      setCount(MEDICINE, PtBag.RARE_CANDY, b.dataset.n === 'max' ? CANDY_MAX : Math.min(CANDY_MAX, now + (+b.dataset.n)));
-    } else if (act === 'candy-reset') setCount(MEDICINE, PtBag.RARE_CANDY, countIn(sv.orig, MEDICINE, PtBag.RARE_CANDY));
     else if (act === 'mon') {
-      state.mon = wParse(b.dataset.w);
+      if (state.shift) { shiftTo(state.shift, b.dataset.w); return; }   // Ziel angetippt (Quelle selbst = abbrechen)
+      if (state.add && state.add.placing) { placeNew(b.dataset.w); return; }
+      state.add = null;                                                   // Formular schließen, Pokémon zeigen
+      var w = wParse(b.dataset.w);
+      if (!monAt(sv.data, w)) return;                                     // leerer Platz ist nur beim Verschieben ein Ziel
+      state.mon = w;
+      state.shiftNote = '';
       render();
       // Schmale Ansicht: Bearbeiten steht unter der Liste – dorthin scrollen
       var det = $('ed-detail');
-      if (det && window.matchMedia && matchMedia('(max-width: 860px)').matches) det.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (act === 'mon-reset') {
-      var orig = PtEdit.readMon(sv.orig, state.mon);
-      if (orig) editMon(state.mon, function (d) { d.set(orig); });
+      if (det && narrow()) det.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (act === 'shift') {
+      state.shift = state.mon ? wKey(state.mon) : null;
+      state.shiftNote = '';
+      render();
+      // Schmale Ansicht: Team und Box stehen über dem Bearbeiten – dorthin, um das Ziel anzutippen
+      var list = $('ed-list');
+      if (list && narrow()) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (act === 'shift-cancel') { state.shift = null; state.shiftNote = ''; render(); }
+    else if (act === 'add-new') {
+      state.add = newAdd();
+      state.shift = null;
+      state.shiftNote = '';
+      render();
+      if (narrow() && $('ed-detail')) $('ed-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (act === 'add-species') openPicker({ kind: 'species' });
+    else if (act === 'add-ivs') { state.add.ivs = b.dataset.v; render(); }
+    else if (act === 'add-place' && state.add && state.add.species) {
+      state.add.placing = true;
+      // lädt schon, während man den Platz sucht; offline → null (dann „Tackle“ und ein Hinweis)
+      state.add.moves = levelMoves(state.add.species, state.add.level).then(null, function () { return null; });
+      state.shiftNote = '';
+      render();
+      if (narrow() && $('ed-list')) $('ed-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (act === 'add-back') { if (state.add) state.add.placing = false; state.shiftNote = ''; render(); }
+    else if (act === 'add-cancel') { state.add = null; state.shiftNote = ''; render(); }
+    else if (act === 'release') {
+      var rm = monAt(sv.data, state.mon);
+      if (!rm || !window.confirm(L().releaseConfirm(monName(rm)))) return;
+      try {
+        var rr = PtEdit.releaseMon(sv.work, state.mon), rd = PtSave.parse(rr.bytes, D);
+        if (!rd.ok) throw new Error('check');
+        sv.work = rr.bytes;
+        sv.data = rd;
+        state.mon = rd.party[0] ? rd.party[0].where : null;
+        state.result = null;
+        state.shiftNote = '';
+      } catch (err) {
+        state.shiftNote = err && err.code === 'last' ? L().shiftLast : err && err.code === 'broken' ? L().shiftBroken : L().errEdit + (err && err.message);
+      }
+      render();
+    }
+    else if (act === 'mon-reset') {
+      // Nur die Änderungen hier (Item, Freundschaft, Attacken) – das Pokémon kann inzwischen woanders liegen
+      var om = origOf(monAt(sv.data, state.mon)), od = om && PtEdit.readMon(sv.orig, om.where);
+      if (od) editMon(state.mon, function (d) { d.set(od.subarray(0x0A, 0x0C), 0x0A); d[0x14] = od[0x14]; d.set(od.subarray(0x28, 0x38), 0x28); });
     } else if (act === 'move') openPicker({ kind: 'move', slot: b.dataset.slot === 'add' ? 'add' : +b.dataset.slot });
     else if (act === 'move-del') {
       var m = monAt(sv.data, state.mon), slot = +b.dataset.slot;
@@ -1049,11 +1331,58 @@
     else if (act === 'money-max') change(function (x) { return PtEdit.setMoney(x, PtEdit.MAX_MONEY); });
     else if (act === 'coins-max') change(function (x) { return PtEdit.setCoins(x, PtEdit.MAX_COINS); });
   });
+  // Am PC: Pokémon auf einen Platz ziehen – wie „Verschieben“ und Ziel antippen
+  var dragFrom = null;
+  function dragTarget(e) { return e.target.closest && e.target.closest('[data-act="mon"][data-w]'); }
+  function dragClean() {
+    Array.prototype.forEach.call(document.querySelectorAll('.is-drop'), function (x) { x.classList.remove('is-drop'); });
+    var m = document.querySelector('.ed-mons.is-dragging');
+    if (m) m.classList.remove('is-dragging');
+  }
+  $('ed').addEventListener('dragstart', function (e) {
+    var b = dragTarget(e);
+    if (!b || b.getAttribute('draggable') !== 'true' || !state.save || state.busy) return;
+    dragFrom = b.dataset.w;
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', dragFrom); } catch (err) { /* nur für Firefox nötig */ }
+    var box = b.closest('.ed-mons');
+    if (box) box.classList.add('is-dragging');
+  });
+  $('ed').addEventListener('dragover', function (e) {
+    var t = dragFrom && dragTarget(e);
+    if (!t) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!t.classList.contains('is-drop')) { dragClean(); t.classList.add('is-drop'); t.closest('.ed-mons').classList.add('is-dragging'); }
+  });
+  $('ed').addEventListener('drop', function (e) {
+    var t = dragFrom && dragTarget(e), from = dragFrom;
+    dragFrom = null;
+    dragClean();
+    if (!t) return;
+    e.preventDefault();
+    shiftTo(from, t.dataset.w);
+  });
+  $('ed').addEventListener('dragend', function () { dragFrom = null; dragClean(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || state.picker) return;
+    if (state.shift) { state.shift = null; render(); }
+    else if (state.add && state.add.placing) { state.add.placing = false; render(); }
+  });
+
   // Eingaben im Editor (Zahlen, Box-Auswahl, Freundschaft)
   $('ed').addEventListener('change', function (e) {
     var el = e.target, act = el.dataset.act;
     if (!act || !state.save || state.busy) return;
     if (act === 'box') { state.box = +el.value; render(); }
+    else if (/^add-/.test(act) && state.add) {
+      // Nur merken, nicht neu zeichnen: sonst ginge z. B. der Klick auf „Platz wählen“ direkt nach dem Tippen verloren
+      var a = state.add, k = act.slice(4);
+      if (k === 'level') el.value = a.level = Math.max(1, Math.min(100, Math.round(+el.value) || 1));
+      else if (k === 'shiny') a.shiny = el.checked;
+      else if (k === 'ball' || k === 'loc') a[k] = +el.value;
+      else a[k] = el.value;                                   // nature, gender, ability ('' = zufällig)
+    }
     else if (act === 'friend') editMon(state.mon, function (d) { PtEdit.setFriendship(d, +el.value); });
     else if (act === 'qty') setCount(state.pocket, +el.dataset.id, Math.max(0, Math.round(+el.value) || 0));
     else if (act === 'money') change(function (x) { return PtEdit.setMoney(x, +el.value || 0); });
@@ -1088,6 +1417,9 @@
     sv.work = sv.orig;
     sv.data = sv.base;
     state.result = null;
+    state.shift = null;
+    state.shiftNote = '';
+    if (state.mon && !monAt(sv.data, state.mon)) state.mon = sv.data.party[0] ? sv.data.party[0].where : null;
     render();
   });
   $('save-card').addEventListener('click', function (e) {

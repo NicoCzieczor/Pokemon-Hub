@@ -300,10 +300,31 @@ const LEVEL_CAPS = {
   ]},
 };
 
+// Aktives Spiel des Hubs (pwa.js); ohne pwa.js die gemerkte Wahl bzw. das Spiel des aktiven Runs
+const LCP_GAME_KEY = 'hub-lcp-game';
+const RUN_GAME_ALIAS = { bdsp: 'strahl-diamant-leucht-perl', 'omega-rot-alpha-saphir': 'omega-rubin-alpha-saphir' };
+function preferredLcpGame() {
+  const hub = window.PokeHubGame && window.PokeHubGame.levelCaps();
+  if (LEVEL_CAPS[hub]) return hub;
+  try {
+    const saved = localStorage.getItem(LCP_GAME_KEY);
+    if (LEVEL_CAPS[saved]) return saved;
+    const data = JSON.parse(localStorage.getItem('pokemon-run-dashboard-runs') || 'null');
+    const game = data?.runs?.[data.active || 0]?.game;
+    const key = RUN_GAME_ALIAS[game] || game;
+    if (LEVEL_CAPS[key]) return key;
+  } catch (e) { /* ohne Speicher: erstes Spiel */ }
+  return Object.keys(LEVEL_CAPS)[0];
+}
+function rememberLcpGame(key) {
+  try { localStorage.setItem(LCP_GAME_KEY, key); } catch (e) { /* nur nicht gemerkt */ }
+  if (window.PokeHubGame) window.PokeHubGame.fromLevelCaps(key);
+}
+
 function buildGameSelect() {
   const sel = document.getElementById('lcp-game-select');
   if (!sel) return;
-  const cur = sel.value || Object.keys(LEVEL_CAPS)[0];
+  const cur = sel.value || preferredLcpGame();
   sel.innerHTML = '';
   Object.entries(LEVEL_CAPS).forEach(([key, game]) => {
     const opt = document.createElement('option');
@@ -385,7 +406,12 @@ function renderLevelCaps(gameKey) {
 document.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('lcp-game-select');
   buildGameSelect();
-  sel.addEventListener('change', e => renderLevelCaps(e.target.value));
+  sel.addEventListener('change', e => { rememberLcpGame(e.target.value); renderLevelCaps(e.target.value); });
+  // Aktives Spiel woanders geändert: Leiste nachziehen
+  document.addEventListener('hubgamechange', () => {
+    const k = window.PokeHubGame && window.PokeHubGame.levelCaps();
+    if (LEVEL_CAPS[k] && sel.value !== k) { sel.value = k; renderLevelCaps(k); }
+  });
   renderLevelCaps(sel.value);
 
   document.getElementById('lcp-toggle').addEventListener('click', () => {

@@ -1,5 +1,5 @@
 import { getPokemon, getGenerationList, getPokemonSpecies, getMoveData, getEvolutionChain, getAbilityData, placeholderPokemon } from "../Pokelocke/pokeapi.js";
-import { cleanSharedState, cleanGrave, mergeSharedState, isPokemonName } from "./shared-state.js";
+import { cleanSharedState, cleanGrave, mergeSharedState, isPokemonName, cleanRoute, cleanRouteMarks, cleanGame, cleanWild } from "./shared-state.js";
 
 const SUPABASE_URL = 'https://lvyjqtpgeaoxaecduqxq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2eWpxdHBnZWFveGFlY2R1cXhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NzYxMTgsImV4cCI6MjA5NTE1MjExOH0.KAPsEDAFZ2RC5p028wk2XC4Z2CifmoKm08jy_BjmgPM';
@@ -26,29 +26,11 @@ const TYPE_MOVE_COLORS = {
   fairy:    'rgba(240,140,170,0.38)',
 };
 
-// ── Type chart ───────────────────────────────────────────────────────────────
-const ALL_TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
-
-const TYPE_CHART = {
-  normal:   { rock:0.5, ghost:0, steel:0.5 },
-  fire:     { grass:2, ice:2, bug:2, steel:2, fire:0.5, rock:0.5, water:0.5, dragon:0.5 },
-  water:    { fire:2, ground:2, rock:2, water:0.5, grass:0.5, dragon:0.5 },
-  electric: { water:2, flying:2, electric:0.5, grass:0.5, dragon:0.5, ground:0 },
-  grass:    { water:2, ground:2, rock:2, fire:0.5, grass:0.5, poison:0.5, flying:0.5, bug:0.5, dragon:0.5, steel:0.5 },
-  ice:      { grass:2, ground:2, flying:2, dragon:2, fire:0.5, water:0.5, ice:0.5, steel:0.5 },
-  fighting: { normal:2, ice:2, rock:2, dark:2, steel:2, poison:0.5, flying:0.5, psychic:0.5, bug:0.5, fairy:0.5, ghost:0 },
-  poison:   { grass:2, fairy:2, poison:0.5, ground:0.5, rock:0.5, ghost:0.5, steel:0 },
-  ground:   { fire:2, electric:2, poison:2, rock:2, steel:2, grass:0.5, bug:0.5, flying:0 },
-  flying:   { grass:2, fighting:2, bug:2, electric:0.5, rock:0.5, steel:0.5 },
-  psychic:  { fighting:2, poison:2, psychic:0.5, steel:0.5, dark:0 },
-  bug:      { grass:2, psychic:2, dark:2, fire:0.5, fighting:0.5, poison:0.5, flying:0.5, ghost:0.5, steel:0.5, fairy:0.5 },
-  rock:     { fire:2, ice:2, flying:2, bug:2, fighting:0.5, ground:0.5, steel:0.5 },
-  ghost:    { psychic:2, ghost:2, dark:0.5, normal:0 },
-  dragon:   { dragon:2, steel:0.5, fairy:0 },
-  dark:     { psychic:2, ghost:2, fighting:0.5, dark:0.5, fairy:0.5 },
-  steel:    { ice:2, rock:2, fairy:2, fire:0.5, water:0.5, electric:0.5, steel:0.5 },
-  fairy:    { fighting:2, dragon:2, dark:2, fire:0.5, poison:0.5, steel:0.5 },
-};
+// ── Typen der gewählten Generation („Typen wie in“, ../pokemon-types.js) ─────────
+// Typentabelle und alte Typen (z. B. Togekiss vor Gen 6 Normal/Flug) wie im Schadens-Rechner
+let typeGen = window.PokemonTypes.getGen();
+const typesOf = p => window.PokemonTypes.typesInGen(p, typeGen);
+const genTypes = () => window.PokemonTypes.typeList(typeGen);
 
 // ── Tooltip ──────────────────────────────────────────────────────────────────
 const DAMAGE_CLASS_KEY = { physical: 'physical', special: 'special-class', status: 'status-class' };
@@ -136,6 +118,17 @@ let linkPendingSlot = null; // { slot, type, triggerPlayer }
 let dragSource = null; // { type:'team'|'box', player:1|2, slot:number }
 let boxOpen    = false;
 
+// ── Routen (Fangorte) ────────────────────────────────────────────────────────
+// Der Fangort steht am Pokémon (route) und wandert mit ihm durch Team, Box und Friedhof. Verpasste Routen
+// stehen extra; das Spiel des Duo-Runs bestimmt die Routenliste. Alles drei wird mit dem Partner geteilt.
+let duoGame = '';                 // Schlüssel wie im Run-Dashboard, '' = noch nicht festgelegt
+const routeMarks = {};            // { Ort: 1 = Spieler 1 verpasst, 2 = Spieler 2, 3 = beide }
+let routesOpen = false, routeFilter = 'all';
+// Wilde Pokémon je Spieler aus seinem Randomizer-Spiel (jeder würfelt sein eigenes): { name, r: { Ort: [Arten] } }.
+// Das eigene kommt aus dem Randomizer-Stand dieses Geräts (rando-state.js) und geht über die Session zum Partner.
+const wildShared = { 1: null, 2: null };
+let showWild = (() => { try { return localStorage.getItem('duo-routes-wild') !== '0'; } catch (e) { return true; } })();
+
 // ── Session state ────────────────────────────────────────────────────────────
 let sessionMySlot = null;  // 1 or 2 in session, null = local mode (nur Anzeige/Presence)
 let syncSessionId  = null;
@@ -153,13 +146,15 @@ function sessionCanEdit(_playerIndex) { return true; }
 
 function toDisplayPokemon(p) {
   if (!p) return null;
-  return {
+  const out = {
     id: p.id,
     name: p.name,
     sprite: p.sprite,
     germanName: p.germanName || p.name,
     types: Array.isArray(p.types) ? p.types : []
   };
+  if (p.route) out.route = p.route;
+  return out;
 }
 
 // Geteilter Spielstand: alles in einem Objekt
@@ -174,6 +169,10 @@ function getSharedState() {
     linkedBox: [...linkedBoxSlots],
     graves1: graves[0],
     graves2: graves[1],
+    game: duoGame,
+    routeMarks: { ...routeMarks },
+    wild1: wildShared[1],
+    wild2: wildShared[2],
   };
 }
 
@@ -219,6 +218,13 @@ function applySharedState(raw) {
   if (Array.isArray(state.graves2)) { graves[1].length = 0; state.graves2.forEach(p => graves[1].push(p)); }
   renderGraveyard();
 
+  // Routen (ältere Stände ohne diese Felder lassen sie, wie sie sind)
+  if (typeof state.game === 'string') duoGame = state.game;
+  if (state.routeMarks) replaceRouteMarks(state.routeMarks);
+  if ('wild1' in state) wildShared[1] = state.wild1;
+  if ('wild2' in state) wildShared[2] = state.wild2;
+  renderRoutes();
+
   updateLinkHighlights();
   renderTeamWeaknessPanel();
   saveLocal();
@@ -232,12 +238,7 @@ function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
 function formatLabel(t) { return t.split('-').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function getDisplayName(name) { return allPokemonList.find(p => p.name===name)?.displayName || capitalize(name); }
-function getTypeEffectiveness(atk, defs) {
-  const chart = TYPE_CHART[atk] || {};
-  let m = 1;
-  for (const d of defs) m *= chart[d] !== undefined ? chart[d] : 1;
-  return m;
-}
+function getTypeEffectiveness(atk, defs) { return window.PokemonTypes.effectiveness(atk, defs, typeGen); }
 
 const evolutionItemNames = {
   de: {
@@ -412,12 +413,13 @@ function getGenerationVersionGroups(gen) {
   return ({ 1:['red-blue','yellow'], 2:['gold-silver','crystal'], 3:['ruby-sapphire','emerald','firered-leafgreen'], 4:['diamond-pearl','platinum','heartgold-soulsilver'], 5:['black-white','black-2-white-2'], 6:['x-y','omega-ruby-alpha-sapphire'], 7:['sun-moon','ultra-sun-ultra-moon','lets-go-pikachu-lets-go-eevee'], 8:['sword-shield','isle-of-armor','crown-tundra'], 9:['scarlet-violet'] })[gen] || ['red-blue','yellow'];
 }
 
-function findFirstGenWithMoves(pokemon) {
+function hasMovesInGen(pokemon, g) {
   const moves = Array.isArray(pokemon.moves) ? pokemon.moves : [];
-  for (let g = 1; g <= 9; g++) {
-    const vg = getGenerationVersionGroups(g);
-    if (moves.some(m => (m.version_group_details||[]).some(d => vg.includes(d.version_group?.name)))) return g;
-  }
+  const vg = getGenerationVersionGroups(g);
+  return moves.some(m => (m.version_group_details||[]).some(d => vg.includes(d.version_group?.name)));
+}
+function findFirstGenWithMoves(pokemon) {
+  for (let g = 1; g <= 9; g++) if (hasMovesInGen(pokemon, g)) return g;
   return 1;
 }
 
@@ -458,10 +460,13 @@ function renderTeamSlot(player, index, details) {
   if (!slot) return;
   if (details) {
     slot.dataset.filled = 'true';
-    slot.innerHTML = `<div style="text-align:center" draggable="false"><img src="${esc(details.sprite)}" alt="" style="width:55px;height:55px" draggable="false"><div style="font-size:12px" draggable="false">${esc(details.germanName||capitalize(details.name))}</div></div>`;
+    const route = details.route ? `<div class="slot-route" draggable="false">${esc(routeLabel(details.route))}</div>` : '';
+    slot.innerHTML = `<div style="text-align:center;min-width:0;max-width:100%" draggable="false"><img src="${esc(details.sprite)}" alt="" style="width:55px;height:55px" draggable="false"><div style="font-size:12px" draggable="false">${esc(details.germanName||capitalize(details.name))}</div>${route}</div>`;
+    slot.title = details.route ? window.t('route-caught', routeLabel(details.route)) : '';
   } else {
     slot.removeAttribute('data-filled');
     slot.innerHTML = '';
+    slot.title = '';
   }
 }
 
@@ -484,7 +489,8 @@ function updateBoxSlots() {
     const makeHalf = (p, cls) => {
       if (p) {
         const name = esc(p.germanName || capitalize(p.name));
-        return `<div class="box-slot-half ${cls} filled" draggable="true"><img src="${esc(p.sprite)}" alt="" width="30" height="30"><div class="box-slot-name">${name}</div></div>`;
+        const title = p.route ? ` title="${esc(window.t('route-caught', routeLabel(p.route)))}"` : '';
+        return `<div class="box-slot-half ${cls} filled" draggable="true"${title}><img src="${esc(p.sprite)}" alt="" width="30" height="30"><div class="box-slot-name">${name}</div></div>`;
       }
       return `<div class="box-slot-half ${cls}"><span class="box-slot-empty">+</span></div>`;
     };
@@ -544,7 +550,7 @@ function renderTeamWeaknessPanel() {
   table.appendChild(header);
 
   // Type rows
-  ALL_TYPES.forEach(atk => {
+  genTypes().forEach(atk => {
     const row = document.createElement('div');
     row.className = 'weakness-row';
     const lbl = document.createElement('div');
@@ -552,7 +558,7 @@ function renderTeamWeaknessPanel() {
     lbl.textContent = window.typeLabel(atk);
     row.appendChild(lbl);
     const addCell = p => {
-      const mult = getTypeEffectiveness(atk, Array.isArray(p.types)?p.types:[]);
+      const mult = getTypeEffectiveness(atk, typesOf(p));
       const cell = document.createElement('div');
       cell.className = 'weakness-cell';
       if (mult===0)       { cell.textContent='✕';  cell.classList.add('eff-immune'); }
@@ -575,10 +581,10 @@ function renderTeamWeaknessPanel() {
     block.className = 'weakness-summary-player';
     block.appendChild(Object.assign(document.createElement('div'), { className:`weakness-summary-title ${cls}`, textContent:label }));
     const weaknesses = [], immunities = [];
-    ALL_TYPES.forEach(atk => {
+    genTypes().forEach(atk => {
       let w=0, im=0;
       active.forEach(p => {
-        const m = getTypeEffectiveness(atk, Array.isArray(p.types)?p.types:[]);
+        const m = getTypeEffectiveness(atk, typesOf(p));
         if (m>=2) w++; else if (m===0) im++;
       });
       if (w)  weaknesses.push({ type:atk, count:w });
@@ -632,10 +638,10 @@ function renderTeamWeaknessPanel() {
 function findTeamProblems(active) {
   const need = active.length <= 3 ? 2 : 3;
   const problems = [];
-  ALL_TYPES.forEach(atk => {
+  genTypes().forEach(atk => {
     let weak = 0, weak4 = 0, safe = 0;
     active.forEach(p => {
-      const m = getTypeEffectiveness(atk, Array.isArray(p.types) ? p.types : []);
+      const m = getTypeEffectiveness(atk, typesOf(p));
       if (m >= 2) { weak++; if (m >= 4) weak4++; }
       else if (m < 1) safe++;
     });
@@ -646,7 +652,8 @@ function findTeamProblems(active) {
 
 // Bis zu 3 Typen, die das Problem abfangen. Bevorzugt: immun, deckt weitere Probleme ab, ist selbst nicht anfällig dafür.
 function helpersFor(problem, problems) {
-  return ALL_TYPES.map(def => {
+  const types = genTypes();
+  return types.map(def => {
     const m = getTypeEffectiveness(problem.type, [def]);
     if (m >= 1) return null;
     let score = m === 0 ? 3 : 2;
@@ -659,7 +666,7 @@ function helpersFor(problem, problems) {
     });
     return { type: def, score, covers };
   }).filter(Boolean)
-    .sort((a, b) => b.score - a.score || ALL_TYPES.indexOf(a.type) - ALL_TYPES.indexOf(b.type))
+    .sort((a, b) => b.score - a.score || types.indexOf(a.type) - types.indexOf(b.type))
     .slice(0, 3);
 }
 
@@ -698,18 +705,27 @@ async function renderInfoPanel() {
     infoContent.appendChild(ph);
     return;
   }
+  // Ohne eigene Wahl: die Generation aus „Typen wie in“, wenn es dort Attacken hat – sonst die erste mit Attacken
+  if (!infoGenLocked) {
+    const gen = hasMovesInGen(activePokemonInfo, typeGen) ? typeGen : findFirstGenWithMoves(activePokemonInfo);
+    if (gen !== infoGeneration) {
+      infoGeneration = gen;
+      const sel = document.getElementById('info-generation-select');
+      if (sel) sel.value = String(gen);
+    }
+  }
   const header = document.createElement('div');
   header.className = 'info-row';
   header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${esc(activePokemonInfo.germanName||formatLabel(activePokemonInfo.name))}</div><div style="opacity:.75">#${esc(activePokemonInfo.id)}</div>`;
   const types = document.createElement('div');
   types.className = 'info-types';
-  (Array.isArray(activePokemonInfo.types)?activePokemonInfo.types:[]).forEach(t => {
+  window.PokemonTypes.typesInGen(activePokemonInfo, infoGeneration).forEach(t => {
     types.appendChild(Object.assign(document.createElement('span'), { className:'info-type', textContent:window.typeLabel(t)||formatLabel(t) }));
   });
   const statsGrid = document.createElement('div');
   statsGrid.className = 'info-stats';
   const statMeta = { hp:{label:window.t('stat-hp'),css:'stat-hp'}, attack:{label:window.t('stat-attack'),css:'stat-attack'}, defense:{label:window.t('stat-defense'),css:'stat-defense'}, specialAttack:{label:window.t('stat-sp-atk'),css:'stat-sp-atk'}, specialDefense:{label:window.t('stat-sp-def'),css:'stat-sp-def'}, speed:{label:window.t('stat-speed'),css:'stat-speed'} };
-  Object.entries(activePokemonInfo.stats||{}).forEach(([k,v]) => {
+  Object.entries(window.PokemonTypes.statsInGen(activePokemonInfo, infoGeneration)).forEach(([k,v]) => {
     const m = statMeta[k]||{ label:formatLabel(k), css:'' };
     const s = Object.assign(document.createElement('div'), { className:`info-stat ${m.css}`.trim() });
     s.innerHTML = `<strong>${esc(m.label)}</strong><br>${esc(v)}`;
@@ -732,14 +748,6 @@ async function renderInfoPanel() {
     abilitiesList.appendChild(tag);
   });
 
-  if (!infoGenLocked) {
-    const firstGen = findFirstGenWithMoves(activePokemonInfo);
-    if (firstGen !== infoGeneration) {
-      infoGeneration = firstGen;
-      const sel = document.getElementById('info-generation-select');
-      if (sel) sel.value = String(firstGen);
-    }
-  }
 
   const evoTitle = Object.assign(document.createElement('div'), { textContent:window.t('evolution') });
   evoTitle.style.cssText = 'font-weight:700;margin-top:6px';
@@ -1012,6 +1020,7 @@ function syncEnter(data) {
   syncFresh = true;
   if (changed || !syncChannel) syncSubscribe();
   syncRenderPresence();
+  syncMyWild();
   if (syncDirty) syncPush();
 }
 
@@ -1186,6 +1195,7 @@ function receiveSharedState(raw, rev) {
     applySharedState(server);
   }
   setSyncBase(server, rev);
+  syncMyWild();   // eigenes Spiel bleibt das von diesem Gerät
 }
 
 let syncRefreshing = null, _syncRetry = null;
@@ -1276,6 +1286,14 @@ function saveLocal() {
       linkedBox:  [...linkedBoxSlots],
       graves1: graves[0],
       graves2: graves[1],
+      // Team und Box stehen oben nur als Namen – ihre Fangorte daneben (gleicher Platz)
+      routes: {
+        team1: teams[0].map(p => p?.route || null), team2: teams[1].map(p => p?.route || null),
+        box1: boxes[0].map(p => p?.route || null), box2: boxes[1].map(p => p?.route || null),
+      },
+      game: duoGame,
+      routeMarks,
+      wild: wildShared,
     }));
     return true;
   } catch (e) {
@@ -1287,6 +1305,7 @@ function saveLocal() {
 function saveState() {
   const ok = saveLocal();
   onAfterSave();
+  renderRoutes();
   const s = document.getElementById('save-status');
   if (s) { s.textContent=window.t(ok ? 'saved' : 'save-failed'); setTimeout(()=>s.textContent='', ok ? 2000 : 8000); }
 }
@@ -1321,6 +1340,7 @@ async function retryPlaceholders() {
       if (!p?.placeholder) continue;
       let d;
       try { d = await fetchWithSpecies(p.name); } catch { return; }   // noch offline – beim nächsten Mal
+      if (p.route) d.route = p.route;
       if (list[i] === p) { list[i] = d; changed = true; }
     }
   }
@@ -1343,20 +1363,29 @@ async function loadSavedState() {
       const igs = document.getElementById('info-generation-select');
       if (igs) igs.value = String(currentGeneration);
     }
+    const routes = state.routes && typeof state.routes === 'object' ? state.routes : {};
+    const withRoute = (d, list, i) => {
+      const r = Array.isArray(list) ? cleanRoute(list[i]) : null;
+      if (d && r) d.route = r;
+      return d;
+    };
     for (let pl=1; pl<=2; pl++) {
       const saved = state[`team${pl}`];
       if (Array.isArray(saved)) {
         for (let i=0; i<6; i++) {
-          if (saved[i]) { const d=await loadSaved(saved[i]); teams[pl-1][i]=d; renderTeamSlot(pl,i,d); }
+          if (saved[i]) { const d=withRoute(await loadSaved(saved[i]), routes[`team${pl}`], i); teams[pl-1][i]=d; renderTeamSlot(pl,i,d); }
         }
       }
       const savedBox = state[`box${pl}`];
       if (Array.isArray(savedBox)) {
         for (let i=0; i<30; i++) {
-          if (savedBox[i]) boxes[pl-1][i] = await loadSaved(savedBox[i]);
+          if (savedBox[i]) boxes[pl-1][i] = withRoute(await loadSaved(savedBox[i]), routes[`box${pl}`], i);
         }
       }
     }
+    duoGame = cleanGame(state.game);
+    replaceRouteMarks(state.routeMarks);
+    if (state.wild && typeof state.wild === 'object') { wildShared[1] = cleanWild(state.wild[1]); wildShared[2] = cleanWild(state.wild[2]); }
     const inRange = n => i => Number.isInteger(i) && i >= 0 && i < n;
     if (Array.isArray(state.linkedTeam)) state.linkedTeam.filter(inRange(6)).forEach(i => linkedTeamSlots.add(i));
     if (Array.isArray(state.linkedBox))  state.linkedBox.filter(inRange(30)).forEach(i => linkedBoxSlots.add(i));
@@ -1364,6 +1393,7 @@ async function loadSavedState() {
     if (Array.isArray(state.graves2)) state.graves2.map(cleanGrave).filter(Boolean).forEach(p => graves[1].push(p));
     renderGraveyard();
     updateLinkHighlights();
+    renderRoutes();
   } catch(e) { console.error('Fehler beim Laden:', e); }
 }
 
@@ -1477,6 +1507,19 @@ function toggleBox() {
   if (body) body.style.display = boxOpen ? 'block' : 'none';
   if (icon) icon.textContent = boxOpen ? '▲' : '▼';
   if (boxOpen) updateBoxSlots();
+  if (boxOpen && routesOpen && boxRoutesShareRow()) toggleRoutes(false);
+  updateBoxRoutesRow();
+}
+
+// Desktop: Box und Routen teilen sich eine Zeile – nur eine ist offen, die andere wird schmal daneben.
+// Am Handy liegen beide in eigenen Tabs, da bleibt alles unabhängig.
+function boxRoutesShareRow() {
+  return !!document.getElementById('box-graveyard-row')?.contains(document.getElementById('routes-section'));
+}
+function updateBoxRoutesRow() {
+  if (!boxRoutesShareRow()) return;
+  document.getElementById('box-section').classList.toggle('is-shrunk', routesOpen && !boxOpen);
+  document.getElementById('routes-section').classList.toggle('is-shrunk', boxOpen && !routesOpen);
 }
 
 // ── Drag & drop ───────────────────────────────────────────────────────────────
@@ -1884,6 +1927,13 @@ async function selectPokemon(pokemon) {
     const details = await fetchWithSpecies(pokemon.name);
     if (seq !== pickSeq) return;
 
+    // Fangort bleibt beim Ersetzen (z. B. Entwicklung); der Partner eines neuen Paares übernimmt ihn
+    if (type === 'team' || type === 'box') {
+      const old = type === 'team' ? teams[player-1][slot] : boxes[player-1][slot];
+      const route = old?.route || (isLinkingMode ? linkPendingSlot?.details?.route : null);
+      if (route) details.route = route;
+    }
+
     if (type === 'team') {
       teams[player-1][slot] = details;
       renderTeamSlot(player, slot, details);
@@ -2056,7 +2106,8 @@ function renderGraveyard() {
       // Ältere Einträge haben keine Nummer – die steht aber in der Sprite-Adresse
       const id = p.id || Number(String(p.sprite || '').match(/\/(\d+)\.png/)?.[1] || 0);
       const name = esc(window.pokemonName(id, p.name) || p.germanName);
-      html += `<div class="grave-slot" data-player="${pl}" data-idx="${i}" title="${name}">
+      const title = p.route ? `${name} · ${esc(window.t('route-caught', routeLabel(p.route)))}` : name;
+      html += `<div class="grave-slot" data-player="${pl}" data-idx="${i}" title="${title}">
         <img src="${esc(p.sprite)}" alt="${name}">
         <span class="grave-slot-name">${name}</span>
         <span class="grave-killer ${kbClass}">${kbLabel}</span>
@@ -2090,6 +2141,350 @@ function renderGraveyard() {
     });
   });
 }
+
+// ── Routen ────────────────────────────────────────────────────────────────────
+function LOC() { return window.PokeHubLocations; }
+function routeLabel(r) { return LOC() ? LOC().label(r, window.LANG) : r; }
+// Spiel der Liste: das des Duo-Runs; solange keins festgelegt ist, das aktive Spiel des Hubs (nur vorbelegt)
+function routeGame() { return duoGame || window.PokeHubGame?.get() || ''; }
+// Die erste Eintragung legt das vorbelegte Spiel für beide fest
+function fixRouteGame() { if (!duoGame) duoGame = cleanGame(routeGame()); }
+function replaceRouteMarks(marks) {
+  Object.keys(routeMarks).forEach(k => delete routeMarks[k]);
+  Object.assign(routeMarks, cleanRouteMarks(marks));
+}
+
+// Alle Pokémon beider Spieler mit Platz; gleiche pair-Kennung = Soul-Link-Paar
+function allCatches() {
+  const out = [];
+  for (let pl = 1; pl <= 2; pl++) {
+    const o = 2 - pl;   // Index des anderen Spielers
+    teams[pl-1].forEach((mon, i) => { if (mon) out.push({ pl, where: 'team', mon, pair: linkedTeamSlots.has(i) && teams[o][i] ? 'team' + i : null }); });
+    boxes[pl-1].forEach((mon, i) => { if (mon) out.push({ pl, where: 'box', mon, pair: boxes[o][i] ? 'box' + i : null }); });
+    graves[pl-1].forEach(mon => out.push({ pl, where: 'grave', mon,
+      pair: mon.linkId != null && graves[o].some(g => g.linkId === mon.linkId) ? 'grave' + mon.linkId : null }));
+  }
+  return out;
+}
+
+// Zeilen: Orte des Spiels in Spielreihenfolge, dahinter weitere benutzte Orte (aus dem Spielstand, frei getippt)
+function routeRows() {
+  const game = routeGame(), catches = allCatches();
+  const base = game && LOC() ? LOC().encounterList(game) : [];
+  const used = [...catches.map(c => c.mon.route), ...Object.keys(routeMarks)].filter(Boolean);
+  // Benutzte Städte u. Ä. an ihre Stelle im Spielverlauf, ganz unbekannte Orte ans Ende
+  const order = base.length ? [LOC().STARTER_LOCATION, ...(LOC().LOCATION_ORDER[game] || []), ...base] : [];
+  const pos = r => { const i = order.indexOf(r); return i < 0 ? Infinity : i; };
+  return [...new Set([...base, ...used])].sort((a, b) => pos(a) - pos(b)).map(route => {
+    const here = catches.filter(c => c.mon.route === route);
+    return { route, p1: here.filter(c => c.pl === 1), p2: here.filter(c => c.pl === 2), miss: routeMarks[route] || 0 };
+  });
+}
+const rowDone = r => !!(r.p1.length || r.p2.length || r.miss);
+
+// Noch ohne Fangort: Paare (mindestens eine Hälfte ohne) und Pokémon ohne Partner
+function unrouted() {
+  const pairs = new Map(), singles = [];
+  allCatches().forEach(c => {
+    if (c.pair) { const p = pairs.get(c.pair) || {}; p[c.pl] = c; pairs.set(c.pair, p); }
+    else if (!c.mon.route) singles.push(c);
+  });
+  return { pairs: [...pairs.values()].filter(p => p[1] && p[2] && !(p[1].mon.route && p[2].mon.route)), singles };
+}
+
+function catchName(c) {
+  const id = c.mon.id || Number(String(c.mon.sprite || '').match(/\/(\d+)\.png/)?.[1] || 0);
+  return window.pokemonName(id, c.mon.name) || c.mon.germanName || capitalize(c.mon.name);
+}
+function routeMonHtml(c) {
+  const dead = c.where === 'grave';
+  return `<span class="route-mon${dead ? ' is-dead' : ''}"><img src="${esc(c.mon.sprite)}" alt="" loading="lazy">` +
+    `<span class="route-mon-text"><span class="route-mon-name">${esc(catchName(c))}</span>` +
+    `<small>${dead ? '† ' : ''}${esc(window.t('route-where-' + c.where))}</small></span></span>`;
+}
+// Wilde Pokémon einer Route für einen Spieler → { ids, rando: ROM-Name | null (Original) } oder null (kein Platin).
+// Jede Spalte hat ihr eigenes Spiel (wildShared): das eigene kommt aus dem Randomizer-Stand dieses Geräts, das des
+// Mitspielers lädt man bei ihm (ROM laden) oder er teilt es über die Session. Ohne Spiel: die Original-Pokémon.
+const STARTERS_PT = [387, 390, 393];
+function wildFor(pl, route) {
+  if (routeGame() !== 'platin') return null;
+  const w = wildShared[pl];
+  if (w) return { ids: w.r[route] || null, rando: w.name || '?' };
+  const R = window.PokeHubRando;
+  return { ids: route === LOC()?.STARTER_LOCATION ? STARTERS_PT : R ? R.originalAt(route) : null, rando: null };
+}
+// Ein Randomizer-Spiel kurz zusammengefasst (Ort → Arten, nur Gras/Surfen/Angeln) – so wird es geteilt
+function wildSummary(rd) {
+  const R = window.PokeHubRando;
+  if (!R || !rd || !Array.isArray(rd.wild) || !LOC()) return null;
+  const r = {};
+  LOC().encounterList('platin').forEach(p => {
+    const ids = p === LOC().STARTER_LOCATION ? rd.starters : R.speciesAt(rd, p, true);
+    if (ids && ids.length) r[p] = ids;
+  });
+  return cleanWild({ name: rd.name, r });
+}
+// Platz dieses Geräts: in der Session der eigene, sonst Spieler 1
+const mySlot = () => (syncActive && sessionMySlot ? sessionMySlot : 1);
+// Randomizer-Stand dieses Geräts in die eigene Spalte. fill = nur, wenn dort noch nichts ist (lokal beim Start)
+function syncMyWild(fill) {
+  if (routeGame() !== 'platin') return;
+  const mine = wildSummary(window.PokeHubRando?.get()), slot = mySlot();
+  if (!mine || (fill && wildShared[slot])) return;
+  if (JSON.stringify(mine) === JSON.stringify(wildShared[slot] ?? null)) return;
+  wildShared[slot] = mine;
+  saveState();
+}
+const WILD_ICON = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-vii/icons/${id}.png`;
+function wildIconsHtml(pl, route) {
+  if (!showWild) return '';
+  const w = wildFor(pl, route);
+  if (!w || !w.ids || !w.ids.length) return '';
+  const MAX = 6, more = w.ids.length - MAX;
+  return `<span class="route-wild${w.rando ? ' is-rando' : ''}">` + w.ids.slice(0, MAX).map(id => {
+    const n = esc(window.pokemonName(id, null) || '#' + id);
+    return `<img src="${WILD_ICON(id)}" alt="${n}" title="${n}" loading="lazy">`;
+  }).join('') + (more > 0 ? `<small title="${esc(w.ids.slice(MAX).map(id => window.pokemonName(id, null) || '#' + id).join(', '))}">+${more}</small>` : '') + '</span>';
+}
+// Je Spieler: welches Spiel (ROM-Name ×) bzw. Original mit „ROM laden“ und – falls dieses Gerät eins hat – „Mein Randomizer-Stand“
+let wildLoading = 0;
+function wildSlotsHtml() {
+  if (routeGame() !== 'platin') return '';
+  const t = window.t, rd = window.PokeHubRando?.get(), mine = rd && Array.isArray(rd.wild);
+  return [1, 2].map(pl => {
+    const w = wildShared[pl];
+    const body = wildLoading === pl ? `<span class="wild-slot-orig">${esc(t('wild-slot-reading'))}</span>`
+      : w ? `<span class="hub-rando-chip" title="${esc(w.name)}"><b>${esc(w.name || '?')}</b><button type="button" data-wild-clear="${pl}" aria-label="${esc(t('wild-slot-clear'))}" title="${esc(t('wild-slot-clear'))}">×</button></span>`
+      : `<span class="wild-slot-orig">${esc(t('routes-wild-orig'))}</span>` +
+        `<button type="button" class="hub-rando-load" data-wild-load="${pl}" title="${esc(t('wild-slot-hint'))}">${esc(t('wild-slot-load'))}</button>` +
+        (mine && pl === mySlot() ? `<button type="button" class="hub-rando-load" data-wild-mine="${pl}">${esc(t('wild-slot-mine'))}</button>` : '');
+    return `<div class="wild-slot"><span class="wild-slot-pl p${pl}">${esc(t('player' + pl))}</span>${body}</div>`;
+  }).join('');
+}
+// ROM eines Spielers lesen (nur wilde Pokémon und Starter) und in seine Spalte – in der Session sieht es auch der Partner
+const wildFile = document.createElement('input');
+wildFile.type = 'file';
+wildFile.accept = '.nds';
+wildFile.addEventListener('change', async () => {
+  const file = wildFile.files[0], pl = +wildFile.dataset.pl;
+  wildFile.value = '';
+  if (!file || !window.PokeHubRando || !(pl === 1 || pl === 2)) return;
+  wildLoading = pl;
+  renderRoutes();
+  try {
+    wildShared[pl] = wildSummary(await window.PokeHubRando.read(file));
+    saveState();
+  } catch (e) {
+    alert(window.t('wild-slot-error') + (e && e.message && e.message !== 'notPlatinum' ? ` (${e.message})` : ''));
+  }
+  wildLoading = 0;
+  renderRoutes();
+});
+
+function routeSideHtml(list, missed) {
+  const miss = missed ? `<span class="route-miss">✗ ${esc(window.t('route-missed'))}</span>` : '';
+  if (!list.length && !miss) return '<span class="route-empty">–</span>';
+  return miss + list.map(routeMonHtml).join('');
+}
+
+let routeRowsShown = [];
+function renderRoutes() {
+  const rows = routeRows(), game = routeGame(), done = rows.filter(rowDone).length;
+  const count = document.getElementById('routes-count');
+  if (count) count.textContent = rows.length ? `${done} / ${rows.length}` : '';
+  const list = document.getElementById('routes-list');
+  if (!list || !routesOpen) return;
+
+  const sel = document.getElementById('routes-game-select');
+  if (sel) {
+    const games = (window.PokeHubGame?.list || []).filter(k => LOC()?.LOCATION_PRESETS[k]);
+    sel.innerHTML = (game ? '' : `<option value="">${esc(window.t('routes-game-none'))}</option>`) +
+      games.map(k => `<option value="${esc(k)}">${esc(window.PokeHubGame.label(k, window.LANG))}</option>`).join('');
+    sel.value = game;
+  }
+  const n = unrouted().pairs.length;
+  const hintText = !game ? window.t('routes-hint-game') : n ? window.t('routes-hint-unrouted', n) : '';
+  const hint = document.getElementById('routes-hint');
+  if (hint) { hint.textContent = hintText; hint.hidden = !hintText; }
+  const wildBox = document.getElementById('routes-wild');
+  if (wildBox) {
+    wildBox.hidden = game !== 'platin';
+    const tog = document.getElementById('routes-wild-toggle');
+    if (tog) tog.checked = showWild;
+    const srcEl = document.getElementById('routes-wild-src');
+    if (srcEl) srcEl.innerHTML = wildSlotsHtml();
+  }
+  document.querySelectorAll('[data-route-filter]').forEach(b => {
+    b.classList.toggle('is-on', b.dataset.routeFilter === routeFilter);
+    b.setAttribute('aria-pressed', String(b.dataset.routeFilter === routeFilter));
+  });
+
+  routeRowsShown = rows.filter(r => routeFilter === 'all' || (routeFilter === 'open' ? !rowDone(r) : rowDone(r)));
+  list.innerHTML = routeRowsShown.length ? routeRowsShown.map((r, i) => {
+    const linked = r.p1.some(a => a.pair && r.p2.some(b => b.pair === a.pair));
+    return `<div class="route-row${rowDone(r) ? ' is-done' : ''}">
+      <div class="route-name">${esc(routeLabel(r.route))}</div>
+      <div class="route-side route-p1">${routeSideHtml(r.p1, r.miss & 1)}${wildIconsHtml(1, r.route)}</div>
+      <div class="route-link${linked ? ' is-linked' : ''}" aria-hidden="true">${linked ? CHAIN_ICON : ''}</div>
+      <div class="route-side route-p2">${routeSideHtml(r.p2, r.miss & 2)}${wildIconsHtml(2, r.route)}</div>
+      <button type="button" class="route-edit" data-row="${i}">${esc(window.t(rowDone(r) ? 'route-change' : 'route-add'))}</button>
+    </div>`;
+  }).join('') : `<div class="routes-empty">${esc(window.t(rows.length ? 'routes-empty-filter' : 'routes-empty'))}</div>`;
+}
+
+function toggleRoutes(force) {
+  routesOpen = typeof force === 'boolean' ? force : !routesOpen;
+  const body = document.getElementById('routes-body');
+  if (body) body.hidden = !routesOpen;
+  const icon = document.getElementById('routes-toggle-icon');
+  if (icon) icon.textContent = routesOpen ? '▲' : '▼';
+  document.getElementById('routes-toggle')?.setAttribute('aria-expanded', String(routesOpen));
+  if (routesOpen && boxOpen && boxRoutesShareRow()) toggleBox();
+  updateBoxRoutesRow();
+  renderRoutes();
+}
+
+// Nach einer Änderung an Fangorten: Slots neu (Route steht darunter), speichern (zeichnet auch die Liste)
+function afterRouteChange() {
+  for (let pl = 1; pl <= 2; pl++) teams[pl-1].forEach((p, i) => renderTeamSlot(pl, i, p));
+  updateBoxSlots();
+  renderGraveyard();
+  saveState();
+}
+
+// Kleines Auswahlfenster an einer Stelle (rect); onPick(button) für Knöpfe mit data-act
+let routePop = null;
+function closeRoutePop() { if (routePop) { routePop.remove(); routePop = null; } }
+function openRoutePop(rect, html, onPick) {
+  closeRoutePop();
+  routePop = document.createElement('div');
+  routePop.className = 'route-pop';
+  routePop.innerHTML = html;
+  document.body.appendChild(routePop);
+  const w = routePop.offsetWidth, h = routePop.offsetHeight;
+  routePop.style.left = Math.max(8, Math.min(rect.right - w, innerWidth - w - 8)) + 'px';
+  const top = rect.bottom + 6 + h > innerHeight ? rect.top - h - 6 : rect.bottom + 6;
+  routePop.style.top = Math.max(8, Math.min(top, innerHeight - h - 8)) + 'px';
+  routePop.addEventListener('click', e => {
+    e.stopPropagation();
+    const b = e.target.closest('[data-act]');
+    if (b) onPick(b);
+  });
+}
+document.addEventListener('click', e => { if (routePop && !routePop.contains(e.target)) closeRoutePop(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRoutePop(); });
+// Nur bei anderer Breite schließen – am Handy kommt 'resize' schon beim Scrollen (Adressleiste) und mit der Tastatur
+let routePopWidth = innerWidth;
+window.addEventListener('resize', () => {
+  if (innerWidth === routePopWidth) return;
+  routePopWidth = innerWidth;
+  closeRoutePop();
+});
+
+const miniMon = c => `<img src="${esc(c.mon.sprite)}" alt=""><span>${esc(catchName(c))}</span>`;
+
+// Route in der Liste bearbeiten: Paar oder einzelnes Pokémon zuordnen, verpasst markieren, Fangort entfernen
+function editRoute(rect, row) {
+  const t = window.t, { pairs, singles } = unrouted();
+  let html = `<div class="route-pop-title">${esc(routeLabel(row.route))}</div>`;
+  if (pairs.length) html += `<div class="route-pop-head">${esc(t('route-pop-pairs'))}</div>` + pairs.map((p, i) =>
+    `<button type="button" class="route-pop-opt" data-act="pair" data-i="${i}">${miniMon(p[1])}<i class="route-pop-chain">${CHAIN_ICON}</i>${miniMon(p[2])}<small>${esc(t('route-where-' + p[1].where))}</small></button>`).join('');
+  if (singles.length) html += `<div class="route-pop-head">${esc(t('route-pop-singles'))}</div>` + singles.map((c, i) =>
+    `<button type="button" class="route-pop-opt" data-act="single" data-i="${i}">${miniMon(c)}<small>${esc(t('grave-player', c.pl))} · ${esc(t('route-where-' + c.where))}</small></button>`).join('');
+  if (!pairs.length && !singles.length) html += `<p class="route-pop-note">${esc(t('route-pop-none'))}</p>`;
+  html += `<div class="route-pop-head">${esc(t('route-pop-missed'))}</div><div class="route-pop-miss">` + [1, 2].map(pl =>
+    `<button type="button" class="route-pop-toggle${row.miss & pl ? ' is-on' : ''}" aria-pressed="${!!(row.miss & pl)}" data-act="miss" data-pl="${pl}">${row.miss & pl ? '✗ ' : ''}${esc(t('player' + pl))}</button>`).join('') + '</div>';
+  if (row.p1.length || row.p2.length) html += `<button type="button" class="route-pop-clear" data-act="clear">${esc(t('route-pop-clear'))}</button>`;
+  openRoutePop(rect, html, b => {
+    fixRouteGame();
+    const act = b.dataset.act;
+    if (act === 'pair') { const p = pairs[+b.dataset.i]; p[1].mon.route = p[2].mon.route = row.route; }
+    else if (act === 'single') singles[+b.dataset.i].mon.route = row.route;
+    else if (act === 'miss') {
+      const v = (routeMarks[row.route] || 0) ^ Number(b.dataset.pl);
+      if (v) routeMarks[row.route] = v; else delete routeMarks[row.route];
+    } else if (act === 'clear') [...row.p1, ...row.p2].forEach(c => { delete c.mon.route; });
+    closeRoutePop();
+    afterRouteChange();
+  });
+}
+
+// Fangort eines Pokémon (samt Partner) wählen – über das Kontextmenü am Slot. Suche filtert, eigener Ort möglich.
+function chooseRoute(rect, mons) {
+  const t = window.t, rows = routeRows(), cur = mons[0]?.route || '';
+  const opts = rows.map((r, i) => `<button type="button" class="route-pop-opt${r.route === cur ? ' is-on' : ''}" data-act="set" data-i="${i}" data-q="${esc(routeLabel(r.route).toLowerCase())}">` +
+    `<span>${esc(routeLabel(r.route))}</span>${rowDone(r) && r.route !== cur ? `<small>${esc(t('route-pop-used'))}</small>` : ''}</button>`).join('');
+  const html = `<div class="route-pop-title">${esc(t('route-pop-choose'))}</div>
+    ${routeGame() ? '' : `<p class="route-pop-note">${esc(t('routes-hint-game'))}</p>`}
+    <input type="search" class="route-pop-search" placeholder="${esc(t('route-pop-search'))}" autocomplete="off" spellcheck="false">
+    <div class="route-pop-list">${opts}<button type="button" class="route-pop-opt route-pop-custom" data-act="custom" hidden></button></div>
+    ${cur ? `<button type="button" class="route-pop-clear" data-act="none">${esc(t('route-pop-remove'))}</button>` : ''}`;
+  openRoutePop(rect, html, b => {
+    const act = b.dataset.act;
+    const route = act === 'set' ? rows[+b.dataset.i].route : act === 'custom' ? cleanRoute(b.dataset.value) : null;
+    if (act === 'custom' && !route) return;
+    if (route) fixRouteGame();
+    mons.forEach(m => { if (route) m.route = route; else delete m.route; });
+    closeRoutePop();
+    afterRouteChange();
+  });
+  const input = routePop.querySelector('.route-pop-search'), custom = routePop.querySelector('.route-pop-custom');
+  input.addEventListener('input', () => {
+    const raw = input.value.trim(), q = raw.toLowerCase();
+    let exact = false;
+    routePop.querySelectorAll('[data-q]').forEach(b => {
+      b.hidden = !!q && !b.dataset.q.includes(q);
+      if (b.dataset.q === q) exact = true;
+    });
+    custom.hidden = !raw || exact;
+    custom.dataset.value = raw;
+    custom.textContent = t('route-pop-custom', raw);
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const first = [...routePop.querySelectorAll('.route-pop-list [data-act]')].find(b => !b.hidden);
+    if (first) first.click();
+  });
+  // Am Handy nicht sofort die Tastatur öffnen
+  if (matchMedia('(hover: hover)').matches) input.focus({ preventScroll: true });
+  routePop.querySelector('.route-pop-opt.is-on')?.scrollIntoView({ block: 'nearest' });
+}
+
+document.getElementById('routes-toggle')?.addEventListener('click', () => toggleRoutes());
+document.getElementById('routes-game-select')?.addEventListener('change', e => { duoGame = cleanGame(e.target.value); saveState(); syncMyWild(true); });
+document.getElementById('routes-wild-toggle')?.addEventListener('change', e => {
+  showWild = e.target.checked;
+  try { localStorage.setItem('duo-routes-wild', showWild ? '1' : '0'); } catch (err) { /* nur nicht gemerkt */ }
+  renderRoutes();
+});
+// Randomizer-Stand dieses Geräts geladen: in die eigene Spalte (in der Session auch zum Partner)
+document.addEventListener('hubrandochange', () => { syncMyWild(); renderRoutes(); });
+document.getElementById('routes-wild-src')?.addEventListener('click', e => {
+  const b = e.target.closest('[data-wild-load], [data-wild-clear], [data-wild-mine]');
+  if (!b) return;
+  if (b.dataset.wildLoad) { wildFile.dataset.pl = b.dataset.wildLoad; wildFile.click(); return; }
+  if (b.dataset.wildClear) { wildShared[+b.dataset.wildClear] = null; saveState(); return; }
+  syncMyWild();
+});
+document.querySelectorAll('[data-route-filter]').forEach(b => b.addEventListener('click', () => { routeFilter = b.dataset.routeFilter; renderRoutes(); }));
+document.getElementById('routes-list')?.addEventListener('click', e => {
+  const b = e.target.closest('.route-edit');
+  if (!b || !routeRowsShown[+b.dataset.row]) return;
+  e.stopPropagation();
+  editRoute(b.getBoundingClientRect(), routeRowsShown[+b.dataset.row]);
+});
+// Solange der Duo-Run kein eigenes Spiel hat, folgt die Vorbelegung dem aktiven Spiel des Hubs
+document.addEventListener('hubgamechange', () => { if (!duoGame) renderRoutes(); });
+
+document.getElementById('ctx-route')?.addEventListener('click', e => {
+  if (!ctxTarget) return;
+  e.stopPropagation();
+  const { player, index, type } = ctxTarget;
+  const mon = type === 'team' ? teams[player-1][index] : boxes[player-1][index];
+  const rect = ctxMenu.getBoundingClientRect();
+  hideCtxMenu();
+  if (mon) chooseRoute(rect, [mon, linkedPartner(player, index, type)].filter(Boolean));
+});
 
 // ── Box section: drop linked pair onto header to auto-place ──────────────────
 const boxSection = document.getElementById('box-section');
@@ -2166,9 +2561,12 @@ document.addEventListener('langchange', async () => {
   renderInfoSlot(infoPokemon);
   renderTeamWeaknessPanel();
   renderInfoPanel();
+  window.PokemonTypes.fillGenSelect(document.getElementById('type-gen-select'));
   const infoSlot = document.querySelector('.info-slot[data-slot="info"]');
   if (infoSlot && !infoSlot.dataset.filled) infoSlot.textContent = window.t('info-slot-empty');
   renderGraveyard();
+  closeRoutePop();
+  renderRoutes();
   renderSyncStatus();
 });
 
@@ -2226,22 +2624,31 @@ async function applyPendingImport() {
     alert(txt.failed);
     return;
   }
-  const get = n => (n ? { ...loaded.get(n) } : null);
+  // Fangorte stehen (falls vorhanden) unter routes am gleichen Platz
+  const routes = data.routes && typeof data.routes === 'object' ? data.routes : {};
+  const get = (n, list, i) => {
+    if (!n) return null;
+    const p = { ...loaded.get(n) };
+    const r = list && Array.isArray(routes[list]) ? cleanRoute(routes[list][i]) : null;
+    if (r) p.route = r; else delete p.route;
+    return p;
+  };
 
   for (let pl = 0; pl < 2; pl++) {
     const team = data[`team${pl + 1}`], box = data[`box${pl + 1}`];
-    for (let i = 0; i < 6; i++) { teams[pl][i] = get(team[i]); renderTeamSlot(pl + 1, i, teams[pl][i]); }
-    for (let i = 0; i < 30; i++) boxes[pl][i] = get(box[i]);
+    for (let i = 0; i < 6; i++) { teams[pl][i] = get(team[i], `team${pl + 1}`, i); renderTeamSlot(pl + 1, i, teams[pl][i]); }
+    for (let i = 0; i < 30; i++) boxes[pl][i] = get(box[i], `box${pl + 1}`, i);
     graves[pl].length = 0;
   }
+  if (cleanGame(data.game)) duoGame = cleanGame(data.game);
   linkedTeamSlots.clear();
   data.team1.forEach((n, i) => { if (n && data.team2[i]) linkedTeamSlots.add(i); });
   linkedBoxSlots.clear();
   data.box1.forEach((n, i) => { if (n && data.box2[i]) linkedBoxSlots.add(i); });
   const linkBase = Date.now();   // gleiche linkId = Paar im Friedhof (wie bei „Gestorben“)
   data.graves1.forEach((n, i) => {
-    graves[0].push({ ...toDisplayPokemon(get(n)), killedBy: 0, linkId: linkBase + i });
-    graves[1].push({ ...toDisplayPokemon(get(data.graves2[i])), killedBy: 0, linkId: linkBase + i });
+    graves[0].push({ ...toDisplayPokemon(get(n, 'graves1', i)), killedBy: 0, linkId: linkBase + i });
+    graves[1].push({ ...toDisplayPokemon(get(data.graves2[i], 'graves2', i)), killedBy: 0, linkId: linkBase + i });
   });
 
   // Spielstände aus Platin → Auswahlliste und Info auf Generation 4
@@ -2265,12 +2672,22 @@ async function applyPendingImport() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+// Generation der Typen (aktives Spiel des Hubs; nur auf diesem Gerät, nicht mit dem Mitspieler geteilt)
+function refreshTypes(gen) {
+  typeGen = gen;
+  renderTeamWeaknessPanel();
+  if (activePokemonInfo) renderInfoPanel();
+}
+
 async function init() {
+  window.PokemonTypes.fillGenSelect(document.getElementById('type-gen-select'), refreshTypes);
+  window.PokemonTypes.onGenChange(document.getElementById('type-gen-select'), g => { if (g !== typeGen) refreshTypes(g); });
   initSlots();
   initBoxSlots();
   initTouchDrag();
   initSyncUI();
   await loadSavedState();
+  syncMyWild(true);   // eigenes Randomizer-Spiel in die eigene Spalte, falls dort noch keins steht
   await loadAllPokemonBasic();
   await loadPokemonList(currentGeneration);
   renderInfoSlot(infoPokemon);

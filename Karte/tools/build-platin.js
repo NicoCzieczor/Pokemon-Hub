@@ -8,6 +8,10 @@
  *  - PokeAPI-CSV-Dateien: deutsche Namen für Pokémon, Items, Attacken und Orte.
  *
  * Aufruf (Node 18+):  node build-platin.js <ausgabe-ordner> [cache-ordner]
+ *
+ * Neben platin.json entsteht encounter-areas.js: welche Encounter-Tabellen (Nummer in pl_enc_data.narc, Reihenfolge
+ * wie encounters.order bei pret) zu welchem Ort gehören – damit Run-Dashboard und Duo die wilden Pokémon einer
+ * randomisierten ROM (Bosse/rando.js) einem Ort zuordnen können. Die Karte selbst nutzt „enc“ an jedem Wild-Eintrag.
  * Der Cache-Ordner hält heruntergeladene Dateien, damit ein zweiter Lauf schnell geht.
  */
 const fs = require('fs');
@@ -334,6 +338,8 @@ function areaNames(rest, places, here) {
   }
 
   // ── Wilde Pokémon ─────────────────────────────────────────────────────────
+  // Reihenfolge der Tabellen in der ROM (pl_enc_data.narc) – so findet man sie in einer randomisierten ROM wieder
+  const encOrder = (await get(RAW + 'res/field/encounters/encounters.order')).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
   const LAND = [20, 20, 10, 10, 10, 10, 5, 5, 4, 4, 1, 1];
   const WATER = [60, 30, 5, 4, 1];
   const RODS = [40, 40, 15, 4, 1];
@@ -355,6 +361,7 @@ function areaNames(rest, places, here) {
     const e = await getJSON(`res/field/encounters/${archive}.json`, { optional: true });
     if (!e) return null;
     const out = {};
+    if (encOrder.indexOf(archive) >= 0) out.enc = encOrder.indexOf(archive);
     const land = e.land_encounters || [];
     if (e.land_rate && land.length) {
       // Morgens = Grundtabelle; tagsüber/nachts ersetzen die Plätze 3 und 4 (je 10 %)
@@ -372,7 +379,7 @@ function areaNames(rest, places, here) {
     if (e.radar?.length) out.radar = names(e.radar);
     const gba = [...(e.ruby || []), ...(e.sapphire || []), ...(e.emerald || []), ...(e.firered || []), ...(e.leafgreen || [])];
     if (gba.length) out.dualSlot = names(gba);
-    return Object.keys(out).length ? out : null;
+    return Object.keys(out).some(k => k !== 'enc') ? out : null;
   }
 
   // ── Alle Map-Header durchgehen ────────────────────────────────────────────
@@ -596,6 +603,26 @@ function areaNames(rest, places, here) {
   const data = { version: 2, source: 'pret/pokeplatinum + PokeAPI', width: W, height: H, chunk: CH, chunks: finalChunks, locations: finalLocs, markers: finalMarkers, maps, areaEn };
   const json = JSON.stringify(data);
   fs.writeFileSync(path.join(OUT, 'platin.json'), json);
+  // Ort (deutscher Name wie auf der Karte) → Encounter-Tabellen und Original-Arten (Gras, Surfen, Angeln; häufigste zuerst)
+  // Bereiche, die in Nuzlocke-Routenlisten eigene Orte sind (auf der Karte Teil eines anderen Ortes)
+  const SUBPLACES = [['Turm der Ruhenden', 'Lost Tower']];   // Stockwerke in Route 209
+  const areas = {};
+  const WILD_KEYS = ['morning', 'day', 'night', 'surf', 'oldRod', 'goodRod', 'superRod'];
+  for (const l of finalLocs) {
+    for (const w of l.wild) {
+      const sub = SUBPLACES.find(([de]) => (w.area || '').startsWith(de));
+      const key = sub ? sub[0] : l.de;
+      const a = areas[key] || (areas[key] = { en: sub ? sub[1] : l.en, enc: [], orig: [] });
+      if (w.enc >= 0 && !a.enc.includes(w.enc)) a.enc.push(w.enc);
+      for (const k of WILD_KEYS) for (const s of w[k] || []) if (s.id && !a.orig.includes(s.id)) a.orig.push(s.id);
+    }
+  }
+  for (const k of Object.keys(areas)) if (!areas[k].enc.length) delete areas[k];
+  fs.writeFileSync(path.join(OUT, 'encounter-areas.js'), [
+    '/* Automatisch erzeugt von tools/build-platin.js – Ort → Encounter-Tabellen in pl_enc_data.narc (Platin) */',
+    'window.PT_ENCOUNTER_AREAS = ' + JSON.stringify(areas) + ';',
+    ''
+  ].join(String.fromCharCode(10)));
   const count = k => finalMarkers.filter(m => m.k === k).length;
   console.log(`Fertig: ${finalLocs.length} Orte, ${finalLocs.reduce((s, l) => s + l.items.length, 0)} Items, ${finalLocs.reduce((s, l) => s + l.trainers.length, 0)} Trainer`);
   console.log(`  Marker auf der Oberwelt: Items ${count('item')}, TMs ${count('tm')}, versteckt ${count('hidden')}, Geschenke ${count('gift')}, Trainer ${count('trainer')}, Eingänge ${count('entrance')}`);

@@ -68,6 +68,46 @@ test('Friedhof: neue Einträge beider Seiten, Löschen und Schuld-Änderung', ()
   assert.deepEqual(names, ['rattata:1', 'onix:2', 'geodude:0']);
 });
 
+test('Routen: Fangort, Spiel und verpasste Routen werden geprüft', () => {
+  const ctrl = String.fromCharCode(7);
+  assert.equal(cleanMon({ ...mon('bulbasaur'), route: ' Route' + ctrl + ' 201 ' }).route, 'Route 201');
+  assert.equal(cleanMon({ ...mon('bulbasaur'), route: 'x'.repeat(80) }).route.length, 40);
+  assert.equal('route' in cleanMon({ ...mon('bulbasaur'), route: 42 }), false);
+  assert.equal(cleanGrave({ ...mon('rattata', 19), killedBy: 1, route: 'Route 202' }).route, 'Route 202');
+  const s = cleanSharedState({ game: 'platin', routeMarks: { 'Route 203': 1, 'Route 204': 3, 'Route 205': 9, '': 1 } });
+  assert.equal(s.game, 'platin');
+  assert.deepEqual(s.routeMarks, { 'Route 203': 1, 'Route 204': 3 });
+  assert.equal(cleanSharedState({ game: '<script>' }).game, '');
+  assert.equal('game' in cleanSharedState({}), false);   // alter Stand ohne Spiel: Feld fehlt, wird nicht geleert
+});
+
+test('Routen zusammenführen: Fangort am selben Pokémon, verpasst und Spiel von beiden Seiten', () => {
+  const base = empty();
+  base.team1[0] = mon('bulbasaur'); base.team2[0] = mon('squirtle', 7);
+  base.game = ''; base.routeMarks = { 'Route 202': 1 };
+  const local = structuredClone(base);     // ich: Fangort am Paar, Route 202 doch nicht verpasst
+  local.team1[0].route = local.team2[0].route = 'Route 201';
+  delete local.routeMarks['Route 202'];
+  local.game = 'platin';
+  const server = structuredClone(base);    // Partner: Route 203 verpasst, Fangort im Friedhof
+  server.routeMarks['Route 203'] = 2;
+  server.graves1 = [{ ...mon('rattata', 19), killedBy: 0, route: 'Route 204' }];
+  const m = mergeSharedState(base, local, server);
+  assert.equal(m.team1[0].route, 'Route 201');
+  assert.equal(m.team2[0].route, 'Route 201');
+  assert.deepEqual(m.routeMarks, { 'Route 203': 2 });
+  assert.equal(m.game, 'platin');
+  assert.equal(m.graves1[0].route, 'Route 204');
+
+  // Fangort im Friedhof hier geändert, Partner hat nichts daran gemacht → eigener gewinnt
+  const b2 = empty(); b2.graves1 = [{ ...mon('rattata', 19), killedBy: 0, linkId: 3, route: 'Route 204' }];
+  const l2 = structuredClone(b2); l2.graves1[0].route = 'Route 205';
+  assert.equal(mergeSharedState(b2, l2, structuredClone(b2)).graves1[0].route, 'Route 205');
+  // Spiel nur beim Partner geändert → seins
+  const b3 = { ...empty(), game: 'platin' };
+  assert.equal(mergeSharedState(b3, structuredClone(b3), { ...structuredClone(b3), game: 'heartgold-soulsilver' }).game, 'heartgold-soulsilver');
+});
+
 test('ohne bekannten Ausgangsstand gilt die Datenbank (Partner-Stand wird nicht überschrieben)', () => {
   const local = empty(); local.team1[2] = mon('pidgey', 16);
   const server = empty(); server.team2[0] = mon('caterpie', 10);
@@ -76,4 +116,17 @@ test('ohne bekannten Ausgangsstand gilt die Datenbank (Partner-Stand wird nicht 
   assert.equal(m.team1[2], null);
   assert.equal(m.team2[0].name, 'caterpie');
   assert.deepEqual(m.graves1.map(g => g.name), ['rattata']);
+});
+
+test('Duo: wilde Pokémon je Spieler werden geprüft und je Spieler zusammengeführt', async () => {
+  const { cleanWild } = await import('../Duo/shared-state.js');
+  assert.deepEqual(cleanWild({ name: 'a.nds', r: { 'Route 201': [396, 396, 0, 600, 'x', 25], '': [1] } }), { name: 'a.nds', r: { 'Route 201': [396, 25] } });
+  assert.equal(cleanWild({ name: 'a' }), null);
+  const base = { ...empty(), wild1: null, wild2: { name: 'p2', r: { 'Route 201': [1] } } };
+  const local = { ...structuredClone(base), wild1: { name: 'mein', r: { 'Route 201': [25] } } };   // ich teile mein Spiel
+  const server = { ...structuredClone(base), wild2: { name: 'p2-neu', r: { 'Route 201': [4] } } };  // Partner würfelt neu
+  const m = mergeSharedState(base, local, server);
+  assert.equal(m.wild1.name, 'mein');
+  assert.equal(m.wild2.name, 'p2-neu');
+  assert.equal('wild1' in cleanSharedState({}), false);   // alter Stand ohne Feld: nichts überschreiben
 });

@@ -120,6 +120,8 @@ header p { margin: 0; color: var(--color-muted); }
 .sr-main { font-weight: 700; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sr small { color: var(--color-muted); font-size: 0.74rem; white-space: nowrap; }
 .sr-empty { padding: 10px; color: var(--color-muted); font-size: 0.86rem; }
+.sr--off .sr-main { color: var(--color-muted); }
+.sr--off .sr-ico { opacity: 0.55; }
 
 .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
@@ -439,6 +441,30 @@ header p { margin: 0; color: var(--color-muted); }
 .extra-label { color: var(--color-muted); font-weight: 700; }
 .extra-mon { display: inline-flex; align-items: center; margin-right: 4px; }
 .extra-mon img { width: 26px; height: 26px; margin: -4px 0; border-radius: 0; image-rendering: pixelated; }
+/* Gesuchtes Pokémon in „Wilde Pokémon“ (vom Pokémon-Panel aus geöffnet) */
+.wild-table tr.is-flash td { background: rgba(var(--t-acc2), 0.16); }
+.wild-table tr.is-flash td:first-child { border-radius: 8px 0 0 8px; }
+.wild-table tr.is-flash td:last-child { border-radius: 0 8px 8px 0; }
+.extra-mon.is-flash { border-radius: 8px; background: rgba(var(--t-acc2), 0.16); padding-right: 4px; }
+
+/* Pokémon-Panel: alle Orte, an denen es wild vorkommt */
+.back-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.mon-head { display: flex; align-items: center; gap: 4px; }
+.mon-head img { width: 56px; height: 56px; margin: -6px -2px -6px -6px; border-radius: 0; image-rendering: pixelated; pointer-events: none; }
+.side-head a.mini-btn { text-decoration: none; }
+.mon-places { display: flex; flex-direction: column; gap: 6px; }
+.mon-place {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px; width: 100%;
+  padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(var(--t-ink), 0.09); background: rgba(var(--t-ink), 0.03);
+  color: var(--color-text); font: inherit; text-align: left; cursor: pointer;
+}
+.mon-place:hover { border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
+.mp-name { font-weight: 800; font-size: 0.86rem; color: rgb(var(--t-white)); }
+.mp-name small { margin-left: 6px; font-weight: 600; font-size: 0.7rem; color: var(--color-muted); }
+.mp-methods { display: flex; flex-wrap: wrap; gap: 4px; }
+.mp-chip { padding: 2px 8px; border-radius: 999px; background: rgba(var(--t-ink), 0.06); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+.mp-chip b { font-weight: 700; color: var(--color-muted); }
+.mp-chip.is-special { background: transparent; border: 1px dashed rgba(var(--t-ink), 0.22); color: var(--color-muted); }
 
 .lang-toggle {
   position: fixed;
@@ -472,3 +498,13 @@ header p { margin: 0; color: var(--color-muted); }
   .filter-chips::-webkit-scrollbar { display: none; }
   .chip { flex-shrink: 0; }
 }
+
+/* Randomizer: Chip im Kopf, Schalter „Gewürfelt / Original“ über den wilden Pokémon */
+.map-rando { margin-top: 10px; }
+.map-rando:empty { display: none; }
+.wild-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 10px; }
+.wild-mode small { color: var(--color-muted); font-size: 0.74rem; }
+.wild-mode-seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 10px; background: rgba(var(--t-ink), 0.06); }
+.wild-mode-btn { padding: 5px 11px; border: 0; border-radius: 8px; background: none; color: var(--color-muted); font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+.wild-mode-btn.is-on { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
+.wild-rando-note { margin: 0 0 10px; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(var(--t-acc2), 0.35); background: rgba(var(--t-acc2), 0.08); font-size: 0.78rem; line-height: 1.4; }

@@ -31,28 +31,11 @@ const TYPE_CARD_RGB = {
   steel:'160,160,175',  fairy:'240,140,170',
 };
 
-// ── Type chart ────────────────────────────────────────────────────────────────
-const ALL_TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
-const TYPE_CHART = {
-  normal:   { rock:0.5, ghost:0, steel:0.5 },
-  fire:     { grass:2, ice:2, bug:2, steel:2, fire:0.5, rock:0.5, water:0.5, dragon:0.5 },
-  water:    { fire:2, ground:2, rock:2, water:0.5, grass:0.5, dragon:0.5 },
-  electric: { water:2, flying:2, electric:0.5, grass:0.5, dragon:0.5, ground:0 },
-  grass:    { water:2, ground:2, rock:2, fire:0.5, grass:0.5, poison:0.5, flying:0.5, bug:0.5, dragon:0.5, steel:0.5 },
-  ice:      { grass:2, ground:2, flying:2, dragon:2, fire:0.5, water:0.5, ice:0.5, steel:0.5 },
-  fighting: { normal:2, ice:2, rock:2, dark:2, steel:2, poison:0.5, flying:0.5, psychic:0.5, bug:0.5, fairy:0.5, ghost:0 },
-  poison:   { grass:2, fairy:2, poison:0.5, ground:0.5, rock:0.5, ghost:0.5, steel:0 },
-  ground:   { fire:2, electric:2, poison:2, rock:2, steel:2, grass:0.5, bug:0.5, flying:0 },
-  flying:   { grass:2, fighting:2, bug:2, electric:0.5, rock:0.5, steel:0.5 },
-  psychic:  { fighting:2, poison:2, psychic:0.5, steel:0.5, dark:0 },
-  bug:      { grass:2, psychic:2, dark:2, fire:0.5, fighting:0.5, poison:0.5, flying:0.5, ghost:0.5, steel:0.5, fairy:0.5 },
-  rock:     { fire:2, ice:2, flying:2, bug:2, fighting:0.5, ground:0.5, steel:0.5 },
-  ghost:    { psychic:2, ghost:2, dark:0.5, normal:0 },
-  dragon:   { dragon:2, steel:0.5, fairy:0 },
-  dark:     { psychic:2, ghost:2, fighting:0.5, dark:0.5, fairy:0.5 },
-  steel:    { ice:2, rock:2, fairy:2, fire:0.5, water:0.5, electric:0.5, steel:0.5 },
-  fairy:    { fighting:2, dragon:2, dark:2, fire:0.5, poison:0.5, steel:0.5 },
-};
+// ── Typen der gewählten Generation („Typen wie in“, ../pokemon-types.js) ─────────
+// Typentabelle und alte Typen (z. B. Togekiss vor Gen 6 Normal/Flug) wie im Schadens-Rechner
+let typeGen = window.PokemonTypes.getGen();
+const typesOf = p => window.PokemonTypes.typesInGen(p, typeGen);
+const genTypes = () => window.PokemonTypes.typeList(typeGen);
 
 // ── Tooltip system ────────────────────────────────────────────────────────────
 const DAMAGE_CLASS_KEY = { physical: 'physical', special: 'special-class', status: 'status-class' };
@@ -138,12 +121,7 @@ function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function listName(id, name) { return window.pokemonName(id, name) || capitalize(name); }
 function formatLabel(t) { return t.split('-').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function getDisplayName(name) { return allPokemonList.find(p => p.name===name)?.displayName || capitalize(name); }
-function getTypeEffectiveness(atk, defs) {
-  const chart = TYPE_CHART[atk] || {};
-  let m = 1;
-  for (const d of defs) m *= chart[d] !== undefined ? chart[d] : 1;
-  return m;
-}
+function getTypeEffectiveness(atk, defs) { return window.PokemonTypes.effectiveness(atk, defs, typeGen); }
 
 const evolutionItemNames = {
   de: {
@@ -308,12 +286,13 @@ function getGenerationVersionGroups(gen) {
   return ({ 1:['red-blue','yellow'], 2:['gold-silver','crystal'], 3:['ruby-sapphire','emerald','firered-leafgreen'], 4:['diamond-pearl','platinum','heartgold-soulsilver'], 5:['black-white','black-2-white-2'], 6:['x-y','omega-ruby-alpha-sapphire'], 7:['sun-moon','ultra-sun-ultra-moon','lets-go-pikachu-lets-go-eevee'], 8:['sword-shield','isle-of-armor','crown-tundra'], 9:['scarlet-violet'] })[gen] || ['red-blue','yellow'];
 }
 
-function findFirstGenWithMoves(pokemon) {
+function hasMovesInGen(pokemon, g) {
   const moves = Array.isArray(pokemon.moves) ? pokemon.moves : [];
-  for (let g = 1; g <= 9; g++) {
-    const vg = getGenerationVersionGroups(g);
-    if (moves.some(m => (m.version_group_details||[]).some(d => vg.includes(d.version_group?.name)))) return g;
-  }
+  const vg = getGenerationVersionGroups(g);
+  return moves.some(m => (m.version_group_details||[]).some(d => vg.includes(d.version_group?.name)));
+}
+function findFirstGenWithMoves(pokemon) {
+  for (let g = 1; g <= 9; g++) if (hasMovesInGen(pokemon, g)) return g;
   return 1;
 }
 
@@ -380,7 +359,7 @@ function renderTeamSlot(index, details) {
   if (details) {
     slot.dataset.filled = 'true';
     const name = esc(details.germanName || capitalize(details.name));
-    applySlotTypeStyle(slot, details.types || [], 1.0);
+    applySlotTypeStyle(slot, typesOf(details), 1.0);
     slot.innerHTML = `<div style="text-align:center" draggable="false"><img src="${esc(details.sprite)}" alt="${name}" style="width:60px;height:60px" draggable="false"><div style="font-size:13px" draggable="false">${name}</div></div>`;
   } else {
     slot.removeAttribute('data-filled');
@@ -410,7 +389,7 @@ function updateBoxSlots() {
     const p = boxPokemon[i];
     if (p) {
       const name = esc(p.germanName || capitalize(p.name));
-      applySlotTypeStyle(slot, p.types || [], 1.0);
+      applySlotTypeStyle(slot, typesOf(p), 1.0);
       slot.innerHTML = `<img src="${esc(p.sprite)}" alt="${name}" style="width:40px;height:40px;image-rendering:pixelated"><div style="font-size:0.65rem;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56px;margin-top:2px">${name}</div>`;
       slot.dataset.filled = 'true';
     } else {
@@ -429,14 +408,14 @@ function renderCoverageSection(allActive) {
   if (!allActive.length) return null;
 
   const weakCount = {};
-  ALL_TYPES.forEach(atk => {
-    weakCount[atk] = allActive.filter(p => getTypeEffectiveness(atk, p.types||[]) >= 2).length;
+  genTypes().forEach(atk => {
+    weakCount[atk] = allActive.filter(p => getTypeEffectiveness(atk, typesOf(p)) >= 2).length;
   });
 
-  const recs = ALL_TYPES.map(defType => {
+  const recs = genTypes().map(defType => {
     let score = 0;
     const covers = [];
-    ALL_TYPES.forEach(atk => {
+    genTypes().forEach(atk => {
       if (!weakCount[atk]) return;
       const m = getTypeEffectiveness(atk, [defType]);
       if (m < 1) {
@@ -551,7 +530,7 @@ function renderTeamWeaknessPanel() {
   });
   table.appendChild(header);
 
-  ALL_TYPES.forEach(atk => {
+  genTypes().forEach(atk => {
     const row = document.createElement('div');
     row.className = 'weakness-row';
     const lbl = document.createElement('div');
@@ -559,7 +538,7 @@ function renderTeamWeaknessPanel() {
     lbl.textContent = window.typeLabel(atk);
     row.appendChild(lbl);
     active.forEach(p => {
-      const mult = getTypeEffectiveness(atk, Array.isArray(p.types)?p.types:[]);
+      const mult = getTypeEffectiveness(atk, typesOf(p));
       const cell = document.createElement('div');
       cell.className = 'weakness-cell';
       if (mult===0)       { cell.textContent='✕';  cell.classList.add('eff-immune'); }
@@ -576,10 +555,10 @@ function renderTeamWeaknessPanel() {
   const summary = document.createElement('div');
   summary.className = 'weakness-summary';
   const weaknesses = [], immunities = [];
-  ALL_TYPES.forEach(atk => {
+  genTypes().forEach(atk => {
     let w = 0, im = 0;
     active.forEach(p => {
-      const m = getTypeEffectiveness(atk, Array.isArray(p.types)?p.types:[]);
+      const m = getTypeEffectiveness(atk, typesOf(p));
       if (m >= 2) w++; else if (m === 0) im++;
     });
     if (w)  weaknesses.push({ type:atk, count:w });
@@ -641,12 +620,21 @@ async function renderInfoPanel() {
     infoContent.appendChild(Object.assign(document.createElement('div'), { id:'info-placeholder', className:'info-row', textContent:window.t('info-placeholder') }));
     return;
   }
+  // Ohne eigene Wahl: die Generation aus „Typen wie in“, wenn es dort Attacken hat – sonst die erste mit Attacken
+  if (!infoGenLocked) {
+    const gen = hasMovesInGen(activePokemonInfo, typeGen) ? typeGen : findFirstGenWithMoves(activePokemonInfo);
+    if (gen !== infoGeneration) {
+      infoGeneration = gen;
+      const sel = document.getElementById('info-generation-select');
+      if (sel) sel.value = String(gen);
+    }
+  }
   const header = document.createElement('div');
   header.className = 'info-row';
   header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${esc(activePokemonInfo.germanName||formatLabel(activePokemonInfo.name))}</div><div style="opacity:.75">#${esc(activePokemonInfo.id)}</div>`;
   const types = document.createElement('div');
   types.className = 'info-types';
-  (Array.isArray(activePokemonInfo.types)?activePokemonInfo.types:[]).forEach(t => {
+  window.PokemonTypes.typesInGen(activePokemonInfo, infoGeneration).forEach(t => {
     types.appendChild(Object.assign(document.createElement('span'), { className:'info-type', textContent:window.typeLabel(t)||formatLabel(t) }));
   });
   const statsGrid = document.createElement('div');
@@ -659,7 +647,7 @@ async function renderInfoPanel() {
     specialDefense:{label:window.t('stat-sp-def'),css:'stat-sp-def'},
     speed:{label:window.t('stat-speed'),css:'stat-speed'},
   };
-  Object.entries(activePokemonInfo.stats||{}).forEach(([k,v]) => {
+  Object.entries(window.PokemonTypes.statsInGen(activePokemonInfo, infoGeneration)).forEach(([k,v]) => {
     const m = statMeta[k]||{ label:formatLabel(k), css:'' };
     const s = Object.assign(document.createElement('div'), { className:`info-stat ${m.css}`.trim() });
     s.innerHTML = `<strong>${esc(m.label)}</strong><br>${esc(v)}`;
@@ -683,15 +671,6 @@ async function renderInfoPanel() {
     abilitiesList.appendChild(tag);
   });
 
-  // Auto-select first gen with moves if not locked
-  if (!infoGenLocked) {
-    const firstGen = findFirstGenWithMoves(activePokemonInfo);
-    if (firstGen !== infoGeneration) {
-      infoGeneration = firstGen;
-      const sel = document.getElementById('info-generation-select');
-      if (sel) sel.value = String(firstGen);
-    }
-  }
 
   // Evo chain
   const evoTitle = Object.assign(document.createElement('div'), { textContent:window.t('evolution') });
@@ -1366,13 +1345,25 @@ document.addEventListener('langchange', async () => {
   renderInfoSlot(infoPokemon);
   renderTeamWeaknessPanel();
   renderInfoPanel();
+  window.PokemonTypes.fillGenSelect(document.getElementById('type-gen-select'));
 
   const infoSlot = document.querySelector('.info-slot[data-slot="info"]');
   if (infoSlot && !infoSlot.dataset.filled) infoSlot.textContent = window.t('info-slot-empty');
 });
 
+// ── Generation der Typen ──────────────────────────────────────────────────────
+function refreshTypes(gen) {
+  typeGen = gen;
+  teamPokemon.forEach((p, i) => renderTeamSlot(i, p));
+  if (boxOpen) updateBoxSlots();
+  renderTeamWeaknessPanel();
+  if (activePokemonInfo) renderInfoPanel();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
+  window.PokemonTypes.fillGenSelect(document.getElementById('type-gen-select'), refreshTypes);
+  window.PokemonTypes.onGenChange(document.getElementById('type-gen-select'), g => { if (g !== typeGen) refreshTypes(g); });
   initSlots();
   initBoxSlots();
   initTouchDrag();

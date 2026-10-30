@@ -119,7 +119,11 @@
       <section class="panel">
         <div class="panel-header">
           <h2 class="panel-title" data-i18n="encounterTracker">Encounter Tracker</h2>
-          <button id="randomizer-toggle" class="btn randomizer-toggle" type="button" aria-pressed="false" data-i18n="randomizer">randomizer</button>
+          <div class="panel-actions">
+            <button id="eevee-toggle" class="btn randomizer-toggle" type="button" aria-pressed="false" data-i18n="eeveeToggle" data-i18n-title="eeveeToggleTitle" title="Dupes-Klausel: Jede Evoli-Entwicklung zählt als eigene Art">Evoli-Ausnahme</button>
+            <button id="randomizer-toggle" class="btn randomizer-toggle" type="button" aria-pressed="false" data-i18n="randomizer">randomizer</button>
+            <span id="rando-state-slot" class="rd-rando" hidden></span>
+          </div>
         </div>
 
         <form id="encounter-form" class="encounter-form">
@@ -182,8 +186,21 @@
           <div id="graveyard-preview" class="pokemon-preview"></div>
           <div id="graveyard-list" class="tag-list"></div>
         </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title" data-i18n="notesTitle">Run-Notizen</h2>
+          </div>
+          <textarea id="run-notes" maxlength="20000" placeholder="Strategien, Regeln, besondere Encounters..." data-i18n-placeholder="notesPlaceholder" data-i18n-aria="notesTitle" aria-label="Run-Notizen"></textarea>
+        </section>
       </aside>
     </main>
+
+    <!-- Nach dem Löschen: ein paar Sekunden „Rückgängig“ -->
+    <div id="undo-toast" class="undo-toast" role="status" aria-live="polite" hidden>
+      <span id="undo-text"></span>
+      <button id="undo-btn" class="btn" type="button" data-i18n="undo">Rückgängig</button>
+    </div>
 
     <!-- Reset dezent am Seitenende statt als eigene Karte in der Seitenleiste -->
     <footer class="run-footer">
@@ -265,6 +282,9 @@
   </div>
 
   <script src="../pokemon-names.js"></script>
+  <script src="../locations.js"></script>
+  <script src="../rando-state.js"></script>
+  <script src="../Karte/encounter-areas.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

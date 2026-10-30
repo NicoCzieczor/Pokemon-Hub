@@ -5,6 +5,9 @@ function getLang() { return (typeof window !== 'undefined' ? window.LANG : null)
 const pokemonCache  = new Map();
 const speciesCache  = new Map();
 
+const GEN_ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix'];
+const STAT_KEYS = { 'special-attack': 'specialAttack', 'special-defense': 'specialDefense' };
+
 // Einzelnes Pokémon abrufen (per ID oder Name)
 export async function getPokemon(idOrName) {
   const key = String(idOrName).toLowerCase();
@@ -29,6 +32,11 @@ export async function getPokemon(idOrName) {
       specialDefense: data.stats[4].base_stat,
       speed:          data.stats[5].base_stat,
     },
+    // Basiswerte früherer Generationen (PokéAPI: „generation“ = letzte, in der sie galten; Gen 1: „special“)
+    pastStats: (data.past_stats || []).map(e => ({
+      gen: GEN_ROMAN.indexOf(e.generation.name.replace('generation-', '')) + 1,
+      stats: Object.fromEntries(e.stats.map(s => [STAT_KEYS[s.stat.name] || s.stat.name, s.base_stat])),
+    })),
     height: data.height,
     weight: data.weight,
     moves: data.moves,

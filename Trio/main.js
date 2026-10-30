@@ -3,34 +3,17 @@ import { getPokemon, getGenerationList, getPokemonSpecies, getMoveGermanName, ge
 // Ketten-Symbol für verknüpfte Pokémon (statt Emoji, Farbe aus der Schrift)
 const CHAIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
 
-// ── Type chart ───────────────────────────────────────────────────────────────
-const ALL_TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+// ── Typen der gewählten Generation („Typen wie in“, ../pokemon-types.js) ─────────
+// Typentabelle und alte Typen (z. B. Togekiss vor Gen 6 Normal/Flug) wie im Schadens-Rechner
+let typeGen = window.PokemonTypes.getGen();
+const typesOf = p => window.PokemonTypes.typesInGen(p, typeGen);
+const genTypes = () => window.PokemonTypes.typeList(typeGen);
 const TYPE_GERMAN = {
   normal:'Normal', fire:'Feuer', water:'Wasser', electric:'Elektro',
   grass:'Pflanze', ice:'Eis', fighting:'Kampf', poison:'Gift',
   ground:'Boden', flying:'Flug', psychic:'Psycho', bug:'Käfer',
   rock:'Gestein', ghost:'Geist', dragon:'Drache', dark:'Unlicht',
   steel:'Stahl', fairy:'Fee',
-};
-const TYPE_CHART = {
-  normal:   { rock:0.5, ghost:0, steel:0.5 },
-  fire:     { grass:2, ice:2, bug:2, steel:2, fire:0.5, rock:0.5, water:0.5, dragon:0.5 },
-  water:    { fire:2, ground:2, rock:2, water:0.5, grass:0.5, dragon:0.5 },
-  electric: { water:2, flying:2, electric:0.5, grass:0.5, dragon:0.5, ground:0 },
-  grass:    { water:2, ground:2, rock:2, fire:0.5, grass:0.5, poison:0.5, flying:0.5, bug:0.5, dragon:0.5, steel:0.5 },
-  ice:      { grass:2, ground:2, flying:2, dragon:2, fire:0.5, water:0.5, ice:0.5, steel:0.5 },
-  fighting: { normal:2, ice:2, rock:2, dark:2, steel:2, poison:0.5, flying:0.5, psychic:0.5, bug:0.5, fairy:0.5, ghost:0 },
-  poison:   { grass:2, fairy:2, poison:0.5, ground:0.5, rock:0.5, ghost:0.5, steel:0 },
-  ground:   { fire:2, electric:2, poison:2, rock:2, steel:2, grass:0.5, bug:0.5, flying:0 },
-  flying:   { grass:2, fighting:2, bug:2, electric:0.5, rock:0.5, steel:0.5 },
-  psychic:  { fighting:2, poison:2, psychic:0.5, steel:0.5, dark:0 },
-  bug:      { grass:2, psychic:2, dark:2, fire:0.5, fighting:0.5, poison:0.5, flying:0.5, ghost:0.5, steel:0.5, fairy:0.5 },
-  rock:     { fire:2, ice:2, flying:2, bug:2, fighting:0.5, ground:0.5, steel:0.5 },
-  ghost:    { psychic:2, ghost:2, dark:0.5, normal:0 },
-  dragon:   { dragon:2, steel:0.5, fairy:0 },
-  dark:     { psychic:2, ghost:2, fighting:0.5, dark:0.5, fairy:0.5 },
-  steel:    { ice:2, rock:2, fairy:2, fire:0.5, water:0.5, electric:0.5, steel:0.5 },
-  fairy:    { fighting:2, dragon:2, dark:2, fire:0.5, poison:0.5, steel:0.5 },
 };
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -57,12 +40,7 @@ function listName(id, name) { return window.pokemonName(id, name) || capitalize(
 function formatLabel(t) { return t.split('-').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function getDisplayName(name) { return allPokemonList.find(p => p.name===name)?.displayName || capitalize(name); }
 function nextPlayer(cur, steps = 1) { return ((cur - 1 + steps) % 3) + 1; }
-function getTypeEffectiveness(atk, defs) {
-  const chart = TYPE_CHART[atk] || {};
-  let m = 1;
-  for (const d of defs) m *= chart[d] !== undefined ? chart[d] : 1;
-  return m;
-}
+function getTypeEffectiveness(atk, defs) { return window.PokemonTypes.effectiveness(atk, defs, typeGen); }
 
 const evolutionItemNames = {
   'fire-stone':'Feuerstein','water-stone':'Wasserstein','thunder-stone':'Donnerstein',
@@ -244,7 +222,7 @@ function renderTeamWeaknessPanel() {
   table.appendChild(header);
 
   // Type rows
-  ALL_TYPES.forEach(atk => {
+  genTypes().forEach(atk => {
     const row = document.createElement('div');
     row.className = 'weakness-row';
     const lbl = document.createElement('div');
@@ -254,7 +232,7 @@ function renderTeamWeaknessPanel() {
     groups.forEach((g, gi) => {
       if (gi > 0) row.appendChild(Object.assign(document.createElement('div'), { className:'weakness-divider' }));
       g.active.forEach(p => {
-        const mult = getTypeEffectiveness(atk, Array.isArray(p.types)?p.types:[]);
+        const mult = getTypeEffectiveness(atk, typesOf(p));
         const cell = document.createElement('div');
         cell.className = 'weakness-cell';
         if (mult===0)       { cell.textContent='✕';  cell.classList.add('eff-immune'); }
@@ -275,10 +253,10 @@ function renderTeamWeaknessPanel() {
     block.className = 'weakness-summary-player';
     block.appendChild(Object.assign(document.createElement('div'), { className:`weakness-summary-title ${cls}`, textContent:label }));
     const weaknesses = [], immunities = [];
-    ALL_TYPES.forEach(atk => {
+    genTypes().forEach(atk => {
       let w=0, im=0;
       active.forEach(p => {
-        const m = getTypeEffectiveness(atk, Array.isArray(p.types)?p.types:[]);
+        const m = getTypeEffectiveness(atk, typesOf(p));
         if (m>=2) w++; else if (m===0) im++;
       });
       if (w)  weaknesses.push({ type:atk, count:w });
@@ -335,13 +313,13 @@ async function renderInfoPanel() {
   header.innerHTML = `<div style="font-size:1.05rem;font-weight:700">${esc(activePokemonInfo.germanName||formatLabel(activePokemonInfo.name))}</div><div style="opacity:.75">#${esc(activePokemonInfo.id)}</div>`;
   const types = document.createElement('div');
   types.className = 'info-types';
-  (Array.isArray(activePokemonInfo.types)?activePokemonInfo.types:[]).forEach(t => {
-    types.appendChild(Object.assign(document.createElement('span'), { className:'info-type', textContent:formatLabel(t) }));
+  window.PokemonTypes.typesInGen(activePokemonInfo, infoGeneration).forEach(t => {
+    types.appendChild(Object.assign(document.createElement('span'), { className:'info-type', textContent:TYPE_GERMAN[t]||formatLabel(t) }));
   });
   const statsGrid = document.createElement('div');
   statsGrid.className = 'info-stats';
   const statMeta = { hp:{label:'KP',css:'stat-hp'}, attack:{label:'Angriff',css:'stat-attack'}, defense:{label:'Verteidigung',css:'stat-defense'}, specialAttack:{label:'Spezial-Angriff',css:'stat-sp-atk'}, specialDefense:{label:'Spezial-Verteidigung',css:'stat-sp-def'}, speed:{label:'Initiative',css:'stat-speed'} };
-  Object.entries(activePokemonInfo.stats||{}).forEach(([k,v]) => {
+  Object.entries(window.PokemonTypes.statsInGen(activePokemonInfo, infoGeneration)).forEach(([k,v]) => {
     const m = statMeta[k]||{ label:formatLabel(k), css:'' };
     const s = Object.assign(document.createElement('div'), { className:`info-stat ${m.css}`.trim() });
     s.innerHTML = `<strong>${esc(m.label)}</strong><br>${esc(v)}`;
@@ -479,8 +457,6 @@ async function loadSavedState() {
       currentGeneration = Number(state.generation)||1;
       const gs = document.getElementById('generation-select');
       if (gs) gs.value = String(currentGeneration);
-      const igs = document.getElementById('info-generation-select');
-      if (igs) igs.value = String(currentGeneration);
     }
     for (let pl=1; pl<=3; pl++) {
       const saved = state[`team${pl}`];
@@ -776,7 +752,24 @@ const infoGenSelect = document.getElementById('info-generation-select');
 if (infoGenSelect) infoGenSelect.addEventListener('change', e=>{ infoGeneration=Number(e.target.value)||1; renderInfoPanel(); });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+// Generation der Typen (aktives Spiel des Hubs, wie im Schadens-Rechner)
+// Das Info-Panel folgt der Generation (eigene Wahl dort bis zum nächsten Wechsel hier)
+function setInfoGen(gen) {
+  infoGeneration = gen;
+  const igs = document.getElementById('info-generation-select');
+  if (igs) igs.value = String(gen);
+}
+function refreshTypes(gen) {
+  typeGen = gen;
+  setInfoGen(gen);
+  renderTeamWeaknessPanel();
+  if (activePokemonInfo) renderInfoPanel();
+}
+
 async function init() {
+  window.PokemonTypes.fillGenSelect(document.getElementById('type-gen-select'), refreshTypes);
+  window.PokemonTypes.onGenChange(document.getElementById('type-gen-select'), g => { if (g !== typeGen) refreshTypes(g); });
+  setInfoGen(typeGen);
   initSlots();
   initBoxSlots();
   await loadSavedState();

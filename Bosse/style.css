@@ -91,9 +91,25 @@ header p { margin: 0; color: var(--color-muted); }
 }
 .save-tab small { color: var(--color-muted); font-weight: 600; }
 .save-tab.is-on { border-color: var(--color-accent-strong); background: rgba(var(--t-ink), 0.06); }
+/* Eigenes Team: Chips zum Bearbeiten, Hinweis zu den Annahmen */
+.team-chip.is-manual > span { cursor: pointer; }
+.team-chip.is-manual:hover { border-color: rgb(var(--t-acc2)); }
+.manual-note { flex-basis: 100%; margin: 2px 0 0; font-size: 0.74rem; color: var(--color-muted); }
+.manual-note.is-warn { color: rgb(var(--t-c-ffd23f)); }
+.editor-dialog { max-width: 520px; }
+.editor-body { display: grid; gap: 12px; overflow-y: auto; }
+.editor-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.editor-field { display: grid; gap: 4px; font-size: 0.74rem; font-weight: 700; color: var(--color-muted); }
+.editor-field input, .editor-field select { width: 100%; }
+.editor-moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.editor-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.editor-head { display: flex; align-items: center; gap: 10px; }
+.editor-head img { width: 64px; height: 64px; image-rendering: pixelated; margin: -8px 0; }
+.editor-hint { margin: 0; font-size: 0.76rem; color: var(--color-muted); }
+@media (max-width: 480px) { .editor-moves { grid-template-columns: minmax(0, 1fr); } }
 .team-opts { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
 .opt { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--color-muted); font-weight: 700; }
-.opt select, .fight-select, .trainer-search {
+.opt select, .fight-select, .trainer-search, .editor-field input, .editor-field select {
   padding: 6px 10px;
   border-radius: 10px;
   border: 1px solid rgba(var(--t-ink), 0.16);
@@ -102,7 +118,7 @@ header p { margin: 0; color: var(--color-muted); }
   font: inherit;
   font-size: 0.82rem;
 }
-.opt select option, .fight-select option { background: rgb(var(--t-n-16193f)); }
+.opt select option, .fight-select option, .editor-field option, .editor-field optgroup { background: rgb(var(--t-n-16193f)); color: var(--color-text); }
 .team-strip { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .team-strip:empty { display: none; }
 .team-chip {

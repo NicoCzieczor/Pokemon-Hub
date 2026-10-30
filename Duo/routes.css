@@ -1,0 +1,164 @@
+/* Duo: Routenliste (Fangort jedes Paares, verpasste Routen) – Desktop (index.html) und Handy (mobile.html) */
+#routes-section {
+  background: var(--duo-card, rgba(var(--t-n-141634), 0.85));
+  border: 1px solid var(--duo-line, rgba(var(--t-ink), 0.08));
+  border-radius: var(--duo-radius, 16px);
+  overflow: hidden;
+}
+.routes-toggle-btn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px; background: none; border: none; cursor: pointer;
+  color: var(--color-text); font: inherit; font-weight: 700; font-size: 0.92rem;
+  transition: background-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.routes-toggle-btn:hover { background: rgba(var(--t-ink), 0.04); }
+.routes-toggle-end { display: inline-flex; align-items: center; gap: 10px; }
+.routes-count { font-size: 0.75rem; font-weight: 700; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.routes-toggle-icon { font-size: 0.65rem; color: var(--color-muted); }
+/* Container: die Liste richtet sich nach ihrer eigenen Breite (neben der Box auf dem Desktop schmaler) */
+#routes-body { padding: 12px 16px 16px; border-top: 1px solid rgba(var(--t-ink), 0.06); container-type: inline-size; }
+#routes-body[hidden] { display: none; }
+
+.routes-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.routes-game { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; font-size: 0.82rem; color: var(--color-muted); }
+.routes-game > span { white-space: nowrap; }
+#routes-game-select {
+  min-width: 0; max-width: 100%; padding: 7px 10px; border-radius: 10px;
+  border: 1px solid rgba(var(--t-ink), 0.14); background: rgba(var(--t-ink), 0.06); color: rgb(var(--t-g-edf2f7));
+  font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-overflow: ellipsis;
+}
+#routes-game-select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc)); }
+#routes-game-select:focus { outline: none; border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(var(--t-acc2-glow), 0.18); }
+.routes-filter { display: inline-flex; gap: 2px; padding: 2px; border-radius: 10px; background: rgba(var(--t-ink), 0.05); }
+.routes-filter button {
+  border: 0; background: none; color: var(--color-muted); font: inherit; font-size: 0.78rem; font-weight: 700;
+  padding: 5px 10px; border-radius: 8px; cursor: pointer;
+}
+.routes-filter button.is-on { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
+.routes-hint {
+  margin: 0 0 10px; padding: 8px 10px; border-radius: 10px; font-size: 0.78rem; line-height: 1.4;
+  background: rgba(var(--t-acc2), 0.10); border: 1px solid rgba(var(--t-acc2), 0.25); color: var(--color-text);
+}
+.routes-hint[hidden] { display: none; }
+
+/* Zeile: Ort · Spieler 1 · Kette · Spieler 2 · Knopf */
+.routes-cols, .route-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.9fr) minmax(0, 1.4fr) 18px minmax(0, 1.4fr) 84px;
+  align-items: center;
+  gap: 8px;
+}
+.routes-cols { padding: 0 11px 4px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
+.routes-cols span:nth-child(2) { color: var(--color-accent-strong); }
+.routes-cols span:nth-child(4) { color: var(--color-accent); }
+#routes-list { display: flex; flex-direction: column; gap: 4px; }
+.route-row { padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(var(--t-ink), 0.06); background: rgba(var(--t-ink), 0.02); }
+.route-row.is-done { background: rgba(var(--t-ink), 0.045); }
+.route-name { font-size: 0.84rem; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.route-row:not(.is-done) .route-name { color: var(--color-muted); font-weight: 600; }
+.route-side { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; min-height: 28px; }
+.route-mon { display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
+/* Die Sprites haben viel leeren Rand: größer zeichnen, Rand über negativen Abstand ausgleichen */
+.route-mon img { width: 46px; height: 46px; margin: -10px -4px -10px -8px; object-fit: contain; image-rendering: pixelated; flex-shrink: 0; }
+.route-mon-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.route-mon-name { font-size: 0.8rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route-mon small { font-size: 0.66rem; color: var(--color-muted); }
+.route-mon.is-dead img { filter: grayscale(1) brightness(0.7); }
+.route-mon.is-dead .route-mon-name { color: var(--color-muted); }
+.route-miss { font-size: 0.76rem; font-weight: 700; color: rgb(var(--t-c-fc8181)); white-space: nowrap; }
+.route-empty { color: rgba(var(--t-ink), 0.25); }
+.route-link { display: flex; justify-content: center; color: var(--color-muted); }
+.route-link svg { width: 14px; height: 14px; opacity: 0.75; }
+.route-edit {
+  justify-self: end; border: 1px solid rgba(var(--t-ink), 0.14); background: none; color: var(--color-text);
+  font: inherit; font-size: 0.75rem; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+}
+.route-row:not(.is-done) .route-edit { border-color: rgba(var(--t-acc2), 0.55); color: var(--color-accent-strong); }
+.route-edit:hover, .route-edit:focus-visible { border-color: rgb(var(--t-acc2)); outline: none; }
+.routes-empty { color: var(--color-muted); font-size: 0.82rem; padding: 6px 2px; }
+
+/* Fangort klein unter dem Pokémon im Team-Slot */
+.slot-route {
+  max-width: 100%; padding: 0 4px; font-size: 10px; line-height: 1.25; color: var(--color-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Schmal: Ortsname als eigene Zeile über den beiden Spielern */
+@media (max-width: 640px) {
+  #routes-body { padding: 10px 10px 14px; }
+}
+@container (max-width: 600px) {
+  .routes-cols, .route-row { grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr) auto; gap: 4px 6px; }
+  .routes-cols { padding: 0 9px 4px; }
+  .routes-cols span:first-child { display: none; }
+  .route-row { padding: 6px 8px; }
+  .route-name { grid-column: 1 / -1; font-size: 0.8rem; }
+  .route-mon img { width: 40px; height: 40px; margin: -8px -3px -8px -7px; }
+  .route-edit { padding: 6px 9px; }
+}
+
+/* Auswahlfenster (Route bearbeiten, Fangort wählen) */
+.route-pop {
+  position: fixed; z-index: 9400;
+  width: min(340px, calc(100vw - 16px)); max-height: min(72vh, 520px); overflow-y: auto;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 10px; border-radius: 14px; box-sizing: border-box;
+  border: 1px solid rgba(var(--t-ink), 0.14);
+  background: var(--color-surface, rgb(var(--t-n-191b3a)));
+  color: var(--color-text);
+  box-shadow: 0 18px 48px rgba(var(--t-shade), 0.5);
+}
+.route-pop [hidden] { display: none !important; }
+.route-pop-title { padding: 2px 4px 4px; font-size: 0.9rem; font-weight: 800; }
+.route-pop-head { margin-top: 6px; padding: 0 4px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
+.route-pop-opt {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 34px; padding: 4px 8px; box-sizing: border-box;
+  border-radius: 8px; border: 1px solid transparent; background: none; color: var(--color-text);
+  font: inherit; font-size: 0.8rem; text-align: left; cursor: pointer;
+}
+.route-pop-opt:hover, .route-pop-opt:focus-visible { background: rgba(var(--t-ink), 0.06); border-color: rgba(var(--t-acc2), 0.5); outline: none; }
+.route-pop-opt.is-on { background: rgba(var(--t-acc), 0.16); border-color: rgba(var(--t-acc), 0.6); font-weight: 700; }
+.route-pop-opt img { width: 40px; height: 40px; margin: -9px -4px -9px -6px; object-fit: contain; image-rendering: pixelated; }
+.route-pop-opt small { margin-left: auto; padding-left: 8px; font-size: 0.68rem; color: var(--color-muted); white-space: nowrap; }
+.route-pop-chain { display: inline-flex; color: var(--color-muted); }
+.route-pop-chain svg { width: 12px; height: 12px; }
+.route-pop-note { margin: 2px 4px; font-size: 0.76rem; line-height: 1.4; color: var(--color-muted); }
+.route-pop-miss { display: flex; gap: 6px; padding: 0 2px; }
+.route-pop-toggle {
+  flex: 1; padding: 7px 8px; border-radius: 8px; border: 1px dashed rgba(var(--t-ink), 0.22); background: none;
+  color: var(--color-text); font: inherit; font-size: 0.78rem; cursor: pointer;
+}
+.route-pop-toggle:hover, .route-pop-toggle:focus-visible { border-color: rgba(var(--t-acc2), 0.6); outline: none; }
+.route-pop-toggle.is-on { border-style: solid; border-color: rgb(var(--t-c-fc8181)); color: rgb(var(--t-c-fc8181)); font-weight: 700; background: rgba(252, 129, 129, 0.08); }
+.route-pop-clear {
+  margin-top: 6px; padding: 7px 8px; border-radius: 8px; border: 1px solid rgba(var(--t-ink), 0.12); background: none;
+  color: var(--color-muted); font: inherit; font-size: 0.78rem; cursor: pointer;
+}
+.route-pop-clear:hover, .route-pop-clear:focus-visible { color: var(--color-text); border-color: rgba(var(--t-ink), 0.3); outline: none; }
+.route-pop-search {
+  width: 100%; box-sizing: border-box; margin-bottom: 4px; padding: 7px 10px; border-radius: 9px;
+  border: 1px solid rgba(var(--t-ink), 0.14); background: rgba(var(--t-ink), 0.04); color: var(--color-text);
+  font: inherit; font-size: 0.85rem;
+}
+.route-pop-search:focus { outline: none; border-color: var(--color-accent-strong); }
+.route-pop-list { display: flex; flex-direction: column; gap: 2px; max-height: 280px; overflow-y: auto; }
+
+/* Wilde Pokémon je Spieler (Original oder aus seinem Randomizer-Spiel) */
+.routes-wild { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 10px; }
+.routes-wild[hidden] { display: none; }
+.routes-wild-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--color-muted); cursor: pointer; }
+.routes-wild-toggle input { width: 16px; height: 16px; accent-color: var(--color-accent); }
+#routes-wild-src { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+/* Je Spieler: welches Spiel – ROM-Name × oder Original + „ROM laden“ */
+.wild-slot { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: 0.78rem; }
+.wild-slot-pl { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.wild-slot-pl.p1 { color: var(--color-accent-strong); }
+.wild-slot-pl.p2 { color: var(--color-accent); }
+.wild-slot-orig { color: var(--color-muted); }
+.route-wild { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1px; flex-basis: 100%; min-width: 0; margin-top: 2px; }
+.route-wild img { width: 32px; height: 24px; object-fit: cover; object-position: 0 -3px; image-rendering: pixelated; opacity: 0.85; }
+.route-wild.is-rando img { opacity: 1; }
+.route-wild small { font-size: 0.68rem; color: var(--color-muted); margin-left: 2px; cursor: help; }
+/* Mit wilden Pokémon braucht eine leere Seite kein „–“ */
+.route-side:has(.route-wild) > .route-empty { display: none; }

@@ -266,6 +266,19 @@ main { display: flex; flex-direction: column; gap: 16px; }
 
 /* Eingabefelder */
 .field-row { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); gap: 10px; }
+.field-row--even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.field select:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Kleine Schalter unter der Wertetabelle (Paralyse, KP unter ⅓) */
+.mini-togs { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.mini-tog { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; color: var(--color-muted); cursor: pointer; }
+.mini-tog input { width: 15px; height: 15px; accent-color: var(--color-accent-strong); cursor: pointer; }
+.mini-tog[hidden] { display: none; }
+
+/* Ergebnis: wer zuerst zieht */
+.res-speed { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: -4px 0 12px; font-size: 0.86rem; color: var(--color-muted); }
+.res-speed b { color: rgb(var(--t-white)); }
+.res-speed .prio { color: var(--color-accent-strong); font-weight: 700; }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field > span { font-size: 0.74rem; font-weight: 600; color: var(--color-muted); }
 .field input, .field select, .st-row input {
@@ -287,11 +300,11 @@ main { display: flex; flex-direction: column; gap: 16px; }
 .field select:disabled { opacity: 0.45; cursor: not-allowed; }
 select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)); }
 
-/* Statuswerte als kleine Tabelle: Name | EV | IV | Wert */
+/* Statuswerte als kleine Tabelle: Name | EV | IV | Stufe | Wert */
 .stat-table { display: flex; flex-direction: column; gap: 6px; }
 .st-head, .st-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 66px 58px 50px;
+  grid-template-columns: minmax(0, 1fr) 60px 50px 58px 48px;
   gap: 6px;
   align-items: center;
 }
@@ -311,6 +324,26 @@ select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)
 .st-row.is-used .st-name { color: var(--color-accent-strong); }
 .st-row.is-used input { border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
 .st-row.is-used output { color: var(--color-accent-strong); }
+/* Stufe −6 … +6: gesetzt = farbig; der Wert daneben ist schon mit Stufe gerechnet */
+.st-row .stage-sel {
+  width: 100%; padding: 6px 2px; border-radius: 10px; border: 1px solid var(--field-line); background: var(--field-bg);
+  color: var(--color-muted); font: inherit; font-size: 0.86rem; text-align: center; text-align-last: center; cursor: pointer; outline: none;
+}
+.st-row .stage-sel:focus { border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(var(--t-acc2-glow), 0.16); }
+.st-row .stage-sel.is-set { color: rgb(var(--t-white)); font-weight: 800; border-color: rgb(var(--t-acc)); }
+.st-row output.is-up { color: var(--hp-green); }
+.st-row output.is-down { color: var(--hp-red); }
+
+/* Aktuelle KP des Verteidigers: [KP] von 245 = [%] % */
+.hp-now { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.8rem; color: var(--color-muted); }
+.hp-now-label { font-size: 0.74rem; font-weight: 600; margin-right: auto; }
+.hp-now input {
+  width: 64px; padding: 6px 6px; border-radius: 10px; border: 1px solid var(--field-line); background: var(--field-bg);
+  color: var(--color-text); font: inherit; font-size: 0.86rem; text-align: center; outline: none;
+}
+.hp-now input#def-hp-pct { width: 54px; }
+.hp-now input:focus { border-color: var(--color-accent-strong); box-shadow: 0 0 0 3px rgba(var(--t-acc2-glow), 0.16); }
+.hp-now-of { white-space: nowrap; }
 
 /* Hinweise unter den Karten */
 .card-note { margin: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -689,5 +722,5 @@ select option { background: rgb(var(--t-n-191b3a)); color: rgb(var(--t-g-edf2f7)
   .move-item .class-tag { display: none; }
 }
 @media (max-width: 380px) {
-  .st-head, .st-row { grid-template-columns: minmax(0, 1fr) 56px 50px 42px; gap: 4px; }
+  .st-head, .st-row { grid-template-columns: minmax(0, 1fr) 50px 42px 50px 40px; gap: 4px; }
 }
