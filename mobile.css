@@ -115,6 +115,42 @@ body {
 .topbar .theme-toggle { width: 2rem; min-width: 2rem; height: 2rem; min-height: 2rem; }
 .topbar .theme-toggle svg { width: 0.9375rem; height: 0.9375rem; }
 
+/* Kopfzeile: Titel · Spiel · ☰. Design und Sprache stehen im ☰-Menü (pwa.js, wie auf den Tools) –
+   mit allen vier Knöpfen rutschte der Spiel-Chip in den Titel. Der Titel schrumpft nie, bei langen
+   Spielnamen kürzt der Chip („Karmesin/Pu…“). Chip und ☰ so hoch wie das Logo. */
+.topbar { gap: 0.5rem; }
+.topbar .brand { flex: 0 0 auto; }
+.topbar .hub-controls { display: none; }
+.topbar .home-game { min-width: 0; margin-left: auto; }
+.topbar .hub-game-chip {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+  height: 2.375rem;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+}
+.topbar .hub-game-chip svg { display: none; }
+.topbar .hub-game-chip span { overflow: hidden; text-overflow: ellipsis; }
+.hub-menu-btn {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 2.375rem;
+  height: 2.375rem;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--t-ink), 0.16);
+  background: rgba(var(--t-ink), 0.06);
+  color: rgb(var(--t-acc));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hub-menu-btn:focus-visible { border-color: rgb(var(--t-acc2)); outline: none; }
+.hub-menu-btn[aria-expanded="true"] { border-color: rgb(var(--t-acc)); }
+.hub-menu-btn svg { width: 1.25rem; height: 1.25rem; }
+.hub-menu-btn span { display: none; }
+
 /* ══ Menüfenster ══ */
 .win {
   position: relative;

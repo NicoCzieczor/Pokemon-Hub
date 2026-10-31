@@ -254,6 +254,47 @@ canvas {
   nav.tool-nav::-webkit-scrollbar, .tool-nav-track::-webkit-scrollbar { display: none; }
 }
 
+/* ── Tool-Menü am Handy (pwa.js, 5b) ──
+   Statt der schmalen Wisch-Spur ein Knopf mit dem Namen der Seite, der alle Tools als große Kacheln
+   öffnet; Design und Sprache stehen dann im Menü statt in der Leiste. Alles in der Leiste ist hier
+   40 px hoch (vorher 26–30 px). Grenze 720 px wie NAV_MENU_MEDIA in pwa.js. Das Menü selbst: theme.css. */
+.tool-nav-menu-btn { display: none; }
+@media (max-width: 720px) {
+  .tool-nav.has-track { gap: 8px; min-height: 56px; }
+  /* Etwas weniger Rand, damit auch „Randomizer“ neben dem Spiel auf 360 px breite Handys passt */
+  body > #app > .tool-nav.has-track { padding: 0 12px; }
+  .tool-nav.has-track > .tool-nav-track,
+  .tool-nav.has-track > .hub-controls,
+  .tool-nav.has-track > .lang-toggle { display: none; }
+  .tool-nav.has-track > .tool-nav-link.tool-nav-home { height: 40px; padding: 0 14px; }
+  .tool-nav.has-track > .hub-game-chip { height: 40px; flex-shrink: 1; min-width: 0; }
+  .tool-nav.has-track > .hub-game-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .tool-nav-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 1 auto;
+    min-width: 0;
+    height: 40px;
+    margin-left: auto;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--t-ink), 0.16);
+    background: rgba(var(--t-ink), 0.06);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tool-nav-menu-btn:focus-visible { border-color: rgb(var(--t-acc2)); outline: none; }
+  .tool-nav-menu-btn[aria-expanded="true"] { border-color: rgb(var(--t-acc)); }
+  .tool-nav-menu-btn svg { flex: 0 0 auto; width: 18px; height: 18px; color: rgb(var(--t-acc)); }
+  .tool-nav-menu-btn span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+
 /* ── Gemeinsames Handy-Layout aller Unterseiten mit Karte (#app) ──
    Vorher hatte jede Seite eigene Handy-Abstände, dadurch saß die Navigationsleiste je nach Tab
    woanders (und ragte teils über die Karte hinaus). Die Selektoren sind absichtlich etwas

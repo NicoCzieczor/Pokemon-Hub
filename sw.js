@@ -13,8 +13,8 @@
  * und zählt dabei VERSION hoch (tests/sw-version.test.cjs prüft das). Die vorderen Stellen von VERSION dürfen
  * von Hand angehoben werden. Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = '0.1.21';            // steht unten auf der Startseite
-const CONTENT = 'e7b394ed55';       // ändert sich mit jeder Datei → neue Version für alle Geräte
+const VERSION = '0.1.23';            // steht unten auf der Startseite
+const CONTENT = '2ec4dc5542';       // ändert sich mit jeder Datei → neue Version für alle Geräte
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;

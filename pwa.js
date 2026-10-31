@@ -491,9 +491,10 @@
     phoneLinks();
     setupToolNav();
     setupGameChip();
-    // Sprachwechsel: Leiste neu beschriften (die Seite hat 'hub-lang' dann schon umgestellt)
+    setupHomeMenu();
+    // Sprachwechsel: Leiste und Menü neu beschriften (die Seite hat 'hub-lang' dann schon umgestellt)
     var langBtn = document.getElementById('lang-toggle') || document.getElementById('lang-btn');
-    if (langBtn) langBtn.addEventListener('click', function () { setTimeout(function () { labelToolNav(); updateGameChips(); }, 0); });
+    if (langBtn) langBtn.addEventListener('click', function () { setTimeout(function () { labelToolNav(); updateGameChips(); updateNavMenu(); }, 0); });
   });
 
   /* ── 8. Aktives Spiel des Hubs ─────────────────────────────────────── */
@@ -528,8 +529,8 @@
     ['karmesin-purpur', 9, 'Karmesin/Purpur', 'Scarlet/Violet', 'Karmesin / Purpur', 'Scarlet / Violet', 'sv', 'karmesin-purpur', 'scarlet-violet']
   ];
   var GAME_TEXT = {
-    de: { choose: 'Spiel wählen', title: 'Aktives Spiel', hint: 'Gilt für alle Tools: Generation, Fangrate, Level-Caps, Pokédex.', none: 'Kein Spiel – jedes Tool nutzt seine eigene Einstellung' },
-    en: { choose: 'Choose game', title: 'Active game', hint: 'Applies to all tools: generation, catch rate, level caps, Pokédex.', none: 'No game – every tool uses its own setting' }
+    de: { choose: 'Spiel wählen', short: 'Spiel', title: 'Aktives Spiel', hint: 'Gilt für alle Tools: Generation, Fangrate, Level-Caps, Pokédex.', none: 'Kein Spiel – jedes Tool nutzt seine eigene Einstellung' },
+    en: { choose: 'Choose game', short: 'Game', title: 'Active game', hint: 'Applies to all tools: generation, catch rate, level caps, Pokédex.', none: 'No game – every tool uses its own setting' }
   };
   function gameRow(k) {
     for (var i = 0; i < HUB_GAMES.length; i++) if (HUB_GAMES[i][0] === k) return HUB_GAMES[i];
@@ -599,7 +600,8 @@
   function updateGameChips() {
     var en = gameLang() === 'en', t = GAME_TEXT[gameLang()], row = gameRow(currentGame());
     gameChips.forEach(function (b) {
-      b.querySelector('span').textContent = row ? row[en ? 3 : 2] : t.choose;
+      // Handy-Startseite (Kopfzeile mit ☰): „Spiel wählen“ passt dort nicht neben den Titel
+      b.querySelector('span').textContent = row ? row[en ? 3 : 2] : (b.closest('[data-hub-menu]') ? t.short : t.choose);
       b.title = t.title + (row ? ': ' + row[en ? 5 : 4] : '') + ' – ' + t.hint;
       b.classList.toggle('is-unset', !row);
     });
@@ -759,6 +761,13 @@
     try { l = localStorage.getItem('hub-lang') || 'de'; } catch (e) {}
     return THEME_NAMES[l] || THEME_NAMES.de;
   }
+  var themeBtnLabel = null; // beschriftet den Knopf neu (setupThemeButton)
+  // Design direkt wählen (Tool-Menü am Handy) – der Knopf schaltet dagegen reihum weiter
+  function setTheme(t) {
+    try { localStorage.setItem('hub-theme', t); } catch (e) {}
+    applyTheme(t);
+    if (themeBtnLabel) themeBtnLabel();
+  }
   // Knopf und Sprachknopf kommen in einen gemeinsamen Halter (.hub-controls). Lag der Sprachknopf
   // fest oben rechts, liegt der Halter genau dort; stand er im Seitenkopf, steht der Halter dort.
   function setupThemeButton() {
@@ -792,11 +801,10 @@
       btn.setAttribute('aria-label', n.label + ': ' + n[t]);
     }
     label();
+    themeBtnLabel = label;
     btn.addEventListener('click', function () {
       var next = THEMES[(THEMES.indexOf(storedTheme()) + 1) % THEMES.length];
-      try { localStorage.setItem('hub-theme', next); } catch (e) {}
-      applyTheme(next);
-      label();
+      setTheme(next);
       showThemeToast(themeNames()[next]);
     });
     // Sprachwechsel ändert die Beschriftung
@@ -837,6 +845,7 @@
     }
     nav.appendChild(track);
     nav.classList.add('has-track');
+    setupNavMenu(nav, track.nextSibling, 'tool-nav-menu-btn');
     // Halter mit Theme- und Sprachknopf (s. setupThemeButton), sonst der Sprachknopf allein
     var btn = document.querySelector('.hub-controls') || document.getElementById('lang-toggle');
     var home = null; // merkt sich den ursprünglichen Platz des Knopfs
@@ -871,7 +880,9 @@
       var b = btn.getBoundingClientRect();
       // Gescrollt wird je nach Seite das Fenster oder der body (base.css)
       var dy = (window.scrollY || 0) + (document.body ? document.body.scrollTop : 0);
-      var hit = track.scrollWidth > track.clientWidth + 1;
+      // Mit Tool-Menü (Handy) kommt der Knopf immer in die Leiste – base.css blendet ihn dort aus,
+      // Design und Sprache stehen dann im Menü
+      var hit = navMenuMode() || track.scrollWidth > track.clientWidth + 1;
       for (var i = 0; !hit && i < track.children.length; i++) {
         var r = track.children[i].getBoundingClientRect();
         hit = overlaps(b, { left: r.left, right: r.right, top: r.top + dy, bottom: r.bottom + dy });
@@ -906,5 +917,204 @@
     // Texte der Leiste ändern sich beim Sprachwechsel und wenn Schriften nachladen
     window.addEventListener('load', function () { refresh(); showActive(); updateFade(); });
     if (btn) btn.addEventListener('click', function () { setTimeout(refresh, 0); });
+    // Wechsel zwischen Tool-Menü und Spur (Drehen, Fenster breiter/schmaler)
+    if (window.matchMedia) {
+      var mq = window.matchMedia(NAV_MENU_MEDIA);
+      var onMode = function () { closeNavMenu(); refresh(); showActive(); updateFade(); };
+      if (mq.addEventListener) mq.addEventListener('change', onMode); else if (mq.addListener) mq.addListener(onMode);
+    }
+  }
+
+  /* ── 5b. Tool-Menü am Handy ────────────────────────────────────────── */
+  // Neben Home, Spiel-Chip, Design- und Sprachknopf blieben am Handy nur ~90 px Spur für 14 Tabs – zu
+  // wenig zum Wischen und Treffen. Bis 720 px Breite (gleiche Grenze wie in base.css) steht statt der
+  // Spur ein Knopf mit dem Namen der Seite. Er öffnet alle Tools als große Kacheln, darunter Design und Sprache.
+  // Die Handy-Startseite (Kopfzeile mit data-hub-menu) hat dasselbe Menü als ☰-Knopf, dort nur mit Design und
+  // Sprache – die Tools sind auf der Startseite ja schon Kacheln.
+  var NAV_MENU_MEDIA = '(max-width: 720px)';
+  // [[Titel de, en], Ordner] – Reihenfolge der Kacheln wie in der Leiste, Unbekanntes landet unter „Mehr“
+  var NAV_GROUPS = [
+    [['Runs', 'Runs'], ['RunDashboard', 'Pokelocke', 'Duo', 'Trio']],
+    [['Rechner', 'Calculators'], ['Catchrate', 'DamageCalc', 'Typrechner']],
+    [['Nachschlagen', 'Reference'], ['PokemonInfo', 'Karte', 'Bosse', 'Rules']],
+    [['Spielstand & ROM', 'Save & ROM'], ['SaveViewer', 'SaveEditor', 'Randomizer']]
+  ];
+  var NAV_MENU_TEXT = {
+    de: { menu: 'Menü', title: 'Alle Tools', more: 'Mehr', design: 'Design', lang: 'Sprache', settings: 'Einstellungen' },
+    en: { menu: 'Menu', title: 'All tools', more: 'More', design: 'Theme', lang: 'Language', settings: 'Settings' }
+  };
+  var navMenuBtn = null, navSheet = null;
+  function navMenuMode() { return !!(window.matchMedia && window.matchMedia(NAV_MENU_MEDIA).matches); }
+  function navHasTools() { return !!document.querySelector('.tool-nav-track'); }
+
+  // Handy-Startseite: ☰ vor die Theme- und Sprachknöpfe (setupThemeButton hat sie schon zusammengelegt)
+  function setupHomeMenu() {
+    var bar = document.querySelector('[data-hub-menu]');
+    if (!bar || navMenuBtn) return;
+    var box = bar.querySelector('.hub-controls');
+    setupNavMenu(bar, box && box.parentNode === bar ? box : null, 'hub-menu-btn');
+  }
+  // Knopf in container vor before (null = ans Ende)
+  function setupNavMenu(container, before, className) {
+    navMenuBtn = document.createElement('button');
+    navMenuBtn.type = 'button';
+    navMenuBtn.className = className;
+    navMenuBtn.setAttribute('aria-haspopup', 'dialog');
+    navMenuBtn.setAttribute('aria-expanded', 'false');
+    navMenuBtn.setAttribute('aria-controls', 'nav-sheet-panel');
+    navMenuBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">' +
+      '<path d="M4 7h16M4 12h16M4 17h16"/></svg><span></span>';
+    container.insertBefore(navMenuBtn, before);
+    navMenuBtn.addEventListener('click', function () {
+      if (navSheet && !navSheet.hidden) closeNavMenu(); else openNavMenu();
+    });
+    // Nur bei anderer Breite schließen – am Handy feuert 'resize' schon beim Scrollen (Adressleiste)
+    var w = window.innerWidth;
+    window.addEventListener('resize', function () {
+      if (window.innerWidth === w) return;
+      w = window.innerWidth;
+      closeNavMenu();
+    });
+    updateNavMenu();
+  }
+  // Name der Seite im Knopf (Startseite: nur das Symbol); ein offenes Menü neu beschriften (Sprachwechsel)
+  function updateNavMenu() {
+    if (!navMenuBtn) return;
+    var t = NAV_MENU_TEXT[gameLang()];
+    if (navHasTools()) {
+      var active = document.querySelector('.tool-nav-track .tool-nav-link.is-active');
+      var name = active ? active.textContent : t.menu;
+      navMenuBtn.querySelector('span').textContent = name;
+      navMenuBtn.setAttribute('aria-label', t.title + (active ? ' – ' + name : ''));
+    } else {
+      navMenuBtn.setAttribute('aria-label', t.settings);
+      navMenuBtn.title = t.settings;
+    }
+    if (navSheet && !navSheet.hidden) fillNavSheet();
+  }
+  function openNavMenu() {
+    if (!navSheet) {
+      navSheet = document.createElement('div');
+      navSheet.className = 'nav-sheet';
+      navSheet.hidden = true;
+      navSheet.innerHTML = '<div class="nav-sheet-backdrop"></div><div class="nav-sheet-panel" id="nav-sheet-panel" role="dialog" aria-modal="true"></div>';
+      document.body.appendChild(navSheet);
+      navSheet.querySelector('.nav-sheet-backdrop').addEventListener('click', closeNavMenu);
+      // Kachel der offenen Seite: nur schließen statt die Seite neu zu laden
+      navSheet.addEventListener('click', function (e) {
+        if (e.target.closest('.nav-sheet-tile.is-on')) { e.preventDefault(); closeNavMenu(); }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !navSheet.hidden) { closeNavMenu(); navMenuBtn.focus(); }
+      });
+      // Zurück-Wischen holt die Seite samt offenem Menü aus dem Zwischenspeicher
+      window.addEventListener('pageshow', function (e) { if (e.persisted) closeNavMenu(); });
+    }
+    if (gamePop) gamePop.hidden = true;
+    fillNavSheet();
+    navSheet.hidden = false;
+    navMenuBtn.setAttribute('aria-expanded', 'true');
+    // Direkt unter der Leiste; ist die fast aus dem Bild gescrollt, oben am Rand
+    var panel = navSheet.querySelector('.nav-sheet-panel');
+    var top = Math.max(8, Math.round(navMenuBtn.parentNode.getBoundingClientRect().bottom + 6));
+    if (window.innerHeight - top < 280) top = 8;
+    panel.style.top = top + 'px';
+    panel.style.maxHeight = (window.innerHeight - top - 8) + 'px';
+    panel.scrollTop = 0;
+    var on = panel.querySelector('.nav-sheet-tile.is-on') || panel.querySelector('.nav-sheet-tile') || panel.querySelector('.nav-sheet-seg .is-on');
+    if (on) on.focus({ preventScroll: true });
+  }
+  function closeNavMenu() {
+    if (!navSheet || navSheet.hidden) return;
+    navSheet.hidden = true;
+    if (navMenuBtn) navMenuBtn.setAttribute('aria-expanded', 'false');
+  }
+  function fillNavSheet() {
+    var lang = gameLang(), en = lang === 'en' ? 1 : 0, t = NAV_MENU_TEXT[lang];
+    var panel = navSheet.querySelector('.nav-sheet-panel');
+    // Nach dem Neuaufbau (Sprache, Design) denselben Knopf wieder fokussieren
+    var f = document.activeElement, focusKey = f && panel.contains(f) ? f.getAttribute('data-key') : null;
+    panel.setAttribute('aria-label', navHasTools() ? t.title : t.settings);
+    panel.textContent = '';
+    // Kacheln aus den Links der Leiste: Ziel und Beschriftung stimmen so schon (Handy-Links, Sprache)
+    var items = Array.prototype.map.call(document.querySelectorAll('.tool-nav-track a.tool-nav-link'), function (a) {
+      return { a: a, k: hubArea(a.getAttribute('href')) };
+    });
+    var used = [];
+    var groups = NAV_GROUPS.map(function (g) {
+      var list = items.filter(function (it) { return g[1].indexOf(it.k) >= 0; });
+      used = used.concat(list);
+      return [g[0][en], list];
+    });
+    groups.push([t.more, items.filter(function (it) { return used.indexOf(it) < 0; })]);
+    groups.forEach(function (g) {
+      if (!g[1].length) return;
+      var sec = document.createElement('div');
+      sec.className = 'nav-sheet-group';
+      var title = document.createElement('p');
+      title.className = 'nav-sheet-title';
+      title.textContent = g[0];
+      var grid = document.createElement('div');
+      grid.className = 'nav-sheet-grid';
+      g[1].forEach(function (it) {
+        var tile = document.createElement('a');
+        tile.className = 'nav-sheet-tile';
+        tile.href = it.a.href;
+        tile.textContent = it.a.textContent;
+        tile.setAttribute('data-key', 'tool:' + it.a.href);
+        if (it.a.classList.contains('is-active')) {
+          tile.classList.add('is-on');
+          tile.setAttribute('aria-current', 'page');
+        }
+        grid.appendChild(tile);
+      });
+      sec.appendChild(title);
+      sec.appendChild(grid);
+      panel.appendChild(sec);
+    });
+    var settings = document.createElement('div');
+    settings.className = 'nav-sheet-settings';
+    var names = themeNames();
+    settings.appendChild(navSegRow(t.design, 'theme:', THEMES.map(function (th) { return [th, names[th]]; }), storedTheme(), function (v) {
+      setTheme(v);
+      fillNavSheet();
+    }));
+    // Sprache über den Knopf der Seite – jede Seite übersetzt sich selbst; danach beschriftet
+    // labelToolNav die Leiste und (über updateNavMenu) dieses Menü neu
+    var langBtn = document.getElementById('lang-toggle') || document.getElementById('lang-btn');
+    if (langBtn) {
+      settings.appendChild(navSegRow(t.lang, 'lang:', [['de', 'Deutsch'], ['en', 'English']], lang, function (v) {
+        if (v !== gameLang()) langBtn.click();
+      }));
+    }
+    panel.appendChild(settings);
+    if (focusKey) {
+      var again = Array.prototype.filter.call(panel.querySelectorAll('[data-key]'), function (el) { return el.getAttribute('data-key') === focusKey; })[0];
+      if (again) again.focus({ preventScroll: true });
+    }
+  }
+  // Zeile „Design: Klassik | Papier | Graphit“ – opts: [[Wert, Text]]
+  function navSegRow(label, keyPrefix, opts, cur, onPick) {
+    var row = document.createElement('div');
+    row.className = 'nav-sheet-row';
+    var name = document.createElement('span');
+    name.textContent = label;
+    var seg = document.createElement('div');
+    seg.className = 'nav-sheet-seg';
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', label);
+    opts.forEach(function (o) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = o[1];
+      b.setAttribute('data-key', keyPrefix + o[0]);
+      b.setAttribute('aria-pressed', String(o[0] === cur));
+      if (o[0] === cur) b.className = 'is-on';
+      b.addEventListener('click', function () { onPick(o[0]); });
+      seg.appendChild(b);
+    });
+    row.appendChild(name);
+    row.appendChild(seg);
+    return row;
   }
 })();

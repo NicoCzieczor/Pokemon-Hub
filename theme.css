@@ -606,6 +606,93 @@ html .hub-controls .theme-toggle { width: 34px; min-width: 0; }
 .hub-game-none.is-on { background: transparent; border-style: solid; border-color: rgb(var(--t-acc2)); color: var(--color-text, rgb(var(--t-g-e0e8f9))); font-weight: 700; }
 [data-hub-game] { display: inline-flex; }
 
+/* ── Menü der Handy-Leiste (pwa.js, 5b): Tools als Kacheln, darunter Design und Sprache ──
+   Auf den Tools öffnet es der Knopf „☰ Seite“ (base.css), auf der Handy-Startseite der ☰-Knopf (mobile.css,
+   dort nur Design und Sprache). Maße in em: die Startseite vergrößert ihre Schrift mit dem Bildschirm
+   (iPad), das Menü wächst dann mit; auf den Tools ist 1rem = 16px. */
+.nav-sheet { position: fixed; inset: 0; z-index: 9400; }
+.nav-sheet[hidden] { display: none; }
+.nav-sheet-backdrop { position: absolute; inset: 0; background: rgba(var(--t-shade), 0.45); touch-action: none; }
+.nav-sheet-panel {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  display: grid;
+  align-content: start;
+  gap: 0.875em;
+  max-width: 30em;
+  margin: 0 auto;
+  padding: 0.875em;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 1em;
+  border: 1px solid rgba(var(--t-ink), 0.14);
+  background: var(--color-surface, rgb(var(--t-n-191b3a)));
+  color: var(--color-text, rgb(var(--t-g-e0e8f9)));
+  font-size: 1rem;
+  line-height: 1.3;
+  box-shadow: 0 18px 48px rgba(var(--t-shade), 0.5);
+  animation: nav-sheet-in 0.16s ease-out;
+}
+@keyframes nav-sheet-in { from { opacity: 0; transform: translateY(-6px); } }
+.nav-sheet-group { display: grid; gap: 0.375em; }
+.nav-sheet-title {
+  margin: 0;
+  font-size: 0.68em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted, rgb(var(--t-g-b1b3cc)));
+}
+/* Gleich breite Kacheln je Zeile; passt eine Beschriftung nicht mehr, rutscht die Kachel in die nächste Zeile */
+.nav-sheet-grid { display: flex; flex-wrap: wrap; gap: 0.375em; }
+.nav-sheet a.nav-sheet-tile {
+  flex: 1 1 0;
+  min-width: max-content;
+  display: grid;
+  place-items: center;
+  /* em hier bezogen auf die eigene Schrift (0.86em): 46 × 12 px bei 16 px Grundschrift */
+  height: 3.35em;
+  padding: 0 0.87em;
+  border-radius: 0.73em;
+  border: 1px solid rgba(var(--t-ink), 0.12);
+  background: rgba(var(--t-ink), 0.06);
+  color: var(--color-text, rgb(var(--t-g-e0e8f9)));
+  font-size: 0.86em;
+  font-weight: 700;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-sheet a.nav-sheet-tile:active { background: rgba(var(--t-ink), 0.12); }
+.nav-sheet a.nav-sheet-tile.is-on {
+  border-color: rgb(var(--t-acc));
+  background: rgba(var(--t-acc), 0.12);
+  color: rgb(var(--t-acc));
+}
+.nav-sheet a.nav-sheet-tile:focus-visible,
+.nav-sheet-seg button:focus-visible { outline: 2px solid rgb(var(--t-acc2)); outline-offset: 2px; }
+.nav-sheet-settings { display: grid; gap: 0.625em; padding-top: 0.875em; border-top: 1px solid rgba(var(--t-ink), 0.1); }
+/* Startseite: nur die Einstellungen, ohne Trennlinie darüber */
+.nav-sheet-settings:first-child { padding-top: 0; border-top: 0; }
+.nav-sheet-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.375em 0.625em; }
+.nav-sheet-row > span { font-size: 0.8em; font-weight: 700; color: var(--color-muted, rgb(var(--t-g-b1b3cc))); }
+.nav-sheet-seg { display: flex; gap: 3px; padding: 3px; border-radius: 0.625em; background: rgba(var(--t-ink), 0.06); }
+.nav-sheet-seg button {
+  height: 2.9em;
+  padding: 0 0.9em;
+  border: 0;
+  border-radius: 0.6em;
+  background: transparent;
+  color: var(--color-text, rgb(var(--t-g-e0e8f9)));
+  font: inherit;
+  font-size: 0.82em;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-sheet-seg button.is-on { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
+
 /* Randomizer-Stand (rando-state.js): Chip „Randomizer: Name ×“ bzw. Knopf „Randomizer-ROM laden“ */
 .hub-rando { display: inline-flex; align-items: center; max-width: 100%; }
 .hub-rando-chip {
