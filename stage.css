@@ -1,0 +1,157 @@
+/*
+ * Kampfbühne der Team-Seiten (zuerst Duo, stage.js): Himmel wie auf der Startseite (.sky aus scene.css),
+ * eine Baumreihe am Horizont, das Kampffeld mit hellen Streifen und je Spieler ein Podest wie in den
+ * Kämpfen von Diamant/Perl/Platin. Die Bühne liegt fest hinter der Karte und füllt den Platz daneben.
+ *
+ * Eigene Farben je Design, passend zur Stimmung der Startseite (Klassik: Nacht, Graphit: Dämmerung, Papier: Tag).
+ */
+
+:root {
+  --tr-base: #0e1d33; --tr-hi: #1b3150; --tr-dark: #0a1526;
+  --fld-far: #10302d; --fld-near: #17463a; --fld-band: rgba(140, 220, 180, 0.05); --fld-edge: #1d4a40;
+  --pad-top: #24684c; --pad-mid: #1c5640; --pad-hi: #3b8f66; --pad-side: #123a2c; --pad-dark: #0b2a20;
+  --stage-mon: brightness(0.92) saturate(0.95);
+  --stage-mon-back: brightness(0.78) saturate(0.88);
+}
+:root[data-theme="graphite"] {
+  --tr-base: #191714; --tr-hi: #27231e; --tr-dark: #12100e;
+  --fld-far: #1c261c; --fld-near: #263626; --fld-band: rgba(230, 210, 170, 0.04); --fld-edge: #2c3a2a;
+  --pad-top: #3a5436; --pad-mid: #2f462d; --pad-hi: #557448; --pad-side: #222f20; --pad-dark: #161f15;
+  --stage-mon: brightness(0.92) saturate(0.9);
+  --stage-mon-back: brightness(0.76) saturate(0.82);
+}
+:root[data-theme="paper"] {
+  --tr-base: #79a676; --tr-hi: #97c38d; --tr-dark: #66925f;
+  --fld-far: #a4cf86; --fld-near: #b6dc93; --fld-band: rgba(255, 255, 255, 0.16); --fld-edge: #bfe19c;
+  --pad-top: #c3e39a; --pad-mid: #a9d282; --pad-hi: #e0f2bf; --pad-side: #84b661; --pad-dark: #6c9c4f;
+  /* saturate(1) statt none – sonst rundet Chrome das Wippen auf ganze Pixel (s. scene.css) */
+  --stage-mon: saturate(1);
+  --stage-mon-back: brightness(0.92);
+}
+
+.stage { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+
+/* ── Horizont: Baumreihe (4-fach), darunter das Feld mit Streifen, die nach vorn breiter werden ── */
+.stage-trees { position: absolute; left: 0; top: calc(58vh - 55px); width: 100%; height: 56px; shape-rendering: crispEdges; }
+.stage-trees .t-base { fill: var(--tr-base); }
+.stage-trees .t-hi { fill: var(--tr-hi); }
+.stage-trees .t-dark { fill: var(--tr-dark); }
+.stage-field {
+  position: absolute;
+  left: 0; right: 0; top: 58vh; bottom: 0;
+  border-top: 3px solid var(--fld-edge);
+  background:
+    linear-gradient(180deg,
+      transparent 0 5%, var(--fld-band) 5% 8%, transparent 8% 16%, var(--fld-band) 16% 22%,
+      transparent 22% 34%, var(--fld-band) 34% 44%, transparent 44% 60%, var(--fld-band) 60% 76%, transparent 76%),
+    linear-gradient(180deg, var(--fld-far), var(--fld-near));
+}
+
+/* ── Je Spieler: Schild mit Namen und Bällen, darunter das Podest mit dem Team ──
+   Setzt stage.js: --s (1, 1,5 oder 2 Bildschirmpixel je Sprite-Pixel), --pw (Breite des Podests),
+   --cl / --cr (Mitte des Platzes links / rechts neben der Karte) */
+.stage-side {
+  --pc: var(--t-acc);
+  position: absolute;
+  bottom: 8vh;
+  width: var(--pw);
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stage-side--l { --pc: var(--t-acc2); left: var(--cl); }
+.stage-side--r { left: var(--cr); }
+.stage.is-tight .stage-side { display: none; }
+
+/* Schild wie die Kästen im Kampf: Name und sechs Bälle (leer = freier Platz im Team) */
+.stage-plate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: calc(var(--s) * 66px);
+  padding: 5px 8px 5px 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(var(--t-ink), 0.16);
+  background: linear-gradient(180deg, rgb(var(--t-n-262952)), rgb(var(--t-n-161838)));
+  box-shadow: inset 0 0 0 2px rgba(var(--t-n-0d0f2b), 0.5), inset 0 0 0 3px rgba(var(--pc), 0.4), 0 10px 30px rgba(var(--t-shade), 0.4);
+  white-space: nowrap;
+}
+.stage-plate b { color: rgb(var(--pc)); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.stage-balls { display: flex; }
+.stage-balls img { width: 30px; height: 30px; margin: -5px -6px; border-radius: 0; image-rendering: pixelated; transition: opacity 0.3s, filter 0.3s; }
+.stage-balls img.is-empty { opacity: 0.3; filter: grayscale(1) brightness(0.7); }
+
+.stage-floor { position: relative; width: 100%; aspect-ratio: 96 / 24; }
+.stage-floor::before {
+  content: '';
+  position: absolute;
+  left: -6%; right: -6%; top: 30%; bottom: -30%;
+  background: radial-gradient(closest-side, rgba(var(--t-shade), 0.35), transparent);
+}
+.stage-pad { position: absolute; inset: 0; }
+.stage-pad svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
+.stage-pad .p-top { fill: var(--pad-top); }
+.stage-pad .p-mid { fill: var(--pad-mid); }
+.stage-pad .p-hi { fill: var(--pad-hi); }
+.stage-pad .p-side { fill: var(--pad-side); }
+.stage-pad .p-dark { fill: var(--pad-dark); }
+.stage-mons { position: absolute; inset: 0; }
+
+/* Ein Pokémon: .stage-mon ist der Punkt unter den Füßen (left/top setzt stage.js), darüber das Sprite.
+   --feet = leere Sprite-Zeilen unter den Füßen (misst stage.js), --nw = Breite des Sprites in Pixeln */
+.stage-mon { position: absolute; width: 0; height: 0; z-index: 2; opacity: 0; }
+.stage-mon.is-back { z-index: 1; }
+.stage-mon::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--s) * -22px);
+  top: calc(var(--s) * -4px);
+  width: calc(var(--s) * 44px);
+  height: calc(var(--s) * 8px);
+  border-radius: 50%;
+  background: rgba(var(--t-shade), 0.28);
+}
+.stage-mon-body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform: translate(-50%, calc(var(--feet, 8) * var(--s) * 1px));
+}
+.stage-mon img {
+  --bob: calc(var(--s) * -1.5px);
+  display: block;
+  width: calc(var(--nw, 80) * var(--s) * 1px);
+  max-width: none;
+  border-radius: 0;
+  image-rendering: pixelated;
+  filter: var(--stage-mon);
+  animation: bob 2.6s steps(5, end) infinite alternate;
+}
+.stage-mon.is-back img { filter: var(--stage-mon-back); }
+/* Platin-Sprites schauen nach links – links gespiegelt, damit beide Teams zur Mitte schauen */
+.stage-side--l .stage-mon img { scale: -1 1; }
+
+/* Erscheinen wie beim Rausschicken aus dem Ball (weiß aufblitzen), Verschwinden zurück ins Licht */
+.stage-mon.is-ready { opacity: 1; animation: stage-in 0.5s var(--delay, 0s) both; }
+.stage-mon.is-out { animation: stage-out 0.25s forwards; }
+@keyframes stage-in {
+  0%   { scale: 0.2; opacity: 0; filter: brightness(0) invert(1); }
+  55%  { scale: 1.08; opacity: 1; filter: brightness(0) invert(1); }
+  100% { scale: 1; opacity: 1; filter: brightness(1) invert(0); }
+}
+@keyframes stage-out {
+  to { scale: 0.2; opacity: 0; filter: brightness(0) invert(1); }
+}
+/* Kurzes Hüpfen beim Drüberfahren über die Team-Karte */
+.stage-mon-body.is-hop { animation: stage-hop 0.4s ease-out; }
+@keyframes stage-hop {
+  0%, 100% { translate: 0 0; }
+  35% { translate: 0 calc(var(--s) * -14px); }
+  70% { translate: 0 calc(var(--s) * 2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-mon.is-ready, .stage-mon.is-out, .stage-mon-body.is-hop, .stage-mon img { animation: none; }
+  .stage-mon.is-out { opacity: 0; }
+}

@@ -1,8 +1,7 @@
+/* Hintergrund ist die Kampfbühne (stage.css) – darunter nur die Himmelsfarbe für den Überscroll */
 html, body {
   min-height: 100%;
-  background: radial-gradient(circle at top left, rgba(var(--t-acc2-glow), 0.14), transparent 18%),
-              radial-gradient(circle at bottom right, rgba(var(--t-acc-glow), 0.12), transparent 20%),
-              rgb(var(--t-n-0d0f2b));
+  background: var(--sky-top);
   color: var(--color-text);
 }
 body {
@@ -18,14 +17,12 @@ body {
   --duo-line: rgba(var(--t-ink), 0.08);
   --duo-radius: 20px;
 }
+/* Karte vor der Bühne – Rahmen und Hintergrund: #app.win-frame (base.css) */
 #app {
   width: min(98vw, 1340px);
   margin: 0 auto;
   padding: 24px;
-  background: rgba(var(--t-n-191b3a), 0.96);
   border-radius: 28px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(var(--t-ink), 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -337,6 +334,8 @@ header p  { margin: 0; color: var(--color-muted); }
 }
 .p1 .player-title { color: var(--color-accent-strong); }
 .p2 .player-title { color: var(--color-accent); }
+/* Papier: ohne Leuchten – in der dunklen Spielerfarbe wäre es ein schmutziger Hof */
+html[data-theme="paper"] .player-title::before { box-shadow: none; }
 
 .team-builder {
   display: grid;
@@ -564,7 +563,7 @@ header p  { margin: 0; color: var(--color-muted); }
 /* ── MODALS ── */
 #pokemon-modal, #box-modal {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.72); display: flex; justify-content: center; align-items: center; z-index: 1002;
+  background: rgba(var(--t-n-050614), 0.72); display: flex; justify-content: center; align-items: center; z-index: 1002;
 }
 #box-modal { z-index: 1001; }
 #modal-content, #box-content {
@@ -875,10 +874,12 @@ button { font: inherit; }
   border-radius: 999px;
 }
 .sync-status-idle     { color: rgba(var(--t-g-cbd5e1), 0.55); background: rgba(var(--t-ink), 0.05); }
-.sync-status-loading  { color: rgb(var(--t-on-acc));    background: rgb(var(--t-acc)); }
-.sync-status-waiting  { color: rgb(var(--t-on-acc));    background: rgb(var(--t-acc)); }
-.sync-status-connected{ color: rgb(var(--t-on-acc));  background: rgb(var(--t-c-50d282)); }
-.sync-status-error    { color: rgb(var(--t-on-acc));  background: rgb(var(--t-c-ff6450)); }
+html[data-theme="paper"] .sync-status-idle { color: rgb(var(--t-g-cbd5e1)); }
+/* Füllfarben (theme.css): in Papier bleibt „wartet“ gelb und „Fehler“ rot statt beides rot */
+.sync-status-loading  { color: rgb(var(--t-on-fill));    background: rgb(var(--t-f-acc)); }
+.sync-status-waiting  { color: rgb(var(--t-on-fill));    background: rgb(var(--t-f-acc)); }
+.sync-status-connected{ color: rgb(var(--t-on-fill));  background: rgb(var(--t-f-50d282)); }
+.sync-status-error    { color: rgb(var(--t-on-fill));  background: rgb(var(--t-f-ff6450)); }
 .sync-player-count {
   font-size: 0.82rem;
   font-weight: 800;
@@ -888,8 +889,8 @@ button { font: inherit; }
   font-variant-numeric: tabular-nums;
 }
 .sync-player-count-hidden  { display: none; }
-.sync-player-count-partial { color: rgb(var(--t-on-acc));   background: rgb(var(--t-acc)); }
-.sync-player-count-full    { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-50d282)); }
+.sync-player-count-partial { color: rgb(var(--t-on-fill));   background: rgb(var(--t-f-acc)); }
+.sync-player-count-full    { color: rgb(var(--t-on-fill)); background: rgb(var(--t-f-50d282)); }
 .session-actions {
   display: flex;
   align-items: center;

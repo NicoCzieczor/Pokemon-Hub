@@ -1,0 +1,237 @@
+/*
+ * „Reisetagebuch“ hinter dem Run-Dashboard (journal.js): aufgeschlagenes Album, links Zettel und Team-Polaroids,
+ * rechts Stempel je Begegnung und die Gefallenen mit Trauerflor.
+ * Klassik: schwarzes Fotoalbum mit weißem Stift, Graphit: Packpapier mit Punktraster, Papier: liniertes Notizbuch.
+ */
+
+/* ── Farben je Design ── */
+.jr {
+  --cover: #2c1d3a; --cover-hi: #3d2a50;
+  --page: #16172b; --page-2: #1b1c33; --gutter: rgba(0, 0, 0, 0.45); --edge: #d9d4c7;
+  --grain: rgba(255, 255, 255, 0.025); --rule: transparent; --margin: transparent; --dot: transparent;
+  --ink: rgba(238, 240, 255, 0.88); --ink-soft: rgba(238, 240, 255, 0.55);
+  --frame: #f4f1ea; --pic: linear-gradient(180deg, #bfe1ff, #e9f6ff 60%, #cfe9b8 61%, #b9dc9c);
+  --tape: rgba(255, 255, 255, 0.35); --corner: #0b0c18;
+  --note: #ffe46b; --note-ink: #3a2f10;
+  --s-caught: #63d68f; --s-failed: #ff7070; --s-open: #72b6ff; --s-dead: #d4d4e6;
+  --blend: screen;
+  --hand: 'Segoe Print', 'Bradley Hand', 'Marker Felt', 'Comic Sans MS', cursive;
+}
+:root[data-theme="graphite"] .jr {
+  --cover: #2a211b; --cover-hi: #3a2e25;
+  --page: #8d7152; --page-2: #977b5b; --gutter: rgba(40, 25, 10, 0.4); --edge: #e7dccb;
+  --grain: rgba(60, 40, 20, 0.05); --dot: rgba(40, 28, 16, 0.28);
+  --ink: #2a1f15; --ink-soft: rgba(42, 31, 21, 0.62);
+  --tape: rgba(255, 246, 220, 0.5); --corner: #2a1f15;
+  --s-caught: #1f6b3a; --s-failed: #a3261b; --s-open: #1f4f8c; --s-dead: #1b1510;
+  --blend: multiply;
+}
+:root[data-theme="paper"] .jr {
+  --cover: #7a2f2a; --cover-hi: #8f3a33;
+  --page: #f8f2e3; --page-2: #fbf6ea; --gutter: rgba(90, 70, 40, 0.22); --edge: #fffdf6;
+  --grain: rgba(120, 90, 40, 0.03); --rule: rgba(70, 110, 190, 0.22); --margin: rgba(210, 70, 70, 0.4);
+  --ink: #23347e; --ink-soft: rgba(35, 52, 126, 0.6);
+  --frame: #ffffff; --tape: rgba(255, 238, 170, 0.6); --corner: #23347e;
+  --s-caught: #23854a; --s-failed: #c0392b; --s-open: #2a66b8; --s-dead: #222;
+  --blend: multiply;
+}
+
+.jr {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 40%, var(--cover-hi), var(--cover));
+}
+.jr img { max-width: none; border-radius: 0; image-rendering: pixelated; }
+.jr button { font: inherit; }
+
+/* ── Seiten: zum Falz hin dunkler, außen der Schnitt der Blätter ── */
+.jr-page {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 29px, var(--rule) 29px 30px),
+    radial-gradient(var(--dot) 1.2px, transparent 1.6px) 0 0 / 22px 22px,
+    repeating-radial-gradient(circle at 30% 20%, var(--grain) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, var(--page-2), var(--page));
+}
+.jr-page--l { left: 10px; right: 50%; border-radius: 8px 0 0 8px; }
+.jr-page--r { left: 50%; right: 10px; border-radius: 0 8px 8px 0; }
+.jr-page::after { content: ''; position: absolute; top: 0; bottom: 0; width: 18%; }
+.jr-page--l::after { right: 0; background: linear-gradient(90deg, transparent, var(--gutter)); }
+.jr-page--r::after { left: 0; background: linear-gradient(270deg, transparent, var(--gutter)); }
+/* Rand der Heftseite (nur im Notizbuch sichtbar) */
+.jr-page--l::before, .jr-page--r::before { content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--margin); }
+.jr-page--l::before { left: 34px; }
+.jr-page--r::before { right: 34px; }
+/* Schnitt: mehrere Blätter übereinander */
+.jr-edge { position: absolute; top: 4px; bottom: 4px; width: 6px; }
+.jr-page--l .jr-edge { left: -6px; border-radius: 4px 0 0 4px; box-shadow: -2px 0 0 var(--edge), -4px 0 0 rgba(0, 0, 0, 0.25), -6px 0 0 var(--edge); }
+.jr-page--r .jr-edge { right: -6px; border-radius: 0 4px 4px 0; box-shadow: 2px 0 0 var(--edge), 4px 0 0 rgba(0, 0, 0, 0.25), 6px 0 0 var(--edge); }
+
+/* ── Inhalt links und rechts der Karte ── */
+.jr-side {
+  position: absolute;
+  top: 26px;
+  bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  color: var(--ink);
+  font-family: var(--hand);
+}
+.jr-side--l { left: 24px; width: calc(var(--wl) - 48px); }
+.jr-side--r { right: 24px; width: calc(var(--wr) - 48px); }
+.jr-head { display: block; margin-bottom: 10px; color: var(--ink-soft); font-size: 0.95rem; font-weight: 700; }
+.jr-empty { display: block; color: var(--ink-soft); font-size: 0.86rem; line-height: 1.5; max-width: 22ch; }
+.jr-more { display: block; margin-top: 10px; color: var(--ink-soft); font-size: 0.86rem; }
+.jr-grid { display: grid; grid-template-columns: repeat(var(--cols), max-content); gap: 16px; justify-content: center; }
+.jr-stamps .jr-grid, .jr-grave .jr-grid { gap: 12px; }
+.jr-stamps { flex: 1; min-height: 0; }
+
+/* Zettel: nächster Kampf, Level Cap, Strichliste */
+.jr-note {
+  align-self: center;
+  width: min(220px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 16px 18px 14px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04), transparent 18%), var(--note);
+  color: var(--note-ink);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.28), inset 0 -10px 18px rgba(120, 90, 0, 0.08);
+  rotate: var(--r, -2deg);
+  clip-path: polygon(0 0, 100% 0, 100% 88%, 90% 100%, 0 100%);
+  pointer-events: auto;
+  transition: rotate 0.3s;
+}
+.jr-note:hover { rotate: 0deg; }
+.jr-kick { font-size: 0.78rem; opacity: 0.7; }
+.jr-note b { font-size: 1.15rem; line-height: 1.25; }
+.jr-cap-lv { font-size: 0.86rem; }
+.jr-cap-lv strong { font-size: 1.05rem; }
+.jr-note small { font-size: 0.74rem; opacity: 0.75; }
+.jr-done { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.jr-tally { height: 18px; flex: none; }
+.jr-tally path { fill: none; stroke: var(--note-ink); stroke-width: 1.8; stroke-linecap: round; }
+
+/* Polaroids */
+.jr-photo {
+  position: relative;
+  width: var(--w);
+  padding: 7px 7px 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--frame);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  rotate: var(--r);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: rotate 0.25s, scale 0.25s, box-shadow 0.25s;
+}
+.jr-photo:hover { rotate: 0deg; scale: 1.06; z-index: 1; box-shadow: 0 14px 26px rgba(0, 0, 0, 0.35); }
+.jr-pic { position: relative; display: grid; place-items: center; aspect-ratio: 1; overflow: hidden; background: var(--pic); }
+.jr-pic img { width: 100%; height: 100%; object-fit: contain; }
+.jr-cap { display: flex; flex-direction: column; align-items: center; min-height: calc(var(--w) * 0.22); padding: 4px 2px 6px; color: #2a2a3a; font-family: var(--hand); line-height: 1.15; text-align: center; }
+.jr-cap b { font-size: clamp(0.7rem, calc(var(--w) * 0.085), 0.95rem); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jr-cap small { font-size: clamp(0.6rem, calc(var(--w) * 0.065), 0.72rem); opacity: 0.7; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Klebestreifen (Notizbuch, Packpapier) bzw. Fotoecken (Album) */
+.jr-tape { position: absolute; top: -9px; left: 50%; width: 46%; height: 18px; translate: -50% 0; rotate: -3deg; background: var(--tape); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.jr-corner { display: none; position: absolute; width: 18px; height: 18px; background: var(--corner); }
+.jr-corner--a { top: -3px; left: -3px; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.jr-corner--b { bottom: -3px; right: -3px; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+:root:not([data-theme="paper"]):not([data-theme="graphite"]) .jr-tape { display: none; }
+:root:not([data-theme="paper"]):not([data-theme="graphite"]) .jr-corner { display: block; }
+/* Gefallene: blass, mit schwarzem Band über der Ecke */
+.jr-photo.is-dead .jr-pic img { filter: grayscale(1) contrast(0.9) brightness(0.95); }
+.jr-photo.is-dead .jr-pic { background: linear-gradient(180deg, #d8d8dc, #b9b9c0); }
+.jr-ribbon { position: absolute; top: 12%; right: -18%; width: 70%; height: 11%; background: #15151c; rotate: 45deg; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+.jr-photo.is-dead .jr-cap small { color: #7a2020; opacity: 0.85; }
+
+/* Stempel: rund oder eckig, Farbe nach Status */
+.jr-stamp {
+  --ink-c: var(--s-open);
+  display: grid;
+  place-items: center;
+  width: var(--w);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  rotate: var(--r);
+  cursor: pointer;
+  pointer-events: auto;
+  mix-blend-mode: var(--blend);
+  transition: scale 0.2s;
+}
+.jr-stamp:hover { scale: 1.08; }
+.jr-stamp.is-caught { --ink-c: var(--s-caught); }
+.jr-stamp.is-failed { --ink-c: var(--s-failed); }
+.jr-stamp.is-dead { --ink-c: var(--s-dead); }
+.jr-ink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 92%;
+  height: 74%;
+  padding: 6px;
+  border: 3px solid var(--ink-c);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px transparent, inset 0 0 0 4px var(--ink-c);
+  color: var(--ink-c);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  text-align: center;
+  opacity: 0.86;
+  /* etwas ungleichmäßige Farbe wie echte Stempelfarbe */
+  -webkit-mask-image: repeating-radial-gradient(circle at 37% 61%, #000 0 2px, rgba(0, 0, 0, 0.75) 2px 3px);
+  mask-image: repeating-radial-gradient(circle at 37% 61%, #000 0 2px, rgba(0, 0, 0, 0.75) 2px 3px);
+}
+.jr-stamp.is-round .jr-ink { height: 92%; border-radius: 50%; }
+.jr-ink b { max-width: 100%; font-size: clamp(0.58rem, calc(var(--w) * 0.11), 0.8rem); font-weight: 900; line-height: 1.1; letter-spacing: 0.02em; text-transform: uppercase; overflow-wrap: anywhere; }
+.jr-ink small { font-size: clamp(0.5rem, calc(var(--w) * 0.08), 0.62rem); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; border-top: 2px solid var(--ink-c); padding-top: 2px; }
+.jr-stamp.is-open .jr-ink { border-style: dashed; }
+
+/* Neu: Stempel knallt drauf, Foto wird eingeklebt; beim ersten Laden kommt alles nacheinander */
+.jr-stamp.is-new { animation: jr-stamp 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+@keyframes jr-stamp {
+  0% { scale: 1.9; opacity: 0; }
+  55% { scale: 0.94; opacity: 1; }
+  75% { scale: 1.03; }
+  100% { scale: 1; opacity: 1; }
+}
+.jr-photo.is-new { animation: jr-stick 0.6s cubic-bezier(0.25, 1.4, 0.5, 1) both; }
+@keyframes jr-stick {
+  0% { translate: 0 -40px; scale: 1.15; opacity: 0; }
+  100% { translate: 0 0; scale: 1; opacity: 1; }
+}
+.jr.is-first .jr-photo, .jr.is-first .jr-stamp { animation: jr-in 0.5s ease-out var(--d, 0s) both; }
+@keyframes jr-in { from { translate: 0 12px; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+
+/* Bleistift und Skizze */
+.jr-pencil { position: absolute; left: 28px; bottom: 26px; width: min(200px, calc(var(--wl) - 60px)); rotate: -8deg; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.3)); }
+.jr-pencil .p-wood { fill: #e8c39a; }
+.jr-pencil .p-lead { fill: #2b2b33; }
+.jr-pencil .p-body { fill: #f0b52a; }
+.jr-pencil .p-stripe { fill: #d39a16; }
+.jr-pencil .p-band { fill: #b8b8c4; }
+.jr-pencil .p-rubber { fill: #ef8a96; }
+.jr-doodle { position: absolute; left: calc(var(--wl) - 86px); bottom: 34px; width: 46px; rotate: 12deg; opacity: 0.6; }
+.jr-doodle path { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 200; stroke-dashoffset: 200; animation: jr-sketch 2.4s 0.6s ease-out forwards; }
+@keyframes jr-sketch { to { stroke-dashoffset: 0; } }
+
+/* Eintrag in der Liste, zu dem ein Foto oder Stempel springt */
+.encounter-row.is-flash { animation: jr-flash 1.8s ease-out; }
+@keyframes jr-flash { 0%, 30% { background: rgba(var(--t-acc), 0.22); box-shadow: inset 0 0 0 2px rgba(var(--t-acc), 0.6); } }
+
+/* Zu wenig Platz neben der Karte: nur das Album */
+.jr.is-bare .jr-side, .jr.is-bare .jr-pencil, .jr.is-bare .jr-doodle { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .jr-stamp.is-new, .jr-photo.is-new, .jr.is-first .jr-photo, .jr.is-first .jr-stamp { animation: none; }
+  .jr-doodle path { animation: none; stroke-dashoffset: 0; }
+}

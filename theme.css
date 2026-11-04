@@ -416,6 +416,61 @@ html[data-theme="graphite"] {
 }
 /* @@themes-end */
 
+/* ── Füllfarben (Balken, Punkte, Status-Chips) ───────────────────────────────
+   Die bunten Schriftfarben --t-c-… (und die getönten --t-g-…) sind in Papier stark abgedunkelt, damit Text
+   auf dem hellen Grund lesbar bleibt. Als Fläche (KP-Balken, Status-Punkte, Chips) wirken sie dann fast
+   schwarz, und verschiedene Zustände sehen gleich aus. Dafür gibt es --t-f-…: in Klassik und Graphit gleich
+   --t-c-… bzw. --t-g-…, in Papier kräftig und etwas ruhiger. Name = ursprüngliche Farbe.
+   Schrift auf diesen Flächen: --t-on-fill (in Papier dunkel – --t-on-acc ist dort hell).
+   --t-f-acc: Akzent als Fläche für „offen/wartend“. In Papier ist der Akzent Rot und sähe dann aus wie
+   „Fehler/verpasst“, deshalb dort Gelb wie in Klassik. */
+:root {
+  --t-f-3ddc84: var(--t-c-3ddc84);
+  --t-f-50d282: var(--t-c-50d282);
+  --t-f-50e880: var(--t-c-50e880);
+  --t-f-7fdcff: var(--t-c-7fdcff);
+  --t-f-80e060: var(--t-c-80e060);
+  --t-f-8ef0b4: var(--t-c-8ef0b4);
+  --t-f-8ff0a4: var(--t-c-8ff0a4);
+  --t-f-b8b8c8: var(--t-g-b8b8c8);
+  --t-f-ffd23f: var(--t-c-ffd23f);
+  --t-f-ffda08: var(--t-c-ffda08);
+  --t-f-f09040: var(--t-c-f09040);
+  --t-f-f05050: var(--t-c-f05050);
+  --t-f-ff5a4f: var(--t-c-ff5a4f);
+  --t-f-ff6450: var(--t-c-ff6450);
+  --t-f-ff9b8e: var(--t-c-ff9b8e);
+  --t-f-ffa060: var(--t-c-ffa060);
+  --t-f-ffaa3c: var(--t-c-ffaa3c);
+  --t-f-ffb3b3: var(--t-g-ffb3b3);
+  --t-f-ffb3b8: var(--t-g-ffb3b8);
+  --t-f-acc: var(--t-acc);
+  --t-on-fill: var(--t-on-acc);
+}
+html[data-theme="paper"] {
+  --t-f-3ddc84: 48, 174, 108;
+  --t-f-50d282: 56, 176, 108;
+  --t-f-50e880: 52, 180, 92;
+  --t-f-7fdcff: 84, 170, 214;
+  --t-f-80e060: 96, 178, 58;
+  --t-f-8ef0b4: 60, 176, 110;
+  --t-f-8ff0a4: 62, 176, 96;
+  --t-f-b8b8c8: 170, 166, 160;
+  --t-f-ffd23f: 218, 166, 42;
+  --t-f-ffda08: 222, 178, 34;
+  --t-f-f09040: 208, 118, 46;
+  --t-f-f05050: 206, 54, 48;
+  --t-f-ff5a4f: 206, 62, 50;
+  --t-f-ff6450: 226, 96, 72;
+  --t-f-ff9b8e: 220, 118, 98;
+  --t-f-ffa060: 226, 128, 64;
+  --t-f-ffaa3c: 226, 140, 48;
+  --t-f-ffb3b3: 226, 110, 110;
+  --t-f-ffb3b8: 226, 110, 116;
+  --t-f-acc: 222, 178, 34;
+  --t-on-fill: 36, 31, 25;
+}
+
 /* ── Papier und Graphit: ruhiger als Klassik ─────────────────────────────── */
 html[data-theme="paper"] { color-scheme: light; }
 html[data-theme="graphite"] { color-scheme: dark; }
@@ -428,7 +483,9 @@ html[data-theme="graphite"], html[data-theme="graphite"] body {
 
 /* Überschriften-Wort in Akzentfarbe statt Farbverlauf */
 html[data-theme="paper"] :is(.hero h1, .topbar h1, .page-title h1, .header-copy h1) span,
-html[data-theme="graphite"] :is(.hero h1, .topbar h1, .page-title h1, .header-copy h1) span {
+html[data-theme="graphite"] :is(.hero h1, .topbar h1, .page-title h1, .header-copy h1) span,
+html[data-theme="paper"] .page-head h1 .accent,
+html[data-theme="graphite"] .page-head h1 .accent {
   background: none;
   -webkit-text-fill-color: currentColor;
   color: rgb(var(--t-acc));
@@ -713,3 +770,12 @@ html .hub-controls .theme-toggle { width: 34px; min-width: 0; }
 }
 .hub-rando-load:hover { background: rgba(var(--t-ink), 0.08); }
 .hub-rando-load:disabled { opacity: 0.6; cursor: default; }
+
+/* Große Pokémon-Bilder von Omega Rubin / Alpha Saphir sind 3D-Renderbilder (Pokémon HOME, 512 px) –
+   weich verkleinern statt pixelig wie die DS-Sprites */
+img.is-3d { image-rendering: auto !important; }
+
+/* Handy & Tablet (pwa.js, html.hub-lite): die Szenen neben der Karte gibt es dort nicht */
+html.hub-lite #stage, html.hub-lite #enc, html.hub-lite #ty, html.hub-lite #vs, html.hub-lite #dx, html.hub-lite #km,
+html.hub-lite #ru, html.hub-lite #jr, html.hub-lite #pc, html.hub-lite #ch, html.hub-lite #sl, html.hub-lite #hf,
+html.hub-lite #tl, html.hub-lite #bs { display: none !important; }

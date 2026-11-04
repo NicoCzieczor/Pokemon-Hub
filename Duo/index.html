@@ -27,6 +27,8 @@
   <link rel="stylesheet" href="../theme.css">
   <title>Duo</title>
   <link rel="stylesheet" href="../Pokelocke/base.css" />
+  <link rel="stylesheet" href="../scene.css" />
+  <link rel="stylesheet" href="../stage.css" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="routes.css" />
 </head>
@@ -37,7 +39,22 @@
   })();
 </script>
 <body>
-  <div id="app">
+  <!-- Kampfbühne hinter der Karte: links das Team von Spieler 1, rechts das von Spieler 2 (stage.js) -->
+  <div class="stage" id="stage" aria-hidden="true">
+    <div class="sky"></div>
+    <svg class="stage-trees"></svg>
+    <div class="stage-field"></div>
+    <div class="stage-side stage-side--l" data-side="1">
+      <div class="stage-plate"><b data-i18n="player1">Spieler 1</b><span class="stage-balls"></span></div>
+      <div class="stage-floor"><div class="stage-pad"></div><div class="stage-mons"></div></div>
+    </div>
+    <div class="stage-side stage-side--r" data-side="2">
+      <div class="stage-plate"><b data-i18n="player2">Spieler 2</b><span class="stage-balls"></span></div>
+      <div class="stage-floor"><div class="stage-pad"></div><div class="stage-mons"></div></div>
+    </div>
+  </div>
+
+  <div id="app" class="win-frame">
     <nav class="tool-nav" aria-label="Pokemon tools">
       <a class="tool-nav-link" href="../index.html" data-i18n="nav-home">Home</a>
       <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav-run">Run</a>
@@ -270,6 +287,9 @@
 <script src="../locations.js"></script>
 <script src="../rando-state.js"></script>
 <script src="../Karte/encounter-areas.js"></script>
+<script src="../Karte/encounter-areas-oras.js"></script>
+<script src="../scene.js"></script>
+<script src="../stage.js"></script>
 <script type="module" src="main.js"></script>
 <script src="level-caps.js"></script>
 </body>

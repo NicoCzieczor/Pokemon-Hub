@@ -372,6 +372,18 @@ const genFromName = name => ROMAN[String(name || '').replace('generation-', '')]
 // Attacken mit Sonderregeln
 const EXPLOSION_MOVES = new Set(['explosion', 'self-destruct']);
 const HIGH_CRIT_GEN1 = new Set(['slash', 'razor-leaf', 'karate-chop', 'crabhammer']);
+// Erhöhte Volltreffer-Quote ab Gen 2 (eine Stufe höher) – nur für den Probetreffer der Szene
+const HIGH_CRIT = new Set([...HIGH_CRIT_GEN1, 'cross-chop', 'aeroblast', 'sky-attack', 'blaze-kick', 'poison-tail', 'air-cutter',
+  'leaf-blade', 'night-slash', 'psycho-cut', 'shadow-claw', 'stone-edge', 'cross-poison', 'attack-order', 'spacial-rend',
+  'drill-run', 'razor-wind','stone-axe', 'aqua-cutter', 'esper-wing', 'snipe-shot']);
+// Chance auf einen Volltreffer ohne Items/Fähigkeiten: Gen 1 nach Basis-Initiative, Gen 2 17/256, Gen 3–6 1/16, ab Gen 7 1/24
+function critChanceOf(g, moveName, baseSpeed) {
+  const high = (g === 1 ? HIGH_CRIT_GEN1 : HIGH_CRIT).has(moveName);
+  if (g === 1) return Math.min(255, Math.floor(baseSpeed / 2) * (high ? 8 : 1)) / 256;
+  if (g === 2) return high ? 64 / 256 : 17 / 256;
+  if (g <= 6) return high ? 1 / 8 : 1 / 16;
+  return high ? 1 / 8 : 1 / 24;
+}
 const SCREEN_BREAKERS = { 'brick-break': 3, 'psychic-fangs': 7, 'raging-bull': 9 };
 // Fester Schaden – unabhängig von Werten und Volltreffer
 const FIXED_DAMAGE = { 'dragon-rage': () => 40, 'sonic-boom': () => 20, 'seismic-toss': lv => lv, 'night-shade': lv => lv };
@@ -1020,9 +1032,38 @@ function renderMissing() {
       <p>${t('resultsEmpty')}</p>
       <div class="res-missing">${missing.map(([k, label]) => `<button type="button" class="missing-chip" data-open="${k}"><span aria-hidden="true">+</span> ${label}</button>`).join('')}</div>
     </div>`;
+  updateScene(null);
 }
 function renderMessage(msg) {
   $('results-area').innerHTML = `<div class="res-empty"><p>${esc(msg)}</p></div>`;
+  updateScene(null);
+}
+
+// Szene hinter der Karte (versus.js): Angreifer links, Verteidiger rechts, Probetreffer mit genau diesen Schadenswerten
+function updateScene(r) {
+  if (!window.VersusScene) return;
+  const g = state.gen;
+  const mon = (p, role) => {
+    if (!p) return null;
+    const types = pokeForGen(p, g).types;
+    return { id: p.id, sprite: p.sprite, name: pokeName(p), level: levelOf(role),
+      color: TYPE_COLORS[types[0]] || TYPE_COLORS.normal, color2: types[1] ? TYPE_COLORS[types[1]] || null : null };
+  };
+  const mv = state.move && moveForGen(state.move, g);
+  window.VersusScene.update({
+    atk: mon(state.atk, 'atk'),
+    def: mon(state.def, 'def'),
+    move: mv && { id: state.move.name, type: mv.type, name: moveName(state.move), typeLabel: typeName(mv.type), color: TYPE_COLORS[mv.type] || '#888',
+      textColor: TYPE_TEXT[mv.type] || '#fff', physical: mv.damageClass === 'physical' },
+    hit: r && { rolls: r.rolls, crits: r.crits, later: r.later || r.rolls, laterCrits: r.laterCrits || r.crits, hp: r.hp,
+      hpCur: r.hpCur ?? r.hp, eff: r.eff,
+      critChance: r.fixed != null ? 0 : critChanceOf(g, state.move.name, pokeForGen(state.atk, g).base.speed) },
+    weather: g >= 2 ? (state.cond.sun ? 'sun' : state.cond.rain ? 'rain' : null) : null,
+    screens: state.cond.screens,
+    burn: state.cond.burn,
+    atkPar: $('atk-par').checked,
+    defPar: $('def-par').checked,
+  });
 }
 
 function renderResults(r) {
@@ -1055,7 +1096,7 @@ function renderResults(r) {
     const prio = priority ? ` · <span class="prio">${esc(t('priorityNote', { m: moveName(state.move), n: priority > 0 ? '+' + priority : priority }))}</span>` : '';
     speedHtml = `<div class="res-speed"><b>${who}</b><span>${esc(t('speedValues', { a: sA, b: sD }))}</span>${prio}</div>`;
   }
-  const hpColor = restHi > 50 ? 'var(--hp-green)' : restHi > 20 ? 'var(--hp-yellow)' : 'var(--hp-red)';
+  const hpColor = restHi > 50 ? 'var(--hp-fill-green)' : restHi > 20 ? 'var(--hp-fill-yellow)' : 'var(--hp-fill-red)';
 
   const atkLabel = g === 1 && !r.physical ? s.special : r.physical ? s.attack : s.sp_attack;
   const defLabel = g === 1 && !r.physical ? s.special : r.physical ? s.defense : s.sp_defense;
@@ -1115,6 +1156,7 @@ function renderResults(r) {
         <ul class="mech-list">${mech.map(x => `<li>${x}</li>`).join('')}</ul>
       </div>
     </details>`;
+  updateScene(r);
 }
 
 // ── Pokémon-Auswahl ───────────────────────────────────────────────────────────

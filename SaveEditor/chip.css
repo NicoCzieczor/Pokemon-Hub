@@ -1,0 +1,143 @@
+/*
+ * „Platine“ hinter dem Save-Editor (chip.js): Leiterplatte mit Bahnen und Kontakten, zwei Speicherchips mit dem
+ * Spielstand als Karte, Porygon über der bearbeiteten Stelle.
+ * Klassik: blaue Platine, Graphit: schwarze mit Kupfer, Papier: grüne wie im Spielmodul.
+ */
+
+/* ── Farben je Design ── */
+.ch {
+  --pcb: #0f1f4a; --pcb-hi: #16306a; --trace: rgba(120, 170, 255, 0.22); --via: #c9a24a; --via-hole: #0a1430;
+  --chip: #15161d; --chip-hi: #2a2c38; --pin: #c8ccd6; --pin-lo: #7c8190; --gold: #d6aa48; --gold-lo: #9b7425;
+  --ink: #d9deea; --ink-soft: rgba(217, 222, 234, 0.6);
+  --c-tr: #ffd23f; --c-team: #ff7aa8; --c-bag: #57d2ff; --c-dex: #7cdc8a; --c-care: #c59bff; --c-rest: #6f7fa8;
+  --c-box: #8fb4ff; --c-empty: #3b4366; --c-edit: #ff9a2e; --c-ok: #3ddc84; --c-cell-hi: rgba(255, 255, 255, 0.55);
+}
+:root[data-theme="graphite"] .ch {
+  --pcb: #141414; --pcb-hi: #1e1d1b; --trace: rgba(214, 150, 90, 0.2); --via: #c98a4a; --via-hole: #0c0c0c;
+  --c-rest: #6d6a62; --c-box: #d8b678; --c-empty: #3a3833;
+}
+:root[data-theme="paper"] .ch {
+  --pcb: #1f6a3a; --pcb-hi: #2a8048; --trace: rgba(190, 240, 170, 0.28); --via: #e0b85a; --via-hole: #134425;
+  --c-rest: #6f8f7a;
+}
+
+.ch {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, var(--pcb-hi), var(--pcb) 70%);
+}
+.ch img { max-width: none; border-radius: 0; image-rendering: pixelated; }
+.ch-pcb { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ch-tr { fill: none; stroke: var(--trace); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.ch-via { fill: var(--via-hole); stroke: var(--via); stroke-width: 3; }
+
+/* Kontakte des Moduls am unteren Rand */
+.ch-fingers {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26px;
+  background: repeating-linear-gradient(90deg, transparent 0 8px, var(--gold) 8px 30px, var(--gold-lo) 30px 32px, transparent 32px 40px);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 30%);
+  mask-image: linear-gradient(180deg, transparent, #000 30%);
+}
+
+/* ── Chips: schwarzes Gehäuse mit Beinchen links und rechts, Beschriftung, darin der Spielstand ── */
+.ch-chip {
+  position: absolute;
+  top: 50%;
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--chip-hi), var(--chip) 40%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 40px rgba(0, 0, 0, 0.5);
+  color: var(--ink);
+}
+.ch-chip--g { left: var(--cl); }
+.ch-chip--s { left: var(--cr); }
+.ch-chip::before, .ch-chip::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  width: 12px;
+  background: repeating-linear-gradient(180deg, var(--pin) 0 8px, var(--pin-lo) 8px 10px, transparent 10px 20px);
+}
+.ch-chip::before { left: -12px; border-radius: 2px 0 0 2px; }
+.ch-chip::after { right: -12px; border-radius: 0 2px 2px 0; }
+.ch-label { display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 100%; text-align: center; }
+.ch-label b { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.ch-label small { max-width: 100%; color: var(--ink-soft); font-size: 0.7rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; }
+/* Markierung „Pin 1“ */
+.ch-chip > .ch-label::before { content: ''; position: absolute; left: 10px; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); }
+
+.ch-die {
+  position: relative;
+  padding: 6px;
+  border-radius: 4px;
+  background: #07080c;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 0 18px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+.ch .ch-die canvas { display: block; image-rendering: pixelated; }
+/* Lesekopf: ab und zu läuft eine helle Zeile über die Daten */
+.ch-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 18%;
+  background: linear-gradient(180deg, transparent, rgba(160, 220, 255, 0.16), transparent);
+  translate: 0 -100%;
+  animation: ch-scan 7s linear infinite;
+}
+.ch-chip--s .ch-scan { animation-delay: -3.5s; }
+@keyframes ch-scan { 0%, 30% { translate: 0 -100%; } 100% { translate: 0 560%; } }
+
+.ch-status { max-width: 100%; text-align: center; min-height: 1.2em; color: var(--ink-soft); font-size: 0.74rem; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; }
+.ch-status.is-edit { color: var(--c-edit); }
+.ch-status.is-ok { color: var(--c-ok); }
+.ch-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 9px; max-width: 100%; color: var(--ink-soft); font-size: 0.66rem; font-weight: 600; }
+.ch-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.ch-legend i { width: 8px; height: 8px; border-radius: 2px; }
+
+/* Geändert: Chips glühen leicht */
+.ch.is-dirty .ch-die { box-shadow: inset 0 0 0 1px rgba(255, 154, 46, 0.35), inset 0 0 18px rgba(0, 0, 0, 0.8), 0 0 22px rgba(255, 154, 46, 0.25); }
+
+/* Porygon über der bearbeiteten Stelle, Porygon-Z beim Speichern */
+.ch-pory {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 80px;
+  height: 80px;
+  transition: transform 0.7s cubic-bezier(0.4, 0.1, 0.2, 1);
+  filter: drop-shadow(0 10px 6px rgba(0, 0, 0, 0.45));
+  animation: ch-float 2.2s ease-in-out infinite;
+}
+@keyframes ch-float { 50% { translate: 0 -6px; } }
+.ch-beam, .ch-aim { position: absolute; left: 0; top: 0; opacity: 0; transition: opacity 0.3s; }
+.ch.is-aiming .ch-beam, .ch.is-aiming .ch-aim { opacity: 1; transition: opacity 0.3s 0.5s; }
+.ch-beam { width: 2px; background: repeating-linear-gradient(180deg, var(--c-edit) 0 6px, transparent 6px 10px); animation: ch-beam 0.6s linear infinite; }
+@keyframes ch-beam { to { background-position: 0 10px; } }
+/* Ring um die Stelle: es pulsiert nur der innere Rand – „scale“ am Ring selbst würde seine Verschiebung mit vergrößern */
+.ch-aim::after { content: ''; position: absolute; inset: 0; border: 2px solid var(--c-edit); border-radius: 3px; box-shadow: 0 0 12px var(--c-edit); animation: ch-pulse 1.2s ease-in-out infinite; }
+@keyframes ch-pulse { 50% { scale: 1.25; } }
+.ch-dash { position: absolute; left: 0; top: 0; width: 80px; height: 80px; opacity: 0; filter: drop-shadow(0 0 10px rgba(120, 220, 255, 0.8)); }
+.ch-dash.is-on { opacity: 1; }
+
+/* Zu wenig Platz neben der Karte: nur die Platine */
+.ch.is-bare .ch-chip, .ch.is-bare .ch-pory, .ch.is-bare .ch-dash { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-scan, .ch-pory, .ch-beam, .ch-aim::after { animation: none; }
+  .ch-pory { transition-duration: 0s; }
+}

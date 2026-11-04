@@ -56,14 +56,12 @@
       font-family: var(--font-main);
     }
 
+    /* Karte vor den Ruinen – Rahmen und Hintergrund: #app.win-frame (base.css) */
     #app {
       width: min(98vw, 1340px);
       margin: 0 auto;
       padding: 24px;
-      background: rgba(var(--t-n-191b3a), 0.96);
       border-radius: 28px;
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(var(--t-ink), 0.08);
       display: flex;
       flex-direction: column;
     }
@@ -327,12 +325,13 @@
     ::-webkit-scrollbar-thumb { background: var(--color-accent); border-radius: 6px; }
     * { scrollbar-width: thin; scrollbar-color: var(--color-accent) var(--color-bg); }
   </style>
+  <link rel="stylesheet" href="ruins.css">
 </head>
 <body>
 
   <button class="lang-btn" id="lang-btn">EN</button>
 
-  <div id="app">
+  <div id="app" class="win-frame">
 
     <nav class="tool-nav" aria-label="Pokemon tools">
       <a class="tool-nav-link" href="../index.html">Home</a>
@@ -370,21 +369,21 @@
             <span class="section-badge badge-core" data-i18n="core-badge">Pflicht</span>
           </div>
           <div class="rules-list">
-            <div class="rule-item">
+            <div class="rule-item" data-word="core-1">
               <div class="rule-num num-core">1</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="core-1-name">Nur der erste Fund</div>
                 <div class="rule-desc" data-i18n="core-1-desc">Auf jeder Route darf nur das erste wild angetroffene Pokémon gefangen werden. Flieht es oder stirbt es im Kampf, gibt es keinen zweiten Versuch.</div>
               </div>
             </div>
-            <div class="rule-item">
+            <div class="rule-item" data-word="core-2">
               <div class="rule-num num-core">2</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="core-2-name">Permadeath</div>
                 <div class="rule-desc" data-i18n="core-2-desc">Ein Pokémon, das besiegt wird, gilt als tot. Es muss sofort entlassen oder in eine „Friedhofs-Box" verschoben werden — es darf nicht mehr eingesetzt werden.</div>
               </div>
             </div>
-            <div class="rule-item">
+            <div class="rule-item" data-word="core-3">
               <div class="rule-num num-core">3</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="core-3-name">Nicknamenpflicht</div>
@@ -402,42 +401,42 @@
             <span class="section-badge badge-clause" data-i18n="clauses-badge">Optional</span>
           </div>
           <div class="rules-list">
-            <div class="rule-item">
+            <div class="rule-item" data-word="clause-a">
               <div class="rule-num num-clause">A</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="clause-a-name">Duplikate-Klausel</div>
                 <div class="rule-desc" data-i18n="clause-a-desc">Ist das erste Pokémon einer Route eine Art, die du bereits besitzt, darf weitergesucht werden.</div>
               </div>
             </div>
-            <div class="rule-item">
+            <div class="rule-item" data-word="clause-b">
               <div class="rule-num num-clause">B</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="clause-b-name">Shiny-Klausel</div>
                 <div class="rule-desc" data-i18n="clause-b-desc">Ein Shiny darf immer gefangen werden — unabhängig von Route oder bereits vorhandenem Encounter.</div>
               </div>
             </div>
-            <div class="rule-item">
+            <div class="rule-item" data-word="clause-c">
               <div class="rule-num num-clause">C</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="clause-c-name">Geschenk-Pokémon</div>
                 <div class="rule-desc" data-i18n="clause-c-desc">In-Game-Geschenke (Starter, Fossilien, Tausch-NPCs) gelten als Encounter oder werden ignoriert — muss vorab festgelegt werden.</div>
               </div>
             </div>
-            <div class="rule-item">
+            <div class="rule-item" data-word="clause-d">
               <div class="rule-num num-clause">D</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="clause-d-name">Set-Modus</div>
                 <div class="rule-desc" data-i18n="clause-d-desc">Kampfmodus auf „Set" — kein prophylaktischer Wechsel nach gegnerischem KO möglich. Erhöht die Schwierigkeit deutlich.</div>
               </div>
             </div>
-            <div class="rule-item">
+            <div class="rule-item" data-word="clause-e">
               <div class="rule-num num-clause">E</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="clause-e-name">Keine Items im Kampf</div>
                 <div class="rule-desc" data-i18n="clause-e-desc">Heilitems, Statusitems und X-Items dürfen während des Kampfes nicht aus dem Bag benutzt werden.</div>
               </div>
             </div>
-            <div class="rule-item">
+            <div class="rule-item" data-word="clause-f">
               <div class="rule-num num-clause">F</div>
               <div class="rule-body">
                 <div class="rule-name" data-i18n="clause-f-name">Levelgrenze</div>
@@ -457,7 +456,7 @@
           <span class="section-badge badge-variant" data-i18n="variants-badge">Varianten</span>
         </div>
         <div class="variant-grid">
-          <div class="variant-card">
+          <div class="variant-card" data-word="hardcore">
             <div class="variant-name">Hardcore Nuzlocke <span class="variant-tag" data-i18n="tag-popular">Populär</span></div>
             <div class="variant-desc" data-i18n="v-hardcore-desc">Die strikteste Standardvariante, popularisiert durch SmallAnt. Kombiniert Grundregeln mit den härtesten Klauseln.</div>
             <div class="variant-rules">
@@ -467,7 +466,7 @@
               <div class="variant-rule-line" data-i18n="v-levelcap-on">Levelgrenze aktiv</div>
             </div>
           </div>
-          <div class="variant-card">
+          <div class="variant-card" data-word="soullink">
             <div class="variant-name">Soul Link</div>
             <div class="variant-desc" data-i18n="v-soullink-desc">Für zwei Spieler gleichzeitig. Jeder Encounter einer Route wird mit dem des Partners verknüpft.</div>
             <div class="variant-rules">
@@ -477,7 +476,7 @@
               <div class="variant-rule-line" data-i18n="v-no-link-no-use">Kein verlinktes Pokémon = kein Einsatz</div>
             </div>
           </div>
-          <div class="variant-card">
+          <div class="variant-card" data-word="randomizer">
             <div class="variant-name">Randomizer</div>
             <div class="variant-desc" data-i18n="v-randomizer-desc">Wild- und Trainer-Pokémon per ROM-Patcher randomisiert. Kombinierbar mit allen Varianten.</div>
             <div class="variant-rules">
@@ -487,7 +486,7 @@
               <div class="variant-rule-line" data-i18n="v-items-rand">Items &amp; TMs optional randomisiert</div>
             </div>
           </div>
-          <div class="variant-card">
+          <div class="variant-card" data-word="wedlocke">
             <div class="variant-name">Wedlocke</div>
             <div class="variant-desc" data-i18n="v-wedlocke-desc">Pokémon werden in Paare eingeteilt. Stirbt eines, darf sein Partner nicht mehr eingesetzt werden.</div>
             <div class="variant-rules">
@@ -497,7 +496,7 @@
               <div class="variant-rule-line" data-i18n="v-partner-death">Tod eines Partners = Rente beider</div>
             </div>
           </div>
-          <div class="variant-card">
+          <div class="variant-card" data-word="monotype">
             <div class="variant-name">Monotype</div>
             <div class="variant-desc" data-i18n="v-monotype-desc">Nur Pokémon eines einzigen Typs. Typ wird per Zufall oder vor dem Run festgelegt.</div>
             <div class="variant-rules">
@@ -506,7 +505,7 @@
               <div class="variant-rule-line" data-i18n="v-evo-type">Entwicklungen dürfen Typ wechseln (optional)</div>
             </div>
           </div>
-          <div class="variant-card">
+          <div class="variant-card" data-word="egglocke">
             <div class="variant-name">Egglocke</div>
             <div class="variant-desc" data-i18n="v-egglocke-desc">Jeder Encounter wird gegen ein vorbereitetes zufälliges Ei eingetauscht.</div>
             <div class="variant-rules">
@@ -538,6 +537,13 @@
     </div><!-- /.content -->
 
   </div>
+
+  <!-- Ruinen von Trostu hinter der Karte: Mauer, Fackeln, Icognito, die die Regeln an die Wand schreiben (ruins.js).
+       Nach #app, damit die Tab-Reihenfolge mit der Seite beginnt -->
+  <div class="ru" id="ru"></div>
+
+  <script src="../scene.js"></script>
+  <script src="ruins.js"></script>
 
   <script>
     // ── Custom rules ──
@@ -579,6 +585,7 @@
       saveRules(rules);
       input.value = '';
       renderRules();
+      window.RuinsScene?.spell(text);   // die Icognito schreiben die neue Regel an die Wand
     }
     function deleteRule(index) {
       const rules = loadRules();

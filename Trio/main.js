@@ -115,6 +115,17 @@ function updateLinkHighlights() {
   linkedTeamSlots.forEach(i => {
     document.querySelectorAll(`.pokemon-slot[data-slot="${i}"]`).forEach(s => s.classList.add('slot-linked'));
   });
+  updateScene();
+}
+
+// Seen-Trio hinter der Karte (lakes.js): je Spieler ein Seegeist mit kreisendem Team, verknüpfte Plätze rot
+const ICONS = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-vii/icons/';
+function updateScene() {
+  if (!window.TrioScene) return;
+  window.TrioScene.update({
+    teams: teams.map(team => team.map(p => p ? { key: p.name, name: p.germanName || capitalize(p.name), icon: p.id && p.id <= 807 ? ICONS + p.id + '.png' : p.sprite } : null)),
+    linked: [...linkedTeamSlots],
+  });
 }
 
 document.addEventListener('mouseover', e => {
@@ -172,6 +183,7 @@ function updateBoxSlots() {
 
 // ── Type analysis ─────────────────────────────────────────────────────────────
 function renderTeamWeaknessPanel() {
+  updateScene();
   const container = document.getElementById('team-weakness-panel');
   if (!container) return;
   const a1 = teams[0].filter(Boolean), a2 = teams[1].filter(Boolean), a3 = teams[2].filter(Boolean);

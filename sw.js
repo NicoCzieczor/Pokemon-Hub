@@ -8,13 +8,15 @@
  *  - Antworten der PokeAPI und Sprites werden gespeichert, sobald sie einmal geladen wurden.
  *  - Kartenblätter der Sinnoh-Karte (Karte/tiles/) ebenso – sie ändern sich nur, wenn die Karte neu gerendert wird.
  *  - Supabase (Duo-Sync) läuft nie über den Speicher, sondern immer live.
+ *  - Randomizer, Omega Rubin / Alpha Saphir: Die ROM (rund 2 GB) liest CheerpJ stückweise über …/Randomizer/__rom/…
+ *    – geliefert wird sie von hier aus der Datei, die die Seite schickt bzw. in IndexedDB abgelegt hat (romResponse).
  *
  * Nach jeder Änderung an der Seite: node tools/build-sw-version.js – aktualisiert CONTENT (Abdruck aller Dateien)
  * und zählt dabei VERSION hoch (tests/sw-version.test.cjs prüft das). Die vorderen Stellen von VERSION dürfen
  * von Hand angehoben werden. Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = '0.1.23';            // steht unten auf der Startseite
-const CONTENT = '2ec4dc5542';       // ändert sich mit jeder Datei → neue Version für alle Geräte
+const VERSION = '0.1.31';            // steht unten auf der Startseite
+const CONTENT = 'c77061cd6b';       // ändert sich mit jeder Datei → neue Version für alle Geräte
 const TILE_VERSION = 't1';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
@@ -37,6 +39,8 @@ const PRECACHE = [
   './mobile.js',
   './scene.css',
   './scene.js',
+  './stage.css',
+  './stage.js',
   './manifest.json',
   './pwa.js',
   './theme.css',
@@ -60,8 +64,12 @@ const PRECACHE = [
   './RunDashboard/index.html',
   './RunDashboard/style.css',
   './RunDashboard/app.js',
+  './RunDashboard/journal.css',
+  './RunDashboard/journal.js',
   './Pokelocke/index.html',
   './Pokelocke/main.js',
+  './Pokelocke/hall.css',
+  './Pokelocke/hall.js',
   './Pokelocke/pokeapi.js',
   './Pokelocke/base.css',
   './Duo/index.html',
@@ -75,32 +83,58 @@ const PRECACHE = [
   './Duo/mobile-tabs.js',
   './Trio/index.html',
   './Trio/main.js',
+  './Trio/lakes.css',
+  './Trio/lakes.js',
   './Catchrate/index.html',
   './Catchrate/main.js',
   './Catchrate/style.css',
+  './Catchrate/encounter.css',
+  './Catchrate/encounter.js',
   './DamageCalc/index.html',
   './DamageCalc/style.css',
   './DamageCalc/mechanics.js',
   './DamageCalc/app.js',
+  './DamageCalc/versus.css',
+  './DamageCalc/versus.js',
+  './DamageCalc/attacks.css',
+  './DamageCalc/attacks.js',
   './Typrechner/index.html',
   './Typrechner/style.css',
   './Typrechner/app.js',
+  './Typrechner/elements.css',
+  './Typrechner/elements.js',
   './Typrechner/Types.png',
   './PokemonInfo/index.html',
   './PokemonInfo/style.css',
   './PokemonInfo/app.js',
+  './PokemonInfo/device.css',
+  './PokemonInfo/device.js',
+  './PokemonInfo/sprites/lucas.png',
+  './PokemonInfo/sprites/lucia.png',
   './Rules/index.html',
+  './Rules/ruins.css',
+  './Rules/ruins.js',
   './Karte/index.html',
   './Karte/style.css',
   './Karte/app.js',
+  './Karte/sea.css',
+  './Karte/sea.js',
   './Karte/platin.json',
   './Karte/encounter-areas.js',
   './Karte/trainer-classes.js',
+  './Karte/hoenn.css',
+  './Karte/hoenn.js',
+  './Karte/oras.json',
+  './Karte/encounter-areas-oras.js',
   './Bosse/index.html',
   './Bosse/style.css',
   './Bosse/app.js',
+  './Bosse/boss.css',
+  './Bosse/boss.js',
   './Bosse/rando.js',
   './Bosse/bosses.json',
+  './Bosse/oras-rom.js',
+  './Bosse/bosses-oras.json',
   './Karte/tiles/index.json',
   './Karte/tiles/interiors.json',
   './Karte/tiles/sea.png',
@@ -110,15 +144,26 @@ const PRECACHE = [
   './SaveViewer/pt-save.js',
   './SaveViewer/pt-bag.js',
   './SaveViewer/pt-edit.js',
+  './SaveViewer/data-oras.js',
+  './SaveViewer/oras-save.js',
+  './SaveViewer/oras-bag.js',
+  './SaveViewer/oras-edit.js',
+  './SaveViewer/hub-save.js',
   './SaveViewer/soul-link.js',
   './SaveViewer/main.js',
+  './SaveViewer/pc.css',
+  './SaveViewer/pc.js',
   './SaveEditor/index.html',
   './SaveEditor/style.css',
   './SaveEditor/app.js',
+  './SaveEditor/chip.css',
+  './SaveEditor/chip.js',
   './Sonderbonbons/index.html',
   './Randomizer/index.html',
   './Randomizer/style.css',
   './Randomizer/app.js',
+  './Randomizer/slots.css',
+  './Randomizer/slots.js',
   './Randomizer/rnqs.js',
   './Randomizer/options.js',
   './Randomizer/editor.js',
@@ -156,9 +201,14 @@ self.addEventListener('install', event => {
   })());
 });
 
-// Startseite fragt nach der installierten Version
+// Startseite fragt nach der installierten Version; der Randomizer schickt die ROM fürs Würfeln
+let randoRom = null;
 self.addEventListener('message', event => {
   if (event.data === 'version' && event.source) event.source.postMessage({ version: VERSION });
+  if (event.data && event.data.type === 'rando-rom') {
+    randoRom = event.data.file || null;
+    if (event.ports && event.ports[0]) event.ports[0].postMessage({ ok: !!randoRom });
+  }
 });
 
 self.addEventListener('activate', event => {
@@ -177,6 +227,11 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
 
+  // ROM für den Randomizer (Omega Rubin / Alpha Saphir): stückweise aus der Datei
+  if (url.origin === self.location.origin && /\/Randomizer\/__rom\/[^/]+$/.test(url.pathname)) {
+    event.respondWith(romResponse(req));
+    return;
+  }
   // Teil-Anfragen (Range) und das Randomizer-Jar holt CheerpJ selbst stückweise vom Server – nicht anfassen
   if (url.origin === self.location.origin && (req.headers.has('range') || /\.jar$/.test(url.pathname))) return;
 
@@ -222,6 +277,48 @@ async function staticFirst(event) {
     return new Response(offlinePage(), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
   return Response.error();
+}
+
+/* ── Randomizer-ROM (Omega Rubin / Alpha Saphir) ──
+   CheerpJ liest Dateien unter /app/ per Range-Anfrage vom Server – hier kommen die Stücke aus der ROM-Datei.
+   Geliefert wird nur die Spiel-Partition (NCCH) als .cxi: die ganze .3ds ist genau 2 GB groß, und damit kommt CheerpJ
+   nicht zurecht (Zahlenüberlauf). Die Datei schickt die Seite vor dem Würfeln (message 'rando-rom'); sonst die in
+   IndexedDB gespeicherte (pokehub-randomizer → kv → rom, Randomizer/app.js). */
+function randoRomFromDb() {
+  return new Promise(resolve => {
+    const r = indexedDB.open('pokehub-randomizer', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onerror = () => resolve(null);
+    r.onsuccess = () => {
+      try {
+        const get = r.result.transaction('kv', 'readonly').objectStore('kv').get('rom');
+        get.onsuccess = () => resolve(get.result && get.result.file || null);
+        get.onerror = () => resolve(null);
+      } catch (e) { resolve(null); }
+    };
+  });
+}
+async function romPart(blob) {
+  const h = new Uint8Array(await blob.slice(0, 0x200).arrayBuffer());
+  const u32 = o => (h[o] | (h[o + 1] << 8) | (h[o + 2] << 16) | (h[o + 3] << 24)) >>> 0;
+  if (String.fromCharCode(h[0x100], h[0x101], h[0x102], h[0x103]) === 'NCSD') {
+    const start = u32(0x120) * 0x200, size = u32(0x124) * 0x200;
+    if (size && start + size <= blob.size) return { start, size };
+  }
+  return { start: 0, size: blob.size };
+}
+async function romResponse(req) {
+  const blob = randoRom || await randoRomFromDb();
+  if (!blob) return new Response('', { status: 404 });
+  const part = await romPart(blob), total = part.size;
+  const head = { 'Accept-Ranges': 'bytes', 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' };
+  const m = /bytes=(\d+)-(\d*)/.exec(req.headers.get('range') || '');
+  if (!m) return new Response(blob.slice(part.start, part.start + total), { status: 200, headers: { ...head, 'Content-Length': String(total) } });
+  const s = +m[1], e = m[2] ? Math.min(+m[2], total - 1) : total - 1;
+  if (s >= total || e < s) return new Response('', { status: 416, headers: { 'Content-Range': `bytes */${total}` } });
+  return new Response(blob.slice(part.start + s, part.start + e + 1), {
+    status: 206, headers: { ...head, 'Content-Range': `bytes ${s}-${e}/${total}`, 'Content-Length': String(e - s + 1) }
+  });
 }
 
 /* ── PokeAPI & Sprites: einmal geladen = für immer da ── */

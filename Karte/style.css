@@ -1,9 +1,7 @@
+/* Hintergrund ist das Meer (sea.css) – darunter nur eine dunkle Farbe für den Überscroll */
 html, body {
   min-height: 100%;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(var(--t-acc2-glow), 0.10), transparent 30%),
-    radial-gradient(circle at 85% 80%, rgba(var(--t-acc-glow), 0.08), transparent 28%),
-    rgb(var(--t-n-0d0f2b));
+  background: rgb(var(--t-n-0d0f2b));
 }
 body {
   display: flex;
@@ -31,14 +29,12 @@ body {
   --c-sea: #3880e9; /* Durchschnittsfarbe von tiles/sea.png */
 }
 
+/* Karte vor dem Meer – Rahmen und Hintergrund: #app.win-frame (base.css) */
 #app {
   width: min(98vw, 1340px); /* gleiche Breite wie alle Seiten, sonst springt die Navigation beim Tabwechsel */
   margin: 0 auto;
   padding: 24px;
-  background: rgba(var(--t-n-191b3a), 0.96);
   border-radius: 28px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(var(--t-ink), 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -410,7 +406,7 @@ header p { margin: 0; color: var(--color-muted); }
 .row--trainer { flex-direction: column; align-items: stretch; gap: 6px; }
 .tr-head { display: flex; align-items: center; gap: 6px; }
 .tr-head .row-title { flex: 1; min-width: 0; }
-.badge { font-size: 0.66rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: rgb(var(--t-c-ffaa3c)); color: rgb(var(--t-on-acc)); }
+.badge { font-size: 0.66rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: rgb(var(--t-f-ffaa3c)); color: rgb(var(--t-on-fill)); }
 .party { display: flex; flex-wrap: wrap; gap: 4px; }
 .mon {
   display: inline-flex;

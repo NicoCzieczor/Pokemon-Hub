@@ -404,9 +404,27 @@ function exampleShellHTML(atk, defs) {
     </section>`;
 }
 
+// Szene hinter der Karte (elements.js): Atmosphäre und Symbol je Seite, Wirkung als Takt dazwischen
+function updateScene(atk, defs) {
+  if (!window.TypeScene) return;
+  const m = atk && defs.length ? multOf(atk, defs) : null;
+  const info = type => ({ type, name: typeName(type), color: COL[type] });
+  window.TypeScene.update({
+    atk: atk ? info(atk) : null,
+    defs: defs.map(info),
+    mult: m,
+    multLabel: m == null ? '' : mLbl(m),
+    multText: m == null ? '' : tr().matchup[m] ?? '',
+    multCls: m == null ? '' : mCls(m),
+    labels: { atk: t('roleAtk'), def: t('roleDef1') },
+    icon: typeIcon,
+  });
+}
+
 function renderResults() {
   const atk = state.atk;
   const defs = defTypes();
+  updateScene(atk, defs);
   const res = $('results');
   if (!atk && !defs.length) {
     res.innerHTML = `<section class="result-empty">${t('emptyResult')}</section>`;

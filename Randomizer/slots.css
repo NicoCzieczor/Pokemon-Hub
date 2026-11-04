@@ -1,0 +1,282 @@
+/*
+ * „Spielhalle“ hinter dem Randomizer (slots.js): Teppich, links der Spielautomat mit drei Walzen, Hebel und
+ * Münzschlitz, rechts der Ticket-Drucker mit Piepi.
+ * Klassik: Neon bei Nacht, Graphit: Messing und dunkles Holz, Papier: bunter Automat bei Tageslicht.
+ */
+
+/* ── Farben je Design ── */
+.sl {
+  --carpet: #1a0f2e; --carpet-2: #2a1745; --carpet-3: #3b1f5c; --motif: rgba(255, 210, 63, 0.16);
+  --cab: #2b1a4a; --cab-hi: #4a2f7a; --cab-lo: #170d2b; --trim: #ff4fa3; --trim-2: #3fe0ff;
+  --bulb: #ffe46b; --bulb-off: #5a4a2a; --glass: #0b0718; --reel: #fbf7ee; --reel-lo: #d8d0bf;
+  --led: #3fe0ff; --led-bg: #06040f; --metal: #c9ccd6; --knob: #ff3b4f;
+  --paper: #fffdf4; --paper-ink: #2a2240;
+}
+:root[data-theme="graphite"] .sl {
+  --carpet: #1b1512; --carpet-2: #2a1f18; --carpet-3: #3a2a1f; --motif: rgba(226, 170, 72, 0.14);
+  --cab: #3a2a1e; --cab-hi: #5a432f; --cab-lo: #20170f; --trim: #e2aa48; --trim-2: #c47a2c;
+  --bulb: #ffcf7a; --bulb-off: #4a3a22; --glass: #0c0907; --led: #ffb347; --led-bg: #0a0705;
+}
+:root[data-theme="paper"] .sl {
+  --carpet: #c9d8e6; --carpet-2: #b7c9db; --carpet-3: #a6bbd0; --motif: rgba(176, 48, 36, 0.18);
+  --cab: #d8382c; --cab-hi: #f06a5c; --cab-lo: #9e2219; --trim: #ffd23f; --trim-2: #ffffff;
+  --bulb: #fff3a8; --bulb-off: #c9a85a; --glass: #2a2240; --led: #ffd23f; --led-bg: #2a2240;
+}
+
+.sl {
+  --mw: min(calc(var(--strip) - 64px), 380px);   /* Breite des Automaten */
+  --sym: calc((var(--mw) - 52px) / 3);            /* ein Walzenbild */
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sl img { max-width: none; border-radius: 0; image-rendering: pixelated; }
+.sl button { font: inherit; }
+
+/* Teppich der Spielhalle: Rauten mit kleinen Mustern */
+.sl-carpet {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, var(--motif) 0 5px, transparent 6px) 0 0 / 64px 64px,
+    conic-gradient(from 45deg, var(--carpet-2) 25%, var(--carpet) 0 50%, var(--carpet-2) 0 75%, var(--carpet) 0) 0 0 / 64px 64px,
+    var(--carpet);
+}
+.sl-carpet::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent 0 44px, var(--carpet-3) 44px 46px), repeating-linear-gradient(-45deg, transparent 0 44px, var(--carpet-3) 44px 46px); opacity: 0.5; }
+
+/* ── Automat ── */
+.sl-machine {
+  position: absolute;
+  left: var(--cl);
+  top: 50%;
+  width: var(--mw);
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.sl-marquee {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 64px;
+  margin: 0 10px;
+  border-radius: 40px 40px 8px 8px;
+  background: linear-gradient(180deg, var(--cab-hi), var(--cab));
+  box-shadow: inset 0 0 0 3px var(--trim), 0 0 26px rgba(255, 79, 163, 0.25);
+}
+.sl-title { position: relative; color: #fff; font-size: 1.05rem; font-weight: 900; letter-spacing: 0.16em; text-shadow: 0 0 6px var(--trim), 0 0 14px var(--trim); }
+/* Lauflichter rund um das Schild */
+.sl-bulbs {
+  position: absolute;
+  inset: 6px;
+  border-radius: 34px 34px 5px 5px;
+  background: radial-gradient(circle, var(--bulb) 0 3px, transparent 4px) 0 0 / 16px 16px;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  padding: 8px;
+  animation: sl-chase 1.2s steps(2) infinite;
+}
+@keyframes sl-chase { to { background-position: 16px 0; } }
+.sl[data-state="spin"] .sl-bulbs { animation-duration: 0.35s; }
+.sl[data-state="off"] .sl-bulbs { animation: none; background-image: radial-gradient(circle, var(--bulb-off) 0 3px, transparent 4px); }
+.sl[data-state="off"] .sl-title { text-shadow: none; opacity: 0.5; }
+
+.sl-face {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--cab-hi), var(--cab) 30%, var(--cab-lo));
+  box-shadow: inset 0 0 0 3px var(--trim-2), inset 0 0 0 6px var(--cab-lo), 0 26px 60px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+/* Fenster mit den drei Walzen und der Gewinnlinie */
+.sl-window {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08), inset 0 10px 20px rgba(0, 0, 0, 0.6);
+}
+.sl-line { position: absolute; left: 4px; right: 4px; top: 50%; height: 2px; background: var(--knob); box-shadow: 0 0 8px var(--knob); opacity: 0.7; }
+.sl-reel {
+  position: relative;
+  width: var(--sym);
+  height: calc(var(--sym) * 1.5);
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--reel-lo), var(--reel) 30%, var(--reel) 70%, var(--reel-lo));
+}
+.sl-reel::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.35)); pointer-events: none; }
+.sl-strip { position: absolute; left: 0; right: 0; top: calc(var(--sym) * 0.25); }
+.sl-sym { display: grid; place-items: center; width: var(--sym); height: var(--sym); }
+.sl-sym img { width: 120%; height: 120%; object-fit: contain; }
+.sl-sym img.is-ball { width: 58%; height: 58%; }
+.sl-reel.is-spin .sl-strip { animation: sl-spin var(--rd, 0.35s) linear infinite; filter: blur(0.7px); }
+@keyframes sl-spin { to { translate: 0 calc(var(--sym) * -12); } }
+.sl-stop { position: absolute; left: 0; right: 0; top: calc(var(--sym) * 0.25); display: none; }
+.sl-reel.is-stop .sl-strip { display: none; }
+.sl-reel.is-stop .sl-stop { display: block; }
+.sl-reel.is-bump .sl-stop { animation: sl-bump 0.35s cubic-bezier(0.3, 1.8, 0.5, 1); }
+@keyframes sl-bump { from { translate: 0 calc(var(--sym) * -0.4); } to { translate: 0 0; } }
+.sl[data-state="lose"] .sl-stop img { filter: grayscale(1) brightness(0.7); }
+.sl[data-state="win"] .sl-window { box-shadow: inset 0 0 0 2px var(--bulb), 0 0 24px var(--bulb); animation: sl-win 0.6s steps(2) 4; }
+@keyframes sl-win { 50% { box-shadow: inset 0 0 0 2px transparent, 0 0 6px var(--bulb); } }
+
+/* Laufschrift */
+.sl-led {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--led-bg);
+  color: var(--led);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-shadow: 0 0 6px var(--led);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.sl-msg { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-secs { flex: none; }
+
+/* Münzschlitz: ohne ROM leuchtet er (Klick = Spiel auswählen) */
+.sl-coin {
+  width: 46px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--metal), #8c90a0);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.sl-coin i { display: block; width: 6px; height: 18px; margin: 0 auto; border-radius: 3px; background: #1a1a22; }
+.sl[data-state="off"] .sl-coin { animation: sl-glow 1.1s ease-in-out infinite alternate; }
+.sl[data-state="off"] .sl-coin i { background: var(--bulb); box-shadow: 0 0 10px var(--bulb); }
+@keyframes sl-glow { to { box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3), 0 0 18px var(--bulb); } }
+
+/* Hebel rechts am Gehäuse */
+.sl-lever {
+  position: absolute;
+  right: -30px;
+  top: 92px;
+  width: 30px;
+  height: 120px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.sl-lever:disabled { cursor: default; }
+.sl-arm { position: absolute; left: 12px; bottom: 0; width: 7px; height: 100px; border-radius: 4px; background: linear-gradient(90deg, #8c90a0, var(--metal), #8c90a0); transform-origin: 50% 100%; }
+.sl-knob { position: absolute; left: 2px; top: 0; width: 27px; height: 27px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff8, transparent 40%), var(--knob); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); z-index: 1; }
+.sl-lever::after { content: ''; position: absolute; left: 0; bottom: -8px; width: 30px; height: 16px; border-radius: 6px; background: var(--cab-lo); }
+.sl[data-state="ready"] .sl-lever { animation: sl-nudge 2.4s ease-in-out infinite; }
+@keyframes sl-nudge { 0%, 80%, 100% { translate: 0 0; } 88% { translate: 0 6px; } }
+.sl-lever.is-pull .sl-knob { animation: sl-knob 0.6s ease-in-out; }
+.sl-lever.is-pull .sl-arm { animation: sl-arm 0.6s ease-in-out; }
+@keyframes sl-knob { 45% { translate: 0 76px; } }
+@keyframes sl-arm { 45% { scale: 1 0.25; } }
+.sl[data-state="off"] .sl-lever, .sl[data-state="spin"] .sl-lever { opacity: 0.6; }
+
+.sl-tray { height: 26px; margin: -6px 18px 0; border-radius: 0 0 16px 16px; background: linear-gradient(180deg, var(--cab-lo), var(--cab)); box-shadow: inset 0 6px 10px rgba(0, 0, 0, 0.5); }
+
+/* Münzen nach dem Gewinn */
+.sl-coins i {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff6c0, #ffd23f 45%, #c99a1a);
+  box-shadow: inset 0 0 0 2px #b8860b;
+  animation: sl-coin 1.4s cubic-bezier(0.25, 0.6, 0.6, 1) var(--dl) both;
+}
+@keyframes sl-coin {
+  0% { translate: 0 0; opacity: 0; }
+  10% { opacity: 1; }
+  45% { translate: calc(var(--dx) * 0.6) var(--dy); }
+  100% { translate: var(--dx) 60px; opacity: 0; }
+}
+
+/* ── Ticket-Drucker mit Piepi ── */
+.sl-printer {
+  position: absolute;
+  left: var(--cr);
+  top: 50%;
+  width: min(calc(var(--strip) - 64px), 280px);
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sl-mascot { width: 120px; height: 120px; margin-bottom: -18px; animation: sl-sway 2.6s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes sl-sway { 0%, 100% { rotate: -4deg; } 50% { rotate: 4deg; } }
+.sl[data-state="win"] .sl-mascot { animation: sl-dance 0.5s ease-in-out infinite alternate; }
+@keyframes sl-dance { from { translate: 0 0; rotate: -8deg; } to { translate: 0 -18px; rotate: 8deg; } }
+.sl[data-state="spin"] .sl-mascot { animation: sl-sway 0.8s ease-in-out infinite; }
+.sl-box {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--cab-hi), var(--cab) 40%, var(--cab-lo));
+  box-shadow: inset 0 0 0 3px var(--trim), 0 22px 50px rgba(0, 0, 0, 0.45);
+}
+.sl-slot { display: block; width: 78%; height: 8px; border-radius: 4px; background: #08060f; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8); }
+.sl-rolls { color: #fff; opacity: 0.8; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; }
+.sl-rolls:empty { display: none; }
+.sl-ticket {
+  position: relative;
+  width: 72%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin-top: -14px;
+  padding: 22px 12px 14px;
+  background: var(--paper);
+  color: var(--paper-ink);
+  text-decoration: none;
+  text-align: center;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 92% 96%, 84% 100%, 76% 96%, 68% 100%, 60% 96%, 52% 100%, 44% 96%, 36% 100%, 28% 96%, 20% 100%, 12% 96%, 4% 100%, 0 96%);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  translate: 0 -100%;
+  opacity: 0;
+  transition: translate 1.1s steps(9), opacity 0.2s;
+  pointer-events: auto;
+}
+.sl-ticket.is-out { translate: 0 0; opacity: 1; cursor: pointer; }
+.sl-ticket:not(.is-out) { pointer-events: none; }
+.sl-ticket.is-out:hover { filter: brightness(1.04); translate: 0 3px; transition: translate 0.15s; }
+.sl-t-head { font-size: 0.8rem; font-weight: 900; letter-spacing: 0.14em; border-bottom: 2px dashed currentColor; padding-bottom: 4px; }
+.sl-t-name { max-width: 100%; font-size: 0.74rem; font-weight: 700; overflow-wrap: anywhere; }
+.sl-t-meta { font-size: 0.66rem; opacity: 0.7; }
+.sl-t-boss { font-size: 0.64rem; font-style: normal; font-weight: 800; color: #1f8a4c; }
+.sl-t-boss:empty { display: none; }
+
+/* Zu wenig Platz neben der Karte: nur der Teppich */
+.sl.is-bare .sl-machine, .sl.is-bare .sl-printer { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-bulbs, .sl-mascot, .sl[data-state="off"] .sl-coin, .sl[data-state="ready"] .sl-lever, .sl-reel.is-spin .sl-strip { animation: none; }
+}

@@ -4,6 +4,11 @@
  *
  *   HubScene.grass(svg, id, scale, shift)  – füllt <svg class="grass grass--back|front"> mit Gras
  *   HubScene.wildMons(spots)               – setzt zufällige wilde Pokémon an die angegebenen Stellen
+ *   HubScene.pixels(rows, tones)           – Pixel-Kachel als <path>-Elemente (auch für die Bühnen der Unterseiten)
+ *   HubScene.ridge(w, h, bumps, base)      – Kamm aus runden Kuppen als Pixel-Kachel (Baumkronen, Boden, Felsen)
+ *   HubScene.monSprite(id, fallback)       – Platin-Sprite (Gen 1–4) oder das normale Sprite
+ *   HubScene.bounds(img) / feet(img)       – leerer Rand über dem Kopf und unter den Füßen eines geladenen Sprites
+ *   HubScene.beside(card)                  – Platz links und rechts neben der Karte einer Unterseite
  */
 window.HubScene = (function () {
   'use strict';
@@ -47,19 +52,21 @@ window.HubScene = (function () {
   ];
   var GRASS_TONES = { b: 'g-base', m: 'g-mid', l: 'g-light', o: 'g-dark' };
 
-  // Kachel → je Farbton ein <path> aus waagrechten Pixel-Läufen (Farben setzt scene.css je Ebene)
-  function tilePaths(rows) {
+  // Kachel → je Farbton ein <path> aus waagrechten Pixel-Läufen (Farben setzt scene.css je Ebene).
+  // tones: Zeichen → CSS-Klasse (ohne Angabe die des Grases); auch für die Kampfbühne (stage.js)
+  function tilePaths(rows, tones) {
+    tones = tones || GRASS_TONES;
     var d = {};
     rows.forEach(function (row, y) {
       for (var x = 0, n; x < row.length; x += n) {
         n = 1;
         while (row.charAt(x + n) === row.charAt(x)) n++;
         var c = row.charAt(x);
-        if (GRASS_TONES[c]) d[c] = (d[c] || '') + 'M' + x + ' ' + y + 'h' + n + 'v1h-' + n + 'z';
+        if (tones[c]) d[c] = (d[c] || '') + 'M' + x + ' ' + y + 'h' + n + 'v1h-' + n + 'z';
       }
     });
     return Object.keys(d).map(function (c) {
-      return '<path class="' + GRASS_TONES[c] + '" d="' + d[c] + '"/>';
+      return '<path class="' + tones[c] + '" d="' + d[c] + '"/>';
     }).join('');
   }
   var edgePaths = null, fillPaths = null;
@@ -103,5 +110,71 @@ window.HubScene = (function () {
     });
   }
 
-  return { grass: grass, wildMons: wildMons };
+  // Kamm aus runden Kuppen, nahtlos wiederholbar: bumps [x, Radius, Höhe] in Kunst-Pixeln, base = Mindesthöhe.
+  // l = oberste Reihe (Licht), b = Fläche, o = Schatten weiter unten (gerastert, dann voll)
+  function ridge(w, h, bumps, base) {
+    var top = [];
+    for (var x = 0; x < w; x++) {
+      var hh = base || 0;
+      bumps.forEach(function (t) {
+        var dx = Math.abs(x + 0.5 - t[0]);
+        dx = Math.min(dx, w - dx);
+        if (dx < t[1]) hh = Math.max(hh, t[2] - t[1] + Math.sqrt(t[1] * t[1] - dx * dx));
+      });
+      top.push(h - Math.round(hh));
+    }
+    var rows = [];
+    for (var y = 0; y < h; y++) {
+      var row = '';
+      for (x = 0; x < w; x++) {
+        var d = y - top[x];
+        row += d < 0 ? '.' : d === 0 ? 'l' : (d > 4 && (x + y) % 2 === 0) || d > 7 ? 'o' : 'b';
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function monSprite(id, fallback) {
+    id = Number(id) || 0;
+    return id > 0 && id <= 493 ? SPR + 'pokemon/versions/generation-iv/platinum/' + id + '.png' : fallback;
+  }
+
+  // Sprites haben unterschiedlich viel leeren Rand über dem Kopf und unter den Füßen – gemessen stehen alle
+  // auf dem Boden. bounds → { top, bottom } in Sprite-Pixeln, null ohne CORS oder bei leerem Bild
+  function bounds(img) {
+    try {
+      var w = img.naturalWidth, h = img.naturalHeight;
+      var cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      var cx = cv.getContext('2d');
+      cx.drawImage(img, 0, 0);
+      var px = cx.getImageData(0, 0, w, h).data;
+      var solid = function (y) {
+        for (var x = 0; x < w; x++) if (px[(y * w + x) * 4 + 3] > 40) return true;
+        return false;
+      };
+      var top = 0, bottom = h - 1;
+      while (top < h && !solid(top)) top++;
+      if (top === h) return null;
+      while (!solid(bottom)) bottom--;
+      return { top: top, bottom: h - 1 - bottom };
+    } catch (e) { /* Bild ohne CORS */ }
+    return null;
+  }
+  function feet(img) {
+    var b = bounds(img);
+    return b && b.bottom;
+  }
+
+  // Freier Platz neben der Karte (ohne Scrollleiste): left/right = Breite links/rechts, strip = die schmalere,
+  // cl/cr = Mitte des Platzes links/rechts
+  function beside(card) {
+    var r = card.getBoundingClientRect();
+    var right = Math.min(document.documentElement.clientWidth, document.body.clientWidth || Infinity);
+    var wl = Math.max(0, r.left), wr = Math.max(0, right - r.right);
+    return { strip: Math.min(wl, wr), left: wl, right: wr, cl: r.left / 2, cr: (r.right + right) / 2 };
+  }
+
+  return { grass: grass, wildMons: wildMons, pixels: tilePaths, ridge: ridge, monSprite: monSprite, bounds: bounds, feet: feet, beside: beside };
 })();

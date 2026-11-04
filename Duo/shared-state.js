@@ -64,14 +64,16 @@ export const cleanGame = g => (typeof g === 'string' && g.length <= 40 && GAME_R
 // Jeder würfelt sein eigenes Spiel – so sieht der Partner, was bei dir auf welcher Route vorkommt.
 export function cleanWild(w) {
   if (!w || typeof w !== 'object' || Array.isArray(w) || !w.r || typeof w.r !== 'object') return null;
+  // Omega Rubin / Alpha Saphir (game: 'oras') hat Pokémon bis Nr. 721, Platin (ohne game) bis 493
+  const oras = w.game === 'oras', max = oras ? 721 : 493;
   const r = {};
   Object.keys(w.r).slice(0, MAX_ROUTE_MARKS).forEach(k => {
     const route = cleanRoute(k), list = w.r[k];
     if (!route || !Array.isArray(list)) return;
-    r[route] = [...new Set(list.filter(n => Number.isInteger(n) && n >= 1 && n <= 493))].slice(0, 40);
+    r[route] = [...new Set(list.filter(n => Number.isInteger(n) && n >= 1 && n <= max))].slice(0, 40);
   });
   const name = typeof w.name === 'string' ? w.name.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 80) : '';
-  return { name, r };
+  return oras ? { name, game: 'oras', r } : { name, r };
 }
 
 // Friedhof-Eintrag: Pokémon + Schuld (0 = ?, 1/2 = Spieler) + optionale Paar-Kennung

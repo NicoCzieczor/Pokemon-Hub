@@ -1,0 +1,437 @@
+/*
+ * „Meer um Sinnoh“ hinter der Karte (sea.js): Wasser aus der Spielkachel, Brandung um die Karte, schwimmende und
+ * fliegende Pokémon des gewählten Ortes, links die Angel. Klassik: Nacht, Graphit: Abendrot, Papier: Tag.
+ */
+
+/* ── Farben je Design ── */
+.km {
+  /* Nacht: tiefes Blau, Mondglitzern */
+  --w-a: #28487f; --w-b: #213c6e; --w-c: #1b325e; --w-d: #172b53;
+  --glint: rgba(205, 222, 255, 0.8); --streak: #f1f5ff; --glow: rgba(190, 212, 255, 0.09);
+  --shallow: rgba(90, 150, 230, 0.26); --shallow2: rgba(80, 135, 215, 0.13);
+  --foam: rgba(200, 222, 255, 0.55); --foam-line: rgba(214, 230, 255, 0.5);
+  --under: brightness(0.5) sepia(1) hue-rotate(185deg) saturate(2.6); --under-a: 0.32;
+  --fly-shadow: 0.16;
+  --rod: #8f6c48; --rod-hi: #b48a5c; --string: rgba(225, 233, 255, 0.55);
+  --b-o: #2a1d22; --b-r: #e0403c; --b-h: #ff9b8e; --b-w: #f3f3f6; --b-s: #c4c4d0;
+  --cloud: transparent;
+}
+:root[data-theme="graphite"] .km {
+  /* Abendrot: warme, dunkle See, goldener Sonnenweg */
+  --w-a: #6b4f62; --w-b: #4a3f58; --w-c: #39344b; --w-d: #2e2c41;
+  --glint: rgba(255, 196, 120, 0.85); --streak: #ffcf7a; --glow: rgba(255, 170, 90, 0.12);
+  --shallow: rgba(220, 150, 100, 0.16); --shallow2: rgba(200, 130, 90, 0.08);
+  --foam: rgba(255, 222, 186, 0.5); --foam-line: rgba(255, 226, 196, 0.45);
+  --under: brightness(0.55) sepia(1) hue-rotate(-25deg) saturate(1.3); --under-a: 0.3;
+  --fly-shadow: 0.2;
+  --string: rgba(255, 236, 214, 0.5);
+}
+:root[data-theme="paper"] .km {
+  /* Tag: die Farben der Spielkachel, Wolkenschatten */
+  --w-a: #63a5ff; --w-b: #4a94f7; --w-c: #2973e7; --w-d: #216bd6;
+  --glint: rgba(255, 255, 255, 0.9); --streak: transparent; --glow: transparent;
+  --shallow: rgba(120, 225, 245, 0.5); --shallow2: rgba(120, 215, 245, 0.26);
+  --foam: rgba(255, 255, 255, 0.8); --foam-line: rgba(255, 255, 255, 0.9);
+  --under: brightness(0.6) sepia(1) hue-rotate(180deg) saturate(3); --under-a: 0.45;
+  --fly-shadow: 0.24;
+  --string: rgba(255, 255, 255, 0.75);
+  --cloud: rgba(12, 40, 120, 0.14);
+}
+
+.km {
+  --k: 1;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--w-d);
+}
+.km img { max-width: none; border-radius: 0; image-rendering: pixelated; }
+
+/* ── Wasser: die Kachel wandert Kunst-Pixel für Kunst-Pixel ── */
+.km-water {
+  position: absolute;
+  top: 0;
+  left: -96px;
+  width: calc(100% + 96px);
+  height: 100%;
+  shape-rendering: crispEdges;
+  animation: km-drift 9s steps(16) infinite;
+  will-change: transform;
+}
+.km-water .w-a { fill: var(--w-a); }
+.km-water .w-b { fill: var(--w-b); }
+.km-water .w-c { fill: var(--w-c); }
+.km-water .w-d { fill: var(--w-d); }
+@keyframes km-drift { to { transform: translateX(96px); } }   /* eine Kachel (16 Kunst-Pixel × 6) */
+
+/* Wolkenschatten ziehen langsam übers Wasser (nur am Tag) */
+.km-clouds { position: absolute; inset: 0; }
+.km-cloud {
+  position: absolute;
+  left: 0;
+  width: calc(var(--cw) * 12px);
+  height: calc(var(--ch) * 12px);
+  animation: km-cloud 140s linear infinite;
+}
+.km-cloud svg { display: block; width: 100%; height: 100%; }
+.km-cloud .c-c { fill: var(--cloud); }
+.km-cloud--0 { top: 6%; animation-delay: -30s; }
+.km-cloud--1 { top: 44%; animation-duration: 110s; animation-delay: -84s; }
+.km-cloud--2 { top: 70%; animation-duration: 170s; animation-delay: -12s; }
+@keyframes km-cloud { from { translate: -110% 0; } to { translate: 100vw 0; } }
+:root:not([data-theme="paper"]) .km-clouds { display: none; }
+
+/* Glitzern; Lichtweg von Mond bzw. Abendsonne rechts */
+.km-glint {
+  position: absolute;
+  width: 6px;
+  height: 3px;
+  background: var(--glint);
+  opacity: 0;
+  animation: km-glint 3.6s linear infinite;
+}
+.km-glint.is-big { width: 3px; box-shadow: -3px 0 var(--glint), 3px 0 var(--glint), 0 -3px var(--glint), 0 3px var(--glint); }
+.km-glint.is-streak { width: 12px; background: var(--streak); }
+.km-glint.is-streak.is-big { box-shadow: -3px 0 var(--streak), 3px 0 var(--streak), 0 -3px var(--streak), 0 3px var(--streak); }
+@keyframes km-glint {
+  0%, 62%, 100% { opacity: 0; }
+  68%, 84% { opacity: 1; }
+  76% { opacity: 0.45; }
+}
+
+/* ── Brandung: flaches Wasser um die Karte, Schaum an der Küste, Wellen laufen heran und brechen ── */
+.km-shore { position: absolute; border-radius: 28px; }
+.km-shore::before {
+  content: '';
+  position: absolute;
+  inset: -16px;
+  border-radius: 44px;
+  background: var(--shallow);
+  box-shadow: 0 0 0 18px var(--shallow2);
+}
+.km-surf { position: absolute; left: -64px; top: -64px; overflow: visible; }
+.km-surf rect { fill: none; transform-box: fill-box; transform-origin: center; }
+/* Schaum: unregelmäßig gebrochene Linien, die langsam an der Küste entlangziehen */
+.km-foam {
+  stroke: var(--foam-line);
+  stroke-width: 3;
+  stroke-dasharray: 34 7 9 12 52 6 14 9 22 15 6 8;
+  animation: km-foam 26s linear infinite;
+}
+.km-foam--b {
+  stroke: var(--foam);
+  stroke-width: 2;
+  stroke-dasharray: 12 22 30 16 6 26 18 30;
+  opacity: 0.6;
+  animation-duration: 40s;
+  animation-direction: reverse;
+}
+@keyframes km-foam { to { stroke-dashoffset: -480; } }
+.km-wave {
+  stroke: var(--foam);
+  stroke-width: 3;
+  stroke-dasharray: 70 18 24 30 110 22 40 26 16 34;
+  opacity: 0;
+  animation: km-surf 7.2s cubic-bezier(0.4, 0, 0.8, 1) infinite;
+}
+.km-wave:nth-child(2) { animation-delay: -2.4s; stroke-dashoffset: -140; }
+.km-wave:nth-child(3) { animation-delay: -4.8s; stroke-dashoffset: -290; }
+@keyframes km-surf {
+  0% { transform: scale(var(--fx), var(--fy)); opacity: 0; }
+  40% { opacity: 0.5; }
+  88% { transform: scale(1, 1); opacity: 0.9; }
+  100% { transform: scale(1, 1); opacity: 0; }
+}
+
+/* Lichtweg auf dem Wasser: Mond (Klassik) bzw. Abendsonne (Graphit) */
+.km-glow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  translate: -50% 0;
+  background: linear-gradient(90deg, transparent, var(--glow) 35%, var(--glow) 65%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 30%, #000);
+  mask-image: linear-gradient(180deg, transparent, #000 30%, #000);
+}
+
+/* Wellenringe (Schwimmer, Angel, Spritzer) */
+.km-ring {
+  position: absolute;
+  aspect-ratio: 3.2;
+  translate: -50% -50%;
+  border: 2px solid var(--foam);
+  border-radius: 50%;
+  animation: km-ripple 2.8s ease-out infinite;
+}
+.km-ring + .km-ring { animation-delay: -1.4s; }
+@keyframes km-ripple {
+  from { scale: 0.5; opacity: 0.9; }
+  to { scale: 1.35; opacity: 0; }
+}
+
+/* ── Schwimmer: über der Wasserlinie das Sprite, darunter blass und bläulich ── */
+.km-swim {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  animation: km-swim var(--dur) ease-in-out var(--delay) infinite;   /* der Knopf schwimmt mit – keine leere Klickfläche */
+}
+.km-swim:focus-visible { outline: none; }
+.km-path { position: absolute; inset: 0; }
+.km-body {
+  position: absolute;
+  inset: 0;
+  transform-origin: var(--cx) 0;
+  animation: km-turn var(--dur) step-end var(--delay) infinite;
+}
+@keyframes km-swim { 0%, 100% { translate: 0 0; } 50% { translate: calc(var(--a) * -2) 0; } }
+@keyframes km-turn { 0% { scale: 1 1; } 50% { scale: -1 1; } 100% { scale: -1 1; } }
+.km-up, .km-down { position: absolute; left: 0; width: 100%; overflow: hidden; }
+.km-up { top: 0; height: var(--wl); }
+.km-down { top: var(--wl); bottom: 0; }
+.km-up img, .km-down img {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  transition: translate 0.75s cubic-bezier(0.45, 0, 0.75, 0.3), opacity 0.75s;
+  animation: km-float 1.8s linear infinite;
+}
+.km-up img { top: 0; }
+.km-down img { top: calc(var(--wl) * -1); filter: var(--under); opacity: var(--under-a); }
+@keyframes km-float { 0%, 49.9% { transform: none; } 50%, 100% { transform: translateY(calc(var(--k) * 1px)); } }
+.km-swim.is-gone .km-up img, .km-swim.is-gone .km-down img { translate: 0 var(--sink); }
+.km-swim.is-gone .km-down img, .km-swim.is-gone .km-wake { opacity: 0; }
+.km-body .km-ring { left: var(--cx); top: var(--wl); width: calc(var(--cw) * 1.25); }
+.km-wake {
+  position: absolute;
+  left: calc(var(--rx) - 2px);
+  top: calc(var(--wl) - var(--k) * 1px);
+  width: calc(var(--k) * 34px);
+  height: calc(var(--k) * 2px);
+  background: repeating-linear-gradient(90deg, var(--foam) 0 calc(var(--k) * 6px), transparent 0 calc(var(--k) * 11px));
+  -webkit-mask-image: linear-gradient(90deg, #000, transparent);
+  mask-image: linear-gradient(90deg, #000, transparent);
+  animation: km-wake 0.9s steps(3) infinite;
+  transition: opacity 0.5s;
+}
+@keyframes km-wake { from { background-position: 0 0; } to { background-position: calc(var(--k) * 11px) 0; } }
+
+/* Namensschild beim Drüberfahren: Name und Chance beim Surfen */
+.km-tag {
+  position: absolute;
+  left: var(--cx);
+  bottom: calc(100% - var(--hd) + 6px);
+  translate: -50% 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 10px 5px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s, translate 0.15s;
+  pointer-events: none;
+}
+.km-swim:hover .km-tag, .km-swim:focus-visible .km-tag { opacity: 1; translate: -50% 0; }
+.km-tag b { color: rgb(var(--t-white)); font-size: 0.8rem; font-weight: 800; }
+.km-tag small { color: var(--color-muted); font-size: 0.68rem; font-weight: 700; }
+.km-swim:focus-visible .km-tag { box-shadow: inset 0 0 0 2px rgba(var(--t-n-0d0f2b), 0.5), inset 0 0 0 3px rgb(var(--t-acc2)), 0 8px 20px rgba(var(--t-shade), 0.4); }
+
+/* Schild, Namensschild und Fang-Meldung wie die Kästen im Kampf */
+.km-plate, .km-tag, .km-catch {
+  border-radius: 12px;
+  border: 2px solid rgba(var(--t-ink), 0.16);
+  background: linear-gradient(180deg, rgb(var(--t-n-262952)), rgb(var(--t-n-161838)));
+  box-shadow: inset 0 0 0 2px rgba(var(--t-n-0d0f2b), 0.5), inset 0 0 0 3px rgba(var(--t-acc2), 0.4), 0 10px 30px rgba(var(--t-shade), 0.4);
+  color: var(--color-text);
+}
+.km-tag { border-radius: 10px; }
+
+/* ── Schild oben links: Ort und wie man hier ins Wasser kommt ── */
+.km-plate {
+  position: absolute;
+  top: 28px;
+  left: var(--cl);
+  translate: -50% 0;
+  max-width: calc(var(--strip) - 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 18px 10px;
+  text-align: center;
+}
+.km-kick { color: rgb(var(--t-acc2)); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.km-place { color: rgb(var(--t-white)); font-size: 1rem; font-weight: 800; line-height: 1.25; }
+.km-how { color: var(--color-muted); font-size: 0.74rem; font-weight: 600; line-height: 1.35; }
+
+/* ── Angel: Rute unter der Karte hervor, Schnur, Schwimmer im Wasser ── */
+.km-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transition: opacity 0.4s; }
+.km-rod { stroke: var(--rod); stroke-width: calc(var(--k) * 2px + 1px); stroke-linecap: square; fill: none; }
+.km-string { stroke: var(--string); stroke-width: 1.5; fill: none; }
+.km-bob { position: absolute; width: 0; height: 0; cursor: pointer; transition: opacity 0.4s; }
+.km-bob { --bp: calc(var(--k) * 2px); }
+.km-bob .km-ring { left: 0; top: 0; width: calc(var(--bp) * 13); }
+/* 7 × 9 Kunst-Pixel zu je --bp, die unteren drei Reihen unter Wasser */
+.km-bob-up {
+  position: absolute;
+  left: calc(var(--bp) * -3.5);
+  top: calc(var(--bp) * -6);
+  width: calc(var(--bp) * 7);
+  height: calc(var(--bp) * 6);
+  overflow: hidden;
+  pointer-events: auto;
+}
+.km-bob-px { display: block; width: calc(var(--bp) * 7); height: calc(var(--bp) * 9); animation: km-float 1.6s linear infinite; transition: translate 0.35s ease-in; }
+.km-bob-px .b-o { fill: var(--b-o); }
+.km-bob-px .b-r { fill: var(--b-r); }
+.km-bob-px .b-h { fill: var(--b-h); }
+.km-bob-px .b-w { fill: var(--b-w); }
+.km-bob-px .b-s { fill: var(--b-s); }
+.km.is-nibble .km-bob-px { animation: km-nibble 0.9s ease-in-out; }
+.km.is-bite .km-bob-px { animation: km-bite 0.95s ease-in-out; }
+.km.is-hooked .km-bob-px { translate: 0 calc(var(--bp) * 6.5); }
+@keyframes km-nibble { 0%, 100% { transform: none; } 25% { transform: translateY(var(--bp)); } 50% { transform: none; } 70% { transform: translateY(calc(var(--bp) * 0.75)); } }
+@keyframes km-bite {
+  0%, 100% { transform: none; }
+  15%, 45%, 75% { transform: translateY(calc(var(--bp) * 2.5)); }
+  30%, 60% { transform: translateY(calc(var(--bp) * 0.25)); }
+}
+/* „!“ wie im Spiel, wenn etwas anbeißt */
+.km-bang {
+  position: absolute;
+  left: 0;
+  top: calc(var(--bp) * -6 - 40px);
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 30px;
+  border-radius: 8px;
+  border: 2px solid var(--b-o);
+  background: #fff;
+  color: #e0403c;
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0;
+  scale: 0.4;
+}
+.km.is-bite .km-bang { animation: km-bang 0.95s ease-out forwards; }
+@keyframes km-bang {
+  0% { opacity: 0; scale: 0.4; }
+  20% { opacity: 1; scale: 1.15; }
+  30%, 85% { opacity: 1; scale: 1; }
+  100% { opacity: 0; scale: 1; }
+}
+
+.km-cast {
+  position: absolute;
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 18px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 8px 22px rgba(var(--t-shade), 0.35);
+  transition: filter 0.15s, translate 0.15s, opacity 0.4s;
+}
+.km-cast-t { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.km-cast-rod { font-size: 0.66rem; font-weight: 700; opacity: 0.75; }
+.km-cast:hover:not(:disabled) { filter: brightness(1.1); translate: -50% -1px; }
+.km-cast:focus-visible { outline: 2px solid rgb(var(--t-acc2)); outline-offset: 2px; }
+.km-cast:disabled { cursor: default; opacity: 0.6; }
+/* Ort ohne Angel-Begegnungen: Angel eingeholt */
+.km:not(.has-rod) .km-line, .km:not(.has-rod) .km-bob, .km:not(.has-rod) .km-cast { opacity: 0; pointer-events: none; }
+.km:not(.has-rod) .km-bob-up { pointer-events: none; }
+
+/* ── Himmel: Flieger mit Schatten, Sprünge aus dem Wasser, Spritzer, Fang-Meldung ── */
+.km-air, .km-sky { position: absolute; inset: 0; }   /* Flieger unter Angel und Schild, Sprünge und Meldungen darüber */
+.km-fly { position: absolute; left: 0; top: 0; will-change: transform; }
+.km-fly img { position: absolute; left: 0; top: 0; width: 100%; }
+.km-fly.is-right img { scale: -1 1; }
+.km-fly-mon { animation: km-glide 1.3s ease-in-out infinite alternate; }
+.km-fly-shadow {
+  left: calc(var(--k) * 22px) !important;
+  top: calc(var(--k) * 62px) !important;
+  filter: brightness(0);
+  opacity: var(--fly-shadow);
+}
+.km-fly.is-right .km-fly-shadow { scale: -0.82 0.82; }
+.km-fly:not(.is-right) .km-fly-shadow { scale: 0.82 0.82; }
+@keyframes km-glide { to { translate: 0 calc(var(--k) * -4px); } }
+
+.km-leap { position: absolute; overflow: hidden; }
+.km-leap img { position: absolute; transform-origin: 50% 60%; }
+
+.km-splash { position: absolute; width: 0; height: 0; }
+.km-splash .km-ring { left: 0; top: 0; width: calc(var(--k) * 36px); animation: km-ripple 1s ease-out forwards; }
+.km-splash .km-ring + .km-ring { animation-delay: 0.18s; scale: 0.5; opacity: 0; }
+.km-splash.is-big .km-ring { width: calc(var(--k) * 56px); }
+.km-splash b {
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  width: calc(var(--k) * 2px + 2px);
+  height: calc(var(--k) * 2px + 2px);
+  background: var(--foam-line);
+  opacity: 0;
+  animation: km-drop 0.8s cubic-bezier(0.3, 0.6, 0.6, 1) forwards;
+}
+.km-splash b:nth-of-type(1) { --dx: -16px; --up: -26px; }
+.km-splash b:nth-of-type(2) { --dx: -6px; --up: -38px; animation-delay: 0.04s; }
+.km-splash b:nth-of-type(3) { --dx: 7px; --up: -34px; animation-delay: 0.02s; }
+.km-splash b:nth-of-type(4) { --dx: 17px; --up: -22px; animation-delay: 0.06s; }
+@keyframes km-drop {
+  0% { translate: 0 0; opacity: 1; }
+  50% { translate: calc(var(--dx) * var(--k)) calc(var(--up) * var(--k)); opacity: 1; }
+  100% { translate: calc(var(--dx) * var(--k) * 1.6) calc(var(--k) * 4px); opacity: 0; }
+}
+
+.km-catch {
+  position: absolute;
+  translate: -50% -100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 16px 9px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.25s, translate 0.25s;
+}
+.km-catch.is-on { opacity: 1; translate: -50% calc(-100% - 8px); }
+.km-catch b { color: rgb(var(--t-white)); font-size: 0.9rem; font-weight: 800; }
+.km-catch small { color: var(--color-muted); font-size: 0.72rem; font-weight: 700; }
+.km-catch em { color: rgb(var(--t-acc)); font-size: 0.72rem; font-style: normal; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.km-catch.is-shiny { box-shadow: inset 0 0 0 2px rgba(var(--t-n-0d0f2b), 0.5), inset 0 0 0 3px rgb(var(--t-acc)), 0 0 26px rgba(var(--t-acc), 0.45); }
+
+/* ── Platz neben der Karte: schmal nur Schwimmer und Flieger, ganz ohne Platz nur Meer und Brandung ── */
+.km.is-tight .km-plate, .km.is-tight .km-line, .km.is-tight .km-bob, .km.is-tight .km-cast,
+.km.is-bare .km-plate, .km.is-bare .km-line, .km.is-bare .km-bob, .km.is-bare .km-cast,
+.km.is-bare .km-pod, .km.is-bare .km-air, .km.is-bare .km-sky { display: none; }
+
+@media (max-width: 720px) {
+  .km-shore { border-radius: 22px; }
+  .km-shore::before { inset: -10px; border-radius: 32px; box-shadow: 0 0 0 10px var(--shallow2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .km-water, .km-cloud, .km-swim, .km-body, .km-up img, .km-down img, .km-wake, .km-fly-mon, .km-bob-px { animation: none; }
+  .km-glint { animation: none; opacity: 0.6; }
+  .km-ring { animation: none; opacity: 0.4; }
+  .km-foam { animation: none; }
+  .km-wave { animation: none; opacity: 0; }
+}

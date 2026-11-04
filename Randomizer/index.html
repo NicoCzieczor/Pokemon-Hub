@@ -18,9 +18,10 @@
   <link rel="stylesheet" href="../Pokelocke/base.css">
   <link rel="stylesheet" href="../SaveEditor/style.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="slots.css">
 </head>
 <body>
-<div id="app">
+<div id="app" class="win-frame">
 
 <button class="lang-toggle" id="lang-toggle" type="button">DE</button>
 
@@ -44,10 +45,10 @@
 
 <header class="page-head">
   <h1><span data-i18n="title1">Rando</span><span class="accent" data-i18n="title2">mizer</span> <span class="game-badge" data-i18n="gameBadge">Platin</span></h1>
-  <p data-i18n="subtitle">Verloren? Würfel dir ein neues zufälliges Platin – direkt hier im Browser. Wie gewürfelt wird, kannst du vorher einstellen.</p>
+  <p data-i18n="subtitle">Verloren? Würfel dir ein neues zufälliges Platin oder Omega Rubin / Alpha Saphir – direkt hier im Browser. Wie gewürfelt wird, kannst du vorher einstellen.</p>
 </header>
 
-<input type="file" id="rom-input" accept=".nds" hidden>
+<input type="file" id="rom-input" accept=".nds,.3ds,.cxi,.cci" hidden>
 <input type="file" id="rs-input" accept=".rnqs" hidden>
 
 <ol class="steps">
@@ -65,7 +66,7 @@
           </svg>
         </span>
         <span class="drop-title" data-i18n="dropTitle">Original-ROM hier reinziehen oder antippen</span>
-        <span class="drop-sub" data-i18n="dropSub">Die unveränderte Pokémon-Platin-Datei (.nds, ca. 128 MB). Sie wird nur auf diesem Gerät gespeichert – nichts wird hochgeladen.</span>
+        <span class="drop-sub" data-i18n="dropSub">Die unveränderte Spiel-Datei: Platin (.nds, ca. 128 MB) oder Omega Rubin / Alpha Saphir (.3ds/.cxi, entschlüsselt, ca. 2 GB). Sie wird nur auf diesem Gerät gespeichert – nichts wird hochgeladen.</span>
       </button>
       <div class="rom-card" id="rom-card" hidden></div>
       <p class="msg msg-warn" id="rom-warn" hidden></p>
@@ -132,11 +133,18 @@
 
 </div>
 
+<!-- Spielhalle hinter der Karte: Spielautomat mit drei Walzen, Hebel, Ticket-Drucker (slots.js). Nach #app wegen der Tab-Reihenfolge -->
+<div class="sl" id="sl" aria-hidden="true"></div>
+
 <script src="../SaveViewer/data-pt.js"></script>
 <script src="../Bosse/rando.js"></script>
+<script src="../SaveViewer/data-oras.js"></script>
+<script src="../Bosse/oras-rom.js"></script>
 <script src="rnqs.js"></script>
 <script src="options.js"></script>
 <script src="editor.js"></script>
+<script src="../scene.js"></script>
+<script src="slots.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

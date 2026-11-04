@@ -1,0 +1,210 @@
+/*
+ * „Das Seen-Trio“ hinter Trio Nuzlocke (lakes.js): Nebel in den Farben der drei Seegeister, die Rote Kette als
+ * Dreieck, je Spieler ein Geist mit kreisendem Team, rechts unten die verknüpften Dreiergruppen.
+ * Klassik: tiefe Nacht, Graphit: dunkler Dunst, Papier: heller Himmel mit zarten Farben.
+ * Nur mit einem Sinnoh-Spiel – Diamant/Perl, Platin, SD/LP (.is-sinnoh); sonst neutral: Pokéball in der Mitte, Kette in der
+ * Akzentfarbe der Seite, Nebel und Leuchten in den Spielerfarben.
+ */
+
+/* ── Farben je Design (Spielerfarben wie auf der Seite) ── */
+.tl {
+  --sky-top: #070720; --sky: #120d33; --sky-low: #0b0a24;
+  --mist-a: rgba(90, 160, 255, 0.22); --mist-b: rgba(255, 210, 74, 0.16); --mist-c: rgba(255, 126, 182, 0.2);
+  --star: rgba(230, 235, 255, 0.7);
+  --chain: #ff3b4f; --chain-glow: rgba(255, 59, 79, 0.45);
+  --p1: rgb(var(--t-acc2)); --p2: rgb(var(--t-acc)); --p3: rgb(var(--t-c-50dc50));
+  --plate: rgba(8, 8, 26, 0.86); --plate-ink: #fff; --muted: rgba(255, 255, 255, 0.6);
+}
+:root[data-theme="graphite"] .tl {
+  --sky-top: #0c0b0a; --sky: #1c1916; --sky-low: #12100e;
+  --mist-a: rgba(150, 178, 204, 0.16); --mist-b: rgba(226, 170, 72, 0.15); --mist-c: rgba(220, 130, 150, 0.14);
+  --star: rgba(255, 240, 220, 0.5);
+}
+:root[data-theme="paper"] .tl {
+  --sky-top: #f4efe6; --sky: #e6e0d4; --sky-low: #d9d2c4;
+  --mist-a: rgba(90, 150, 230, 0.2); --mist-b: rgba(240, 190, 60, 0.2); --mist-c: rgba(240, 110, 170, 0.18);
+  --star: rgba(120, 100, 70, 0.25);
+  --chain: #c4262f; --chain-glow: rgba(196, 38, 47, 0.25);
+  --plate: rgba(255, 252, 244, 0.94); --plate-ink: #2a2218; --muted: rgba(42, 34, 24, 0.6);
+}
+
+.tl {
+  --k: 2; --R: 110px;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tl img { max-width: none; border-radius: 0; image-rendering: pixelated; }
+
+/* ── Himmel mit drei Nebeln, die langsam ineinanderfließen ── */
+.tl-sky { position: absolute; inset: 0; background: linear-gradient(180deg, var(--sky-top), var(--sky) 55%, var(--sky-low)); }
+.tl-mist { position: absolute; width: 70vw; height: 70vh; border-radius: 50%; filter: blur(40px); animation: tl-drift 30s ease-in-out infinite alternate; }
+.tl-mist--a { left: -18vw; top: -10vh; background: radial-gradient(closest-side, var(--mist-a), transparent); }
+.tl-mist--b { right: -20vw; top: 10vh; background: radial-gradient(closest-side, var(--mist-b), transparent); animation-delay: -10s; }
+.tl-mist--c { left: -10vw; bottom: -20vh; background: radial-gradient(closest-side, var(--mist-c), transparent); animation-delay: -20s; }
+@keyframes tl-drift { to { translate: 8vw 6vh; scale: 1.15; } }
+.tl-stars {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 12% 18%, var(--star), transparent), radial-gradient(1px 1px at 28% 64%, var(--star), transparent),
+    radial-gradient(1.5px 1.5px at 47% 12%, var(--star), transparent), radial-gradient(1px 1px at 66% 78%, var(--star), transparent),
+    radial-gradient(1.5px 1.5px at 84% 34%, var(--star), transparent), radial-gradient(1px 1px at 92% 86%, var(--star), transparent),
+    radial-gradient(1px 1px at 6% 82%, var(--star), transparent), radial-gradient(1.5px 1.5px at 74% 6%, var(--star), transparent);
+  background-size: 640px 640px;
+  animation: tl-twinkle 4s ease-in-out infinite alternate;
+}
+@keyframes tl-twinkle { from { opacity: 0.55; } to { opacity: 1; } }
+
+/* Neutral (kein Sinnoh-Spiel): Farben der Seite und der Spieler statt Seegeister und Roter Kette */
+.tl:not(.is-sinnoh) {
+  --chain: rgb(var(--t-acc)); --chain-glow: rgba(var(--t-acc), 0.4);
+  --mist-a: color-mix(in srgb, var(--p1) 20%, transparent);
+  --mist-b: color-mix(in srgb, var(--p2) 16%, transparent);
+  --mist-c: color-mix(in srgb, var(--p3) 18%, transparent);
+}
+.tl:not(.is-sinnoh) .tl-guard { --gc: color-mix(in srgb, var(--pc) 50%, transparent); }
+.tl:not(.is-sinnoh) .tl-spirit, .tl.is-sinnoh .tl-ball, .tl:not(.is-sinnoh) .tl-name small { display: none; }
+
+/* ── Rote Kette: Glieder als Strichmuster, ohne Verknüpfung nur schwach ── */
+.tl-chain { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.tl-chain path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.tl-chain-glow { stroke: var(--chain-glow); stroke-width: 14; opacity: 0.25; filter: blur(4px); }
+.tl-chain-link { stroke: var(--chain); stroke-width: 5; stroke-dasharray: 10 8; opacity: 0.3; animation: tl-flow 3s linear infinite; }
+@keyframes tl-flow { to { stroke-dashoffset: -36; } }
+.tl.has-links .tl-chain-link { opacity: 0.85; }
+.tl.has-links .tl-chain-glow { opacity: 0.8; animation: tl-pulse 2s ease-in-out infinite; }
+@keyframes tl-pulse { 50% { opacity: 0.4; } }
+
+/* ── Geister mit kreisendem Team ── */
+.tl-guard { position: absolute; width: 0; height: 0; }
+.tl-guard--1 { --pc: var(--p1); --gc: rgba(90, 160, 255, 0.55); }
+.tl-guard--2 { --pc: var(--p2); --gc: rgba(255, 210, 74, 0.55); }
+.tl-guard--3 { --pc: var(--p3); --gc: rgba(255, 126, 182, 0.55); }
+.tl-aura {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--k) * 90px);
+  height: calc(var(--k) * 90px);
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--gc), transparent);
+  animation: tl-breathe 3.2s ease-in-out infinite;
+}
+@keyframes tl-breathe { 50% { scale: 1.18; opacity: 0.75; } }
+.tl-spirit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--k) * 80px);
+  height: calc(var(--k) * 80px);
+  translate: -50% -50%;
+  animation: tl-hover 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px var(--gc));
+}
+.tl-guard--3 .tl-spirit { animation-delay: -1s; }
+.tl-guard--2 .tl-spirit { animation-delay: -2s; }
+@keyframes tl-hover { 50% { translate: -50% calc(-50% - var(--k) * 6px); } }
+/* neutral: Pokéball (30 × 30) in ganzzahliger Vergrößerung */
+.tl-ball {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--k) * 30px);
+  height: calc(var(--k) * 30px);
+  translate: -50% -50%;
+  filter: drop-shadow(0 0 10px var(--gc));
+}
+/* Umlaufbahn: dreht sich langsam, die Icons bleiben aufrecht */
+.tl-orbit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--R) * 2);
+  height: calc(var(--R) * 2);
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--pc) 45%, transparent);
+  animation: tl-spin 48s linear infinite;
+}
+.tl-guard--2 .tl-orbit { animation-direction: reverse; }
+@keyframes tl-spin { to { rotate: 360deg; } }
+.tl-mon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: rotate(var(--a)) translateX(var(--R)) rotate(calc(var(--a) * -1));
+}
+.tl-mon img, .tl-mon i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% -50%;
+  animation: tl-spin 48s linear infinite reverse;
+}
+.tl-guard--2 .tl-mon img, .tl-guard--2 .tl-mon i { animation-direction: normal; }
+.tl-mon img { width: calc(40px * var(--k) * 0.75); height: calc(30px * var(--k) * 0.75); padding: 6px; box-sizing: content-box; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.14), transparent); }
+.tl-mon i { width: 12px; height: 12px; border-radius: 50%; background: color-mix(in srgb, var(--pc) 40%, transparent); }
+/* Verknüpft: Ring in der Farbe der Kette, bei allen drei Spielern im selben Takt */
+.tl-mon.is-linked img { background: radial-gradient(closest-side, var(--chain-glow), transparent); box-shadow: 0 0 0 2px var(--chain); animation: tl-spin 48s linear infinite reverse, tl-beat 1.6s ease-in-out infinite; }
+.tl-guard--2 .tl-mon.is-linked img { animation: tl-spin 48s linear infinite, tl-beat 1.6s ease-in-out infinite; }
+@keyframes tl-beat { 50% { box-shadow: 0 0 0 2px var(--chain), 0 0 16px 4px var(--chain-glow); } }
+.tl-name {
+  position: absolute;
+  left: 0;
+  top: calc(var(--R) + 16px);
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 14px 6px;
+  border-radius: 10px;
+  background: var(--plate);
+  border: 2px solid var(--pc);
+  color: var(--plate-ink);
+  white-space: nowrap;
+}
+.tl-name b { color: var(--pc); font-size: 0.78rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+.tl-name small { color: var(--muted); font-size: 0.7rem; font-weight: 700; }
+
+/* ── Tafel: verknüpfte Dreiergruppen ── */
+.tl-board {
+  position: absolute;
+  left: var(--cr);
+  top: calc(30vh + var(--R) + 74px);
+  width: min(calc(var(--strip) - 40px), 300px);
+  max-height: calc(100vh - 30vh - var(--R) - 100px);
+  translate: -50% 0;
+  overflow: hidden;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--plate);
+  border: 2px solid var(--chain);
+  box-shadow: 0 0 22px var(--chain-glow), 0 18px 40px rgba(0, 0, 0, 0.35);
+  color: var(--plate-ink);
+  text-align: center;
+}
+.tl-board-title { display: block; color: var(--chain); font-size: 0.82rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; }
+.tl-board-count { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.72rem; font-weight: 700; }
+.tl-trios { display: flex; flex-direction: column; gap: 6px; }
+.tl-trio { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.tl-trio small { width: 16px; color: var(--muted); font-size: 0.66rem; font-weight: 800; }
+.tl-tri { display: grid; place-items: center; width: 44px; height: 36px; border-radius: 8px; border: 2px solid; color: var(--muted); }
+.tl-tri--1 { border-color: var(--p1); }
+.tl-tri--2 { border-color: var(--p2); }
+.tl-tri--3 { border-color: var(--p3); }
+.tl-tri img { width: 40px; height: 30px; }
+.tl-link { width: 10px; height: 4px; border-radius: 2px; background: var(--chain); }
+.tl-none { margin: 0; color: var(--muted); font-size: 0.74rem; line-height: 1.45; }
+
+/* Zu wenig Platz neben der Karte: nur Himmel und Kette */
+.tl.is-bare .tl-guard, .tl.is-bare .tl-board, .tl.is-bare .tl-chain { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-mist, .tl-stars, .tl-chain-link, .tl-chain-glow, .tl-aura, .tl-spirit, .tl-orbit, .tl-mon img, .tl-mon i { animation: none !important; }
+}

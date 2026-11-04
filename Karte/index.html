@@ -18,9 +18,11 @@
   <link rel="stylesheet" href="../Pokelocke/base.css">
   <link rel="stylesheet" href="../vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sea.css">
+  <link rel="stylesheet" href="hoenn.css">
 </head>
 <body>
-<div id="app">
+<div id="app" class="win-frame">
 
 <button class="lang-toggle" id="lang-toggle">DE</button>
 
@@ -84,10 +86,17 @@
 
 </div>
 
+<!-- Meer um Sinnoh hinter der Karte: Wasser, Brandung, Pokémon des gewählten Ortes und die Angel (sea.js).
+     Nach #app, damit die Tab-Reihenfolge mit der Seite beginnt -->
+<div class="km" id="km"></div>
+
 <script src="../vendor/leaflet/leaflet.js"></script>
 <script src="../pokemon-names.js"></script>
 <script src="../rando-state.js"></script>
 <script src="trainer-classes.js"></script>
+<script src="../scene.js"></script>
+<script src="sea.js"></script>
+<script src="hoenn.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -1,10 +1,7 @@
+/* Hintergrund ist das Reisetagebuch (journal.css) – darunter nur eine dunkle Farbe für den Überscroll */
 html, body {
   min-height: 100%;
-  background:
-    radial-gradient(circle at 12% 14%, rgba(var(--t-acc2-glow), 0.14), transparent 28%),
-    radial-gradient(circle at 88% 18%, rgba(var(--t-acc-glow), 0.10), transparent 24%),
-    radial-gradient(circle at 50% 92%, rgba(240, 112, 96, 0.08), transparent 32%),
-    rgb(var(--t-n-0d0f2b));
+  background: rgb(var(--t-n-0d0f2b));
   color: var(--color-text);
 }
 
@@ -31,16 +28,12 @@ button {
   --card-radius: 20px;
 }
 
+/* Karte vor dem Tagebuch – Rahmen und Hintergrund: #app.win-frame (base.css) */
 #app {
   width: min(98vw, 1340px);
   margin: 0 auto;
   padding: 24px;
-  background:
-    linear-gradient(180deg, rgba(var(--t-n-191b3a), 0.98), rgba(var(--t-n-101230), 0.96)),
-    rgba(var(--t-n-191b3a), 0.96);
   border-radius: 28px;
-  box-shadow: 0 28px 80px rgba(var(--t-shade), 0.28);
-  border: 1px solid rgba(var(--t-ink), 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -175,10 +168,11 @@ header p {
   background: var(--dot, var(--color-muted));
   box-shadow: 0 0 8px var(--dot, transparent);
 }
-.stat-card.is-caught { --dot: rgb(var(--t-c-8ff0a4)); }
-.stat-card.is-open   { --dot: var(--color-accent); }
-.stat-card.is-failed { --dot: rgb(var(--t-c-ff9b8e)); }
+.stat-card.is-caught { --dot: rgb(var(--t-f-8ff0a4)); }
+.stat-card.is-open   { --dot: rgb(var(--t-f-acc)); }
+.stat-card.is-failed { --dot: rgb(var(--t-f-ff9b8e)); }
 .stat-card.is-grave  { --dot: rgb(var(--t-g-b1b3cc)); }
+html[data-theme="paper"] .stat-card::before { box-shadow: none; }
 .stat-value {
   color: rgb(var(--t-white));
   font-size: 0.95rem;
@@ -476,7 +470,7 @@ select option {
 
 /* Game Select Modal */
 .game-select-modal { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.game-select-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.75); }
+.game-select-overlay { position: absolute; inset: 0; background: rgba(var(--t-n-050614), 0.75); }
 .game-select-dialog { position: relative; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 20px; padding: 20px; width: min(740px, 100%); max-height: 85vh; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 80px rgba(var(--t-shade), 0.5); }
 .game-select-header { display: flex; align-items: center; justify-content: space-between; }
 .game-select-title { font-size: 1.1rem; font-weight: 700; color: var(--color-text); }
@@ -630,9 +624,10 @@ select option {
   opacity: 1;
 }
 
-.status-caught { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-8ff0a4)); border-color: rgb(var(--t-c-8ff0a4)); }
-.status-open { color: rgb(var(--t-on-acc)); background: rgb(var(--t-acc)); border-color: rgb(var(--t-acc)); }
-.status-failed { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-ff9b8e)); border-color: rgb(var(--t-c-ff9b8e)); }
+/* Füllfarben (theme.css): in Papier sonst „Offen“ und „Verpasst“ beide rot, „Gefangen“ fast schwarz */
+.status-caught { color: rgb(var(--t-on-fill)); background: rgb(var(--t-f-8ff0a4)); border-color: rgb(var(--t-f-8ff0a4)); }
+.status-open { color: rgb(var(--t-on-fill)); background: rgb(var(--t-f-acc)); border-color: rgb(var(--t-f-acc)); }
+.status-failed { color: rgb(var(--t-on-fill)); background: rgb(var(--t-f-ff9b8e)); border-color: rgb(var(--t-f-ff9b8e)); }
 .status-dead { color: rgb(var(--t-c-ff8a93)); background: rgba(var(--t-c-ff5f6d), 0.14); border-color: rgba(var(--t-c-ff5f6d), 0.55); }
 .encounter-row.is-dead .encounter-pokemon img { filter: grayscale(1) brightness(0.8); }
 .encounter-row.is-dead .encounter-pokemon span { color: var(--color-muted); text-decoration: line-through; text-decoration-color: rgba(var(--t-c-ff5f6d), 0.6); }
@@ -806,7 +801,7 @@ textarea {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.70);
+  background: rgba(var(--t-n-050614), 0.70);
 }
 
 .pokemon-modal-content {
@@ -985,9 +980,9 @@ textarea {
 }
 
 .cp-item.is-done .cp-icon {
-  background: rgb(var(--t-c-8ff0a4));
-  border-color: rgb(var(--t-c-8ff0a4));
-  color: rgb(var(--t-on-acc));
+  background: rgb(var(--t-f-8ff0a4));
+  border-color: rgb(var(--t-f-8ff0a4));
+  color: rgb(var(--t-on-fill));
 }
 
 .cp-item.is-current .cp-icon {

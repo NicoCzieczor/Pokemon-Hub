@@ -49,9 +49,9 @@
 
   var GAMES = {
     de: { 1: 'Rot, Blau, Gelb', 2: 'Gold, Silber, Kristall', 3: 'Rubin, Saphir, Smaragd, FR/BG', 4: 'Diamant, Perl, Platin, HG/SS',
-      5: 'Schwarz, Weiß', 6: 'X, Y, ΩR/αS', 7: 'Sonne, Mond', 8: 'Schwert, Schild', 9: 'Karmesin, Purpur' },
+      5: 'Schwarz, Weiß', 6: 'X, Y, ORAS', 7: 'Sonne, Mond', 8: 'Schwert, Schild', 9: 'Karmesin, Purpur' },
     en: { 1: 'Red, Blue, Yellow', 2: 'Gold, Silver, Crystal', 3: 'Ruby, Sapphire, Emerald, FR/LG', 4: 'Diamond, Pearl, Platinum, HG/SS',
-      5: 'Black, White', 6: 'X, Y, OR/AS', 7: 'Sun, Moon', 8: 'Sword, Shield', 9: 'Scarlet, Violet' }
+      5: 'Black, White', 6: 'X, Y, ORAS', 7: 'Sun, Moon', 8: 'Sword, Shield', 9: 'Scarlet, Violet' }
   };
 
   function getGen() {

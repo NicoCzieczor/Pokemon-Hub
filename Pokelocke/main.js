@@ -505,7 +505,19 @@ function renderCoverageSection(allActive) {
 }
 
 // ── Type analysis ─────────────────────────────────────────────────────────────
+// Ruhmeshalle hinter der Karte (hall.js): das Team nacheinander im Scheinwerfer, Ehrentafel mit sechs Rahmen
+function updateScene() {
+  if (!window.HallScene) return;
+  window.HallScene.update(teamPokemon.map(p => p ? {
+    key: p.name,
+    name: window.LANG === 'en' ? capitalize(p.baseName || p.name) : (p.germanName || capitalize(p.name)),
+    sprite: window.HubScene.monSprite(p.id, p.sprite),
+    types: typesOf(p).map(t => ({ key: t, name: window.typeLabel ? window.typeLabel(t) : t })),
+  } : null));
+}
+
 function renderTeamWeaknessPanel() {
+  updateScene();
   const container = document.getElementById('team-weakness-panel');
   if (!container) return;
   const active = teamPokemon.filter(Boolean);

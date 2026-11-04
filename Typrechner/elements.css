@@ -1,0 +1,256 @@
+/*
+ * „Elemente“ hinter dem Typen-Rechner (elements.js): je Seite die Atmosphäre ihres Typs – Hintergrund aus den
+ * Typfarben (--c1, --c2), Partikel mit eigener Form (tp--…) und Bewegung (tm--…), dazu das schwebende Typ-Symbol
+ * und der Takt der Wirkung zwischen beiden Seiten (data-hit am .ty).
+ * Bewegungswege in Feld-Einheiten (cqw/cqh), damit jedes Partikel genau sein Feld durchquert.
+ */
+
+.ty { --ty-base: #090b1f; --ty-mix: 44%; }
+:root[data-theme="graphite"] .ty { --ty-base: #121110; }
+:root[data-theme="paper"] .ty { --ty-base: #efe9de; --ty-mix: 62%; }
+
+.ty { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--ty-base); }
+
+/* ── Felder: je eine Bildschirmhälfte; das Licht sitzt in der Mitte des sichtbaren Teils (--gxl/--gxr) ── */
+.ty-field {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  overflow: hidden;
+  container-type: size;
+  background:
+    radial-gradient(ellipse 70% 55% at var(--gx) 44%, color-mix(in srgb, var(--c1) var(--ty-mix), var(--ty-base)), transparent 78%),
+    radial-gradient(ellipse 80% 45% at var(--gx) 100%, color-mix(in srgb, var(--c2) var(--ty-mix), var(--ty-base)), transparent 85%),
+    var(--ty-base);
+}
+.ty-field--l { --gx: var(--gxl, 25%); left: 0; }
+.ty-field--r { --gx: var(--gxr, 75%); right: 0; }
+.ty-field.is-empty { --ty-mix: 14%; }
+
+/* ── Partikel: Formen (--pc = Farbe; bei Papier dunkler wie Tinte, sonst gingen helle Partikel im hellen Grund unter) ── */
+.tp { --pc: var(--c); }
+:root[data-theme="paper"] .tp { --pc: color-mix(in srgb, var(--c) 62%, #3d2914); }
+.tp {
+  position: absolute;
+  width: var(--z);
+  height: var(--z);
+  background: var(--pc);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+.tp--dot { border-radius: 50%; }
+.tp--px { border-radius: 1px; }
+.tp--ember { border-radius: 1px; box-shadow: 0 0 10px 2px color-mix(in srgb, var(--pc) 70%, transparent); }
+.tp--ring { background: none; border: 2px solid var(--pc); border-radius: 50%; }
+.tp--bubble { border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.55) 0 15%, var(--pc) 45%); }
+.tp--spark { width: calc(var(--z) * 0.6); clip-path: polygon(55% 0, 15% 55%, 45% 55%, 30% 100%, 85% 40%, 55% 40%, 75% 0); }
+.tp--leaf { border-radius: 0 100% 0 100%; }
+.tp--flake { clip-path: polygon(50% 0, 58% 38%, 93% 25%, 64% 50%, 93% 75%, 58% 62%, 50% 100%, 42% 62%, 7% 75%, 36% 50%, 7% 25%, 42% 38%); }
+.tp--burst { clip-path: polygon(50% 0, 60% 32%, 92% 12%, 70% 42%, 100% 50%, 70% 58%, 92% 88%, 60% 68%, 50% 100%, 40% 68%, 8% 88%, 30% 58%, 0 50%, 30% 42%, 8% 12%, 40% 32%); }
+.tp--streak { width: calc(var(--z) * 7); height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--pc)); }
+.ty-field--r .tp--streak { background: linear-gradient(270deg, transparent, var(--pc)); }
+.tp--glow { border-radius: 50%; box-shadow: 0 0 10px 3px color-mix(in srgb, var(--pc) 75%, transparent); }
+.tp--chunk { border-radius: 2px; box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.25), inset 2px 2px 0 rgba(255, 255, 255, 0.2); }
+.tp--wisp { border-radius: 50%; background: radial-gradient(circle, var(--pc) 0 25%, transparent 70%); }
+.tp--scale { border-radius: 2px; rotate: 45deg; box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.3); }
+.tp--star { clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+
+/* ── Partikel: Bewegungen ── */
+.tm--rise { animation-name: tm-rise; }
+.tm--float { animation-name: tm-float; animation-timing-function: ease-in-out; }
+.tm--swirl { animation-name: tm-swirl; animation-timing-function: ease-in-out; }
+.tm--fall { animation-name: tm-fall; animation-timing-function: ease-in-out; }
+.tm--wind { animation-name: tm-wind; }
+.tm--dust { animation-name: tm-dust; }
+.ty-field--r .tm--wind { animation-name: tm-wind-r; }
+.ty-field--r .tm--dust { animation-name: tm-dust-r; }
+.tm--drift { animation-name: tm-drift; animation-timing-function: ease-in-out; animation-direction: alternate; }
+.tm--zap { animation-name: tm-zap; }
+.tm--pulse { animation-name: tm-pulse; animation-timing-function: ease-out; }
+.tm--twinkle { animation-name: tm-twinkle; animation-timing-function: ease-in-out; }
+.tm--wander { animation-name: tm-wander; animation-timing-function: ease-in-out; }
+
+@keyframes tm-rise {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  10%  { opacity: 1; }
+  80%  { opacity: 0.9; }
+  100% { transform: translate(var(--dx), -115cqh); opacity: 0; }
+}
+@keyframes tm-float {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  15%  { opacity: 0.9; }
+  50%  { transform: translate(var(--dx), -55cqh); opacity: 0.35; }
+  85%  { opacity: 0.9; }
+  100% { transform: translate(calc(var(--dx) * -0.5), -112cqh); opacity: 0; }
+}
+@keyframes tm-swirl {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { transform: translate(calc(var(--dx) * 2), -55cqh) rotate(180deg); }
+  90%  { opacity: 1; }
+  100% { transform: translate(0, -112cqh) rotate(360deg); opacity: 0; }
+}
+@keyframes tm-fall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  8%   { opacity: 1; }
+  50%  { transform: translate(var(--dx), 55cqh) rotate(calc(var(--r) / 2)); }
+  92%  { opacity: 1; }
+  100% { transform: translate(0, 112cqh) rotate(var(--r)); opacity: 0; }
+}
+@keyframes tm-wind {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  15%, 85% { opacity: 1; }
+  100% { transform: translate(125cqw, var(--dy)); opacity: 0; }
+}
+@keyframes tm-wind-r {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  15%, 85% { opacity: 1; }
+  100% { transform: translate(-125cqw, var(--dy)); opacity: 0; }
+}
+@keyframes tm-dust {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  20%, 80% { opacity: 0.8; }
+  100% { transform: translate(125cqw, calc(var(--dy) * 0.4)); opacity: 0; }
+}
+@keyframes tm-dust-r {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  20%, 80% { opacity: 0.8; }
+  100% { transform: translate(-125cqw, calc(var(--dy) * 0.4)); opacity: 0; }
+}
+@keyframes tm-drift {
+  from { transform: translate(0, 0); opacity: 0.25; }
+  to   { transform: translate(var(--dx), var(--dy)); opacity: 0.85; }
+}
+@keyframes tm-zap {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  3%  { opacity: 1; }
+  5%  { opacity: 0; }
+  7%  { opacity: 1; transform: scale(1.25) rotate(15deg); }
+  10% { opacity: 0; }
+}
+@keyframes tm-pulse {
+  0%   { transform: scale(0.2); opacity: 0; }
+  10%  { opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes tm-twinkle {
+  0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50%      { transform: scale(1) rotate(45deg); opacity: 1; }
+}
+@keyframes tm-wander {
+  0%   { transform: translate(0, 0); opacity: 0.3; }
+  25%  { transform: translate(var(--dx), calc(var(--dy) * -1)); opacity: 1; }
+  50%  { transform: translate(calc(var(--dx) * -0.5), var(--dy)); opacity: 0.4; }
+  75%  { transform: translate(calc(var(--dx) * -1), calc(var(--dy) * 0.5)); opacity: 1; }
+  100% { transform: translate(0, 0); opacity: 0.3; }
+}
+
+/* Explosion beim Wählen eines Typs (über allem, kurz) */
+.tp.tp-burst {
+  position: fixed;
+  z-index: 50;
+  margin: calc(var(--z) / -2) 0 0 calc(var(--z) / -2);
+  animation: ty-burst 0.75s ease-out forwards;
+}
+@keyframes ty-burst {
+  from { transform: translate(0, 0) scale(1.2); opacity: 1; }
+  to   { transform: translate(var(--bx), var(--by)) scale(0.4); opacity: 0; }
+}
+
+/* ══ Typ-Symbol und Schild je Seite (Lage und Größe setzt elements.js: --cl, --cr, --es, --sw) ══ */
+.ty-side {
+  position: absolute;
+  top: 46vh;
+  width: max-content;     /* sonst bekäme die rechte Seite nur die Restbreite bis zum Bildschirmrand */
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--es) * 0.22);
+}
+.ty-side--l { left: var(--cl); }
+.ty-side--r { left: var(--cr); }
+.ty.is-tight .ty-side,
+.ty-side.is-empty { display: none; }
+
+.ty-badges { position: relative; display: flex; gap: calc(var(--es) * 0.1); }
+.ty-badge { position: relative; isolation: isolate; display: grid; place-items: center; animation: ty-float 3.2s ease-in-out infinite alternate; }
+.ty-badge + .ty-badge { animation-delay: -1.6s; }
+.ty-badge::before {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--tc) 65%, transparent), transparent 65%);
+}
+.ty-badge .type-icon { display: block; box-shadow: 0 12px 34px rgba(var(--t-shade), 0.45); }
+@keyframes ty-float { from { translate: 0 -6px; } to { translate: 0 6px; } }
+
+/* Schild im Stil der anderen Bühnen: Rolle, Typ(en), beim Verteidiger die Wirkung */
+.ty-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: var(--sw, 300px);
+  padding: 9px 18px 10px;
+  border-radius: 12px;
+  border: 2px solid rgba(var(--t-ink), 0.16);
+  background: linear-gradient(180deg, rgb(var(--t-n-262952)), rgb(var(--t-n-161838)));
+  box-shadow: inset 0 0 0 2px rgba(var(--t-n-0d0f2b), 0.5), inset 0 0 0 3px rgba(var(--t-acc), 0.35), 0 10px 30px rgba(var(--t-shade), 0.4);
+  color: var(--color-text);
+  text-align: center;
+}
+.ty-role { color: rgb(var(--t-acc)); font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.ty-names { color: rgb(var(--t-white)); font-size: 1.02rem; font-weight: 800; }
+.ty-mult:empty { display: none; }
+.ty-mult { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+.ty-mult b { color: var(--mc); font-size: 1.3rem; font-weight: 900; }
+.ty-mult span { color: var(--mc); font-size: 0.82rem; font-weight: 700; }
+
+/* ── Takt der Wirkung: links lädt auf, rechts trifft es (stark), prallt ab (schwach) oder an der Barriere ab ── */
+.ty[data-hit] .ty-side--l .ty-badge { animation: ty-float 3.2s ease-in-out infinite alternate, ty-charge 2.8s ease-in-out infinite; }
+.ty[data-hit=""] .ty-side--l .ty-badge { animation: ty-float 3.2s ease-in-out infinite alternate; }
+.ty[data-hit="strong"] .ty-side--r .ty-badge { animation: ty-float 3.2s ease-in-out infinite alternate, ty-shake 2.8s linear infinite; }
+@keyframes ty-charge {
+  0%, 30%, 60%, 100% { scale: 1; filter: none; }
+  45% { scale: 1.12; filter: brightness(1.35); }
+}
+@keyframes ty-shake {
+  0%, 52%, 70%, 100% { transform: none; filter: none; }
+  54% { transform: translateX(-10px) rotate(-4deg); filter: brightness(1.9); }
+  58% { transform: translateX(9px) rotate(3deg); filter: brightness(1.3); }
+  62% { transform: translateX(-6px); }
+  66% { transform: translateX(3px); }
+}
+.ty-badges::after {
+  content: '';
+  position: absolute;
+  inset: -16%;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+}
+.ty[data-hit="weak"] .ty-side--r .ty-badges::after {
+  border: 3px solid rgba(150, 220, 255, 0.65);
+  box-shadow: 0 0 24px rgba(150, 220, 255, 0.35), inset 0 0 24px rgba(150, 220, 255, 0.25);
+  animation: ty-block 2.8s ease-out infinite;
+}
+.ty[data-hit="immune"] .ty-side--r .ty-badges::after {
+  opacity: 1;
+  border: 4px solid rgba(225, 225, 240, 0.75);
+  background: rgba(200, 200, 220, 0.12);
+  box-shadow: 0 0 30px rgba(220, 220, 240, 0.3), inset 0 0 30px rgba(220, 220, 240, 0.25);
+}
+@keyframes ty-block {
+  0%, 48%, 100% { opacity: 0.35; scale: 1; }
+  55% { opacity: 1; scale: 1.08; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tp, .ty-badge, .ty[data-hit] .ty-side--l .ty-badge, .ty[data-hit] .ty-side--r .ty-badge, .ty-badges::after { animation: none !important; }
+  .tp { display: none; }
+}

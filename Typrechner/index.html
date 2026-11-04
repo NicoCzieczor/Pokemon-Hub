@@ -28,9 +28,24 @@
   <title>Typen-Rechner – Pokémon Hub</title>
   <link rel="stylesheet" href="../Pokelocke/base.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="elements.css">
 </head>
 <body>
-<div id="app">
+<!-- Elemente hinter der Karte: links der Angriffstyp, rechts die Verteidigungstypen (elements.js) -->
+<div class="ty" id="ty" data-hit="">
+  <div class="ty-field ty-field--l is-empty" aria-hidden="true"></div>
+  <div class="ty-field ty-field--r is-empty" aria-hidden="true"></div>
+  <div class="ty-side ty-side--l is-empty">
+    <div class="ty-badges"></div>
+    <div class="ty-plate"><span class="ty-role"></span><b class="ty-names"></b></div>
+  </div>
+  <div class="ty-side ty-side--r is-empty">
+    <div class="ty-badges"></div>
+    <div class="ty-plate"><span class="ty-role"></span><b class="ty-names"></b><div class="ty-mult"></div></div>
+  </div>
+</div>
+
+<div id="app" class="win-frame">
 
 <button class="lang-toggle" id="lang-toggle">DE</button>
 
@@ -98,6 +113,8 @@
 
 <!-- Typentabellen je Generation – dieselben wie im Schadens-Rechner -->
 <script src="../DamageCalc/mechanics.js"></script>
+<script src="../scene.js"></script>
+<script src="elements.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

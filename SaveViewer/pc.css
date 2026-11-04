@@ -1,0 +1,210 @@
+/*
+ * „Im PC“ hinter dem Save-Viewer (pc.js): Box-Tapete als Seitenhintergrund, links die Box mit den Icons und der
+ * PC-Hand, rechts das Team. Die Tapete bleibt in jedem Design dieselbe (wie im Spiel), nur abgedunkelt bzw.
+ * aufgehellt; Fenster in den Farben des Designs.
+ */
+
+/* ── Tapeten (Platin): Grundfarbe, zweite Farbe, Muster ── */
+.pc { --wa: #3f8f4a; --wb: #33783d; --wp: none; --ws: auto; }
+.pc[data-wall="forest"]   { --wa: #4a9a52; --wb: #357a3e; --wp: linear-gradient(135deg, var(--wb) 25%, transparent 25%), linear-gradient(225deg, var(--wb) 25%, transparent 25%); --ws: 56px 56px; }
+.pc[data-wall="city"]     { --wa: #6a7f9f; --wb: #566a88; --wp: linear-gradient(var(--wb) 4px, transparent 4px), linear-gradient(90deg, var(--wb) 4px, transparent 4px); --ws: 36px 48px; }
+.pc[data-wall="desert"]   { --wa: #e6c682; --wb: #d1ac62; --wp: radial-gradient(circle at 50% 100%, transparent 20px, var(--wb) 21px 26px, transparent 27px); --ws: 56px 30px; }
+.pc[data-wall="savanna"]  { --wa: #ecbb58; --wb: #d69f3a; --wp: repeating-linear-gradient(0deg, var(--wb) 0 6px, transparent 6px 26px); --ws: auto; }
+.pc[data-wall="crag"]     { --wa: #937358; --wb: #765b45; --wp: conic-gradient(var(--wb) 25%, transparent 0 50%, var(--wb) 0 75%, transparent 0); --ws: 72px 72px; }
+.pc[data-wall="volcano"]  { --wa: #b9493c; --wb: #852f27; --wp: linear-gradient(135deg, var(--wb) 25%, transparent 25%), linear-gradient(225deg, var(--wb) 25%, transparent 25%); --ws: 48px 48px; }
+.pc[data-wall="snow"]     { --wa: #dce8f5; --wb: #ffffff; --wp: radial-gradient(var(--wb) 4px, transparent 5px); --ws: 32px 32px; }
+.pc[data-wall="cave"]     { --wa: #5f4e40; --wb: #4a3d32; --wp: radial-gradient(var(--wb) 12px, transparent 13px); --ws: 64px 56px; }
+.pc[data-wall="beach"]    { --wa: #efd9a0; --wb: #77c6ea; --wp: radial-gradient(circle at 50% 0, var(--wb) 22px, transparent 23px); --ws: 64px 40px; }
+.pc[data-wall="seafloor"] { --wa: #2d5c9c; --wb: #4479c0; --wp: radial-gradient(circle, transparent 5px, var(--wb) 6px 8px, transparent 9px); --ws: 46px 60px; }
+.pc[data-wall="river"]    { --wa: #3e9eb1; --wb: #62bfd0; --wp: radial-gradient(circle at 50% 100%, transparent 18px, var(--wb) 19px 24px, transparent 25px); --ws: 50px 28px; }
+.pc[data-wall="sky"]      { --wa: #92d0f4; --wb: #ffffff; --wp: radial-gradient(ellipse 22px 12px, var(--wb) 90%, transparent); --ws: 96px 64px; }
+.pc[data-wall="center"]   { --wa: #ffffff; --wb: #e86868; --wp: linear-gradient(180deg, var(--wb) 50%, transparent 50%); --ws: 100% 96px; }
+.pc[data-wall="machine"]  { --wa: #8e98aa; --wb: #737d8f; --wp: linear-gradient(var(--wb) 3px, transparent 3px), linear-gradient(90deg, var(--wb) 3px, transparent 3px); --ws: 28px 28px; }
+.pc[data-wall="checks"]   { --wa: #f6b7cb; --wb: #ffffff; --wp: conic-gradient(var(--wb) 25%, transparent 0 50%, var(--wb) 0 75%, transparent 0); --ws: 44px 44px; }
+.pc[data-wall="simple"]   { --wa: #cdd7e2; --wb: #bfcad7; --wp: repeating-linear-gradient(45deg, var(--wb) 0 3px, transparent 3px 18px); --ws: auto; }
+.pc[data-wall="special"]  { --wa: #6a50a2; --wb: #9a82d4; --wp: radial-gradient(var(--wb) 2px, transparent 3px), radial-gradient(var(--wb) 1px, transparent 2px); --ws: 40px 40px, 23px 23px; }
+
+/* ── Farben je Design: wie stark die Tapete gedämpft wird, Fenster ── */
+.pc {
+  --dim: rgba(13, 15, 43, 0.62);
+  --win: rgb(var(--t-n-191b3a)); --win-2: rgb(var(--t-n-262952)); --win-line: rgba(var(--t-ink), 0.18);
+  --frame: #4d6fd0; --frame-hi: #8fb0ff;
+  --tag: rgba(13, 15, 43, 0.92); --tag-ink: #fff;
+}
+:root[data-theme="graphite"] .pc { --dim: rgba(24, 23, 22, 0.66); --frame: #8a6a3c; --frame-hi: #e2aa48; }
+:root[data-theme="paper"] .pc { --dim: rgba(244, 240, 234, 0.42); --frame: #b03024; --frame-hi: #e0736a; --tag: rgba(36, 31, 25, 0.9); }
+
+.pc {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--wa);
+}
+.pc img { max-width: none; border-radius: 0; image-rendering: pixelated; }
+.pc-wall, .pc-dim { position: absolute; inset: 0; }
+.pc-wall { background: var(--wp), var(--wa); background-size: var(--ws); }
+.pc-dim { background: var(--dim); }
+
+/* ── Fenster wie im PC: dicker Rahmen, Kopf mit Name ── */
+.pc-win {
+  position: absolute;
+  top: 50%;
+  translate: -50% -50%;
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--win);
+  border: 3px solid var(--frame);
+  box-shadow: inset 0 0 0 2px var(--frame-hi), inset 0 0 0 5px rgba(0, 0, 0, 0.25), 0 20px 50px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+.pc-box { left: var(--cl); }
+.pc-party { left: var(--cr); width: min(calc(var(--cell) * 6 + 26px), 300px); }
+.pc-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--win-2), var(--win));
+  border: 1px solid var(--win-line);
+  color: rgb(var(--t-white));
+}
+.pc-name, .pc-title { flex: 1; min-width: 0; text-align: center; font-size: 0.92rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-trainer { color: var(--color-muted); font-size: 0.74rem; font-weight: 700; }
+.pc-arrow {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--frame);
+  color: #fff;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: filter 0.15s, translate 0.15s;
+}
+.pc-arrow:hover:not(:disabled) { filter: brightness(1.2); }
+.pc-arrow:first-child:hover:not(:disabled) { translate: -2px 0; }
+.pc-arrow:last-child:hover:not(:disabled) { translate: 2px 0; }
+.pc-arrow:disabled { opacity: 0.35; cursor: default; }
+
+/* Box: 6 × 5 Plätze auf der unverdunkelten Tapete */
+.pc-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, var(--cell));
+  grid-auto-rows: var(--cell);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--wp), var(--wa);
+  background-size: var(--ws);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.2);
+}
+.pc-cell { display: grid; place-items: center; padding: 0; border: 0; background: none; }
+.pc-mon { cursor: pointer; }
+.pc-mon img { width: calc(40px * var(--ic)); height: calc(30px * var(--ic)); transition: translate 0.25s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.pc-mon:hover img, .pc-mon.is-held img { translate: 0 calc(var(--ic) * -8px); }
+.pc-mon.is-held img { filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.25)); }
+.pc-mon.is-shiny::after { content: '✦'; position: absolute; translate: calc(var(--cell) * 0.32) calc(var(--cell) * -0.3); color: #ffd23f; font-size: 0.7rem; text-shadow: 0 0 4px #000; }
+.pc-mon.is-shiny { position: relative; }
+.pc-note {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 22px);
+  translate: -50% -50%;
+  margin: 0;
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--tag);
+  color: var(--tag-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* PC-Hand und Namensschild über dem gegriffenen Pokémon */
+.pc-hand {
+  position: absolute;
+  left: 10px;
+  top: 52px;
+  width: 48px;
+  height: 42px;
+  pointer-events: none;
+  transition: transform 0.55s cubic-bezier(0.45, 0.05, 0.3, 1);
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.25));
+  z-index: 2;
+}
+.pc-hand svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pc-hand .h-o { fill: #2a2a38; }
+.pc-hand .h-w { fill: #ffffff; }
+.pc-hand .h-s { fill: #b9bfd0; }
+.pc-h-grab { opacity: 0; }
+.pc-hand.is-grab .pc-h-open { opacity: 0; }
+.pc-hand.is-grab .pc-h-grab { opacity: 1; }
+.pc-hand:not(.is-grab) { animation: pc-hover 1.6s ease-in-out infinite; }
+@keyframes pc-hover { 50% { translate: 0 -4px; } }
+.pc-tag {
+  position: absolute;
+  left: 10px;
+  top: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 10px 5px;
+  border-radius: 8px;
+  background: var(--tag);
+  color: var(--tag-ink);
+  white-space: nowrap;
+  translate: -50% -100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 3;
+}
+.pc-tag.is-on { opacity: 1; }
+.pc-tag.is-below { translate: -50% 4px; }
+.pc-tag b { font-size: 0.8rem; font-weight: 800; }
+.pc-tag small { font-size: 0.68rem; opacity: 0.75; }
+.pc-tag small:empty { display: none; }
+
+/* Team: sechs Plätze, die Icons hüpfen wie im Menü */
+.pc-slots { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.pc-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: calc(30px * var(--ic) + 12px);
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--win-line);
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(var(--t-acc2), 0.14), transparent 70%), var(--win-2);
+  color: rgb(var(--t-white));
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, translate 0.15s;
+}
+.pc-slot.pc-mon:hover { border-color: var(--frame-hi); translate: 3px 0; }
+.pc-slot.is-free { background: rgba(var(--t-ink), 0.04); border-style: dashed; cursor: default; }
+.pc-slot img { flex: none; width: calc(40px * var(--ic)); height: calc(30px * var(--ic)); animation: pc-hop 0.9s steps(1) var(--bd, 0s) infinite; }
+.pc-slot:hover img { translate: none; }
+@keyframes pc-hop { 0%, 49% { transform: none; } 50%, 100% { transform: translateY(-3px); } }
+.pc-slot-txt { display: flex; flex-direction: column; min-width: 0; }
+.pc-slot-txt b { font-size: 0.82rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-slot-txt small { color: var(--color-muted); font-size: 0.7rem; font-weight: 700; }
+
+/* Ohne Spielstand: Fenster gedämpft */
+.pc.is-empty .pc-party { opacity: 0.7; }
+
+/* Zu wenig Platz neben der Karte: nur die Tapete */
+.pc.is-bare .pc-win { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-hand:not(.is-grab), .pc-slot img { animation: none; }
+  .pc-hand { transition-duration: 0s; }
+}

@@ -1,7 +1,11 @@
 /*
- * Boss-Planer (Platin): jeder Kampf mit dem kompletten Gegner-Team – und wie das eigene Team dagegen abschneidet.
+ * Boss-Planer (Platin sowie Omega Rubin / Alpha Saphir): jeder Kampf mit dem kompletten Gegner-Team – und wie das
+ * eigene Team dagegen abschneidet. Welches Spiel, sagt das Hub-Spiel (Chip „Spiel wählen“); ohne bzw. bei anderen
+ * Spielen Platin.
  *
  * Daten:  bosses.json (tools/build-bosses.js) – Teams so, wie das Spiel sie erzeugt (Attacken, DVs, Wesen, Fähigkeit)
+ *         bosses-oras.json (tools/build-bosses-oras.js) – dasselbe für Omega Rubin / Alpha Saphir, aus der ROM
+ *         ../SaveViewer/data-oras.js, oras-save.js, hub-save.js – Spieldaten und Spielstände von OR/AS
  *         ../SaveViewer/data-pt.js (PT_DATA) – Basiswerte, Typen, Attacken, alle Namen
  *         ../SaveViewer/pt-save.js (PtSave) – liest den Spielstand. Die Spielstände teilt sich der Planer mit dem
  *                                             Save-Viewer (IndexedDB „pokehub-saveviewer“).
@@ -19,7 +23,7 @@ const TEXT = {
     subtitle: 'Jeder Kampf mit dem kompletten Gegner-Team – und wie dein Team aus dem Spielstand dagegen abschneidet.',
     loadSave: 'Spielstand laden', starter: 'Dein Starter', weather: 'Wetter',
     loadRom: 'Randomizer-ROM laden', romActive: 'Randomisiert:', romRemove: 'Randomizer-Daten entfernen – wieder die Original-Teams',
-    romReading: 'Lese ROM …', romError: 'Das ist keine Pokémon-Platin-ROM (.nds).',
+    romReading: 'Lese ROM …', romError: 'Das ist keine passende ROM: Platin (.nds) bzw. Omega Rubin / Alpha Saphir (.3ds/.cxi, entschlüsselt).',
     romHint: 'Für Randomizer-Runs: Lade deine randomisierte ROM (.nds) – dann zeigt der Planer die echten Teams deines Spiels. Gelesen werden nur Trainer und wilde Pokémon (ca. 200 KB) – das gilt dann auch für Karte und Run-Dashboard. Die Datei bleibt auf deinem Gerät.',
     randoTag: 'Randomizer',
     wNone: 'Kein Wetter', wSun: 'Sonne', wRain: 'Regen', wSand: 'Sandsturm',
@@ -28,20 +32,25 @@ const TEXT = {
     footNote: 'Teams, Attacken, DVs, Wesen und Fähigkeiten aus dem Spielcode von Platin (pret/pokeplatinum) oder aus deiner randomisierten ROM, berechnet wie im Spiel. Schaden nach der Gen-4-Formel des Schadens-Rechners – ohne Statusänderungen im Kampf. ROM-Hacks wie Renegade Platinum haben andere Teams.',
     pickTitle: 'Pokémon aus der Box', pickSearch: 'Suchen…',
     loadError: 'Die Kampfdaten konnten nicht geladen werden.',
-    saveError: 'Das ist kein Platin-Spielstand (.sav/.dsv aus dem Emulator, im Spiel gespeichert).',
+    saveError: 'Das ist kein Spielstand von Platin (.sav/.dsv) oder Omega Rubin / Alpha Saphir („main“ von Citra).',
+    saveOtherGame: g => `Das ist ein Spielstand von ${g} – wähle oben unter „Spiel wählen“ dieses Spiel, dann ist er hier.`,
+    footNoteOras: 'Teams, Attacken, DVs und Fähigkeiten aus der ROM von Omega Rubin / Alpha Saphir oder aus deiner randomisierten, Mega-Entwicklung wie im Kampf. Wie Gen 6 die Wesen der Gegner würfelt, ist nicht bekannt – gerechnet wird neutral. Schaden nach der Gen-6-Formel des Schadens-Rechners – ohne Statusänderungen im Kampf.',
+    natureUnknown: 'unbekannt (neutral gerechnet)',
+    version: 'Edition', versionOr: 'Omega Rubin', versionAs: 'Alpha Saphir',
+    rivalMay: 'Rivalin Maike', rivalBrendan: 'Rivale Brix',
     noSaveTitle: 'Kein Spielstand geladen',
-    noSaveText: 'Lade deinen Platin-Spielstand – dann siehst du für jedes Gegner-Pokémon, wer aus deinem Team es am besten schafft. Spielstände aus dem Save-Viewer sind sofort da.',
+    noSaveText: 'Lade deinen Spielstand – dann siehst du für jedes Gegner-Pokémon, wer aus deinem Team es am besten schafft. Spielstände aus dem Save-Viewer sind sofort da.',
     badges: n => `${n} Orden`, addBox: '+ Box', resetTeam: '↺ Team', removeMon: 'Aus der Planung nehmen',
     manualTab: 'Eigenes Team', addMon: '+ Pokémon', fromSolo: 'Aus Solo', fromDuo1: 'Aus Duo (Spieler 1)', fromDuo2: 'Aus Duo (Spieler 2)',
     pickSpecies: 'Pokémon wählen', editMon: 'Bearbeiten', replaceTeam: 'Dein eigenes Team hier ersetzen?', allToCap: lv => `Alle auf Lv. ${lv}`,
     manualNote: 'Ohne Spielstand: DVs 15, keine EVs, kein Item angenommen. Antippen zum Bearbeiten.',
-    noTeamTitle: 'Noch kein Team', noTeamText: 'Lade deinen Platin-Spielstand – oder stelle dein Team von Hand zusammen bzw. übernimm es aus Solo oder Duo (oben unter „Eigenes Team“).',
+    noTeamTitle: 'Noch kein Team', noTeamText: 'Lade deinen Spielstand – oder stelle dein Team von Hand zusammen bzw. übernimm es aus Solo oder Duo (oben unter „Eigenes Team“).',
     levelLabel: 'Level', natureLabel: 'Wesen', abilityLabel: 'Fähigkeit', movesLabel: 'Attacken', noMove: '—',
-    learnable: 'Lernt es in Platin', otherMoves: 'Alle anderen Attacken', suggestMoves: 'Level-Attacken vorschlagen',
+    learnable: 'Lernt es im Spiel', otherMoves: 'Alle anderen Attacken', suggestMoves: 'Level-Attacken vorschlagen',
     changeMon: 'Anderes Pokémon', done: 'Fertig', removeFromTeam: 'Entfernen',
     movesOffline: 'Die Lernliste konnte nicht geladen werden (offline?) – Attacken bitte selbst wählen.',
-    randoMoves: 'Randomizer: Vorgeschlagen sind die Attacken aus dem Original-Platin – bitte anpassen.',
-    notInPlatinum: n => `${n} Pokémon gibt es in Platin nicht und ${n === 1 ? 'wurde' : 'wurden'} übersprungen.`,
+    randoMoves: 'Randomizer: Vorgeschlagen sind die Attacken aus dem Originalspiel – bitte anpassen.',
+    notInPlatinum: n => `${n} Pokémon gibt es in diesem Spiel nicht und ${n === 1 ? 'wurde' : 'wurden'} übersprungen.`,
     importFailed: 'Übernahme fehlgeschlagen – PokéAPI nicht erreichbar (offline?).',
     close: 'Schließen', fightLabel: 'Kampf',
     next: 'Nächster Kampf', fightNo: (i, n) => `Kampf ${i} von ${n}`, levelCap: 'Level-Cap',
@@ -73,7 +82,6 @@ const TEXT = {
       returnFoe: 'Freundschaft des Gegners angenommen (70)', hiddenPower: 'Kraftreserve', firstTurn: 'nur in der ersten Runde',
       variable: 'Stärke hängt von der Situation ab', reckless: 'Rückstoß',
     },
-    starters: { turtwig: 387, chimchar: 390, piplup: 393 },
   },
   en: {
     title: 'Boss Planner',
@@ -81,7 +89,7 @@ const TEXT = {
     subtitle: 'Every battle with the full enemy team – and how your team from your save file does against it.',
     loadSave: 'Load save file', starter: 'Your starter', weather: 'Weather',
     loadRom: 'Load randomizer ROM', romActive: 'Randomized:', romRemove: 'Remove randomizer data – back to the original teams',
-    romReading: 'Reading ROM …', romError: 'This is not a Pokémon Platinum ROM (.nds).',
+    romReading: 'Reading ROM …', romError: 'This is not a matching ROM: Platinum (.nds) or Omega Ruby / Alpha Sapphire (.3ds/.cxi, decrypted).',
     romHint: 'For randomizer runs: load your randomized ROM (.nds) and the planner shows the real teams of your game. Only trainers and wild Pokémon are read (about 200 KB) – this then also applies to the map and run dashboard. The file stays on your device.',
     randoTag: 'Randomizer',
     wNone: 'No weather', wSun: 'Sun', wRain: 'Rain', wSand: 'Sandstorm',
@@ -90,20 +98,25 @@ const TEXT = {
     footNote: 'Teams, moves, IVs, natures and abilities from the Platinum game code (pret/pokeplatinum) or from your randomized ROM, generated like in the game. Damage uses the Gen 4 formula of the Damage Calculator – without stat changes during battle. ROM hacks such as Renegade Platinum have different teams.',
     pickTitle: 'Pokémon from your boxes', pickSearch: 'Search…',
     loadError: 'The battle data could not be loaded.',
-    saveError: 'This is not a Platinum save file (.sav/.dsv from your emulator, saved in-game).',
+    saveError: 'This is not a Platinum (.sav/.dsv) or Omega Ruby / Alpha Sapphire save file (“main” from Citra).',
+    saveOtherGame: g => `This is a ${g} save – choose that game above under “Choose game” and it shows up here.`,
+    footNoteOras: 'Teams, moves, IVs and abilities from the Omega Ruby / Alpha Sapphire ROM or your randomized one, Mega Evolution like in battle. How Gen 6 rolls enemy natures is unknown – they are treated as neutral. Damage uses the Gen 6 formula of the Damage Calculator – without stat changes during battle.',
+    natureUnknown: 'unknown (treated as neutral)',
+    version: 'Version', versionOr: 'Omega Ruby', versionAs: 'Alpha Sapphire',
+    rivalMay: 'rival May', rivalBrendan: 'rival Brendan',
     noSaveTitle: 'No save file loaded',
-    noSaveText: 'Load your Platinum save file – then you see, for every enemy Pokémon, who on your team handles it best. Saves from the Save Viewer are available right away.',
+    noSaveText: 'Load your save file – then you see, for every enemy Pokémon, who on your team handles it best. Saves from the Save Viewer are available right away.',
     badges: n => `${n} badges`, addBox: '+ Box', resetTeam: '↺ Team', removeMon: 'Remove from planning',
     manualTab: 'Own team', addMon: '+ Pokémon', fromSolo: 'From Solo', fromDuo1: 'From Duo (player 1)', fromDuo2: 'From Duo (player 2)',
     pickSpecies: 'Choose Pokémon', editMon: 'Edit', replaceTeam: 'Replace your own team here?', allToCap: lv => `All to Lv. ${lv}`,
     manualNote: 'Without a save: IVs 15, no EVs, no item assumed. Tap to edit.',
-    noTeamTitle: 'No team yet', noTeamText: 'Load your Platinum save file – or build your team by hand or take it over from Solo or Duo (above under “Own team”).',
+    noTeamTitle: 'No team yet', noTeamText: 'Load your save file – or build your team by hand or take it over from Solo or Duo (above under “Own team”).',
     levelLabel: 'Level', natureLabel: 'Nature', abilityLabel: 'Ability', movesLabel: 'Moves', noMove: '—',
-    learnable: 'Learns it in Platinum', otherMoves: 'All other moves', suggestMoves: 'Suggest level-up moves',
+    learnable: 'Learns it in this game', otherMoves: 'All other moves', suggestMoves: 'Suggest level-up moves',
     changeMon: 'Other Pokémon', done: 'Done', removeFromTeam: 'Remove',
     movesOffline: 'The learnset could not be loaded (offline?) – please pick the moves yourself.',
-    randoMoves: 'Randomizer: the suggested moves are from vanilla Platinum – please adjust.',
-    notInPlatinum: n => `${n} Pokémon ${n === 1 ? 'does' : 'do'} not exist in Platinum and ${n === 1 ? 'was' : 'were'} skipped.`,
+    randoMoves: 'Randomizer: the suggested moves are from the original game – please adjust.',
+    notInPlatinum: n => `${n} Pokémon ${n === 1 ? 'does' : 'do'} not exist in this game and ${n === 1 ? 'was' : 'were'} skipped.`,
     importFailed: 'Import failed – PokéAPI not reachable (offline?).',
     close: 'Close', fightLabel: 'Battle',
     next: 'Next battle', fightNo: (i, n) => `Battle ${i} of ${n}`, levelCap: 'Level cap',
@@ -135,7 +148,6 @@ const TEXT = {
       returnFoe: 'enemy friendship assumed (70)', hiddenPower: 'Hidden Power', firstTurn: 'first turn only',
       variable: 'power depends on the situation', reckless: 'recoil',
     },
-    starters: { turtwig: 387, chimchar: 390, piplup: 393 },
   },
 };
 const tr = () => TEXT[window.LANG] || TEXT.de;
@@ -144,8 +156,17 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const pct = x => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10).toLocaleString(isEn() ? 'en-US' : 'de-DE');
 
-// ── Spieldaten ────────────────────────────────────────────────────────────────
-const PT = window.PT_DATA;
+// ── Spiel und Spieldaten ──────────────────────────────────────────────────────
+// Platin oder Omega Rubin / Alpha Saphir, wie das Hub-Spiel. PT = Spieldaten des Spiels (data-pt.js / data-oras.js).
+const GAMES = {
+  pt: { key: 'pt', data: () => window.PT_DATA, file: 'bosses.json', gen: 4, vg: 'platinum', maxSpecies: 493,
+    sprites: 'generation-iv/platinum/', starters: ['turtwig', 'chimchar', 'piplup'], starterBase: 387, starterKey: 'bosse-starter', manualKey: 'bosse-manual-team' },
+  oras: { key: 'oras', data: () => window.ORAS_DATA, file: 'bosses-oras.json', gen: 6, vg: 'omega-ruby-alpha-sapphire', maxSpecies: 721,
+    sprites: 'generation-vi/omega-ruby-alpha-sapphire/', starters: ['treecko', 'torchic', 'mudkip'], starterBase: 252, starterKey: 'bosse-starter-oras', manualKey: 'bosse-manual-team-oras' },
+};
+const gameOf = () => (window.PokeHubGame && window.PokeHubGame.get() === 'omega-rot-alpha-saphir' ? 'oras' : 'pt');
+let G = GAMES[gameOf()];
+let PT = G.data();
 const T = () => PT.text[isEn() ? 'en' : 'de'];
 const TYPES = ['normal', 'fighting', 'flying', 'poison', 'ground', 'rock', 'bug', 'ghost', 'steel', 'fire', 'water', 'grass',
   'electric', 'psychic', 'ice', 'dragon', 'dark', 'fairy'];
@@ -153,7 +174,13 @@ const TYPES = ['normal', 'fighting', 'flying', 'poison', 'ground', 'rock', 'bug'
 const TYPE_HEX = ['#bbbbaa', '#bb5544', '#96caff', '#9553cd', '#a67439', '#bbaa66', '#92c12a', '#6e4370', '#aaaabb',
   '#ff421c', '#2c9be3', '#62bc5a', '#ffdc00', '#ff6380', '#74cfc0', '#5670be', '#4e4545', '#ec8fe6'];
 const SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
-const PT_SPR = `${SPR}/pokemon/versions/generation-iv/platinum/`;
+const gameSpr = () => `${SPR}/pokemon/versions/${G.sprites}`;
+// Große Bilder: OR/AS als 3D-Renderbild aus Pokémon HOME (weich skaliert, img.is-3d), fehlt es, das ORAS-Sprite
+const HOME_SPR = `${SPR}/pokemon/other/home/`;
+const bigDir = () => (G.key === 'oras' ? HOME_SPR : gameSpr());
+const spriteKey = (sp, form) => (form && PT.formSprites && PT.formSprites[`${sp}-${form}`]) || sp;
+const bigImg = (cls, sp, form) => `<img class="${cls}${G.key === 'oras' ? ' is-3d' : ''}" src="${bigDir()}${spriteKey(sp, form)}.png"` +
+  (G.key === 'oras' ? ` data-fb="${gameSpr()}${spriteKey(sp, form)}.png" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb)this.src=this.dataset.fb"` : '') + ` alt="" loading="lazy">`;
 const ICON_SPR = `${SPR}/pokemon/versions/generation-vii/icons/`;
 const key = s => String(s || '').toLowerCase().replace(/[^a-z]/g, ''); // englischer Name → Schlüssel
 const abilityKey = m => key(PT.text.en.abilities[m.ability]);
@@ -167,18 +194,22 @@ const TYPE_ITEMS = {
   magnet: 'electric', twistedspoon: 'psychic', nevermeltice: 'ice', dragonfang: 'dragon', blackglasses: 'dark',
   flameplate: 'fire', splashplate: 'water', zapplate: 'electric', meadowplate: 'grass', icicleplate: 'ice', fistplate: 'fighting',
   toxicplate: 'poison', earthplate: 'ground', skyplate: 'flying', mindplate: 'psychic', insectplate: 'bug', stoneplate: 'rock',
-  spookyplate: 'ghost', dracoplate: 'dragon', dreadplate: 'dark', ironplate: 'steel',
+  spookyplate: 'ghost', dracoplate: 'dragon', dreadplate: 'dark', ironplate: 'steel', pixieplate: 'fairy',
   oddincense: 'psychic', rockincense: 'rock', roseincense: 'grass', waveincense: 'water',
 };
 const RESIST_BERRIES = {
   occaberry: 'fire', passhoberry: 'water', wacanberry: 'electric', rindoberry: 'grass', yacheberry: 'ice', chopleberry: 'fighting',
   kebiaberry: 'poison', shucaberry: 'ground', cobaberry: 'flying', payapaberry: 'psychic', tangaberry: 'bug', chartiberry: 'rock',
-  kasibberry: 'ghost', habanberry: 'dragon', colburberry: 'dark', babiriberry: 'steel', chilanberry: 'normal',
+  kasibberry: 'ghost', habanberry: 'dragon', colburberry: 'dark', babiriberry: 'steel', chilanberry: 'normal', roseliberry: 'fairy',
 };
 const PUNCH = new Set(['bulletpunch', 'cometpunch', 'dizzypunch', 'drainpunch', 'dynamicpunch', 'firepunch', 'focuspunch', 'hammerarm',
   'icepunch', 'machpunch', 'megapunch', 'meteormash', 'shadowpunch', 'skyuppercut', 'thunderpunch']);
 const RECOIL = new Set(['RECOIL_HALF', 'RECOIL_QUARTER', 'RECOIL_THIRD', 'RECOIL_BURN_HIT', 'RECOIL_PARALYZE_HIT', 'CRASH_ON_MISS']);
 const HIGH_CRIT = new Set(['HIGH_CRITICAL', 'HIGH_CRITICAL_BURN_HIT', 'HIGH_CRITICAL_POISON_HIT', 'CHARGE_TURN_HIGH_CRIT', 'CHARGE_TURN_HIGH_CRIT_FLINCH']);
+// Gen 6: Biss- und Puls-Attacken (Titankiefer, Megawumme), Typ-Fähigkeiten für Normal-Attacken
+const BITE = new Set(['bite', 'crunch', 'firefang', 'icefang', 'thunderfang', 'poisonfang', 'hyperfang']);
+const PULSE = new Set(['aurasphere', 'darkpulse', 'dragonpulse', 'waterpulse', 'originpulse']);
+const ATE = { pixilate: 17, aerilate: 2, refrigerate: 14 };
 // Attacken, deren Schaden sich nicht sinnvoll vorab rechnen lässt
 const SKIP = new Set(['COUNTER', 'MIRROR_COAT', 'METAL_BURST', 'BIDE', 'SET_HP_EQUAL_TO_USER', 'BEAT_UP', 'SPIT_UP',
   'RANDOM_POWER_MAYBE_HEAL', 'FLING', 'NATURAL_GIFT']);
@@ -186,14 +217,18 @@ const SKIP = new Set(['COUNTER', 'MIRROR_COAT', 'METAL_BURST', 'BIDE', 'SET_HP_E
 // ── Zustand ───────────────────────────────────────────────────────────────────
 let B = null;                 // bosses.json
 const state = {
-  list: 'story', fight: null, search: '', weather: '', starter: localStorage.getItem('bosse-starter') || 'turtwig',
+  list: 'story', fight: null, search: '', weather: '', starter: localStorage.getItem(G.starterKey) || G.starters[0],
+  version: localStorage.getItem('bosse-oras-version') === 'as' ? 'as' : 'or',   // Omega Rubin / Alpha Saphir
   saves: [], save: 0, team: [], open: new Set(),
   rando: loadRando(),         // Teams aus einer randomisierten ROM (rando.js), sonst null
 };
 
 // Randomizer-Daten bleiben auf dem Gerät (localStorage, damit sie auch im Backup landen)
+// Nur der Stand des gewählten Spiels zählt (Platin-Stände haben kein „game“)
 function loadRando() {
-  try { return JSON.parse(localStorage.getItem('bosse-rando') || 'null'); } catch (e) { return null; }
+  let r = null;
+  try { r = JSON.parse(localStorage.getItem('bosse-rando') || 'null'); } catch (e) { r = null; }
+  return r && (r.game || 'pt') === G.key ? r : null;
 }
 
 // ── Kämpfer ───────────────────────────────────────────────────────────────────
@@ -204,20 +239,32 @@ function personalOf(sp, form) {
   const p = get(sp);
   return (p && form > 0 && form < p[12] && p[13] > 0 ? get(p[13] + form - 1) : null) || p || [];
 }
-const starterSpecies = key => (state.rando && state.rando.starters
-  ? state.rando.starters[['turtwig', 'chimchar', 'piplup'].indexOf(key)] : tr().starters[key]);
+// Starter-Art zum Schlüssel (OR/AS: „-f“ = du spielst als Mädchen, Rivale ist dann Brix)
+const starterSpecies = key => {
+  const i = G.starters.indexOf(String(key).replace(/-f$/, ''));
+  return state.rando && state.rando.starters ? state.rando.starters[i] : G.starterBase + i * 3;
+};
 
 // Gemeinsame Form für Gegner und eigene Pokémon
+// Mega-Stein der eigenen Art (OR/AS, Index 8): im Kampf Mega-Form mit deren Werten, Typen und Fähigkeit
+function megaName(sp, mega) {
+  const n = T().species[sp] || `#${sp}`;
+  if (!mega) return n;
+  const two = ((B && B.megas && B.megas[sp]) || []).length > 1;
+  return `${isEn() ? 'Mega ' : 'Mega-'}${n}${two ? (mega === 1 ? ' X' : ' Y') : ''}`;
+}
 function foeMon(p) {
-  const [sp, form, level, item, moves, nature, ability, iv] = p;
+  const [sp, baseForm, level, item, moves, nature, baseAbility, iv, mega] = p;
+  const form = mega || baseForm;
   const per = personalOf(sp, form);
+  const ability = mega ? (per[10] || baseAbility) : baseAbility;
   const base = per.slice(0, 6);
   const ivs = Array.isArray(iv) ? iv : [iv, iv, iv, iv, iv, iv]; // Liste = vom Spiel gewürfelte DVs
   return {
     side: 'foe', species: sp, form, level, item, moves, nature, ability, ivs, friendship: 70,
     types: per[6] === per[7] ? [per[6]] : [per[6], per[7]],
     stats: PtSave.calcStats(base, ivs, [0, 0, 0, 0, 0, 0], level, nature, sp),
-    name: T().species[sp] || `#${sp}`,
+    name: megaName(sp, mega), mega: !!mega,
   };
 }
 function ownMon(m) {
@@ -276,20 +323,23 @@ function calcMove(att, def, mid) {
   const defTypes = def.types.map(x => TYPES[x]);
 
   // Typ und Stärke
-  let type = baseType, power = basePower, typeless = false;
+  let type = baseType, power = basePower, typeless = false, ate = false;
   if (eff === 'RANDOM_POWER_BASED_ON_IVS') { const hp = hiddenPower(att); type = hp.type; power = hp.power; }
   if (eff === 'CHANGE_TYPE_WITH_WEATHER' && state.weather) { type = { sun: 9, rain: 10, sand: 5 }[state.weather]; power = 100; }
   if (eff === 'HIT_IN_3_TURNS') { typeless = true; notes.push(t.n.future); }
   if (aAb === 'normalize') type = 0;
+  if (G.gen >= 6 && type === 0 && ATE[aAb] != null) { type = ATE[aAb]; ate = true; }   // Feenschicht & Co.: ×1,3
   const tName = TYPES[type];
+  const extra = B.moveExtra[mid] || [];   // [Priorität, Wirkung, Kontakt, Schlag, Zusatzwirkung] (Kontakt … nur OR/AS)
 
   // Typ-Wirkung und Fähigkeiten, die Attacken schlucken
-  let effs = typeless ? [1] : DMG.typeEffs(tName, defTypes, 4);
+  let effs = typeless ? [1] : DMG.typeEffs(tName, defTypes, G.gen);
   if (aAb === 'scrappy' && (tName === 'normal' || tName === 'fighting')) effs = effs.map(e => (e === 0 ? 1 : e));
   const mult = DMG.product(effs);
   const swallowed = (dAb === 'levitate' && tName === 'ground') || (dAb === 'flashfire' && tName === 'fire')
     || ((dAb === 'waterabsorb' || dAb === 'dryskin') && tName === 'water') || ((dAb === 'voltabsorb' || dAb === 'motordrive') && tName === 'electric')
-    || (dAb === 'wonderguard' && !typeless && mult < 2);
+    || (dAb === 'wonderguard' && !typeless && mult < 2)
+    || (G.gen >= 5 && ((dAb === 'stormdrain' && tName === 'water') || (dAb === 'lightningrod' && tName === 'electric') || (dAb === 'sapsipper' && tName === 'grass')));
   if (mult === 0 || swallowed) return out({ kind: 'immune', type });
 
   // Feste Schäden und K.O.-Attacken
@@ -331,6 +381,14 @@ function calcMove(att, def, mid) {
   if (eff === 'RECHARGE_AFTER') notes.push(t.n.recharge);
   if (eff === 'ALWAYS_FLINCH_FIRST_TURN_ONLY') notes.push(t.n.firstTurn);
   if (eff === 'RANDOM_POWER_BASED_ON_IVS') notes.push(`${t.n.hiddenPower} ${T().types[type]} ${power}`);
+  // Gen 5/6: Stärke aus dem Gewichts- bzw. Tempo-Verhältnis, Akrobatik ohne Item, Abschlag gegen Items
+  if (eff === 'WEIGHT_RATIO') {
+    const r = (B.weight[att.species] || 1) / Math.max(1, B.weight[def.species] || 1);
+    power = r >= 5 ? 120 : r >= 4 ? 100 : r >= 3 ? 80 : r >= 2 ? 60 : 40;
+  }
+  if (eff === 'SPEED_RATIO') { const r = speedOf(att) / Math.max(1, speedOf(def)); power = r >= 4 ? 150 : r >= 3 ? 120 : r >= 2 ? 80 : r >= 1 ? 60 : 40; }
+  if (eff === 'DOUBLE_POWER_WITHOUT_ITEM' && !att.item) power *= 2;
+  if (G.gen >= 6 && moveKey(mid) === 'knockoff' && def.item) power = Math.floor(power * 1.5);
   if (power <= 1) return null;
 
   // Trefferzahl
@@ -340,8 +398,8 @@ function calcMove(att, def, mid) {
 
   // Werte
   const phys = cat === 2;
-  let A = phys ? att.stats[1] : att.stats[4];
-  let Dv = phys ? def.stats[2] : def.stats[5];
+  let A = eff === 'USE_TARGET_ATTACK' ? def.stats[1] : phys ? att.stats[1] : att.stats[4];   // Schmarotzer: Angriff des Ziels
+  let Dv = phys || eff === 'SPECIAL_VS_DEFENSE' ? def.stats[2] : def.stats[5];             // Psychoschock: gegen Verteidigung
   if (phys && (aAb === 'hugepower' || aAb === 'purepower')) A *= 2;
   if (phys && aAb === 'hustle') A = Math.floor(A * 1.5);
   if (phys && aIt === 'choiceband') A = Math.floor(A * 1.5);
@@ -354,6 +412,8 @@ function calcMove(att, def, mid) {
   if (phys && dIt === 'metalpowder' && def.species === 132) Dv *= 2;
   if (!phys && dIt === 'souldew' && (def.species === 380 || def.species === 381)) Dv = Math.floor(Dv * 1.5);
   if (!phys && state.weather === 'sand' && def.types.includes(5)) Dv = Math.floor(Dv * 1.5);
+  if (G.gen >= 6 && phys && dAb === 'furcoat') Dv *= 2;
+  if (G.gen >= 6 && !phys && dIt === 'assaultvest') Dv = Math.floor(Dv * 1.5);
   // Einschüchterung: wer gegen ein Pokémon mit Einschüchterung antritt, hat −1 Angriff
   if (phys && dAb === 'intimidate' && aAb !== 'clearbody' && aAb !== 'hypercutter' && aAb !== 'whitesmoke') {
     A = Math.floor(A * 2 / 3);
@@ -370,14 +430,23 @@ function calcMove(att, def, mid) {
   if (((aIt === 'adamantorb' && att.species === 483) || (aIt === 'lustrousorb' && att.species === 484) || (aIt === 'griseousorb' && att.species === 487))
     && (tName === 'dragon' || att.types.includes(type))) bp = Math.floor(bp * 1.2);
   if (aAb === 'technician' && bp <= 60) bp = Math.floor(bp * 1.5);
-  if (aAb === 'ironfist' && PUNCH.has(moveKey(mid))) bp = Math.floor(bp * 1.2);
+  if (aAb === 'ironfist' && (PUNCH.has(moveKey(mid)) || extra[3])) bp = Math.floor(bp * 1.2);
+  if (G.gen >= 6) {
+    if (ate) bp = Math.floor(bp * 1.3);
+    if (aAb === 'toughclaws' && extra[2]) bp = Math.floor(bp * 1.3);
+    if (aAb === 'strongjaw' && BITE.has(moveKey(mid))) bp = Math.floor(bp * 1.5);
+    if (aAb === 'megalauncher' && PULSE.has(moveKey(mid))) bp = Math.floor(bp * 1.5);
+    if (aAb === 'sheerforce' && extra[4]) bp = Math.floor(bp * 1.3);
+    if (aAb === 'sandforce' && state.weather === 'sand' && ['rock', 'ground', 'steel'].includes(tName)) bp = Math.floor(bp * 1.3);
+    if (aIt === `${tName}gem`) bp = Math.floor(bp * 1.3);
+  }
   if (aAb === 'reckless' && RECOIL.has(eff)) bp = Math.floor(bp * 1.2);
   if (dAb === 'heatproof' && tName === 'fire') bp = Math.floor(bp / 2);
   if (dAb === 'dryskin' && tName === 'fire') bp = Math.floor(bp * 1.25);
 
   const stab = !typeless && att.types.includes(type);
   const weather = state.weather === 'sun' || state.weather === 'rain' ? state.weather : null;
-  const params = { gen: 4, level: att.level, power: bp, atk: Math.max(1, A), def: Math.max(1, Dv), physical: phys, stab, effs,
+  const params = { gen: G.gen, level: att.level, power: bp, atk: Math.max(1, A), def: Math.max(1, Dv), physical: phys, stab, effs,
     burn: false, screens: false, weather, moveType: tName, explosion: eff === 'HALVE_DEFENSE' };
   const finish = rolls => rolls.map(x => {
     if (stab && aAb === 'adaptability') x = Math.floor(x * 4 / 3);
@@ -385,6 +454,7 @@ function calcMove(att, def, mid) {
     if (aIt === 'expertbelt' && mult > 1) x = Math.floor(x * 1.2);
     if (aAb === 'tintedlens' && mult < 1) x *= 2;
     if ((dAb === 'filter' || dAb === 'solidrock') && mult > 1) x = Math.floor(x * 0.75);
+    if (dAb === 'multiscale') x = Math.floor(x / 2);   // bei vollen KP – also beim ersten Treffer
     return Math.max(1, x);
   });
   let rolls = finish(DMG.damageRolls({ ...params, crit: false }));
@@ -405,12 +475,14 @@ function calcMove(att, def, mid) {
   if (eff === 'HALVE_DEFENSE') notes.push(t.n.explosion);
   if (RECOIL.has(eff) && aAb === 'reckless') notes.push(t.n.reckless);
 
-  // Volltreffer-Chance: Stufe 0 = 1/16, 1 = 1/8, 2 = 1/4 …
+  // Volltreffer-Chance: Stufe 0 = 1/16, 1 = 1/8, 2 = 1/4 … (ab Gen 6: 1/16, 1/8, 1/2, immer)
   let stage = HIGH_CRIT.has(eff) ? 1 : 0;
   if (aAb === 'superluck') stage++;
   if (aIt === 'scopelens' || aIt === 'razorclaw') stage++;
   if ((aIt === 'stick' && att.species === 83) || (aIt === 'luckypunch' && att.species === 113)) stage += 2;
-  const critChance = dAb === 'battlearmor' || dAb === 'shellarmor' ? 0 : [1 / 16, 1 / 8, 1 / 4, 1 / 3, 1 / 2][Math.min(stage, 4)];
+  const chances = G.gen >= 6 ? [1 / 16, 1 / 8, 1 / 2, 1, 1] : [1 / 16, 1 / 8, 1 / 4, 1 / 3, 1 / 2];
+  const critChance = dAb === 'battlearmor' || dAb === 'shellarmor' ? 0 : eff === 'ALWAYS_CRIT' ? 1 : chances[Math.min(stage, 4)];
+  if (critChance === 1) rolls = critRolls;   // Eisesodem & Co.: jeder Treffer ist ein Volltreffer
   return out({ kind: 'dmg', type, rolls, critRolls, hits, critChance, mult, power: bp });
 }
 
@@ -508,6 +580,7 @@ const trainerOf = id => {
 const groupId = g => g.ids.all ?? g.ids[state.starter] ?? Object.values(g.ids)[0];
 function fightTitle(t) {
   const en = isEn();
+  if (t.cd) return `${en ? t.ce : t.cd} ${en ? t.ne : t.nd}`.trim();   // OR/AS: Klasse und Name aus der ROM
   // Der Rivale heißt, wie du ihn im Spiel genannt hast (aus dem Spielstand), sonst Barry
   const rivalName = t.c === 'RIVAL' ? (currentSave()?.data.trainer.rival || 'Barry') : null;
   return `${TrainerClasses.className(t.c, en)} ${rivalName || TrainerClasses.trainerName(t.n, en)}`.trim();
@@ -522,13 +595,18 @@ const mapLink = t => (t.l != null ? `../Karte/index.html#${B.locs[t.l].slug}${t.
 
 // Nächster Kampf: der erste Story-Kampf nach dem Arenaleiter des zuletzt gewonnenen Ordens
 const BADGE_LEADERS = ['LEADER_ROARK', 'LEADER_GARDENIA', 'LEADER_MAYLENE', 'LEADER_WAKE', 'LEADER_FANTINA', 'LEADER_BYRON', 'LEADER_CANDICE', 'LEADER_VOLKNER'];
+const badgeLeaders = () => B.badgeLeaders || BADGE_LEADERS;
+// Kämpfe der Edition (OR/AS: „v“ = nur in Omega Rubin bzw. Alpha Saphir)
+const inVersion = g => !g.v || g.v === state.version;
+const storyList = () => B.story.filter(inVersion);
+const postList = () => B.post.filter(inVersion);
 function nextFightIndex() {
   const sv = currentSave();
   if (!sv) return -1;
-  const badges = sv.data.trainer.badges || [];
+  const badges = sv.data.trainer.badges || [], story = storyList(), leaders = badgeLeaders();
   let last = -1;
-  B.story.forEach((g, i) => { const b = BADGE_LEADERS.indexOf(g.key); if (b >= 0 && badges[b]) last = Math.max(last, i); });
-  return Math.min(last + 1, B.story.length - 1);
+  story.forEach((g, i) => { const b = leaders.indexOf(g.key); if (b >= 0 && badges[b]) last = Math.max(last, i); });
+  return Math.min(last + 1, story.length - 1);
 }
 
 // ── Spielstände (gemeinsam mit dem Save-Viewer) ───────────────────────────────
@@ -553,7 +631,8 @@ const Store = (() => {
   };
 })();
 const currentSave = () => state.saves[state.save] || null;
-const parseRec = rec => { const data = PtSave.parse(new Uint8Array(rec.bytes), PT); return data.ok ? { ...rec, data } : null; };
+// Nur Spielstände des gewählten Spiels (der Save-Viewer kann auch die des anderen haben)
+const parseRec = rec => { const data = HubSave.parse(new Uint8Array(rec.bytes)); return data.ok && data.kind === G.key ? { ...rec, data } : null; };
 
 async function loadSaves() {
   const recs = await Store.all();
@@ -565,8 +644,9 @@ async function loadSaves() {
 // Neue Datei: gleicher Trainer → dessen Platz ersetzen, sonst freien Platz nehmen (wie im Save-Viewer, max. 2)
 async function loadFile(file) {
   const bytes = await file.arrayBuffer();
-  const data = PtSave.parse(new Uint8Array(bytes), PT);
+  const data = HubSave.parse(new Uint8Array(bytes));
   if (!data.ok) { showSaveError(tr().saveError); return; }
+  if (data.kind !== G.key) { showSaveError(tr().saveOtherGame(HubSave.get(data.kind).name[isEn() ? 'en' : 'de'])); return; }
   showSaveError('');
   const same = state.saves.find(s => s.data.trainer.tid === data.trainer.tid && s.data.trainer.sid === data.trainer.sid);
   const used = new Set(state.saves.map(s => s.slot));
@@ -597,16 +677,16 @@ const allOwn = sv => [...sv.data.party, ...sv.data.boxes.flatMap(b => b.slots)].
 // Tab „Eigenes Team“ (state.save = -1, ohne Spielstände immer). Einträge { species, level, moves, nature, ability }
 // liegen in localStorage (auch im Backup). Angenommen: DVs 15, keine EVs, kein Item.
 const MANUAL = -1;
-const MANUAL_KEY = 'bosse-manual-team';
+const manualKey = () => G.manualKey;   // je Spiel ein eigenes Team
 const MANUAL_IV = 15;
 const isManual = () => state.save === MANUAL || !state.saves.length;
 function loadManual() {
   try {
-    const v = JSON.parse(localStorage.getItem(MANUAL_KEY) || '[]');
-    return Array.isArray(v) ? v.filter(e => e && e.species >= 1 && e.species <= 493).slice(0, 6) : [];
+    const v = JSON.parse(localStorage.getItem(manualKey()) || '[]');
+    return Array.isArray(v) ? v.filter(e => e && e.species >= 1 && e.species <= G.maxSpecies).slice(0, 6) : [];
   } catch (e) { return []; }
 }
-const saveManual = list => store(MANUAL_KEY, JSON.stringify(list.slice(0, 6)));
+const saveManual = list => store(manualKey(), JSON.stringify(list.slice(0, 6)));
 function manualMon(e, i) {
   const per = personalOf(e.species, 0);
   const ivs = new Array(6).fill(MANUAL_IV);
@@ -619,19 +699,19 @@ function manualMon(e, i) {
   };
 }
 
-// Lernliste in Platin von PokéAPI (danach aus dem Speicher): Level-Attacken in Reihenfolge, alle lernbaren
+// Lernliste im gewählten Spiel von PokéAPI (danach aus dem Speicher): Level-Attacken in Reihenfolge, alle lernbaren
 const learnCache = new Map();
 function platinumLearnset(nameOrId) {
-  const k = String(nameOrId).toLowerCase();
+  const k = `${G.vg}:${String(nameOrId).toLowerCase()}`, vg = G.vg, maxMove = PT.moveInfo.length - 1;
   if (!learnCache.has(k)) {
-    const p = fetch(`https://pokeapi.co/api/v2/pokemon/${k}`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+    const p = fetch(`https://pokeapi.co/api/v2/pokemon/${String(nameOrId).toLowerCase()}`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
       const species = +(/\/pokemon-species\/(\d+)\//.exec(d.species.url) || [])[1];
       const levelUp = [], all = new Set();
       d.moves.forEach(m => {
         const id = +(/\/move\/(\d+)\//.exec(m.move.url) || [])[1];
-        if (!id || id > 467) return;
+        if (!id || id > maxMove) return;
         m.version_group_details.forEach(v => {
-          if (v.version_group.name !== 'platinum') return;
+          if (v.version_group.name !== vg) return;
           all.add(id);
           if (v.move_learn_method.name === 'level-up') levelUp.push([v.level_learned_at, id]);
         });
@@ -666,7 +746,7 @@ async function newManualEntry(nameOrId) {
     if (!(+nameOrId >= 1)) return { offline: true };   // Name ohne PokéAPI: Art unbekannt
   }
   const species = ls ? ls.species : +nameOrId;
-  if (!(species >= 1 && species <= 493)) return { notInPlatinum: true };
+  if (!(species >= 1 && species <= G.maxSpecies)) return { notInPlatinum: true };
   const per = personalOf(species, 0);
   return { entry: { species, level, moves: ls ? defaultMoves(ls.levelUp, level) : [], nature: 0, ability: per[10] || 0 }, offline: !ls };
 }
@@ -729,7 +809,7 @@ function renderEditor() {
   };
   $('editor-title').textContent = t.editMon;
   $('editor-body').innerHTML = `
-    <div class="editor-head"><img src="${spriteUrl(e.species)}" alt=""><b>${esc(T().species[e.species])}</b>
+    <div class="editor-head">${bigImg('', e.species, 0)}<b>${esc(T().species[e.species])}</b>
       <button type="button" class="chip-btn" id="editor-change">${esc(t.changeMon)}</button></div>
     <div class="editor-row">
       <label class="editor-field">${esc(t.levelLabel)}<input type="number" id="editor-level" min="1" max="100" inputmode="numeric" value="${e.level}"></label>
@@ -779,12 +859,15 @@ function applySave() {
   if (sv) {
     // Starter aus dem Spielstand: eigenes Pokémon aus einer Starter-Familie, das früheste zählt
     // (randomisiert: eins der drei Starter-Pokémon aus der ROM, solange es sich nicht entwickelt hat)
-    const rs = state.rando && state.rando.starters;
-    const slotOf = m => (rs ? rs.indexOf(m.species) : m.species >= 387 && m.species <= 395 ? Math.floor((m.species - 387) / 3) : -1);
+    const rs = state.rando && state.rando.starters, base = G.starterBase;
+    const slotOf = m => (rs ? rs.indexOf(m.species) : m.species >= base && m.species < base + 9 ? Math.floor((m.species - base) / 3) : -1);
     const own = allOwn(sv).filter(m => m.tid === sv.data.trainer.tid && m.sid === sv.data.trainer.sid && slotOf(m) >= 0);
     const dateNum = d => (d ? d[0] * 10000 + d[1] * 100 + d[2] : 99999999);
     own.sort((a, b) => dateNum(a.metDate) - dateNum(b.metDate));
-    if (own.length) setStarter(['turtwig', 'chimchar', 'piplup'][slotOf(own[0])]);
+    // OR/AS: als Mädchen (Geschlecht im Spielstand) ist Brix der Rivale; die Edition steht auch im Spielstand
+    const first = own.length ? G.starters[slotOf(own[0])] : String(state.starter).replace(/-f$/, '');
+    if (own.length || G.key === 'oras') setStarter(first + (G.key === 'oras' && sv.data.trainer.gender === 1 ? '-f' : ''));
+    if (G.key === 'oras' && sv.data.game) setVersion(sv.data.game);
     // Gemerkte Auswahl, sonst das Team
     const pool = new Map(allOwn(sv).map(m => [monKey(m), m]));
     let keys = null;
@@ -797,8 +880,13 @@ function applySave() {
 }
 function setStarter(s) {
   state.starter = s;
-  store('bosse-starter', s);
+  store(G.starterKey, s);
   $('starter-select').value = s;
+}
+function setVersion(v) {
+  state.version = v === 'as' ? 'as' : 'or';
+  store('bosse-oras-version', state.version);
+  $('version-select').value = state.version;
 }
 function saveTeamChoice() {
   const sv = currentSave();
@@ -809,15 +897,15 @@ function pickDefaultFight() {
   if (fromHash != null) { selectFight(fromHash, false); return; }
   const i = Math.max(0, nextFightIndex());
   state.list = 'story';
-  state.fight = groupId(B.story[i]);
+  state.fight = groupId(storyList()[i]);
 }
 
 // ── Darstellung ───────────────────────────────────────────────────────────────
 const typeBadge = ty => `<span class="type" style="--c:${TYPE_HEX[ty]}">${esc(T().types[ty])}</span>`;
-const spriteUrl = sp => `${PT_SPR}${sp}.png`;
 const iconImg = sp => `<img class="mon-icon" src="${ICON_SPR}${sp}.png" alt="" loading="lazy">`;
 const itemImg = id => (PT.itemSprites[id] ? `<img class="item-icon" src="${SPR}/items/${PT.itemSprites[id]}.png" alt="" loading="lazy">` : '');
 function natureText(n) {
+  if (n == null) return tr().natureUnknown;
   const up = Math.floor(n / 5), down = n % 5;
   const s = tr().stat;
   const name = T().natures[n];
@@ -874,8 +962,20 @@ function renderTeamBar() {
   }));
   $('add-box')?.addEventListener('click', openPicker);
   $('reset-team')?.addEventListener('click', () => { localStorage.removeItem(teamKey(currentSave())); applySave(); });
-  [...$('starter-select').options].forEach(o => { o.textContent = T().species[starterSpecies(o.value)]; });
-  $('starter-select').value = state.starter;
+  // Starter-Auswahl je Spiel; OR/AS zusätzlich mit dem Rivalen (hängt vom Geschlecht ab)
+  const sel = $('starter-select');
+  if (sel.dataset.game !== G.key) {
+    const opts = G.key === 'oras' ? [...G.starters, ...G.starters.map(s => `${s}-f`)] : G.starters;
+    sel.innerHTML = opts.map(v => `<option value="${v}"></option>`).join('');
+    sel.dataset.game = G.key;
+  }
+  [...sel.options].forEach(o => {
+    const n = T().species[starterSpecies(o.value)] || '';
+    o.textContent = G.key === 'oras' ? `${n} · ${/-f$/.test(o.value) ? t.rivalBrendan : t.rivalMay}` : n;
+  });
+  sel.value = state.starter;
+  $('version-opt').hidden = G.key !== 'oras';
+  $('version-select').value = state.version;
   // Randomizer-ROM: Name anzeigen, entfernen
   const rd = state.rando;
   $('rando-chip').hidden = !rd;
@@ -904,12 +1004,17 @@ async function loadRom(file) {
   $('load-rom').disabled = true;
   $('load-rom').textContent = t.romReading;
   try {
-    const res = await Rando.readRomFile(file, Object.keys(B.trainers).map(Number), B.fem, PT.personal);
+    let res;
+    if (G.key === 'oras') {
+      const g = await OrasRom.readFiles([file]);
+      if (!g.trainers && !g.wild) throw new Error('notOras');
+      res = OrasRom.hubState(g, Object.keys(B.trainers).map(Number), B, PT.personal);
+    } else res = await Rando.readRomFile(file, Object.keys(B.trainers).map(Number), B.fem, PT.personal);
     state.rando = { name: file.name, loadedAt: Date.now(), ...res };
     store('bosse-rando', JSON.stringify(state.rando));   // voll: gilt nur für diese Sitzung (mit Hinweis)
     applySave();
   } catch (e) {
-    showSaveError(e && e.message === 'notPlatinum' ? t.romError : `${t.romError} (${e && e.message})`);
+    showSaveError(e && /^not(Platinum|Oras|Rom)$/.test(e.message) ? t.romError : `${t.romError} (${e && e.message})`);
   } finally {
     $('load-rom').disabled = false;
     $('load-rom').textContent = t.loadRom;
@@ -935,7 +1040,7 @@ function listEntries() {
       .filter(({ t }) => !q || `${fightTitle(t)} ${locText(t)} ${t.n} ${t.p.map(p => T().species[p[0]]).join(' ')}`.toLowerCase().includes(q))
       .sort((a, b) => capOf(a.t) - capOf(b.t) || a.id - b.id);
   }
-  return B[state.list].map((g, i) => ({ id: groupId(g), t: trainerOf(groupId(g)), i }));
+  return (state.list === 'story' ? storyList() : postList()).map((g, i) => ({ id: groupId(g), t: trainerOf(groupId(g)), i }));
 }
 
 function renderList() {
@@ -977,18 +1082,20 @@ function fightFromHash() {
 function renderFight() {
   const t = tr();
   const id = state.fight, tt = trainerOf(id);
+  updateScene();
   if (!tt) { $('fight').innerHTML = ''; return; }
   const cap = capOf(tt);
-  const story = B.story.findIndex(g => Object.values(g.ids).includes(id));
+  const story = storyList().findIndex(g => Object.values(g.ids).includes(id));
   const foes = tt.p.map(foeMon);
   const me = state.team;
   const duels = foes.map(f => me.map(m => duel(m, f)));
   const link = mapLink(tt);
   const tag = tt.tag != null && trainerOf(tt.tag) ? `<button type="button" class="tag-link" data-fight="${tt.tag}">${esc(t.tagWith(fightTitle(trainerOf(tt.tag))))}</button>` : '';
   const heals = tt.it.length ? `<span class="pill">${esc(t.heals)}: ${countItems(tt.it)}</span>` : '';
-  const rival = tt.c === 'RIVAL' && tt.k.match(/_(TURTWIG|CHIMCHAR|PIPLUP)$/) ? `<span class="pill">${esc(t.rivalBy(T().species[starterSpecies(state.starter)]))}</span>` : '';
+  const isRival = G.key === 'pt' ? tt.c === 'RIVAL' && /_(TURTWIG|CHIMCHAR|PIPLUP)$/.test(tt.k) : /^RIVAL_/.test(tt.k);
+  const rival = isRival ? `<span class="pill">${esc(t.rivalBy(T().species[starterSpecies(state.starter)]))}</span>` : '';
   // Trainer-Sprite(s) aus dem Spiel (tools/build-sprites.py), bei Doppelkämpfen mit Partner beide
-  const sprites = [tt, tt.tag != null ? trainerOf(tt.tag) : null].filter(Boolean)
+  const sprites = [tt, tt.tag != null ? trainerOf(tt.tag) : null].filter(x => x && x.c)   // Sprites gibt es nur für Platin
     .map((x, i) => `<img class="fight-sprite${i ? ' is-partner' : ''}" src="sprites/${x.c.toLowerCase()}.png" alt="" width="80" height="80">`).join('');
 
   // Hinweise: Level-Cap und Treffer, die eins deiner Pokémon sofort besiegen
@@ -1009,7 +1116,7 @@ function renderFight() {
     <div class="fight-sprites" aria-hidden="true">${sprites}</div>
     <div class="fight-head">
       <div>
-        <div class="kicker">${story >= 0 ? esc(t.fightNo(story + 1, B.story.length)) : esc(locName(tt))}</div>
+        <div class="kicker">${story >= 0 ? esc(t.fightNo(story + 1, storyList().length)) : esc(locName(tt))}</div>
         <h2>${esc(fightTitle(tt))}</h2>
         <p class="fight-loc">${esc(locText(tt))}${link ? ` · <a href="${link}">${esc(t.onMap)} →</a>` : ''}</p>
       </div>
@@ -1034,6 +1141,32 @@ function renderFight() {
     renderFight();
   }));
 }
+// Ordenkoffer & Herausforderer hinter der Karte (boss.js): Orden aus dem Spielstand, gewählter Gegner
+function updateScene() {
+  if (!window.BossScene) return;
+  const tt = trainerOf(state.fight);
+  const foes = tt ? tt.p.map(foeMon) : [];
+  const ace = foes.reduce((a, f) => (!a || f.level >= a.level ? f : a), null);
+  const badges = currentSave()?.data.trainer.badges || null;
+  const ni = nextFightIndex();
+  window.BossScene.update({
+    fight: state.fight,
+    title: tt ? fightTitle(tt) : '',
+    place: tt ? locText(tt) : '',
+    cap: tt ? capOf(tt) : null,
+    sprite: tt && tt.c ? `sprites/${tt.c.toLowerCase()}.png` : null,
+    party: foes.length,
+    ace: ace && { species: ace.species, form: ace.form, name: ace.name, type: ace.types[0] },
+    game: G.key, spriteDir: bigDir(), spriteFallback: G.key === 'oras' ? gameSpr() : null, formSprites: PT.formSprites || null,
+    leaders: badgeLeaders().map((key, i) => {
+      const g = storyList().find(x => x.key === key), lid = g ? groupId(g) : null, lt = lid != null ? trainerOf(lid) : null;
+      const name = !lt ? '' : lt.nd ? (isEn() ? lt.ne : lt.nd) : TrainerClasses.trainerName(lt.n, isEn());
+      return { id: lid, name, sprite: lt && lt.c ? `sprites/${lt.c.toLowerCase()}.png` : null, earned: badges ? !!badges[i] : null };
+    }),
+    next: ni >= 0 && storyList()[ni] ? groupId(storyList()[ni]) : null,
+    pick: fid => selectFight(fid),
+  });
+}
 function countItems(ids) {
   const c = new Map();
   ids.forEach(i => c.set(i, (c.get(i) || 0) + 1));
@@ -1051,7 +1184,7 @@ function foeCard(f, raw, row, fi) {
   return `
     <article class="foe-card">
       <div class="foe-top">
-        <img class="foe-sprite" src="${spriteUrl(f.species)}" alt="" loading="lazy">
+        ${bigImg('foe-sprite', f.species, f.form)}
         <div class="foe-id">
           <h3>${esc(f.name)} <small>Lv. ${f.level}</small></h3>
           <div class="types">${f.types.map(typeBadge).join('')}</div>
@@ -1129,7 +1262,7 @@ function renderSpeciesPicker() {
   const q = $('picker-search').value.trim().toLowerCase();
   const names = sp => [PT.text.de.species[sp], PT.text.en.species[sp]].join(' ').toLowerCase();
   const list = [];
-  for (let sp = 1; sp <= 493; sp++) if (!q || names(sp).includes(q) || String(sp) === q) list.push(sp);
+  for (let sp = 1; sp <= G.maxSpecies; sp++) if (!q || names(sp).includes(q) || String(sp) === q) list.push(sp);
   $('picker-list').innerHTML = list.map(sp => `<button type="button" class="pick" data-species="${sp}">${iconImg(sp)}<span>${esc(T().species[sp])}</span><small>#${sp}</small></button>`).join('');
   $('picker-list').querySelectorAll('[data-species]').forEach(b => b.addEventListener('click', async () => {
     $('box-picker').hidden = true;
@@ -1170,6 +1303,11 @@ function applyLang() {
   document.querySelectorAll('[data-i18n-title]').forEach(el => { const v = t[el.dataset.i18nTitle]; if (typeof v === 'string') el.title = v; });
   document.querySelectorAll('[data-i18n-aria]').forEach(el => { const v = t[el.dataset.i18nAria]; if (typeof v === 'string') el.setAttribute('aria-label', v); });
   $('lang-toggle').textContent = window.LANG.toUpperCase();
+  // Spiel im Titel, Fußnote je Spiel
+  const badge = document.querySelector('.game-badge');
+  if (badge) badge.textContent = HubSave.get(G.key).name[isEn() ? 'en' : 'de'];
+  const foot = document.querySelector('[data-i18n="footNote"]');
+  if (foot && G.key === 'oras') foot.textContent = t.footNoteOras;
   // Team neu benennen (Artnamen hängen an der Sprache)
   const sv = isManual() ? null : currentSave();
   if (sv) {
@@ -1184,7 +1322,7 @@ function applyLang() {
 async function init() {
   applyLang();
   try {
-    const r = await fetch('bosses.json');
+    const r = await fetch(G.file);
     if (!r.ok) throw new Error(r.status);
     B = await r.json();
   } catch (e) {
@@ -1194,6 +1332,18 @@ async function init() {
   $('starter-select').value = state.starter;
   await loadSaves();
 }
+// Anderes Hub-Spiel gewählt (Chip „Spiel wählen“, auch aus einem anderen Tab): Daten des Spiels laden
+async function switchGame() {
+  const k = gameOf();
+  if (k === G.key) return;
+  G = GAMES[k];
+  PT = G.data();
+  B = null;
+  Object.assign(state, { fight: null, list: 'story', team: [], saves: [], save: 0, starter: localStorage.getItem(G.starterKey) || G.starters[0], rando: loadRando() });
+  history.replaceState(null, '', location.pathname + location.search);
+  await init();
+}
+document.addEventListener('hubgamechange', () => { switchGame(); });
 
 $('lang-toggle').addEventListener('click', () => {
   window.LANG = window.LANG === 'de' ? 'en' : 'de';
@@ -1213,6 +1363,12 @@ $('starter-select').addEventListener('change', e => {
   render();
 });
 $('weather-select').addEventListener('change', e => { state.weather = e.target.value; renderFight(); });
+$('version-select').addEventListener('change', e => {
+  setVersion(e.target.value);
+  const id = state.fight;
+  if (![...storyList(), ...postList()].some(g => Object.values(g.ids).includes(id)) && B.trainers[id] && !state.search) pickDefaultFight();
+  render();
+});
 document.querySelectorAll('.list-tab').forEach(b => b.addEventListener('click', () => { state.list = b.dataset.list; renderList(); }));
 $('trainer-search').addEventListener('input', e => { state.search = e.target.value; renderList(); });
 $('fight-select').addEventListener('change', e => selectFight(+e.target.value, true, true));

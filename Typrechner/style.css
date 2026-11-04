@@ -1,9 +1,7 @@
+/* Hintergrund sind die Elemente (elements.css) – darunter nur eine dunkle Farbe für den Überscroll */
 html, body {
   min-height: 100%;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(var(--t-acc2-glow), 0.12), transparent 30%),
-    radial-gradient(circle at 85% 80%, rgba(var(--t-acc-glow), 0.10), transparent 28%),
-    rgb(var(--t-n-0d0f2b));
+  background: rgb(var(--t-n-0d0f2b));
 }
 body {
   display: flex;
@@ -21,14 +19,12 @@ body {
   --card-radius: 20px;
 }
 
+/* Karte vor der Szene – Rahmen und Hintergrund: #app.win-frame (base.css) */
 #app {
   width: min(98vw, 1340px);
   margin: 0 auto;
   padding: 24px;
-  background: rgba(var(--t-n-191b3a), 0.96);
   border-radius: 28px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(var(--t-ink), 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -181,6 +177,9 @@ main { display: flex; flex-direction: column; gap: 16px; }
   transition: background-color 0.15s, color 0.15s;
 }
 .slot-clear:hover { background: rgba(0,0,0,0.5); color: rgb(var(--t-white)); }
+/* Papier: --t-white ist dort dunkel – auf dem dunklen Kreis wäre das × nicht zu sehen */
+html[data-theme="paper"] .slot-clear { background: rgba(var(--t-ink), 0.1); }
+html[data-theme="paper"] .slot-clear:hover { background: rgba(var(--t-ink), 0.7); color: rgb(var(--t-on-acc)); }
 
 .grid-hint { margin: 2px 0 -4px; font-size: 0.82rem; color: var(--color-muted); }
 .grid-hint b { color: var(--color-accent-strong); }

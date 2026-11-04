@@ -28,9 +28,10 @@
   <title>Save-Viewer – Pokémon Hub</title>
   <link rel="stylesheet" href="../Pokelocke/base.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="pc.css">
 </head>
 <body>
-<div id="app">
+<div id="app" class="win-frame">
   <nav class="tool-nav" aria-label="Pokémon tools">
     <a class="tool-nav-link" href="../index.html" data-i18n="nav.home">Home</a>
     <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav.run">Run</a>
@@ -71,10 +72,10 @@
         </svg>
       </span>
       <span class="drop-title" data-i18n="drop.title">Spielstand hier reinziehen oder antippen</span>
-      <span class="drop-sub" data-i18n="drop.sub">Pokémon Platin · .sav oder .dsv vom Emulator. Die Datei wird nur auf deinem Gerät gelesen und nirgendwo hochgeladen.</span>
+      <span class="drop-sub" data-i18n="drop.sub">Pokémon Platin (.sav/.dsv) oder Omega Rubin / Alpha Saphir („main“ von Citra). Die Datei wird nur auf deinem Gerät gelesen und nirgendwo hochgeladen.</span>
       <span class="drop-badges">
         <span class="pill pill--ok" data-i18n="drop.offline">✓ Funktioniert offline</span>
-        <span class="pill">DeSmuME · melonDS · DraStic · Delta</span>
+        <span class="pill">DeSmuME · melonDS · DraStic · Delta · Citra</span>
       </span>
     </button>
   </section>
@@ -107,6 +108,7 @@
         <div class="help-item"><b>melonDS</b><span data-i18n="help.melon">Liegt als <code>.sav</code> neben der ROM-Datei</span></div>
         <div class="help-item"><b>DraStic</b><span data-i18n="help.drastic">Ordner <code>DraStic/backup</code>, Datei endet auf <code>.dsv</code></span></div>
         <div class="help-item"><b>Delta (iPhone)</b><span data-i18n="help.delta">Spiel lange drücken → Spielstand exportieren → in Dateien sichern</span></div>
+        <div class="help-item"><b>Citra (3DS)</b><span data-i18n="help.citra">Rechtsklick aufs Spiel → <i>Speicherdatenordner öffnen</i> → Datei <code>main</code></span></div>
       </div>
       <p data-i18n="help.hacks">ROM-Hacks auf Platin-Basis (z. B. Renegade Platinum) lassen sich meist auch lesen – Basiswerte und Typen können dort aber vom Original abweichen.</p>
     </div>
@@ -118,13 +120,21 @@
   </footer>
 </div>
 
+<!-- Im PC hinter der Karte: Box-Tapete, Box mit Icons und PC-Hand, Team (pc.js). Nach #app wegen der Tab-Reihenfolge -->
+<div class="pc" id="pc" aria-hidden="true"></div>
+
 <div class="modal" id="modal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" id="modal-card"></div>
 </div>
 
 <script src="data-pt.js"></script>
 <script src="pt-save.js"></script>
+<script src="data-oras.js"></script>
+<script src="oras-save.js"></script>
+<script src="hub-save.js"></script>
 <script src="soul-link.js"></script>
+<script src="../scene.js"></script>
+<script src="pc.js"></script>
 <script src="main.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 /*
- * rando-state.js – der Randomizer-Stand des Hubs: eine randomisierte Platin-ROM, ausgelesen von Bosse/rando.js
- * (Trainer-Teams für den Boss-Planer, wilde Pokémon für Karte, Run-Dashboard und Duo).
+ * rando-state.js – der Randomizer-Stand des Hubs: eine randomisierte ROM von Platin (ausgelesen von Bosse/rando.js) oder
+ * Omega Rubin / Alpha Saphir (Bosse/oras-rom.js, game: 'oras') – Trainer-Teams für den Boss-Planer, wilde Pokémon für
+ * Karte, Run-Dashboard und Duo. Seiten prüfen state.game ('oras'; fehlt bei Platin) und nutzen nur den Stand ihres Spiels.
  *
  * Ein Stand pro Gerät (localStorage 'bosse-rando'). Der Randomizer setzt ihn nach dem Würfeln; sonst lädt man die
  * ROM einmal über „Randomizer-ROM laden“ – im Boss-Planer, auf der Karte oder im Run-Dashboard, es gilt überall.
@@ -8,6 +9,8 @@
  *
  * Wilde Pokémon: wild[n] = Tabelle n aus pl_enc_data.narc (Format siehe rando.js readWild); welche Tabellen zu
  * welchem Ort gehören, steht in Karte/encounter-areas.js (PT_ENCOUNTER_AREAS, erzeugt von build-platin.js).
+ * Omega Rubin / Alpha Saphir: wild[n] = Zone n (Format oras-rom.js wildTable), Orte in ORAS_ENCOUNTER_AREAS.
+ * Die ROM kann eine .3ds/.cxi-Datei sein oder der Mod-Ordner von Citra (LayeredFS, Ausgabe des Randomizers).
  */
 (function (root) {
   'use strict';
@@ -17,12 +20,14 @@
   var TEXT = {
     de: { active: 'Randomizer:', remove: 'Randomizer-Stand entfernen – wieder das Original', load: 'Randomizer-ROM laden',
       reading: 'Lese ROM …', noWild: 'Dieser Stand ist älter und kennt die wilden Pokémon noch nicht – lade die ROM einmal neu.',
-      hint: 'Für Randomizer-Runs: Lade deine randomisierte Platin-ROM (.nds) – Karte, Boss-Planer und Run-Dashboard zeigen dann dein gewürfeltes Spiel. Die Datei bleibt auf deinem Gerät.',
-      error: 'Das ist keine Pokémon-Platin-ROM (.nds).', full: 'Der Speicher ist voll – der Stand gilt nur, bis die Seite geschlossen wird.' },
+      hint: 'Für Randomizer-Runs: Lade deine randomisierte ROM – Platin (.nds) oder Omega Rubin / Alpha Saphir (.3ds/.cxi) – Karte, Boss-Planer und Run-Dashboard zeigen dann dein gewürfeltes Spiel. Die Datei bleibt auf deinem Gerät.',
+      folder: 'Mod-Ordner', folderHint: 'Omega Rubin / Alpha Saphir: den Mod-Ordner aus Citra wählen (darin liegt „romfs“) – so kommt der Randomizer ihn heraus.',
+      error: 'Das ist keine passende ROM: Platin (.nds) oder Omega Rubin / Alpha Saphir (.3ds/.cxi, entschlüsselt, oder der Mod-Ordner).', full: 'Der Speicher ist voll – der Stand gilt nur, bis die Seite geschlossen wird.' },
     en: { active: 'Randomizer:', remove: 'Remove the randomizer data – back to the original', load: 'Load randomizer ROM',
       reading: 'Reading ROM …', noWild: 'This data is older and does not know the wild Pokémon yet – load the ROM again once.',
-      hint: 'For randomizer runs: load your randomized Platinum ROM (.nds) – the map, boss planner and run dashboard then show your randomized game. The file stays on your device.',
-      error: 'This is not a Pokémon Platinum ROM (.nds).', full: 'Storage is full – the data only lasts until the page is closed.' }
+      hint: 'For randomizer runs: load your randomized ROM – Platinum (.nds) or Omega Ruby / Alpha Sapphire (.3ds/.cxi) – the map, boss planner and run dashboard then show your randomized game. The file stays on your device.',
+      folder: 'Mod folder', folderHint: 'Omega Ruby / Alpha Sapphire: choose the mod folder from Citra (it contains “romfs”) – that is what the randomizer puts out.',
+      error: 'This is not a matching ROM: Platinum (.nds) or Omega Ruby / Alpha Sapphire (.3ds/.cxi, decrypted, or the mod folder).', full: 'Storage is full – the data only lasts until the page is closed.' }
   };
   var memory = null;   // falls localStorage voll ist: nur für diese Seite
   var lang = function () { try { return localStorage.getItem('hub-lang') === 'en' ? 'en' : 'de'; } catch (e) { return 'de'; } };
@@ -62,8 +67,47 @@
       document.head.appendChild(s);
     });
   }
-  // ROM lesen (Trainer für den Boss-Planer, wilde Pokémon, Starter) und als Stand setzen
+  // 3DS-ROM (NCSD/NCCH) oder Ordner? Sonst DS (Platin)
+  function is3ds(files) {
+    if (files.length > 1 || (files[0].webkitRelativePath || '').indexOf('/') >= 0) return Promise.resolve(true);
+    return files[0].slice(0x100, 0x104).arrayBuffer().then(function (b) {
+      var s = String.fromCharCode.apply(null, new Uint8Array(b));
+      return s === 'NCSD' || s === 'NCCH';
+    });
+  }
+  // Omega Rubin / Alpha Saphir: Trainer wie bosses-oras.json, geänderte Basiswerte, Starter, wilde Pokémon je Zone
+  function readOras(files, withTrainers) {
+    return Promise.all([
+      script('Bosse/oras-rom.js', function () { return !!root.OrasRom; }),
+      script('SaveViewer/data-oras.js', function () { return !!root.ORAS_DATA; }),
+      fetch(BASE + 'Bosse/bosses-oras.json').then(function (r) { return r.json(); })
+    ]).then(function (r) {
+      var B = r[2];
+      return root.OrasRom.readFiles(files).then(function (g) {
+        if (!g.game && !g.trainers && !g.wild) throw new Error('notOras');
+        return root.OrasRom.hubState(g, withTrainers ? Object.keys(B.trainers).map(Number) : [], B, root.ORAS_DATA.personal);
+      });
+    });
+  }
+  // Name eines Ordners: der oberste Teil des Pfads
+  function nameOf(files) {
+    var p = files[0].webkitRelativePath || '';
+    return p.indexOf('/') >= 0 ? p.split('/')[0] : files[0].name;
+  }
+
+  // ROM lesen (Trainer für den Boss-Planer, wilde Pokémon, Starter) und als Stand setzen.
+  // file: eine Datei oder die Dateien eines Ordners (FileList, nur Omega Rubin / Alpha Saphir)
   function load(file) {
+    var files = file && file.length != null && !(file instanceof Blob) ? Array.prototype.slice.call(file) : [file];
+    return is3ds(files).then(function (three) {
+      if (!three) return loadPt(files[0]);
+      return readOras(files, true).then(function (res) {
+        var state = Object.assign({ name: nameOf(files), loadedAt: Date.now() }, res);
+        return { state: state, saved: set(state) };
+      });
+    });
+  }
+  function loadPt(file) {
     return Promise.all([
       script('Bosse/rando.js', function () { return !!root.Rando; }),
       script('SaveViewer/data-pt.js', function () { return !!root.PT_DATA; }),
@@ -79,6 +123,15 @@
 
   // Nur lesen, ohne den Stand dieses Geräts zu ändern – z. B. die ROM des Mitspielers in Duo (nur wilde Pokémon, Starter)
   function read(file) {
+    var files = file && file.length != null && !(file instanceof Blob) ? Array.prototype.slice.call(file) : [file];
+    return is3ds(files).then(function (three) {
+      if (!three) return readPt(files[0]);
+      return readOras(files, false).then(function (res) {
+        return { game: 'oras', version: res.version, name: nameOf(files), loadedAt: Date.now(), wild: res.wild, starters: res.starters };
+      });
+    });
+  }
+  function readPt(file) {
     return script('Bosse/rando.js', function () { return !!root.Rando; }).then(function () {
       return root.Rando.readRomFile(file, [], [], []);
     }).then(function (res) {
@@ -128,18 +181,42 @@
     if (ids(t.dual).length) out.dualSlot = ids(t.dual);
     return Object.keys(out).length ? out : null;
   }
-  // Orte, die in den Routenlisten (locations.js) anders heißen als auf der Karte (PokéAPI-Namen)
+  // Orte, die in den Routenlisten (locations.js) anders heißen als auf der Karte (PokéAPI- bzw. ROM-Namen)
   var PLACE_ALIAS = { 'Pokémon Liga': 'Pokémon-Liga', 'Ruinengrotte': 'Maniac-Tunnel' };
-  function area(place) {
+  var PLACE_ALIAS_ORAS = { 'Metarost-Tunnel': 'Metaflurtunnel' };
+  function area(place, game) {
+    if (game === 'oras') {
+      var oa = root.ORAS_ENCOUNTER_AREAS;
+      return oa ? oa[PLACE_ALIAS_ORAS[place] || place] || null : null;
+    }
     var areas = root.PT_ENCOUNTER_AREAS;
     return areas ? areas[PLACE_ALIAS[place] || place] || null : null;
   }
-  // Original-Arten eines Ortes (Platin: Gras, Surfen, Angeln), null = keine wilden Pokémon bekannt
-  function originalAt(place) { var a = area(place); return a ? a.orig.slice() : null; }
+  // Original-Arten eines Ortes (Gras, Surfen, Angeln), null = keine wilden Pokémon bekannt.
+  // game: 'oras' für Omega Rubin / Alpha Saphir (version 'as' = die Editions-Pokémon von Alpha Saphir), sonst Platin
+  function originalAt(place, game, version) {
+    var a = area(place, game);
+    return a ? (version === 'as' && a.origAs ? a.origAs : a.orig).slice() : null;
+  }
   // Alle Arten eines Ortes (Name wie in den Routenlisten oder auf der Karte) im Stand, häufigste Land-Begegnungen zuerst.
   // main: nur Gras, Surfen und Angeln – ohne Schwarm, Pokéradar und GBA-Modul (wie originalAt)
   var MAIN = ['morning', 'day', 'night', 'surf', 'oldRod', 'goodRod', 'superRod'];
+  // Omega Rubin / Alpha Saphir: Zonen im Format von oras-rom.js (wildTable), je Platz [Art, Form, min, max]
+  var MAIN_ORAS = ['grass', 'tall', 'surf', 'old', 'good', 'super'], MORE_ORAS = ['hordeA', 'hordeB', 'hordeC', 'smash', 'dexnav'];
   function speciesAt(state, place, main) {
+    if (state && state.game === 'oras') {
+      var oa = area(place, 'oras');
+      if (!oa || !Array.isArray(state.wild)) return null;
+      var seenO = {}, outO = [];
+      oa.enc.forEach(function (n) {
+        var z = state.wild[n];
+        if (!z) return;
+        (main ? MAIN_ORAS : MAIN_ORAS.concat(MORE_ORAS)).forEach(function (k) {
+          (z[k] || []).forEach(function (s) { if (s && !seenO[s[0]]) { seenO[s[0]] = true; outO.push(s[0]); } });
+        });
+      });
+      return outO;
+    }
     var a = area(place);
     if (!a || !state || !Array.isArray(state.wild)) return null;
     var seen = {}, out = [];
@@ -158,8 +235,15 @@
   function chip(el, onError) {
     var input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.nds';
+    input.accept = '.nds,.3ds,.cxi,.cci';
     input.hidden = true;
+    // Mod-Ordner von Citra (Omega Rubin / Alpha Saphir), wo der Browser Ordner wählen kann
+    var dir = document.createElement('input');
+    dir.type = 'file';
+    dir.hidden = true;
+    var canDir = 'webkitdirectory' in dir;
+    if (canDir) dir.webkitdirectory = true;
+    var orasGame = function () { return !!(root.PokeHubGame && root.PokeHubGame.get() === 'omega-rot-alpha-saphir'); };
     var report = onError || function (msg) { root.alert(msg); };
     function draw() {
       var t = text(), s = get();
@@ -177,21 +261,32 @@
         b.title = t.hint;
         b.addEventListener('click', function () { input.click(); });
         el.appendChild(b);
+        if (canDir && orasGame()) {
+          var d = document.createElement('button');
+          d.type = 'button';
+          d.className = 'hub-rando-load hub-rando-dir';
+          d.textContent = t.folder;
+          d.title = t.folderHint;
+          d.addEventListener('click', function () { dir.click(); });
+          el.appendChild(d);
+        }
       }
       el.appendChild(input);
+      el.appendChild(dir);
     }
-    input.addEventListener('change', function () {
-      var f = input.files[0];
-      input.value = '';
-      if (!f) return;
+    function pick(files) {
+      if (!files || !files.length) return;
       var b = el.querySelector('.hub-rando-load');
       if (b) { b.disabled = true; b.textContent = text().reading; }
-      load(f).then(function (r) { if (!r.saved) report(text().full); }, function (e) {
-        report(e && e.message === 'notPlatinum' ? text().error : text().error + ' (' + (e && e.message) + ')');
+      load(files.length > 1 ? files : files[0]).then(function (r) { if (!r.saved) report(text().full); }, function (e) {
+        report(e && /^not(Platinum|Oras|Rom|Layered)$/.test(e.message) ? text().error : text().error + ' (' + (e && e.message) + ')');
         draw();
       });
-    });
+    }
+    input.addEventListener('change', function () { var f = Array.prototype.slice.call(input.files); input.value = ''; pick(f); });
+    dir.addEventListener('change', function () { var f = Array.prototype.slice.call(dir.files); dir.value = ''; pick(f); });
     document.addEventListener('hubrandochange', draw);
+    document.addEventListener('hubgamechange', draw);
     document.addEventListener('langchange', draw);
     draw();
   }

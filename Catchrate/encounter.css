@@ -1,0 +1,343 @@
+/*
+ * „Wilde Begegnung“ hinter dem Fangrate-Rechner (encounter.js): Wald, Höhle oder unter Wasser – je nach den
+ * Bedingungen –, rechts das wilde Pokémon mit KP-Kasten, links der Ball zum Probewurf.
+ * Jede Umgebung hat eigene Farben je Design (Klassik: Nacht, Graphit: Dämmerung, Papier: Tag).
+ * Das Wippen der Pokémon (@keyframes bob) kommt aus scene.css.
+ */
+
+/* ── Farben: Wald ── */
+.enc-forest {
+  --bg-top: #061016; --bg-bottom: #0e2620; --ray: rgba(150, 190, 255, 0.05);
+  --tkf-hi: #13302a; --tkf-base: #0f2520; --tkf-dark: #0b1c18;
+  --tk-hi: #1f4034; --tk-base: #17322a; --tk-dark: #0f241e;
+  --cn-hi: #163a2c; --cn-base: #0e281f; --cn-dark: #081a14;
+  --gr-hi: #2c7552; --gr-base: #1f5a40; --gr-dark: #154532; --gr-deep: #0c2a1f;
+}
+:root[data-theme="graphite"] .enc-forest {
+  --bg-top: #0f100e; --bg-bottom: #1f281b; --ray: rgba(255, 205, 140, 0.06);
+  --tkf-hi: #232b1f; --tkf-base: #1c2319; --tkf-dark: #161b13;
+  --tk-hi: #353f2c; --tk-base: #2a3223; --tk-dark: #1f251a;
+  --cn-hi: #26321f; --cn-base: #1a2316; --cn-dark: #11170e;
+  --gr-hi: #4b6a3d; --gr-base: #3a5430; --gr-dark: #2c4125; --gr-deep: #1a2716;
+}
+:root[data-theme="paper"] .enc-forest {
+  --bg-top: #d7ebcf; --bg-bottom: #a9d39a; --ray: rgba(255, 252, 220, 0.4);
+  --tkf-hi: #b9d4ab; --tkf-base: #a6c698; --tkf-dark: #95b888;
+  --tk-hi: #a1825f; --tk-base: #806449; --tk-dark: #654e39;
+  --cn-hi: #79b45e; --cn-base: #5e9a49; --cn-dark: #4b823b;
+  --gr-hi: #8ccc68; --gr-base: #6fb252; --gr-dark: #5a9a42; --gr-deep: #4a8236;
+}
+/* ── Farben: Höhle ── */
+.enc-cave {
+  --bg-top: #07060d; --bg-bottom: #18142a; --glow: rgba(120, 100, 200, 0.16);
+  --st-hi: #2b2640; --st-base: #1f1b2e; --st-dark: #15121f;
+  --gr-hi: #3a3352; --gr-base: #2a2540; --gr-dark: #1f1b30; --gr-deep: #120f1c;
+}
+:root[data-theme="graphite"] .enc-cave {
+  --bg-top: #0b0a09; --bg-bottom: #221d18; --glow: rgba(230, 170, 90, 0.1);
+  --st-hi: #3a332b; --st-base: #2b261f; --st-dark: #1e1a15;
+  --gr-hi: #4a4137; --gr-base: #383129; --gr-dark: #2a241e; --gr-deep: #171410;
+}
+:root[data-theme="paper"] .enc-cave {
+  --bg-top: #6d6152; --bg-bottom: #a09079; --glow: rgba(255, 240, 200, 0.25);
+  --st-hi: #9b8a73; --st-base: #82725e; --st-dark: #6b5d4c;
+  --gr-hi: #b3a184; --gr-base: #9a896f; --gr-dark: #85765f; --gr-deep: #6e6150;
+}
+/* ── Farben: unter Wasser ── */
+.enc-sea {
+  --bg-top: #0d3566; --bg-bottom: #041026; --ray: rgba(160, 220, 255, 0.07); --bubble: rgba(190, 230, 255, 0.45);
+  --kp-hi: #23705e; --kp-base: #16503f; --kp-dark: #0e3a2f;
+  --gr-hi: #3a4a66; --gr-base: #2b3a54; --gr-dark: #1f2b42; --gr-deep: #121a2c;
+}
+:root[data-theme="graphite"] .enc-sea {
+  --bg-top: #143a40; --bg-bottom: #061518; --ray: rgba(220, 240, 230, 0.06); --bubble: rgba(210, 235, 230, 0.4);
+  --kp-hi: #3a6a4a; --kp-base: #2a5038; --kp-dark: #1e3b29;
+  --gr-hi: #4a5a52; --gr-base: #384840; --gr-dark: #2a3830; --gr-deep: #18221d;
+}
+:root[data-theme="paper"] .enc-sea {
+  --bg-top: #8fd3f0; --bg-bottom: #2f86c2; --ray: rgba(255, 255, 255, 0.28); --bubble: rgba(255, 255, 255, 0.75);
+  --kp-hi: #6cc98a; --kp-base: #47a86c; --kp-dark: #348a55;
+  --gr-hi: #f1e2b0; --gr-base: #e2cf96; --gr-dark: #d0ba7e; --gr-deep: #bca468;
+}
+/* Pokémon nachts etwas dunkler, am Tag unverändert (saturate(1) statt none, s. scene.css) */
+.enc { --enc-mon: brightness(0.92); }
+:root[data-theme="paper"] .enc { --enc-mon: saturate(1); }
+
+/* ══ Bühne: liegt fest hinter der Karte, --gh = Höhe des Bodens ══ */
+.enc { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; --gh: 20vh; }
+
+/* Umgebungen blenden ineinander über; die unsichtbaren werden gar nicht gezeichnet */
+.enc-env {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.7s, visibility 0s 0.7s;
+  background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+}
+.enc[data-env="forest"] .enc-forest,
+.enc[data-env="cave"] .enc-cave,
+.enc[data-env="sea"] .enc-sea { opacity: 1; visibility: visible; transition: opacity 0.7s; }
+.enc-env svg { position: absolute; left: 0; width: 100%; shape-rendering: crispEdges; }
+
+/* Boden: Fläche unten, darüber die Pixel-Kante der jeweiligen Umgebung */
+.enc-ground { position: absolute; left: 0; right: 0; bottom: 0; height: var(--gh); background: linear-gradient(180deg, var(--gr-dark), var(--gr-deep)); }
+.enc-edge { bottom: calc(100% - 1px); }
+.enc-forest .enc-edge { height: 40px; }
+.enc-cave .enc-edge { height: 60px; }
+.enc-sea .enc-edge { height: 32px; }
+.enc-edge .x-hi { fill: var(--gr-hi); }
+.enc-edge .x-base { fill: var(--gr-base); }
+.enc-edge .x-dark { fill: var(--gr-dark); }
+
+/* Lichtstrahlen (Wald, Wasser), nach unten ausgeblendet */
+.enc-rays {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg,
+    transparent 0 8%, var(--ray) 10% 13%, transparent 16% 30%, var(--ray) 33% 35%,
+    transparent 38% 62%, var(--ray) 64% 68%, transparent 71% 84%, var(--ray) 86% 88%, transparent 90%);
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%);
+  mask-image: linear-gradient(180deg, #000, transparent 85%);
+}
+
+/* Wald: Stämme hinten (3-fach) und vorne (5-fach), oben das Blätterdach */
+.enc-trunks { top: 0; height: 100%; }
+.enc-trunks--far .x-hi { fill: var(--tkf-hi); }
+.enc-trunks--far .x-base { fill: var(--tkf-base); }
+.enc-trunks--far .x-dark { fill: var(--tkf-dark); }
+.enc-trunks--near .x-hi { fill: var(--tk-hi); }
+.enc-trunks--near .x-base { fill: var(--tk-base); }
+.enc-trunks--near .x-dark { fill: var(--tk-dark); }
+.enc-canopy { top: 0; height: 80px; }
+.enc-canopy .x-hi { fill: var(--cn-hi); }
+.enc-canopy .x-base { fill: var(--cn-base); }
+.enc-canopy .x-dark { fill: var(--cn-dark); }
+
+/* Höhle: Tropfsteine oben, schwacher Lichtschein von unten */
+.enc-cave { background: radial-gradient(ellipse 70% 45% at 50% 100%, var(--glow), transparent), linear-gradient(180deg, var(--bg-top), var(--bg-bottom)); }
+.enc-stalactites { top: 0; height: 110px; }
+.enc-stalactites .x-hi { fill: var(--st-hi); }
+.enc-stalactites .x-base { fill: var(--st-base); }
+.enc-stalactites .x-dark { fill: var(--st-dark); }
+
+/* Unter Wasser: Seetang aus dem Sand, aufsteigende Blasen */
+.enc-kelp { bottom: calc(100% + 8px); height: 160px; }
+.enc-kelp .x-hi { fill: var(--kp-hi); }
+.enc-kelp .x-base { fill: var(--kp-base); }
+.enc-kelp .x-dark { fill: var(--kp-dark); }
+.enc-bubbles { position: absolute; inset: 0; }
+.enc-bubbles i {
+  position: absolute;
+  bottom: -20px;
+  width: var(--size);
+  height: var(--size);
+  border: 2px solid var(--bubble);
+  border-radius: 50%;
+  animation: enc-rise linear infinite;
+}
+@keyframes enc-rise { to { transform: translateY(-110vh); } }
+
+/* ══ Figuren neben der Karte (Lage und Größe setzt encounter.js: --cl, --cr, --s) ══ */
+.enc-side {
+  position: absolute;
+  bottom: calc(var(--gh) - var(--s) * 4px);
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.enc-side--l { left: var(--cl); }
+.enc-side--r { left: var(--cr); }
+.enc.is-tight .enc-side,
+.enc:not(.has-ball) .enc-side--l,
+.enc:not(.has-mon) .enc-side--r { display: none; }
+
+/* Kästen im Stil des Menüfensters (wie das Schild auf der Duo-Bühne) */
+.enc-hpbox, .enc-plate, .enc-msg {
+  border-radius: 12px;
+  border: 2px solid rgba(var(--t-ink), 0.16);
+  background: linear-gradient(180deg, rgb(var(--t-n-262952)), rgb(var(--t-n-161838)));
+  box-shadow: inset 0 0 0 2px rgba(var(--t-n-0d0f2b), 0.5), inset 0 0 0 3px rgba(var(--t-acc), 0.35), 0 10px 30px rgba(var(--t-shade), 0.4);
+  color: var(--color-text);
+}
+
+/* KP-Kasten wie im Kampf: Name, Status, Level, KP-Balken */
+.enc-hpbox { width: 230px; margin-bottom: calc(var(--s) * 8px); padding: 8px 12px 10px; }
+.enc-hp-head { display: flex; align-items: center; gap: 8px; }
+.enc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgb(var(--t-white)); font-size: 0.92rem; font-weight: 800; }
+.enc-lv { color: var(--color-muted); font-size: 0.78rem; font-weight: 800; }
+.enc-status { padding: 1px 6px; border-radius: 5px; color: #fff; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em; }
+.enc[data-status="sleep"] .enc-status { background: #8c88a6; }
+.enc[data-status="freeze"] .enc-status { background: #5fb8d8; }
+.enc[data-status="paralysis"] .enc-status { background: #c9a418; }
+.enc[data-status="poison"] .enc-status { background: #a453b8; }
+.enc[data-status="burn"] .enc-status { background: #d8603a; }
+.enc-hp { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.enc-hp i { color: rgb(var(--t-acc)); font-size: 0.62rem; font-style: normal; font-weight: 800; letter-spacing: 0.06em; }
+.enc-hp-track { flex: 1; height: 10px; border-radius: 5px; border: 2px solid rgba(var(--t-ink), 0.2); background: rgb(var(--t-n-0d0f2b)); overflow: hidden; }
+.enc-hp-fill { display: block; height: 100%; border-radius: 3px; background: rgb(var(--t-f-50e880)); transition: width 0.45s, background-color 0.3s; }
+.enc-hp-fill[data-zone="mid"] { background: rgb(var(--t-f-ffda08)); }
+.enc-hp-fill[data-zone="low"] { background: rgb(var(--t-f-f05050)); }
+
+/* Das wilde Pokémon: --nw = Breite des Sprites, --feet = leere Zeilen unter den Füßen (encounter.js) */
+.enc-mon { position: relative; width: calc(var(--nw, 80) * var(--s) * 1px); height: calc(var(--nh, 60) * var(--s) * 1px); }
+.enc-mon::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--s) * -4px);
+  width: calc(var(--s) * 48px);
+  height: calc(var(--s) * 9px);
+  translate: -50% 0;
+  border-radius: 50%;
+  background: rgba(var(--t-shade), 0.3);
+}
+.enc-mon img {
+  --bob: calc(var(--s) * -1.5px);
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+  translate: 0 calc(var(--feet, 8) * var(--s) * 1px);
+  image-rendering: pixelated;
+  filter: var(--enc-mon);
+  animation: bob 2.6s steps(5, end) infinite alternate;
+}
+/* Neues Pokémon taucht wie im Spiel erst als Schatten auf */
+.enc.is-appearing .enc-mon { animation: enc-appear 0.8s ease-out both; }
+@keyframes enc-appear {
+  0%   { opacity: 0; translate: calc(var(--s) * 20px) 0; filter: brightness(0); }
+  45%  { opacity: 1; filter: brightness(0); }
+  100% { opacity: 1; translate: 0 0; filter: brightness(1); }
+}
+.enc.is-absorbed .enc-mon { opacity: 0; }
+
+/* Statusprobleme: Schlaf (langsamer, Zzz), Eis (eingefroren, steht still), sonst kurzes Aufblitzen in der Farbe */
+.enc-fx { position: absolute; left: 66%; top: 0; width: 0; height: 0; }
+.enc[data-status="sleep"] .enc-mon img { animation-duration: 4.5s; }
+.enc[data-status="sleep"] .enc-fx::before,
+.enc[data-status="sleep"] .enc-fx::after {
+  content: 'z';
+  position: absolute;
+  color: rgb(var(--t-white));
+  font-size: calc(var(--s) * 9px);
+  font-weight: 800;
+  text-shadow: 0 2px 0 rgba(var(--t-shade), 0.4);
+  animation: enc-zzz 2.6s ease-out infinite;
+}
+.enc[data-status="sleep"] .enc-fx::after { content: 'Z'; font-size: calc(var(--s) * 12px); animation-delay: 1.3s; }
+@keyframes enc-zzz {
+  0%   { opacity: 0; transform: translate(0, 0); }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--s) * 10px), calc(var(--s) * -26px)); }
+}
+.enc[data-status="freeze"] .enc-mon img { filter: var(--enc-mon) grayscale(1) sepia(1) hue-rotate(160deg) saturate(2.2) brightness(1.2); animation: none; }
+.enc[data-status="paralysis"] .enc-mon img { --tint: sepia(1) saturate(6) hue-rotate(5deg) brightness(1.15); }
+.enc[data-status="poison"] .enc-mon img { --tint: sepia(1) saturate(4) hue-rotate(230deg); }
+.enc[data-status="burn"] .enc-mon img { --tint: sepia(1) saturate(6) hue-rotate(-30deg); }
+.enc:is([data-status="paralysis"], [data-status="poison"], [data-status="burn"]) .enc-mon img {
+  animation: bob 2.6s steps(5, end) infinite alternate, enc-tint 2.4s steps(1, end) infinite;
+}
+@keyframes enc-tint {
+  0%, 82%, 92% { filter: var(--enc-mon); }
+  86%, 96% { filter: var(--tint); }
+}
+
+/* Meldung wie im Kampf, unten im Boden */
+.enc-msg {
+  position: absolute;
+  top: calc(100% + 18px);
+  left: 50%;
+  translate: -50% 0;
+  width: min(300px, var(--sw, 300px));
+  padding: 10px 14px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* Ball in der Hand – darunter Name, Chance und „Werfen!“ */
+.enc-hand { display: grid; place-items: center; height: calc(var(--s) * 80px); }
+.enc-hand img {
+  --bob: calc(var(--s) * -3px);
+  width: calc((var(--s) + 1) * 30px);
+  height: calc((var(--s) + 1) * 30px);
+  max-width: none;
+  border-radius: 0;
+  image-rendering: pixelated;
+  animation: bob 2.2s steps(5, end) infinite alternate;
+}
+.enc.is-throwing .enc-hand img { opacity: 0; }
+.enc-plate {
+  position: absolute;
+  top: calc(100% + 18px);
+  left: 50%;
+  translate: -50% 0;
+  max-width: var(--sw, 300px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 12px;
+  pointer-events: auto;
+}
+.enc-ball-line { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.enc-ball-name { color: rgb(var(--t-white)); font-size: 0.92rem; }
+.enc-ball-prob { font-size: 1.05rem; font-weight: 800; }
+.enc-throw {
+  padding: 8px 22px;
+  border: 0;
+  border-radius: 10px;
+  background: rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.15s;
+}
+.enc-throw:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.enc-throw:focus-visible { outline: 2px solid rgb(var(--t-acc2)); outline-offset: 2px; }
+.enc-throw:disabled { opacity: 0.5; cursor: default; }
+.enc-tally:empty { display: none; }
+.enc-tally { color: var(--color-muted); font-size: 0.74rem; font-weight: 600; }
+
+/* ── Wurf: Ball im Flug (über der Karte), Lichtblitz beim Ausbrechen, Sterne beim Fang ── */
+.enc-fly { position: fixed; left: 0; top: 0; z-index: 50; max-width: none; border-radius: 0; pointer-events: none; image-rendering: pixelated; }
+.enc-fly.is-caught { filter: brightness(0.75); }
+.enc-flash, .enc-star { position: fixed; z-index: 50; pointer-events: none; }
+.enc-flash {
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 20px 8px rgba(255, 255, 255, 0.8);
+  animation: enc-burst 0.45s ease-out forwards;
+}
+@keyframes enc-burst { to { transform: scale(12); opacity: 0; } }
+.enc-star {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  background: #ffe066;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  animation: enc-star 1.1s ease-out forwards;
+}
+@keyframes enc-star {
+  from { transform: translate(0, 0) scale(0.4); }
+  60%  { opacity: 1; }
+  to   { transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(90deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enc-bubbles i, .enc-mon img, .enc-hand img, .enc.is-appearing .enc-mon,
+  .enc[data-status="sleep"] .enc-fx::before, .enc[data-status="sleep"] .enc-fx::after { animation: none; }
+  .enc-env { transition: none; }
+}

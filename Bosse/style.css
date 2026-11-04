@@ -1,9 +1,7 @@
+/* Hintergrund ist die Arena (boss.css) – darunter nur eine dunkle Farbe für den Überscroll */
 html, body {
   min-height: 100%;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(var(--t-acc2-glow), 0.10), transparent 30%),
-    radial-gradient(circle at 85% 80%, rgba(var(--t-acc-glow), 0.08), transparent 28%),
-    rgb(var(--t-n-0d0f2b));
+  background: rgb(var(--t-n-0d0f2b));
 }
 body {
   display: flex;
@@ -24,14 +22,12 @@ body {
   --c-lose: rgb(var(--t-c-ff5a6e));
 }
 
+/* Karte vor der Arena – Rahmen und Hintergrund: #app.win-frame (base.css) */
 #app {
   width: min(98vw, 1340px); /* gleiche Breite wie alle Seiten, sonst springt die Navigation beim Tabwechsel */
   margin: 0 auto;
   padding: 24px;
-  background: rgba(var(--t-n-191b3a), 0.96);
   border-radius: 28px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(var(--t-ink), 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;

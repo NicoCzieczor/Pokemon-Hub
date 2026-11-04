@@ -183,6 +183,10 @@ function typeBadge(t) {
 }
 const SWAP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 3 8l4 4"/><path d="M3 8h13a4 4 0 0 1 4 4"/><path d="m17 20 4-4-4-4"/><path d="M21 16H8a4 4 0 0 1-4-4"/></svg>';
 
+// KP-Anzeige als Schrift: Bausteine statt fester Farben, in Papier lesbar abgedunkelt (theme.css)
+function hpTextColor(v) {
+  return v > 50 ? 'rgb(var(--t-c-50e880))' : v > 20 ? 'rgb(var(--t-c-ffda08))' : 'rgb(var(--t-c-f05050))';
+}
 function updateSliderStyle(v) {
   const pct  = (v - 1) / 99 * 100;
   const fill = v > 50 ? '#50e880' : v > 20 ? '#e8b820' : '#f05050';
@@ -519,13 +523,15 @@ function throwsNeeded(p, target) {
   return Math.ceil(Math.log(1 - target) / Math.log(1 - p));
 }
 
-function probColor(p) {
+// fill: Farbe für Balken statt Schrift (--t-f-…, in Papier nicht abgedunkelt, theme.css)
+function probColor(p, fill) {
   if (p === null) return 'var(--color-muted)';
-  if (p >= 1)   return 'rgb(var(--t-c-50e880))';
-  if (p >= 0.5) return 'rgb(var(--t-c-80e060))';
-  if (p >= 0.2) return 'rgb(var(--t-c-ffda08))';
-  if (p >= 0.05)return 'rgb(var(--t-c-f09040))';
-  return 'rgb(var(--t-c-f05050))';
+  const k = fill ? 't-f-' : 't-c-';
+  if (p >= 1)   return `rgb(var(--${k}50e880))`;
+  if (p >= 0.5) return `rgb(var(--${k}80e060))`;
+  if (p >= 0.2) return `rgb(var(--${k}ffda08))`;
+  if (p >= 0.05)return `rgb(var(--${k}f09040))`;
+  return `rgb(var(--${k}f05050))`;
 }
 
 function formatProb(p) {
@@ -768,6 +774,7 @@ function renderBallGrid() {
     hint.style.display = '';
     grid.innerHTML     = '';
     detail.style.display = 'none';
+    updateScene(getConds(), []);
     return;
   }
   hint.style.display = 'none';
@@ -778,6 +785,7 @@ function renderBallGrid() {
     .filter(ball => gameBalls.has(ball.id))
     .map(ball => ({ ball, prob: computeProb(ball, conds) }))
     .sort((a, b) => (b.prob || 0) - (a.prob || 0));
+  updateScene(conds, entries);
 
   grid.innerHTML = '';
   entries.forEach(({ ball, prob }) => {
@@ -785,19 +793,43 @@ function renderBallGrid() {
     const barW  = prob !== null ? Math.round(prob * 100) : 0;
     const div   = document.createElement('div');
     div.className = 'ball-card' + (ball.id === selectedBallId ? ' selected' : '');
+    div.dataset.ball = ball.id;
     div.title = ballDesc(ball);
     div.innerHTML = `
       <img src="${ITEMS_SPRITE_URL}${ball.sprite}.png" alt="${ballName(ball)}" onerror="this.style.opacity='0.3'">
       <div class="ball-name">${ballName(ball)}</div>
       <div class="ball-mult" style="color:${color}">${multLabel(ball, conds)}</div>
       <div class="ball-prob" style="color:${color}">${formatProb(prob)}</div>
-      <div class="ball-bar-bg"><div class="ball-bar-fill" style="width:${barW}%;background:${color}"></div></div>`;
+      <div class="ball-bar-bg"><div class="ball-bar-fill" style="width:${barW}%;background:${probColor(prob, true)}"></div></div>`;
     div.addEventListener('click', () => { selectedBallId = ball.id; renderBallGrid(); });
     grid.appendChild(div);
   });
 
   renderSelectedDetail(conds);
 }
+
+// Szene hinter der Karte (encounter.js): Umgebung nach den Bedingungen, wildes Pokémon, Bälle für den Probewurf
+function updateScene(conds, entries) {
+  if (!window.CatchScene) return;
+  const p = selectedPokemon;
+  window.CatchScene.update({
+    mon: p ? { id: p.id, sprite: p.sprite, name: listName(p.id, p.name) } : null,
+    level: conds.enemyLevel,
+    hp: conds.hpPercent,
+    status: conds.status,
+    env: conds.diving || conds.fishing ? 'sea' : conds.dark ? 'cave' : 'forest',
+    formulaGen: conds.formulaGen,
+    balls: entries.filter(e => e.prob !== null).map(({ ball, prob }) => ({
+      id: ball.id, name: ballName(ball), sprite: ball.sprite, prob, label: formatProb(prob), color: probColor(prob),
+    })),
+    selected: selectedBallId,
+  });
+}
+// Drüberfahren über eine Ball-Karte: diesen Ball in die Hand nehmen
+document.getElementById('ball-grid').addEventListener('mouseover', e => {
+  window.CatchScene?.preview(e.target.closest('.ball-card')?.dataset.ball || null);
+});
+document.getElementById('ball-grid').addEventListener('mouseleave', () => window.CatchScene?.preview(null));
 
 function renderSelectedDetail(conds) {
   const detail = document.getElementById('selected-ball-detail');
@@ -955,7 +987,7 @@ async function init() {
   updateSliderStyle(100);
   document.getElementById('hp-slider').addEventListener('input', e => {
     const v = Number(e.target.value);
-    const col = v > 50 ? '#50e880' : v > 20 ? '#e8b820' : '#f05050';
+    const col = hpTextColor(v);
     document.getElementById('hp-display').textContent = v + '%';
     document.getElementById('hp-display').style.color = col;
     updateSliderStyle(v);
@@ -991,7 +1023,7 @@ async function init() {
       slider.disabled = false;
     }
     const v = Number(slider.value);
-    const col = v > 50 ? '#50e880' : v > 20 ? '#e8b820' : '#f05050';
+    const col = hpTextColor(v);
     display.textContent = v + '%';
     display.style.color = col;
     updateSliderStyle(v);

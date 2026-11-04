@@ -1,0 +1,60 @@
+/* Karte von Hoenn (hoenn.js): Regionskarte als Raster, Editions-Umschalter, Bosse des Ortes.
+   Nur aktiv mit body.is-hoenn – die Sinnoh-Karte (Leaflet) bleibt dann ausgeblendet. */
+body.is-hoenn #map,
+body.is-hoenn #interior-bar { display: none !important; }
+
+/* Höhe nach dem Seitenverhältnis der Regionskarte (28 × 15) */
+body.is-hoenn .map-wrap { height: auto; aspect-ratio: 28 / 15; max-height: var(--map-h); }
+
+.hoenn-map {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: var(--c-sea);
+  overflow: hidden;
+}
+.hm-svg { width: 100%; height: 100%; display: block; }
+.hm-sea { fill: var(--c-sea); }
+.hm-wave { stroke: rgba(255, 255, 255, 0.10); stroke-width: 1.2; }
+
+.hm-cell, .hm-spot { cursor: pointer; transition: filter 0.15s ease, stroke-width 0.15s ease; }
+.hm-land { fill: #7cc36a; stroke: #3f7a35; stroke-width: 1.5; }
+.hm-water { fill: rgba(255, 255, 255, 0.22); stroke: rgba(255, 255, 255, 0.45); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.hm-town { fill: #f6f1e3; stroke: #e0475b; stroke-width: 2.5; }
+.hm-link { pointer-events: none; }
+.hm-link-land { fill: #5fa64f; }
+.hm-link-water { fill: rgba(255, 255, 255, 0.30); }
+.hm-spot { fill: #ffd23f; stroke: #5a4300; stroke-width: 1.5; }
+.hm-spot:not(.has-wild) { fill: #e9e2c8; }
+.hm-cell:hover, .hm-spot:hover { filter: brightness(1.12) drop-shadow(0 0 3px rgba(255, 255, 255, 0.7)); }
+.hm-cell.is-on, .hm-spot.is-on {
+  stroke: rgb(var(--t-acc2)); stroke-width: 3.5; stroke-dasharray: none;
+  filter: drop-shadow(0 0 6px rgba(var(--t-acc2), 0.85));
+}
+.hm-water.is-on { fill: rgba(var(--t-acc2), 0.35); }
+
+/* Edition: Omega Rubin / Alpha Saphir (statt der Filter-Chips der Sinnoh-Karte) */
+.hm-version { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.hm-version .chip[aria-pressed="true"] { border-color: rgb(var(--t-acc2)); background: rgba(var(--t-acc2), 0.16); color: rgb(var(--t-white)); }
+
+/* Horden: wie viele des Pokémon in der Gruppe */
+.hm-n { color: var(--color-muted); font-weight: 700; }
+
+/* Bosse des Ortes */
+.hm-bosses { display: grid; gap: 8px; }
+.hm-boss {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center;
+  padding: 10px 12px; border-radius: 12px; text-decoration: none; color: inherit;
+  border: 1px solid rgba(var(--t-ink), 0.10); background: rgba(var(--t-ink), 0.03);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.hm-boss:hover { border-color: rgb(var(--t-acc2)); background: rgba(var(--t-ink), 0.06); }
+.hm-boss-cap {
+  grid-row: span 2; display: grid; justify-items: center; min-width: 48px; padding: 4px 6px; border-radius: 10px;
+  font-weight: 800; font-size: 1.1rem; color: rgb(var(--t-white)); background: rgba(var(--t-ink), 0.07);
+}
+.hm-boss-cap small { font-size: 0.6rem; font-weight: 700; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.hm-boss-main { display: grid; gap: 2px; min-width: 0; }
+.hm-boss-main b { color: rgb(var(--t-white)); font-size: 0.92rem; }
+.hm-boss-team { display: flex; flex-wrap: wrap; gap: 2px; }
+.hm-boss-team img { width: 34px; height: 34px; image-rendering: pixelated; }
+.hm-boss-go { grid-column: 2; font-size: 0.74rem; font-weight: 700; color: var(--color-accent); }

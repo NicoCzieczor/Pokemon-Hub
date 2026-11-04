@@ -1,0 +1,227 @@
+/*
+ * „Ruhmeshalle“ hinter Solo Nuzlocke (hall.js): Halle mit Lichtstrahlen und goldenem Boden, links das Podest im
+ * Scheinwerfer, rechts die Ehrentafel mit sechs Rahmen.
+ * Klassik: Nacht in Blau und Gold, Graphit: Schwarz und Gold, Papier: heller Marmor.
+ */
+
+/* ── Farben je Design ── */
+.hf {
+  --hall-top: #050820; --hall: #121a4a; --hall-low: #0a0f2e;
+  --beam: rgba(255, 228, 150, 0.1); --floor: #0e1438; --floor-line: rgba(232, 193, 90, 0.22);
+  --gold: #e8c15a; --gold-hi: #fff0b3; --gold-lo: #9c7a26; --spark: #ffe9a8;
+  --cone: rgba(255, 240, 190, 0.22); --plate: rgba(8, 10, 30, 0.86); --plate-ink: #fff;
+  --frame-bg: #0b1030;
+}
+:root[data-theme="graphite"] .hf {
+  --hall-top: #070706; --hall: #1d1b17; --hall-low: #0f0e0c;
+  --beam: rgba(255, 200, 120, 0.09); --floor: #151410; --floor-line: rgba(226, 170, 72, 0.22);
+  --gold: #e2aa48; --gold-hi: #ffe0a0; --gold-lo: #8a6424; --spark: #ffd28a;
+  --frame-bg: #12110e;
+}
+:root[data-theme="paper"] .hf {
+  --hall-top: #fbf8f1; --hall: #e9e3d6; --hall-low: #d9d1c1;
+  --beam: rgba(255, 255, 255, 0.55); --floor: #ddd5c4; --floor-line: rgba(160, 120, 40, 0.25);
+  --gold: #c9952a; --gold-hi: #f5d77a; --gold-lo: #8a6418; --spark: #d9a93a;
+  --cone: rgba(255, 250, 225, 0.7); --plate: rgba(255, 252, 244, 0.92); --plate-ink: #2a2218;
+  --frame-bg: #f6f1e6;
+}
+
+.hf {
+  --k: 2;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hf img { max-width: none; border-radius: 0; image-rendering: pixelated; }
+
+/* ── Halle: Strahlen von oben, Boden mit Fugen in Fluchtlinien ── */
+.hf-room { position: absolute; inset: 0; background: linear-gradient(180deg, var(--hall-top), var(--hall) 55%, var(--hall-low)); }
+.hf-beams {
+  position: absolute;
+  left: 50%;
+  top: -20%;
+  width: 220vmax;
+  height: 220vmax;
+  translate: -50% -50%;
+  background: repeating-conic-gradient(from 0deg, var(--beam) 0 4deg, transparent 4deg 14deg);
+  -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 60%);
+  mask-image: radial-gradient(circle, #000 20%, transparent 60%);
+  animation: hf-turn 90s linear infinite;
+}
+@keyframes hf-turn { to { rotate: 360deg; } }
+.hf-floor {
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: 0;
+  height: 34%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 78px, var(--floor-line) 78px 80px),
+    repeating-linear-gradient(180deg, transparent 0 38px, var(--floor-line) 38px 40px),
+    linear-gradient(180deg, var(--floor), var(--hall-low));
+  transform: perspective(500px) rotateX(58deg);
+  transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 30%);
+  mask-image: linear-gradient(180deg, transparent, #000 30%);
+}
+
+/* Funken steigen auf */
+.hf-sparks i {
+  position: absolute;
+  bottom: -10px;
+  width: 4px;
+  height: 4px;
+  background: var(--spark);
+  box-shadow: 0 0 6px var(--spark);
+  scale: var(--s);
+  opacity: 0;
+  animation: hf-rise var(--d) linear var(--dl) infinite;
+}
+@keyframes hf-rise {
+  0% { translate: 0 0; opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { translate: 18px -105vh; opacity: 0; }
+}
+
+/* ── Podest im Scheinwerfer ── */
+.hf-stage {
+  position: absolute;
+  left: var(--cl);
+  top: 50%;
+  width: min(calc(var(--strip) - 40px), 360px);
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hf-cone {
+  position: absolute;
+  left: 50%;
+  bottom: 30%;
+  width: 150%;
+  height: 100vh;
+  translate: -50% 0;
+  background: linear-gradient(180deg, transparent, var(--cone));
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 35%, #000 88%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 35%, #000 88%, transparent);
+}
+.hf-star { position: relative; width: calc(80px * var(--k)); height: calc(80px * var(--k)); margin-bottom: calc(var(--k) * -14px); z-index: 1; }
+.hf-star img { width: 100%; height: 100%; filter: drop-shadow(0 0 10px rgba(255, 240, 190, 0.45)); animation: hf-bob 2.2s ease-in-out infinite; }
+@keyframes hf-bob { 50% { translate: 0 calc(var(--k) * -3px); } }
+.hf-star.is-in { animation: hf-in 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+@keyframes hf-in {
+  0% { scale: 0.2; opacity: 0; filter: brightness(4); }
+  50% { opacity: 1; filter: brightness(2); }
+  100% { scale: 1; filter: none; }
+}
+.hf-star.is-in::before {
+  content: '';
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gold-hi), transparent 60%);
+  animation: hf-flash 0.9s ease-out forwards;
+}
+@keyframes hf-flash { from { scale: 0.4; opacity: 1; } to { scale: 2.4; opacity: 0; } }
+.hf-star.is-none img { display: none; }
+.hf-star.is-none::after {
+  content: '?';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+  font-size: calc(var(--k) * 28px);
+  font-weight: 900;
+  opacity: 0.6;
+}
+.hf-podium {
+  display: block;
+  width: calc(var(--k) * 70px);
+  height: calc(var(--k) * 22px);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 35%, var(--gold-hi), var(--gold) 45%, var(--gold-lo));
+  box-shadow: 0 calc(var(--k) * 8px) 0 var(--gold-lo), 0 calc(var(--k) * 12px) 24px rgba(0, 0, 0, 0.45);
+}
+.hf-plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: calc(var(--k) * 16px);
+  padding: 10px 18px 12px;
+  border-radius: 12px;
+  background: var(--plate);
+  border: 2px solid var(--gold);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.2), 0 12px 30px rgba(0, 0, 0, 0.35);
+  color: var(--plate-ink);
+  text-align: center;
+}
+.hf-no { color: var(--gold); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.hf-name { font-size: 1.05rem; font-weight: 900; }
+.hf-types { display: flex; gap: 4px; }
+.hf-types:empty { display: none; }
+.hf-types span { padding: 1px 8px; border-radius: 999px; background: var(--c); color: #fff; font-size: 0.66rem; font-weight: 800; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35); }
+
+/* ── Ehrentafel ── */
+.hf-board {
+  position: absolute;
+  left: var(--cr);
+  top: 50%;
+  width: min(calc(var(--strip) - 44px), 320px);
+  translate: -50% -50%;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--frame-bg), var(--hall-low));
+  border: 3px solid var(--gold);
+  box-shadow: inset 0 0 0 2px var(--gold-lo), inset 0 0 0 5px rgba(0, 0, 0, 0.25), 0 24px 50px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+.hf-head { display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; color: var(--gold); text-align: center; }
+.hf-title { font-size: 1rem; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; text-shadow: 0 0 10px rgba(232, 193, 90, 0.4); }
+.hf-sub { color: var(--plate-ink); opacity: 0.7; font-size: 0.72rem; font-weight: 700; }
+.hf-frames { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.hf-frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 240, 190, 0.12), transparent 70%), var(--frame-bg);
+  box-shadow: inset 0 0 0 3px var(--gold), inset 0 0 0 5px var(--gold-lo);
+  cursor: pointer;
+  transition: box-shadow 0.25s, scale 0.25s;
+}
+.hf-frame img { width: 92%; height: 92%; }
+.hf-frame i { color: var(--gold); font-size: 1.6rem; font-weight: 900; font-style: normal; opacity: 0.35; }
+.hf-frame small { position: absolute; left: 7px; top: 5px; color: var(--gold); font-size: 0.62rem; font-weight: 900; }
+.hf-frame.is-empty { cursor: default; opacity: 0.7; }
+.hf-frame.is-on { scale: 1.05; box-shadow: inset 0 0 0 3px var(--gold-hi), inset 0 0 0 5px var(--gold), 0 0 18px rgba(255, 220, 120, 0.55); }
+.hf-count { margin: 12px 0 0; color: var(--plate-ink); opacity: 0.8; font-size: 0.8rem; font-weight: 800; text-align: center; }
+.hf-count.is-ready { color: var(--gold); opacity: 1; text-shadow: 0 0 10px rgba(232, 193, 90, 0.5); animation: hf-glow 1.6s ease-in-out infinite alternate; }
+@keyframes hf-glow { to { text-shadow: 0 0 2px rgba(232, 193, 90, 0.2); } }
+
+/* Konfetti für Neuzugänge */
+.hf-confetti i {
+  position: absolute;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  animation: hf-confetti 1.9s cubic-bezier(0.2, 0.6, 0.5, 1) var(--dl) both;
+}
+@keyframes hf-confetti {
+  0% { translate: 0 0; rotate: 0deg; opacity: 1; }
+  40% { translate: calc(var(--dx) * 0.7) var(--dy); }
+  100% { translate: var(--dx) 220px; rotate: var(--r); opacity: 0; }
+}
+
+/* Zu wenig Platz neben der Karte: nur die Halle */
+.hf.is-bare .hf-stage, .hf.is-bare .hf-board { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hf-beams, .hf-sparks i, .hf-star img, .hf-star.is-in, .hf-star.is-in::before, .hf-count.is-ready { animation: none; }
+}

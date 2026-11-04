@@ -669,6 +669,7 @@ function renderDirectory() {
   $('side-content').innerHTML = `<div class="side-head"><h2>${esc(t('allPlaces'))}</h2><p>${esc(t('dirHint'))}</p></div>
     ${group(t('groupTowns'), byType.towns)}${group(t('groupRoutes'), byType.routes)}${group(t('groupPlaces'), byType.places)}`;
   $('side-content').querySelectorAll('[data-loc]').forEach(b => b.addEventListener('click', () => selectLocation(+b.dataset.loc, { fly: true })));
+  updateScene();
 }
 
 function renderLocation(li, focus) {
@@ -751,6 +752,7 @@ function renderLocation(li, focus) {
       if (pin && (pin.dataset.map ?? null) === inMap) { const [x, z, y] = parsePos(pin.dataset.pos); pulseAt(x, z, y); }
     }
   }
+  updateScene();
 }
 
 const posBtn = e => (e.pos ? `<button type="button" class="pin" data-pos="${e.pos[0]},${e.pos[1]},${e.pos[2] ?? ''}"${e.map ? ` data-map="${esc(e.map)}"` : ''} title="${esc(t(e.map ? 'showInside' : 'showOnMap'))}" aria-label="${esc(t(e.map ? 'showInside' : 'showOnMap'))}">${ICON_PIN}</button>` : '');
@@ -893,6 +895,37 @@ function wildHTML(l) {
     </div>`).join('');
 }
 
+// ── Meer hinter der Karte (sea.js) ────────────────────────────────────────────
+// Schwimmer, Flieger und die beste Angel des gewählten Ortes; das Pokémon-Panel lässt das Meer, wie es ist,
+// ohne Ort (Liste aller Orte) zeigt es Route 220 – eine Meeresroute mit Surfen und allen drei Angeln
+let seaLi = -1;
+function updateScene() {
+  if (!window.SeaScene || !D) return;
+  if (selected >= 0) seaLi = selected;
+  else if (monView == null) seaLi = -1;
+  const l = seaLi >= 0 ? D.locations[seaLi] : D.locations.find(x => x.en === 'Route 220');
+  if (!l) return;
+  const wild = wildOf(l);
+  const entries = list => (list || []).map(s => ({ id: s.id, name: nm(s), p: s.p, min: s.min, max: s.max }));
+  const all = key => wild.flatMap(w => entries(w[key]));
+  const has = key => wild.some(w => w[key]?.length);
+  const rod = ['superRod', 'goodRod', 'oldRod'].find(has);
+  window.SeaScene.update({
+    key: `${l.en}|${usingRando() ? 'rando' : 'orig'}`,   // ohne Sprache: Umschalten tauscht nur die Texte
+    place: locName(l),
+    picked: seaLi >= 0,
+    how: ROD_KEYS.filter(has).map(k => t(k)),
+    surf: all('surf'),
+    land: ['morning', 'day', 'night'].flatMap(all),
+    rod: rod ? {
+      name: t(rod),
+      areas: wild.filter(w => w[rod]?.length).map(w => ({ area: wild.length > 1 && w.area ? areaName(w.area) : '', list: entries(w[rod]) })),
+    } : null,
+    surfName: t('surf'),
+    open: id => renderMon(id, { fly: true }),
+  });
+}
+
 // ── Ein Pokémon: wo es wild vorkommt ──────────────────────────────────────────
 const ROD_KEYS = ['surf', 'oldRod', 'goodRod', 'superRod'];
 const SPECIAL_KEYS = ['swarm', 'radar', 'dualSlot'];
@@ -920,6 +953,7 @@ function renderMon(id, opts = {}) {
   const head = `<button type="button" class="back-btn" id="back-btn">← ${esc(t('back'))}</button>
       <h2 class="mon-head"><img src="${monSprite(id)}" alt="" onerror="this.style.visibility='hidden'">${esc(name)}</h2>`;
   const dex = id <= 1025 ? `<a class="mini-btn" href="../PokemonInfo/index.html#${id}">${esc(t('toDex'))}</a>` : '';
+  updateScene();
   if (!m) {
     drawSelection(-1);
     $('side-content').innerHTML = `<div class="side-head">${head}
@@ -1058,11 +1092,14 @@ function pickResult(e) {
   if (matchMedia('(max-width: 900px)').matches) $('side').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 let searchTimer = null;
-$('map-search').addEventListener('input', e => { clearTimeout(searchTimer); searchTimer = setTimeout(() => runSearch(e.target.value), 120); });
-$('map-search').addEventListener('keydown', e => {
-  if (e.key === 'Escape') { $('search-results').hidden = true; e.target.blur(); }
-  if (e.key === 'Enter') $('search-results').querySelector('.sr')?.click();
-});
+// Omega Rubin / Alpha Saphir: hoenn.js hat die Seite übernommen (Suche, Sprache, Start) – Sinnoh bleibt aus
+if (!window.KARTE_HOENN) {
+  $('map-search').addEventListener('input', e => { clearTimeout(searchTimer); searchTimer = setTimeout(() => runSearch(e.target.value), 120); });
+  $('map-search').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { $('search-results').hidden = true; e.target.blur(); }
+    if (e.key === 'Enter') $('search-results').querySelector('.sr')?.click();
+  });
+}
 document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) $('search-results').hidden = true; });
 
 // ── Sprache ───────────────────────────────────────────────────────────────────
@@ -1088,7 +1125,7 @@ window.addEventListener('hashchange', () => {
   else if (!inner && inMap) closeInterior();
 });
 
-$('lang-toggle').addEventListener('click', () => {
+if (!window.KARTE_HOENN) $('lang-toggle').addEventListener('click', () => {
   window.LANG = window.LANG === 'de' ? 'en' : 'de';
   localStorage.setItem('hub-lang', window.LANG);
   document.documentElement.lang = window.LANG;
@@ -1097,4 +1134,4 @@ $('lang-toggle').addEventListener('click', () => {
 
 // Randomizer-Stand: Chip „Randomizer: Name ×“ bzw. „Randomizer-ROM laden“ im Kopf
 if (window.PokeHubRando) window.PokeHubRando.chip($('map-rando'));
-init();
+if (!window.KARTE_HOENN) init();

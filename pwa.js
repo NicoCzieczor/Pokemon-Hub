@@ -8,6 +8,7 @@
  *  4. Speicherstand sichern / laden (Buttons auf der Startseite)
  *  5. Navigationsleiste der Tools: aktiver Tab sichtbar, Sprachknopf in der Leiste statt darüber
  *  6. Design (Theme): Klassik, Papier, Graphit – Farben in theme.css, Knopf neben dem Sprachknopf
+ *  7. Handy & Tablet: ohne die Szenen neben der Karte (window.PokeHubLite, Klasse hub-lite)
  */
 (function () {
   'use strict';
@@ -32,6 +33,15 @@
     (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
   var touch = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
     navigator.maxTouchPoints > 0;
+
+  /* ── 7. Handy & Tablet: keine Szenen neben der Karte ── */
+  // Dort ist kein Platz für sie – sie würden nur Sprites laden und Animationen rechnen (Akku, Leistung). Jede Szene
+  // (Bosse/boss.js, Karte/sea.js, stage.js …) fragt window.PokeHubLite und baut sich dann gar nicht erst auf;
+  // theme.css blendet ihre Container aus. Touch als Hauptbedienung + Bildschirm unter 1400 px = Handy/Tablet.
+  var lite = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) &&
+    Math.max(screen.width || 0, screen.height || 0) < 1400;
+  window.PokeHubLite = lite;
+  if (lite) document.documentElement.classList.add('hub-lite');
 
   // Handy-Startseite am PC → PC-Startseite (Gegenstück zur Weiterleitung in home.js, gleiche Bedingung).
   // Die App startet auf mobile.html (manifest.json), damit am Handy keine Weiterleitung nötig ist.
@@ -520,7 +530,7 @@
     ['schwarz-weiss', 5, 'Schwarz/Weiß', 'Black/White', 'Schwarz / Weiß', 'Black / White', 'bw', 'schwarz-weiss', 'black-white'],
     ['schwarz2-weiss2', 5, 'S2/W2', 'B2/W2', 'Schwarz 2 / Weiß 2', 'Black 2 / White 2', 'bw2', 'schwarz2-weiss2', 'black-2-white-2'],
     ['x-y', 6, 'X/Y', 'X/Y', 'X / Y', 'X / Y', 'xy', 'x-y', 'x-y'],
-    ['omega-rot-alpha-saphir', 6, 'ΩR/αS', 'OR/AS', 'Omega Rubin / Alpha Saphir', 'Omega Ruby / Alpha Sapphire', 'oras', 'omega-rubin-alpha-saphir', 'omega-ruby-alpha-sapphire'],
+    ['omega-rot-alpha-saphir', 6, 'ORAS', 'ORAS', 'Omega Rubin / Alpha Saphir', 'Omega Ruby / Alpha Sapphire', 'oras', 'omega-rubin-alpha-saphir', 'omega-ruby-alpha-sapphire'],
     ['sonne-mond', 7, 'Sonne/Mond', 'Sun/Moon', 'Sonne / Mond', 'Sun / Moon', 'sm', 'sonne-mond', 'sun-moon'],
     ['ultrasonne-ultramond', 7, 'US/UM', 'US/UM', 'Ultrasonne / Ultramond', 'Ultra Sun / Ultra Moon', 'usum', 'ultrasonne-ultramond', 'ultra-sun-ultra-moon'],
     ['letsgo', 7, "Let's Go", "Let's Go", "Let's Go Pikachu / Evoli", "Let's Go Pikachu / Eevee", null, null, 'lets-go-pikachu-lets-go-eevee'],
@@ -698,10 +708,16 @@
     SaveViewer: ['Save-Viewer', 'Save Viewer'], SaveEditor: ['Save-Editor', 'Save Editor'],
     Randomizer: ['Randomizer', 'Randomizer'], Rules: ['Nuzlocke-Regelwerk', 'Nuzlocke Rules']
   };
+  var PAGE_TITLES_ORAS = {
+    Karte: ['Karte Hoenn (Omega Rubin / Alpha Saphir)', 'Hoenn Map (Omega Ruby / Alpha Sapphire)'],
+    Bosse: ['Boss-Planer (Omega Rubin / Alpha Saphir)', 'Boss Planner (Omega Ruby / Alpha Sapphire)']
+  };
   function labelToolNav() {
     var en = 0;
     try { en = localStorage.getItem('hub-lang') === 'en' ? 1 : 0; } catch (e) {}
-    var page = PAGE_TITLES[hubArea(location.href)];
+    // Karte und Boss-Planer zeigen mit Omega Rubin / Alpha Saphir als Hub-Spiel Hoenn statt Sinnoh
+    var area = hubArea(location.href), oras = currentGame() === 'omega-rot-alpha-saphir';
+    var page = oras && PAGE_TITLES_ORAS[area] || PAGE_TITLES[area];
     if (page) document.title = page[en] + ' – Pokémon Hub';
     var nav = document.querySelector('.tool-nav');
     if (!nav) return;

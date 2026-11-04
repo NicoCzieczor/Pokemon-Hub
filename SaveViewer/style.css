@@ -1,10 +1,7 @@
+/* Hintergrund ist die Box-Tapete (pc.css) – darunter nur eine dunkle Farbe für den Überscroll */
 html, body {
   min-height: 100%;
-  background:
-    radial-gradient(circle at 10% 15%, rgba(var(--t-acc2-glow), 0.13), transparent 26%),
-    radial-gradient(circle at 90% 20%, rgba(var(--t-acc-glow), 0.09), transparent 22%),
-    radial-gradient(circle at 50% 90%, rgba(112, 56, 248, 0.08), transparent 30%),
-    rgb(var(--t-n-0d0f2b));
+  background: rgb(var(--t-n-0d0f2b));
   color: var(--color-text);
 }
 html, body { height: auto; }
@@ -24,14 +21,12 @@ button { cursor: pointer; }
 img { border-radius: 0; }
 p { margin: 0; }
 
+/* Karte vor dem PC – Rahmen und Hintergrund: #app.win-frame (base.css) */
 #app {
   width: min(98vw, 1340px);
   margin: 0 auto;
   padding: 24px;
-  background: linear-gradient(180deg, rgba(var(--t-n-191b3a), 0.98), rgba(var(--t-n-101230), 0.96));
   border-radius: 28px;
-  box-shadow: 0 28px 80px rgba(var(--t-shade), 0.28);
-  border: 1px solid rgba(var(--t-ink), 0.08);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -108,7 +103,7 @@ header p { color: var(--color-muted); }
   border: 1px solid rgba(var(--t-ink), 0.12); background: rgba(var(--t-ink), 0.05);
   color: var(--color-muted); font-size: 0.75rem; font-weight: 700;
 }
-.pill--ok { color: rgb(var(--t-on-acc)); border-color: rgb(var(--t-c-8ef0b4)); background: rgb(var(--t-c-8ef0b4)); }
+.pill--ok { color: rgb(var(--t-on-fill)); border-color: rgb(var(--t-f-8ef0b4)); background: rgb(var(--t-f-8ef0b4)); }
 
 .error > svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
 .error {
@@ -329,7 +324,7 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
 .enc-mon.is-dead img { filter: grayscale(1); }
 .tag { font-size: 0.62rem; font-weight: 900; padding: 1px 6px; border-radius: 6px; background: rgba(var(--t-ink), 0.1); color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .tag.team { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
-.tag.dead { background: rgb(var(--t-g-ffb3b3)); color: rgb(var(--t-on-acc)); }
+.tag.dead { background: rgb(var(--t-f-ffb3b3)); color: rgb(var(--t-on-fill)); }
 .enc-none { color: rgba(var(--t-ink), 0.25); font-size: 0.8rem; }
 
 /* ── Pokédex ── */
@@ -343,6 +338,8 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
   padding: 4px 2px 5px; border-radius: 12px; background: rgba(var(--t-ink), 0.03);
   border: 1px solid rgba(var(--t-ink), 0.05); font-size: 0.62rem; font-weight: 800; color: rgba(var(--t-ink), 0.35);
 }
+/* Papier: dunkle Schrift mit wenig Deckkraft wird auf dem hellen Grund zu blass */
+html[data-theme="paper"] .dex-cell { color: rgba(var(--t-ink), 0.55); }
 .dex-cell img { width: 52px; height: 52px; image-rendering: pixelated; }
 .dex-cell.unseen img { filter: brightness(0); opacity: 0.25; }
 .dex-cell.seen img { filter: grayscale(1); opacity: 0.6; }
@@ -408,7 +405,7 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
 /* ── Soul Link ── */
 .tab-warn { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: #ff5f6d; color: rgb(var(--t-white)); font-size: 0.62rem; font-weight: 900; vertical-align: 1px; }
 .pill--check { color: rgb(var(--t-on-acc)); border-color: rgb(var(--t-acc)); background: rgb(var(--t-acc)); }
-.pill--bad { color: rgb(var(--t-on-acc)); border-color: rgb(var(--t-g-ffb3b8)); background: rgb(var(--t-g-ffb3b8)); }
+.pill--bad { color: rgb(var(--t-on-fill)); border-color: rgb(var(--t-f-ffb3b8)); background: rgb(var(--t-f-ffb3b8)); }
 .sl-stats { display: flex; gap: 6px; flex-wrap: wrap; }
 .sl-tools { display: flex; gap: 10px 18px; flex-wrap: wrap; align-items: center; }
 .sl-grave { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
@@ -458,7 +455,7 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
 .mini-btn--primary { color: var(--color-accent-strong); border-color: rgba(var(--t-acc2), 0.4); }
 .mini-btn:disabled { opacity: 0.45; cursor: default; }
 .src { font-size: 0.6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
-.src--auto { background: rgb(var(--t-c-8ef0b4)); color: rgb(var(--t-on-acc)); }
+.src--auto { background: rgb(var(--t-f-8ef0b4)); color: rgb(var(--t-on-fill)); }
 .src--check { background: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
 .src--manual { background: rgb(var(--t-acc2)); color: rgb(var(--t-on-acc)); }
 
@@ -489,7 +486,7 @@ select option { color: rgb(var(--t-on-acc)); background: rgb(var(--t-g-f8fafc));
 .lk-sub { margin-top: 16px; }
 .lk-sub h3 { display: flex; align-items: center; gap: 8px; }
 .lk-count { padding: 1px 8px; border-radius: 999px; background: rgba(var(--t-ink), 0.08); color: var(--color-muted); font-size: 0.75rem; }
-.lk-sub--todo .lk-count { background: rgb(var(--t-c-ffd23f)); color: rgb(var(--t-on-acc)); }
+.lk-sub--todo .lk-count { background: rgb(var(--t-f-ffd23f)); color: rgb(var(--t-on-fill)); }
 .lk-subnote { color: var(--color-muted); font-size: 0.8rem; }
 .lk-list { display: grid; gap: 6px; }
 .lk-row { padding: 7px 10px 7px 14px; border-radius: 16px; background: rgba(var(--t-ink), 0.035); border: 1px solid rgba(var(--t-ink), 0.06); }

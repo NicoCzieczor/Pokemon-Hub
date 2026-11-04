@@ -1,0 +1,235 @@
+/*
+ * „Ordenkoffer & Herausforderer“ hinter dem Boss-Planer (boss.js): Arena in der Farbe des Gegners, links der
+ * Ordenkoffer aus Platin mit den acht Orden und darunter dem Arenaleiter, rechts der Gegner mit „!“, seinem
+ * stärksten Pokémon und den Bällen.
+ * Klassik: dunkle Halle, Graphit: Kohle und Messing, Papier: helle Arena.
+ */
+
+/* ── Farben je Design (--tc = Typfarbe des Gegners, setzt boss.js) ── */
+.bs {
+  --tc: #8a8aa8;
+  --hall: #0a0c24; --hall-2: #161a40; --floor: #121535; --line: rgba(255, 255, 255, 0.06);
+  --rim: #e8c15a;
+  --plate: rgba(8, 10, 30, 0.88); --plate-ink: #fff; --muted: rgba(255, 255, 255, 0.62);
+}
+:root[data-theme="graphite"] .bs {
+  --hall: #0d0c0b; --hall-2: #1e1c19; --floor: #161411;
+  --rim: #e2aa48;
+}
+:root[data-theme="paper"] .bs {
+  --hall: #eee8dc; --hall-2: #ddd5c6; --floor: #d6cdbb; --line: rgba(60, 40, 20, 0.08);
+  --rim: #c9952a;
+  --plate: rgba(255, 252, 244, 0.94); --plate-ink: #2a2218; --muted: rgba(42, 34, 24, 0.6);
+}
+
+.bs {
+  --k: 2;
+  --s: 1;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bs img { max-width: none; border-radius: 0; image-rendering: pixelated; }
+.bs button { font: inherit; }
+
+/* ── Arena: Licht und Boden in der Typfarbe, ein Kampfring ── */
+.bs-arena { position: absolute; inset: 0; background: linear-gradient(180deg, var(--hall), var(--hall-2) 60%, var(--hall)); transition: background 0.6s; }
+.bs-light {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 50% 60% at 50% 0, color-mix(in srgb, var(--tc) 30%, transparent), transparent),
+    radial-gradient(ellipse 40% 50% at 85% 70%, color-mix(in srgb, var(--tc) 18%, transparent), transparent);
+  transition: background 0.6s;
+  animation: bs-flicker 5s ease-in-out infinite alternate;
+}
+@keyframes bs-flicker { to { opacity: 0.75; } }
+.bs-floor {
+  position: absolute;
+  left: -40%;
+  right: -40%;
+  bottom: 0;
+  height: 30%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 94px, var(--line) 94px 96px),
+    repeating-linear-gradient(180deg, transparent 0 46px, var(--line) 46px 48px),
+    linear-gradient(180deg, color-mix(in srgb, var(--tc) 20%, var(--floor)), var(--floor));
+  transform: perspective(520px) rotateX(60deg);
+  transform-origin: 50% 100%;
+}
+.bs-ring {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  width: 70vw;
+  height: 14vh;
+  translate: -50% 0;
+  border-radius: 50%;
+  border: 6px solid color-mix(in srgb, var(--tc) 55%, transparent);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--tc) 35%, transparent);
+}
+
+/* ── Ordenkoffer aus Platin (boss.js): Bild des Koffers in ganzzahliger Vergrößerung --s, Orden in ihren Mulden ── */
+.bs-case {
+  position: absolute;
+  width: calc(256px * var(--s));
+  pointer-events: auto;
+}
+.bs-ds {
+  position: relative;
+  height: calc(181px * var(--s));
+  background: url(sprites/case.png) 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+/* Lage und Größe in Bildpunkten des DS (--x, --y, --w, --h) */
+.bs-badge {
+  position: absolute;
+  left: calc(var(--x) * var(--s) * 1px);
+  top: calc(var(--y) * var(--s) * 1px);
+  width: calc(var(--w) * var(--s) * 1px);
+  height: calc(var(--h) * var(--s) * 1px);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.bs-gem { display: block; width: 100%; height: 100%; }
+/* Noch nicht verdient: Mulde bleibt leer wie im Spiel, beim Drüberfahren zeigt sich der Orden blass */
+.bs-badge.is-empty .bs-gem { visibility: hidden; }
+.bs-badge.is-empty:hover .bs-gem { visibility: visible; opacity: 0.4; }
+
+/* Glitzern: Bildstreifen aus dem Spiel, Bild für Bild weitergeschoben (nur transform, Schritte = ganze Bilder) */
+.bs-spark {
+  position: absolute;
+  left: calc(var(--dx) * var(--s) * 1px);
+  top: calc(var(--dy) * var(--s) * 1px);
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+.bs-spark--2 { width: calc(32px * var(--s)); height: calc(32px * var(--s)); }
+.bs-spark--4 { width: calc(64px * var(--s)); height: calc(64px * var(--s)); }
+.bs-spark img { display: block; height: 100%; width: 400%; }
+.bs-badge.is-twinkle .bs-spark--2 { visibility: visible; }
+.bs-badge.is-twinkle .bs-spark--2 img { animation: bs-frames 0.533s steps(4) both; }
+.bs-badge.is-polish .bs-spark--4,
+.bs-badge.is-on:not(.is-empty) .bs-spark--4 { visibility: visible; }
+.bs-badge.is-polish .bs-spark--4 img { animation: bs-frames 0.267s steps(4) infinite; }
+/* gewählter Kampf: alle paar Sekunden ein Funkeln */
+.bs-badge.is-on:not(.is-polish) .bs-spark--4 img { animation: bs-frames-pause 2.4s steps(1) infinite; }
+@keyframes bs-frames { to { translate: -100% 0; } }
+@keyframes bs-frames-pause {
+  0% { translate: 0 0; }
+  2.78% { translate: -25% 0; }
+  5.56% { translate: -50% 0; }
+  8.33% { translate: -75% 0; }
+  11.1%, 100% { translate: -100% 0; }
+}
+
+/* Arenaleiter darunter (Maus über einem Orden, sonst gewählter oder nächster Kampf) */
+.bs-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 6px 14px 6px 8px;
+  border-radius: 12px;
+  background: var(--plate);
+  border: 2px solid var(--rim);
+  color: var(--plate-ink);
+}
+.bs-leader { flex: none; width: calc(40px * var(--s)); height: calc(40px * var(--s)); margin: calc(var(--s) * -4px) 0; }
+.bs-leader[hidden] { display: none; }
+.bs-info span { display: flex; flex-direction: column; min-width: 0; }
+.bs-lname { font-size: 0.95rem; font-weight: 900; }
+.bs-case-sub { color: var(--muted); font-size: 0.72rem; font-weight: 700; }
+
+/* ── Gegner: stärkstes Pokémon im Hintergrund, Trainer, „!“, Bälle und Level-Cap ── */
+.bs-foe {
+  position: absolute;
+  left: var(--cr);
+  top: 50%;
+  width: min(calc(var(--strip) - 40px), 330px);
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.bs-ace {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--k) * -30px);
+  width: calc(var(--k) * 120px);
+  height: calc(var(--k) * 120px);
+  translate: -50% 0;
+  scale: -1 1;
+  opacity: 0.4;
+  filter: brightness(0.25) drop-shadow(0 0 18px var(--tc));
+  animation: bs-loom 4s ease-in-out infinite alternate;
+}
+:root[data-theme="paper"] .bs-ace { filter: brightness(0.15) drop-shadow(0 0 18px var(--tc)); opacity: 0.22; }
+@keyframes bs-loom { to { translate: -50% calc(var(--k) * -6px); opacity: 0.55; } }
+.bs-trainer { position: relative; width: calc(var(--k) * 80px); height: calc(var(--k) * 80px); margin-top: calc(var(--k) * 34px); filter: drop-shadow(0 8px 6px rgba(0, 0, 0, 0.45)); }
+.bs-bang {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 40px;
+  margin-bottom: calc(var(--k) * -30px);
+  border-radius: 9px;
+  border: 3px solid #2a2a38;
+  background: #fff;
+  color: #e0403c;
+  font-size: 1.5rem;
+  font-weight: 900;
+  opacity: 0;
+  translate: calc(var(--k) * 26px) calc(var(--k) * 20px);
+}
+.bs-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 14px 12px;
+  border-radius: 12px;
+  background: var(--plate);
+  border: 2px solid var(--tc);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--tc) 35%, transparent), 0 16px 34px rgba(0, 0, 0, 0.4);
+  color: var(--plate-ink);
+  text-align: center;
+  transition: border-color 0.5s;
+}
+.bs-title { font-size: 0.98rem; font-weight: 900; }
+.bs-place { color: var(--muted); font-size: 0.72rem; font-weight: 700; }
+.bs-balls { display: flex; gap: 2px; margin-top: 2px; }
+.bs-balls img { width: 26px; height: 26px; margin: -3px -2px; }
+.bs-balls img.is-empty { filter: grayscale(1) brightness(0.4); opacity: 0.5; }
+.bs-cap { color: var(--muted); font-size: 0.74rem; font-weight: 700; }
+.bs-cap b { color: var(--tc); font-size: 0.95rem; filter: brightness(1.2); }
+:root[data-theme="paper"] .bs-cap b { color: color-mix(in srgb, var(--tc) 60%, #1a1410); filter: none; }
+
+/* Auftritt: Trainer gleitet herein, „!“ springt auf */
+.bs-foe.is-in .bs-trainer { animation: bs-enter 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.2); }
+@keyframes bs-enter { from { translate: 60px 0; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+.bs-foe.is-in .bs-bang { animation: bs-bang 1.4s ease-out 0.35s; }
+@keyframes bs-bang {
+  0% { opacity: 0; scale: 0.3; }
+  15% { opacity: 1; scale: 1.25; }
+  25%, 80% { opacity: 1; scale: 1; }
+  100% { opacity: 0; scale: 1; }
+}
+.bs-foe.is-in .bs-plate { animation: bs-rise 0.5s ease-out 0.15s both; }
+@keyframes bs-rise { from { translate: 0 12px; opacity: 0; } }
+
+/* Zu wenig Platz neben der Karte: nur die Arena */
+.bs.is-bare .bs-case, .bs.is-bare .bs-foe { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bs-light, .bs-ace, .bs-spark img, .bs-foe.is-in .bs-trainer, .bs-foe.is-in .bs-bang, .bs-foe.is-in .bs-plate { animation: none; }
+}

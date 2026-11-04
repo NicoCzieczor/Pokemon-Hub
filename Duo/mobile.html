@@ -444,7 +444,7 @@
     /* ── Modal (bottom sheet style) ── */
     #pokemon-modal {
       position:fixed; top:0; left:0; width:100%; height:100%;
-      background:rgba(0,0,0,0.72); display:flex;
+      background:rgba(var(--t-n-050614),0.72); display:flex;
       justify-content:center; align-items:flex-end; z-index:1002;
     }
     #modal-content {
@@ -480,14 +480,15 @@
     .session-label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); }
     .sync-status { font-size: 0.8rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
     .sync-status-idle     { color: rgba(var(--t-g-cbd5e1), 0.55); background: rgba(var(--t-ink), 0.05); }
-    .sync-status-loading  { color: rgb(var(--t-on-acc));    background: rgb(var(--t-acc)); }
-    .sync-status-waiting  { color: rgb(var(--t-on-acc));    background: rgb(var(--t-acc)); }
-    .sync-status-connected{ color: rgb(var(--t-on-acc));  background: rgb(var(--t-c-50d282)); }
-    .sync-status-error    { color: rgb(var(--t-on-acc));  background: rgb(var(--t-c-ff6450)); }
+    html[data-theme="paper"] .sync-status-idle { color: rgb(var(--t-g-cbd5e1)); }
+    .sync-status-loading  { color: rgb(var(--t-on-fill));    background: rgb(var(--t-f-acc)); }
+    .sync-status-waiting  { color: rgb(var(--t-on-fill));    background: rgb(var(--t-f-acc)); }
+    .sync-status-connected{ color: rgb(var(--t-on-fill));  background: rgb(var(--t-f-50d282)); }
+    .sync-status-error    { color: rgb(var(--t-on-fill));  background: rgb(var(--t-f-ff6450)); }
     .sync-player-count { font-size: 0.82rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.05em; }
     .sync-player-count-hidden  { display: none; }
-    .sync-player-count-partial { color: rgb(var(--t-on-acc));   background: rgb(var(--t-acc)); }
-    .sync-player-count-full    { color: rgb(var(--t-on-acc)); background: rgb(var(--t-c-50d282)); }
+    .sync-player-count-partial { color: rgb(var(--t-on-fill));   background: rgb(var(--t-f-acc)); }
+    .sync-player-count-full    { color: rgb(var(--t-on-fill)); background: rgb(var(--t-f-50d282)); }
     .session-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .sync-top-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
     .sync-btn { padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(var(--t-ink), 0.15); background: rgba(var(--t-ink), 0.08); color: rgb(var(--t-g-edf2f7)); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }

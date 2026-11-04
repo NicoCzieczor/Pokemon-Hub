@@ -1,9 +1,7 @@
+/* Hintergrund ist das Kräftemessen (versus.css) – darunter nur eine dunkle Farbe für den Überscroll */
 html, body {
   min-height: 100%;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(var(--t-acc2-glow), 0.10), transparent 30%),
-    radial-gradient(circle at 85% 80%, rgba(var(--t-acc-glow), 0.08), transparent 28%),
-    rgb(var(--t-n-0d0f2b));
+  background: var(--sky-top);
 }
 body {
   display: flex;
@@ -25,16 +23,18 @@ body {
   --hp-green: rgb(var(--t-c-3ddc84));
   --hp-yellow: rgb(var(--t-c-ffd23f));
   --hp-red: rgb(var(--t-c-ff5a4f));
+  /* dieselben Farben für den KP-Balken (in Papier nicht abgedunkelt, theme.css) */
+  --hp-fill-green: rgb(var(--t-f-3ddc84));
+  --hp-fill-yellow: rgb(var(--t-f-ffd23f));
+  --hp-fill-red: rgb(var(--t-f-ff5a4f));
 }
 
+/* Karte vor der Szene – Rahmen und Hintergrund: #app.win-frame (base.css) */
 #app {
   width: min(98vw, 1340px);
   margin: 0 auto;
   padding: 24px;
-  background: rgba(var(--t-n-191b3a), 0.96);
   border-radius: 28px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(var(--t-ink), 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -252,9 +252,9 @@ main { display: flex; flex-direction: column; gap: 16px; }
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
-.class-tag--physical { background: rgb(var(--t-c-ffa060)); color: rgb(var(--t-on-acc)); }
-.class-tag--special  { background: rgb(var(--t-c-7fdcff)); color: rgb(var(--t-on-acc)); }
-.class-tag--status   { background: rgb(var(--t-g-b8b8c8)); color: rgb(var(--t-on-acc)); }
+.class-tag--physical { background: rgb(var(--t-f-ffa060)); color: rgb(var(--t-on-fill)); }
+.class-tag--special  { background: rgb(var(--t-f-7fdcff)); color: rgb(var(--t-on-fill)); }
+.class-tag--status   { background: rgb(var(--t-f-b8b8c8)); color: rgb(var(--t-on-fill)); }
 .stab-tag {
   font-size: 0.66rem;
   font-weight: 700;

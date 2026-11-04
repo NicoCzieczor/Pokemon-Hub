@@ -2221,6 +2221,7 @@ function renderCheckpointCard() {
   els.checkpointName.textContent = checkpointNameLabel(entry, state.checkpoint);
   els.checkpointType.textContent = entry.type ? `${t('typePrefix')}: ${typeLabel(entry.type)}` : t('eliteChampion');
   els.checkpointCap.textContent = entry.cap ? `Lv.${entry.cap}` : '-';
+  updateScene();
 }
 
 function renderCheckpointProgress() {
@@ -2271,8 +2272,8 @@ function renderLocationOptions() {
 function renderRandomizerToggle() {
   els.randomizerToggle.classList.toggle('is-active', state.randomizer);
   els.randomizerToggle.setAttribute('aria-pressed', String(state.randomizer));
-  // Randomizer-Run in Platin: Chip „Randomizer: ROM ×“ bzw. „Randomizer-ROM laden“ daneben
-  if (els.randoSlot) els.randoSlot.hidden = !(state.randomizer && state.game === 'platin' && window.PokeHubRando);
+  // Randomizer-Run in Platin bzw. Omega Rubin / Alpha Saphir: Chip „Randomizer: ROM ×“ bzw. „Randomizer-ROM laden“ daneben
+  if (els.randoSlot) els.randoSlot.hidden = !(state.randomizer && RANDO_GAMES[state.game] && window.PokeHubRando);
   els.eeveeToggle.classList.toggle('is-active', state.eeveeException);
   els.eeveeToggle.setAttribute('aria-pressed', String(state.eeveeException));
 }
@@ -2477,12 +2478,15 @@ function enrichPokémonNames(list) {
   });
 }
 
-// Randomizer-Run in Platin: Pokémon der Route aus dem Randomizer-Stand (rando-state.js, Karte/encounter-areas.js)
+// Randomizer-Run in Platin bzw. Omega Rubin / Alpha Saphir: Pokémon der Route aus dem Randomizer-Stand (rando-state.js,
+// Karte/encounter-areas.js bzw. encounter-areas-oras.js). Ein Stand des anderen Spiels zählt nicht.
 // → { ids, name } | { missing } (kein Stand) | { old } (Stand ohne wilde Pokémon) | null (Ort ohne Daten)
+const RANDO_GAMES = { platin: 'pt', 'omega-rot-alpha-saphir': 'oras' };
 function randoRouteSpecies(location) {
-  if (state.game !== 'platin' || !window.PokeHubRando) return null;
+  const g = RANDO_GAMES[state.game];
+  if (!g || !window.PokeHubRando) return null;
   const rd = window.PokeHubRando.get();
-  if (!rd) return { missing: true };
+  if (!rd || (rd.game || 'pt') !== g) return { missing: true };
   if (location === STARTER_LOCATION) return rd.starters ? { ids: rd.starters, name: rd.name } : null;
   if (!Array.isArray(rd.wild)) return { old: true };
   const ids = window.PokeHubRando.speciesAt(rd, location);
@@ -2655,6 +2659,41 @@ function renderStats() {
   els.statOpen.textContent = state.encounters.filter(e => e.status === 'open').length;
   els.statFailed.textContent = state.encounters.filter(e => e.status === 'failed').length;
   els.statGraveyard.textContent = graveyardEntries().length;
+  updateScene();
+}
+
+// Reisetagebuch hinter der Karte (journal.js): nächster Kampf, Team, Stempel je Begegnung, Gefallene
+function updateScene() {
+  if (!window.JournalScene) return;
+  const entries = LEVEL_CAPS[state.game]?.entries || [];
+  const entry = entries[state.checkpoint];
+  const mon = (p, place) => ({ name: pokemonDisplayName(p) || '?', sprite: pokemonSprite(p), place: place ? locationLabel(place) : '' });
+  window.JournalScene.update({
+    empty: allRuns.length === 0,
+    next: entry ? { name: checkpointNameLabel(entry, state.checkpoint), cap: entry.cap || '', type: entry.type ? typeLabel(entry.type) : t('eliteChampion') } : null,
+    done: Math.min(state.checkpoint, entries.length),
+    total: entries.length,
+    team: state.encounters.map((e, index) => ({ e, index })).filter(x => x.e.status === 'caught')
+      .map(({ e, index }) => ({ key: `${e.place}|${e.pokemon?.id || e.pokemon?.name || ''}`, index, ...mon(e.pokemon, e.place) })),
+    dead: graveyardEntries().map(g => ({
+      key: `${g.place}|${g.pokemon?.id || g.pokemon?.name || ''}|${g.cause}`,
+      index: g.ref.startsWith('e') ? Number(g.ref.slice(1)) : null,
+      cause: g.cause,
+      ...mon(g.pokemon, g.place),
+    })),
+    stamps: state.encounters.map((e, index) => ({
+      key: `${e.place}|${e.status}|${e.pokemon?.id || e.pokemon?.name || ''}`,
+      place: locationLabel(e.place), status: e.status, label: statusLabel(e.status), index,
+    })),
+    focus: index => {
+      const row = els.encounterList.querySelector(`[data-encounter-index="${index}"]`);
+      if (!row) return;
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      row.classList.remove('is-flash');
+      void row.offsetWidth;
+      row.classList.add('is-flash');
+    },
+  });
 }
 
 const TRASH_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';

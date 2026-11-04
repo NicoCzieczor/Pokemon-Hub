@@ -27,10 +27,48 @@
   <link rel="stylesheet" href="../theme.css">
   <title>Fangrate-Rechner</title>
   <link rel="stylesheet" href="../Pokelocke/base.css" />
+  <link rel="stylesheet" href="../scene.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="encounter.css">
 </head>
 <body>
-  <div id="app">
+  <!-- Wilde Begegnung hinter der Karte: Umgebung nach den Bedingungen, rechts das Pokémon, links der Ball (encounter.js) -->
+  <div class="enc" id="enc" data-env="forest" data-status="none">
+    <div class="enc-env enc-forest" aria-hidden="true">
+      <svg class="enc-trunks enc-trunks--far"></svg>
+      <svg class="enc-trunks enc-trunks--near"></svg>
+      <div class="enc-rays"></div>
+      <svg class="enc-canopy"></svg>
+      <div class="enc-ground"><svg class="enc-edge"></svg></div>
+    </div>
+    <div class="enc-env enc-cave" aria-hidden="true">
+      <svg class="enc-stalactites"></svg>
+      <div class="enc-ground"><svg class="enc-edge"></svg></div>
+    </div>
+    <div class="enc-env enc-sea" aria-hidden="true">
+      <div class="enc-rays"></div>
+      <div class="enc-bubbles"></div>
+      <div class="enc-ground"><svg class="enc-kelp"></svg><svg class="enc-edge"></svg></div>
+    </div>
+    <div class="enc-side enc-side--l">
+      <div class="enc-hand"><img alt=""></div>
+      <div class="enc-plate">
+        <div class="enc-ball-line"><b class="enc-ball-name"></b><span class="enc-ball-prob"></span></div>
+        <button type="button" class="enc-throw">Werfen!</button>
+        <div class="enc-tally"></div>
+      </div>
+    </div>
+    <div class="enc-side enc-side--r">
+      <div class="enc-hpbox">
+        <div class="enc-hp-head"><b class="enc-name"></b><span class="enc-status" hidden></span><span class="enc-lv"></span></div>
+        <div class="enc-hp"><i>KP</i><span class="enc-hp-track"><span class="enc-hp-fill"></span></span></div>
+      </div>
+      <div class="enc-mon"><span class="enc-fx"></span><img alt=""></div>
+      <div class="enc-msg" aria-live="polite" hidden></div>
+    </div>
+  </div>
+
+  <div id="app" class="win-frame">
 
     <button class="lang-toggle" id="lang-toggle">DE</button>
 
@@ -210,6 +248,8 @@
   <div id="formula-tooltip" class="formula-tooltip"></div>
 
   <script src="../pokemon-names.js"></script>
+  <script src="../scene.js"></script>
+  <script src="encounter.js"></script>
   <script type="module" src="main.js"></script>
 </body>
 </html>

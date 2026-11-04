@@ -17,9 +17,10 @@
   <title>Boss-Planer (Platin) – Pokémon Hub</title>
   <link rel="stylesheet" href="../Pokelocke/base.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="boss.css">
 </head>
 <body>
-<div id="app">
+<div id="app" class="win-frame">
 
 <button class="lang-toggle" id="lang-toggle">DE</button>
 
@@ -51,9 +52,9 @@
   <div class="team-source">
     <div id="save-tabs" class="save-tabs"></div>
     <button type="button" class="btn-ghost" id="load-save" data-i18n="loadSave">Spielstand laden</button>
-    <input type="file" id="file-input" accept=".sav,.dsv,.bin" hidden>
+    <input type="file" id="file-input" hidden>
     <button type="button" class="btn-ghost" id="load-rom" data-i18n="loadRom" data-i18n-title="romHint" title="Für Randomizer-Runs: Lade deine randomisierte ROM (.nds)">Randomizer-ROM laden</button>
-    <input type="file" id="rom-input" accept=".nds" hidden>
+    <input type="file" id="rom-input" accept=".nds,.3ds,.cxi,.cci" hidden>
     <span class="rando-chip" id="rando-chip" hidden></span>
   </div>
   <div class="team-opts">
@@ -62,6 +63,12 @@
         <option value="turtwig"></option>
         <option value="chimchar"></option>
         <option value="piplup"></option>
+      </select>
+    </label>
+    <label class="opt" id="version-opt" hidden><span data-i18n="version">Edition</span>
+      <select id="version-select">
+        <option value="or" data-i18n="versionOr">Omega Rubin</option>
+        <option value="as" data-i18n="versionAs">Alpha Saphir</option>
       </select>
     </label>
     <label class="opt"><span data-i18n="weather">Wetter</span>
@@ -98,6 +105,10 @@
 
 </div>
 
+<!-- Ordenkoffer & Herausforderer hinter der Karte: Orden, Gegner mit „!“ und stärkstem Pokémon (boss.js).
+     Nach #app wegen der Tab-Reihenfolge -->
+<div class="bs" id="bs" aria-hidden="true"></div>
+
 <!-- Pokémon aus der Box dazunehmen -->
 <div id="box-picker" class="picker" hidden>
   <div class="picker-dialog" role="dialog" aria-modal="true" aria-labelledby="picker-title">
@@ -123,9 +134,15 @@
 
 <script src="../SaveViewer/data-pt.js"></script>
 <script src="../SaveViewer/pt-save.js"></script>
+<script src="../SaveViewer/data-oras.js"></script>
+<script src="../SaveViewer/oras-save.js"></script>
+<script src="../SaveViewer/hub-save.js"></script>
 <script src="../DamageCalc/mechanics.js"></script>
 <script src="../Karte/trainer-classes.js"></script>
 <script src="rando.js"></script>
+<script src="oras-rom.js"></script>
+<script src="../scene.js"></script>
+<script src="boss.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

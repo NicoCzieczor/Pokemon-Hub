@@ -28,9 +28,10 @@
   <title>Run-Dashboard - Pokémon Hub</title>
   <link rel="stylesheet" href="../Pokelocke/base.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="journal.css">
 </head>
 <body>
-  <div id="app">
+  <div id="app" class="win-frame">
     <nav class="tool-nav" aria-label="Pokémon tools">
       <a class="tool-nav-link" href="../index.html" data-i18n="nav.home">Home</a>
       <a class="tool-nav-link is-active" href="index.html" aria-current="page" data-i18n="nav.run">Run</a>
@@ -218,6 +219,10 @@
     </footer>
   </div>
 
+  <!-- Reisetagebuch hinter der Karte: Zettel mit dem nächsten Kampf, Team-Polaroids, Stempel je Begegnung,
+       die Gefallenen (journal.js). Nach #app, damit die Tab-Reihenfolge mit der Seite beginnt -->
+  <div class="jr" id="jr" aria-hidden="true"></div>
+
   <div id="pokemon-modal" class="pokemon-modal">
     <div class="pokemon-modal-content">
       <div class="pokemon-modal-header">
@@ -285,6 +290,9 @@
   <script src="../locations.js"></script>
   <script src="../rando-state.js"></script>
   <script src="../Karte/encounter-areas.js"></script>
+  <script src="../Karte/encounter-areas-oras.js"></script>
+  <script src="../scene.js"></script>
+  <script src="journal.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

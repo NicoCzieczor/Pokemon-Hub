@@ -1,0 +1,293 @@
+/*
+ * „Kräftemessen“ hinter dem Schadens-Rechner (versus.js): zwei Hälften in den Typfarben von Angreifer (--ta) und
+ * Verteidiger (--td), in der Mitte geteilt wie eine Kampfansage, mit Speedlines und Leuchtband; darauf die beiden
+ * Pokémon, Wetter und Schilde. Der zweite Typ (--ta2, --td2; bei nur einem Typ wieder der erste) färbt die Speedlines
+ * und die untere Kante des Bands – da, aber leiser als der erste.
+ *
+ * Die Typfarben werden mit dem Grundton des Designs gemischt: dunkel bei Klassik/Graphit, hell bei Papier.
+ */
+
+.vs {
+  --vs-base: #0c0e24; --vs-mix: 34%; --vs-band-mix: 56%; --vs-edge: 72%;
+  --stripe: rgba(255, 255, 255, 0.05); --sweep: rgba(255, 255, 255, 0.1); --vig: rgba(0, 0, 0, 0.4);
+  --vs-mon: none;
+  --ta: #bbbbaa; --td: #bbbbaa; --tm: #bbbbaa; --ta2: #bbbbaa; --td2: #bbbbaa;
+  --vs-line: 38%;
+}
+:root[data-theme="graphite"] .vs { --vs-base: #141311; }
+:root[data-theme="paper"] .vs {
+  --vs-base: #f6f1e8; --vs-mix: 40%; --vs-band-mix: 62%; --vs-edge: 85%;
+  --stripe: rgba(255, 255, 255, 0.42); --sweep: rgba(255, 255, 255, 0.45); --vig: rgba(120, 90, 60, 0.18);
+  --vs-mon: none;
+  --vs-line: 55%;
+}
+
+.vs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--vs-base); }
+
+/* ── Zwei Hälften, genau in der Mitte geteilt und spiegelgleich (Streifen, Abdunklung). Eine schräge Naht lag oben
+   rechts und unten links der Mitte und ließ das Ganze schief wirken. Beide Kanten hängen an denselben 50 %, so gibt es
+   keinen Spalt ── */
+.vs-half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--c) var(--vs-mix), var(--vs-base));
+  background-image: radial-gradient(ellipse 90% 70% at 50% 62%, transparent 45%, var(--vig));
+}
+.vs-half--l { --c: var(--ta); --c2: var(--ta2); left: 0; }
+.vs-half--r { --c: var(--td); --c2: var(--td2); left: 50%; }
+
+/* Speedlines: stehen still. Bewegt kosteten die zwei bildschirmgroßen, schrägen Ebenen bei jedem Bild Grafikleistung –
+   die Seite ruckelte, auch wenn sie nur in kurzen Schüben liefen. So werden sie einmal gemalt und kosten danach nichts. */
+.vs-stripes {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: -24vh;
+  right: -24vh;
+  /* in der Farbe des zweiten Typs, etwas aufgehellt, damit sie sich vom ersten abheben */
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, color-mix(in srgb, var(--c2) 80%, #fff) var(--vs-line), transparent) 0 3px, transparent 3px 96px);
+  transform: skewX(-18deg);
+}
+/* rechts das Spiegelbild der linken */
+.vs-half--r .vs-stripes { transform: scaleX(-1) skewX(-18deg); }
+
+/* Leuchtband hinter den Pokémon, mit hellen Kanten und einem Lichtschein, der zur Mitte wandert */
+.vs-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50vh;
+  height: 30vh;
+  overflow: hidden;
+  border-block: 3px solid color-mix(in srgb, var(--c) var(--vs-edge), #fff);
+  border-bottom-color: color-mix(in srgb, var(--c2) var(--vs-edge), #fff);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 14px, var(--stripe) 14px 16px),
+    color-mix(in srgb, var(--c) var(--vs-band-mix), var(--vs-base));
+}
+.vs-band::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, var(--sweep), transparent);
+  transform: translateX(-100%);
+}
+/* Lichtschein läuft einmal über das Band, wenn ein neues Duell steht und beim „Angriff!“ (.is-rush, versus.js) –
+   eine kleine Fläche, das kostet kaum etwas */
+.vs.is-rush .vs-band::after { animation: vs-sweep 1.5s ease-in-out; }
+.vs.is-rush .vs-half--r .vs-band::after { animation-direction: reverse; }
+@keyframes vs-sweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+
+/* ── Wetter: Sonne als warmes Licht von oben, Regen als Streifen ── */
+.vs-weather { position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s; }
+.vs[data-weather="sun"] .vs-sun,
+.vs[data-weather="rain"] .vs-rain { opacity: 1; }
+.vs-sun {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% -5%, rgba(255, 205, 100, 0.4), transparent 70%),
+    linear-gradient(rgba(255, 170, 60, 0.07), rgba(255, 170, 60, 0.07));
+}
+.vs-rain {
+  top: -160px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='160'%3E%3Cg stroke='rgba(200,222,255,0.5)' stroke-width='2'%3E%3Cpath d='M10 0l-6 30M50 40l-6 30M90 90l-6 30M30 118l-6 30M70 8l-6 30M110 62l-6 30'/%3E%3C/g%3E%3C/svg%3E");
+  animation: vs-rain 0.45s linear infinite paused;
+}
+.vs[data-weather="rain"] .vs-rain { animation-play-state: running; }
+@keyframes vs-rain { to { transform: translateY(160px); } }
+
+/* ══ Die beiden Pokémon (Lage und Größe setzt versus.js: --cl, --cr, --s, --sw) ══ */
+.vs-side {
+  position: absolute;
+  bottom: 26vh;
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.vs-side--l { left: var(--cl); }
+.vs-side--r { left: var(--cr); }
+.vs.is-tight .vs-side,
+.vs:not(.has-atk) .vs-side--l,
+.vs:not(.has-def) .vs-side--r { display: none; }
+.vs:not(.has-move) .vs-plate { display: none; }
+
+.vs-mon { position: relative; width: calc(var(--nw, 80) * var(--s) * 1px); height: calc(var(--nh, 60) * var(--s) * 1px); }
+.vs-mon::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--s) * -4px);
+  width: calc(var(--s) * 50px);
+  height: calc(var(--s) * 9px);
+  translate: -50% 0;
+  border-radius: 50%;
+  background: rgba(var(--t-shade), 0.3);
+}
+/* Wippen: fließend und auf der Hülle (.vs-bob), nicht am Bild selbst. Ein bewegtes Pixel-Bild (image-rendering: pixelated)
+   rastet der Browser auf ganze Bildschirmpixel ein – das Pokémon sprang dann in 1-px-Stufen, rund viermal pro Sekunde mit
+   Pausen dazwischen, und wirkte ruckelig. Die Hülle verschiebt die Grafikkarte stufenlos; nur transform, kostet die Seite nichts. */
+.vs-bob {
+  --bob: calc(var(--s) * -2px);
+  position: absolute;
+  inset: 0;
+  filter: var(--vs-mon);
+  will-change: transform;
+  animation: vs-bob 2.2s ease-in-out infinite alternate;
+}
+.vs-mon--def .vs-bob { animation-delay: -1.1s; }
+@keyframes vs-bob { to { transform: translateY(var(--bob)); } }
+.vs-mon img {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+  translate: 0 calc(var(--feet, 8) * var(--s) * 1px);
+  image-rendering: pixelated;
+}
+/* Platin-Sprites schauen nach links – der Angreifer links wird gespiegelt, damit er zum Gegner schaut */
+.vs-mon--atk img { scale: -1 1; }
+.vs.is-fainted .vs-mon--def { opacity: 0; }
+
+/* Verbrennung / Paralyse: kurzes Aufblitzen in der Farbe */
+.vs.atk-burn .vs-mon--atk .vs-bob { --tint: sepia(1) saturate(6) hue-rotate(-30deg); }
+.vs.atk-par .vs-mon--atk .vs-bob,
+.vs.def-par .vs-mon--def .vs-bob { --tint: sepia(1) saturate(6) hue-rotate(5deg) brightness(1.15); }
+.vs:is(.atk-burn, .atk-par) .vs-mon--atk .vs-bob { animation: vs-bob 2.2s ease-in-out infinite alternate, vs-tint 2.4s steps(1, end) infinite; }
+.vs.def-par .vs-mon--def .vs-bob { animation: vs-bob 2.2s ease-in-out -1.1s infinite alternate, vs-tint 2.4s steps(1, end) infinite; }
+@keyframes vs-tint {
+  0%, 82%, 92% { filter: var(--vs-mon); }
+  86%, 96% { filter: var(--tint); }
+}
+
+/* Reflektor / Lichtschild: Glaswand vor dem Verteidiger */
+.vs-screen {
+  position: absolute;
+  z-index: 1;
+  left: -14%;
+  right: -14%;
+  top: -12%;
+  bottom: -8%;
+  border-radius: 14px;
+  border: 2px solid rgba(190, 230, 255, 0.6);
+  background: linear-gradient(135deg, rgba(170, 220, 255, 0.24), rgba(255, 255, 255, 0.05) 50%, rgba(255, 170, 230, 0.2));
+  box-shadow: inset 0 0 24px rgba(160, 210, 255, 0.3);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.vs.has-screens .vs-screen { opacity: 1; }
+
+/* Kästen im Stil des Menüfensters (wie auf den anderen Bühnen) */
+.vs-hpbox, .vs-plate, .vs-msg {
+  border-radius: 12px;
+  border: 2px solid rgba(var(--t-ink), 0.16);
+  background: linear-gradient(180deg, rgb(var(--t-n-262952)), rgb(var(--t-n-161838)));
+  box-shadow: inset 0 0 0 2px rgba(var(--t-n-0d0f2b), 0.5), inset 0 0 0 3px rgba(var(--t-acc), 0.35), 0 10px 30px rgba(var(--t-shade), 0.4);
+  color: var(--color-text);
+}
+
+/* KP-Kasten des Verteidigers: Name, Level, Balken und KP-Zahl */
+.vs-hpbox { width: 240px; margin-bottom: calc(var(--s) * 10px); padding: 8px 12px 8px; }
+.vs:not(.has-hp) .vs-hpbox { visibility: hidden; }
+.vs-hp-head { display: flex; align-items: center; gap: 8px; }
+.vs-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgb(var(--t-white)); font-size: 0.92rem; font-weight: 800; }
+.vs-lv { color: var(--color-muted); font-size: 0.78rem; font-weight: 800; }
+.vs-hp { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.vs-hp i { color: rgb(var(--t-acc)); font-size: 0.62rem; font-style: normal; font-weight: 800; letter-spacing: 0.06em; }
+.vs-hp-track { flex: 1; height: 10px; border-radius: 5px; border: 2px solid rgba(var(--t-ink), 0.2); background: rgb(var(--t-n-0d0f2b)); overflow: hidden; }
+.vs-hp-fill { display: block; height: 100%; border-radius: 3px; background: rgb(var(--t-f-50e880)); transition: width 0.3s, background-color 0.3s; }
+.vs-hp-fill.is-draining { transition: background-color 0.3s; }
+.vs-hp-fill[data-zone="mid"] { background: rgb(var(--t-f-ffda08)); }
+.vs-hp-fill[data-zone="low"] { background: rgb(var(--t-f-f05050)); }
+.vs-hp-num { display: block; margin-top: 2px; text-align: right; color: rgb(var(--t-white)); font-size: 0.78rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Unter dem Band: links Attacke und „Angriff!“, rechts die Meldung */
+.vs-plate, .vs-msg {
+  position: absolute;
+  top: calc(100% + 6vh + 18px);
+  left: 50%;
+  translate: -50% 0;
+}
+.vs-plate {
+  max-width: var(--sw, 300px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 12px;
+  pointer-events: auto;
+}
+.vs-move-line { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.vs-move-type { padding: 1px 8px; border-radius: 6px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.vs-move-name { color: rgb(var(--t-white)); font-size: 0.92rem; }
+.vs-hit {
+  padding: 8px 22px;
+  border: 0;
+  border-radius: 10px;
+  background: rgb(var(--t-acc));
+  color: rgb(var(--t-on-acc));
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.15s;
+}
+.vs-hit:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.vs-hit:focus-visible { outline: 2px solid rgb(var(--t-acc2)); outline-offset: 2px; }
+.vs-hit:disabled { opacity: 0.5; cursor: default; }
+.vs-tally:empty { display: none; }
+.vs-tally { color: var(--color-muted); font-size: 0.74rem; font-weight: 600; white-space: nowrap; }
+.vs-msg {
+  width: min(300px, var(--sw, 300px));
+  padding: 10px 14px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+.vs-msg.is-empty { visibility: hidden; }
+
+/* ── Treffer: Einschlag und Schadenszahl (über der Karte; die Attacke selbst: attacks.css) ── */
+.vs-impact, .vs-dmg { position: fixed; z-index: 50; pointer-events: none; }
+.vs-impact {
+  width: calc(var(--s) * 28px);
+  height: calc(var(--s) * 28px);
+  margin: calc(var(--s) * -14px) 0 0 calc(var(--s) * -14px);
+  background: radial-gradient(circle, #fff 0 22%, var(--tm) 50%);
+  clip-path: polygon(50% 0, 60% 32%, 92% 12%, 70% 42%, 100% 50%, 70% 58%, 92% 88%, 60% 68%, 50% 100%, 40% 68%, 8% 88%, 30% 58%, 0 50%, 30% 42%, 8% 12%, 40% 32%);
+  animation: vs-impact 0.5s ease-out forwards;
+}
+.vs-impact.is-crit { width: calc(var(--s) * 40px); height: calc(var(--s) * 40px); margin: calc(var(--s) * -20px) 0 0 calc(var(--s) * -20px); }
+@keyframes vs-impact {
+  0%   { transform: scale(0.3) rotate(0deg); opacity: 1; }
+  100% { transform: scale(2.4) rotate(25deg); opacity: 0; }
+}
+.vs-dmg {
+  translate: -50% -50%;
+  color: #fff;
+  font-size: 1.7rem;
+  font-weight: 900;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 0, 0, 0.45);
+  animation: vs-dmg 1.2s ease-out forwards;
+}
+.vs-dmg.is-crit { color: #ffd84a; font-size: 2.2rem; }
+@keyframes vs-dmg {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  15%  { transform: translateY(-24px) scale(1.15); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translateY(-80px) scale(1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs.is-rush .vs-band::after, .vs-rain, .vs-bob, .vs-impact, .vs-dmg { animation: none; }
+  .vs-impact, .vs-dmg { display: none; }
+}

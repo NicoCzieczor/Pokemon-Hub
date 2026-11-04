@@ -1,23 +1,22 @@
 /*
- * Save-Editor (früher „Sonderbonbons“) – einen Platin-Spielstand ändern, so einfach wie möglich:
+ * Save-Editor (früher „Sonderbonbons“) – einen Spielstand von Platin oder Omega Rubin / Alpha Saphir ändern, so einfach wie möglich:
  * Sonderbonbons, Attacken / getragenes Item / Freundschaft der Pokémon (Team und Boxen), Pokémon verschieben
  * (Team ↔ Box wie am PC im Spiel), der ganze Beutel,
  * Geld und Münzen.
  *
- * Gelesen und geschrieben wird mit PtSave (pt-save.js), PtBag (pt-bag.js) und PtEdit (pt-edit.js) aus dem
- * Save-Viewer. Jede Änderung landet zuerst in einer Arbeitskopie (save.work); erst „Spielstand speichern“
+ * Gelesen und geschrieben wird mit den Modulen aus dem Save-Viewer: Platin pt-save/-bag/-edit.js, Omega Rubin /
+ * Alpha Saphir oras-save/-bag/-edit.js – welches, entscheidet hub-save.js an der Datei (G.Save, G.Bag, G.Edit). Jede Änderung landet zuerst in einer Arbeitskopie (save.work); erst „Spielstand speichern“
  * schreibt sie. Wo der Browser es kann (Chrome/Edge am PC), wird die ausgewählte Datei direkt ersetzt
  * (File System Access API) – sonst gibt es die geänderte Datei als Download mit genau demselben Namen.
  */
 (function () {
   'use strict';
 
-  var D = window.PT_DATA;
+  // Spiel der geladenen Datei (hub-save.js): Module, Spieldaten, Taschen (Basis-Items, TMs, was man tragen kann)
+  var G = HubSave.get('pt'), D = G.D;
+  function useGame(g) { G = g; D = g.D; }
   var SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
   var ICON_SPR = SPR + '/pokemon/versions/generation-vii/icons/';
-  var PT_SPR = SPR + '/pokemon/versions/generation-iv/platinum/';
-  var KEY_ITEMS = 1, TMS = 2;                         // Taschen (PtBag.POCKETS)
-  var HELD_POCKETS = [0, 4, 5, 6, 7];                 // was ein Pokémon tragen kann (ohne Basis-Items, TMs, Briefe)
   // Typfarben wie im restlichen Hub, Reihenfolge = PKHeX-Typ-Index
   var TYPE_HEX = ['#bbbbaa', '#bb5544', '#96caff', '#9553cd', '#a67439', '#bbaa66', '#92c12a', '#6e4370', '#aaaabb',
     '#ff421c', '#2c9be3', '#62bc5a', '#ffdc00', '#ff6380', '#74cfc0', '#5670be', '#4e4545', '#ec8fe6'];
@@ -30,18 +29,21 @@
   var I18N = {
     de: {
       title1: 'Save-', title2: 'Editor',
-      subtitle: 'Ändere deinen Platin-Spielstand: Pokémon (verschieben, Attacken, Items), Beutel samt Sonderbonbons und Geld – ohne extra Programm.',
+      subtitle: 'Ändere deinen Spielstand (Platin oder Omega Rubin / Alpha Saphir): Pokémon (verschieben, Attacken, Items), Beutel samt Sonderbonbons und Geld – ohne extra Programm.',
       s1Title: 'Im Spiel speichern, Emulator schließen',
       s1Text: 'Speichere ganz normal im Spiel (Menü → Bericht). Schließe danach den Emulator komplett – am Handy auch aus der App-Übersicht wegwischen. Sonst überschreibt er deine Datei gleich wieder.',
       s2Title: 'Spielstand auswählen',
       dropTitle: 'Spielstand hier reinziehen oder antippen',
-      dropSub: 'Datei endet auf .sav oder .dsv. Sie bleibt auf deinem Gerät und wird nirgendwo hochgeladen.',
+      dropSub: 'Platin: Datei endet auf .sav oder .dsv. Omega Rubin / Alpha Saphir: Datei „main“ von Citra. Sie bleibt auf deinem Gerät und wird nirgendwo hochgeladen.',
       dropOther: 'Anderen Spielstand wählen',
       whereTitle: 'Wo liegt mein Spielstand?',
       whereDesmume: 'Im Ordner <code>Battery</code> neben DeSmuME. Die Datei heißt wie dein Spiel und endet auf <code>.dsv</code>.',
       whereMelon: 'Am PC und am Handy direkt neben der Spiel-Datei (<code>.nds</code>): gleicher Name, endet auf <code>.sav</code>. Außer du hast in melonDS einen eigenen Speicherordner eingestellt.',
       whereDrastic: 'Ordner <code>DraStic/backup</code>, endet auf <code>.dsv</code>.',
       whereDelta: 'Spiel lange drücken → Spielstand exportieren. Danach dort wieder importieren.',
+      whereCitra: 'Am PC: Rechtsklick aufs Spiel → <i>Speicherdatenordner öffnen</i>. Am Handy (Citra/Azahar): im Ordner, den du beim ersten Start gewählt hast, unter <code>sdmc/Nintendo 3DS/…/title/00040000/0011c400/data/00000001</code> (Alpha Saphir: <code>0011c500</code>). Die Datei heißt <code>main</code> (ohne Endung); beim Speichern bekommst du eine neue zum Zurücklegen.',
+      pickHint: 'Spielstand aus Citra? Chrome erlaubt im Ordner „AppData“ keinen direkten Zugriff. Öffne ihn ohne Direktspeichern – beim Speichern bekommst du dann eine neue „main“ zum Zurücklegen.',
+      pickPlain: 'Ohne Direktspeichern öffnen',
       whereNote: 'Wichtig: Nimm den normalen Spielstand – keinen Savestate („Schnellspeichern“ im Emulator).',
       s3Title: 'Ändern, was du willst',
       s3Wait: 'Erst den Spielstand auswählen.',
@@ -83,7 +85,7 @@
       addLevel: 'Level',
       addIvs: 'DVs', addIvsRandom: 'Zufällig (wie gefangen)', addIvsPerfect: 'Perfekt (alle 31)',
       addMore: 'Mehr: Wesen, Geschlecht, Fähigkeit, Shiny, Ball, Fangort',
-      addNature: 'Wesen', addGender: 'Geschlecht', addAbility: 'Fähigkeit', addShiny: 'Shiny', addBall: 'Ball', addLoc: 'Fangort',
+      addNature: 'Wesen', addGender: 'Geschlecht', addAbility: 'Fähigkeit', addHidden: 'versteckt', addShiny: 'Shiny', addBall: 'Ball', addLoc: 'Fangort',
       addRandom: 'Zufällig', male: '♂ männlich', female: '♀ weiblich', onlyMale: 'nur ♂', onlyFemale: 'nur ♀', genderless: 'geschlechtslos',
       addPlace: 'Platz wählen →', addCancel: 'Abbrechen',
       addNote: function (n, id) { return 'Trainer: ' + n + ' (ID ' + id + '). Attacken wie bei einem wilden Pokémon auf diesem Level – danach wie gewohnt änderbar. Im Pokédex wird es als gefangen eingetragen.'; },
@@ -139,9 +141,9 @@
       okDirect: 'Fertig! Der Spielstand ist gespeichert.',
       okDirectText: function (f) { return 'Die Datei <code>' + f + '</code> wurde direkt ersetzt. Starte den Emulator und lade dein Spiel – deine Änderungen sind da.'; },
       okDownload: 'Fast fertig! Der neue Spielstand ist in deinen Downloads.',
-      okSteps: function (f) {
+      okSteps: function (f, citra) {
         return [
-          'Öffne den Ordner, aus dem du den Spielstand geholt hast.',
+          citra ? 'Öffne in Citra den Speicherdatenordner (Rechtsklick aufs Spiel → <i>Speicherdatenordner öffnen</i>).' : 'Öffne den Ordner, aus dem du den Spielstand geholt hast.',
           'Zieh die heruntergeladene Datei <code>' + f + '</code> dort hinein und ersetze die alte („Datei ersetzen“ → Ja).',
           'Steht bei der Datei „(1)“ im Namen? Dann das „ (1)“ löschen, damit sie wieder genau <code>' + f + '</code> heißt.',
           'Emulator starten, Spiel laden – deine Änderungen sind da.'
@@ -160,6 +162,16 @@
         ];
       },
       noState: 'Lade danach keinen Savestate („Schnellladen“) – der holt den alten Stand ohne deine Änderungen zurück.',
+      // Citra (Omega Rubin / Alpha Saphir): am Handy die neue „main“ in den Spielstand-Ordner des Emulators verschieben
+      okStepsCitraPhone: function (f, tid) {
+        return [
+          'Die neue Datei <code>' + f + '</code> liegt im Ordner „Download“ (App „Dateien“ bzw. „Eigene Dateien“).',
+          'Öffne den Ordner, den du beim ersten Start von Citra bzw. Azahar gewählt hast, und darin <code>sdmc</code> → <code>Nintendo 3DS</code> → die beiden Ordner mit langen Nummern → <code>title</code> → <code>00040000</code> → <code>' + tid + '</code> → <code>data</code> → <code>00000001</code>.',
+          'Verschieb <code>' + f + '</code> dorthin und ersetze die alte. Hat Android „ (1)“ angehängt, lösch das wieder – der Name muss genau <code>' + f + '</code> sein.',
+          'Citra öffnen und das Spiel normal starten (nicht über einen Savestate) – deine Änderungen sind da.'
+        ];
+      },
+      citraSaveTip: '<b>Tipp:</b> Stell im Browser „Vor dem Download Speicherort festlegen“ ein (Chrome: Einstellungen → Downloads). Dann öffnet sich beim Speichern der Speichern-Dialog – einmal den Speicherdatenordner von Citra wählen und <code>main</code> überschreiben; ab dann merkt sich der Dialog den Ordner.',
       writeFailed: 'Die Datei konnte nicht direkt ersetzt werden – ist der Emulator noch offen? Schließ ihn und versuch es nochmal, oder lade die Datei herunter.',
       retry: 'Nochmal versuchen',
       conflict: 'Die Datei wurde inzwischen geändert – vermutlich hat der Emulator gespeichert. Sie wurde deshalb nicht überschrieben.',
@@ -175,9 +187,9 @@
       backupDownload: 'Herunterladen',
       undone: 'Rückgängig gemacht – der Spielstand ist wieder wie vorher.',
       undoneDownload: 'Die ursprüngliche Datei ist in deinen Downloads. Ersetze den Spielstand damit, dann ist alles wie vorher.',
-      errSize: function (kb) { return 'Das ist kein DS-Spielstand (' + kb + ' KB, erwartet sind 512 KB). Nimm die Datei, die beim Speichern im Spiel entsteht (.sav/.dsv) – keinen Savestate.'; },
-      errGame: function (g) { return 'Das ist ein Spielstand von ' + g + '. Hier geht nur Pokémon Platin.'; },
-      errUnknown: 'Kein Platin-Spielstand erkannt. Hast du im Spiel schon einmal gespeichert? Und ist es die richtige Datei (.sav/.dsv)?',
+      errSize: function (kb) { return 'Das ist kein passender Spielstand (' + kb + ' KB – Platin hat 512 KB, Omega Rubin / Alpha Saphir 472 KB). Nimm die Datei, die beim Speichern im Spiel entsteht (.sav/.dsv bzw. „main“) – keinen Savestate.'; },
+      errGame: function (g) { return 'Das ist ein Spielstand von ' + g + '. Hier gehen Pokémon Platin und Omega Rubin / Alpha Saphir.'; },
+      errUnknown: 'Kein Spielstand von Platin oder Omega Rubin / Alpha Saphir erkannt. Hast du im Spiel schon einmal gespeichert? Und ist es die richtige Datei (.sav/.dsv bzw. „main“)?',
       errBroken: 'Der Spielstand ist beschädigt (Prüfsumme falsch). Lade ihn einmal im Spiel und speichere neu.',
       errRead: 'Die Datei ließ sich nicht lesen: ',
       errEdit: 'Das ließ sich nicht ändern: ',
@@ -185,18 +197,21 @@
     },
     en: {
       title1: 'Save ', title2: 'Editor',
-      subtitle: 'Change your Platinum save file: Pokémon (move them, moves, items), the bag incl. Rare Candies, and money – no extra program.',
+      subtitle: 'Change your save file (Platinum or Omega Ruby / Alpha Sapphire): Pokémon (move them, moves, items), the bag incl. Rare Candies, and money – no extra program.',
       s1Title: 'Save in the game, close the emulator',
       s1Text: 'Save normally in the game (menu → Save). Then close the emulator completely – on a phone, also swipe it away from the recent apps. Otherwise it will overwrite your file again.',
       s2Title: 'Choose your save file',
       dropTitle: 'Drop your save file here or tap',
-      dropSub: 'The file ends with .sav or .dsv. It stays on your device and is never uploaded.',
+      dropSub: 'Platinum: the file ends with .sav or .dsv. Omega Ruby / Alpha Sapphire: the file “main” from Citra. It stays on your device and is never uploaded.',
       dropOther: 'Choose another save file',
       whereTitle: 'Where is my save file?',
       whereDesmume: 'In the <code>Battery</code> folder next to DeSmuME. Named like your game, ends with <code>.dsv</code>.',
       whereMelon: 'On PC and phone right next to the game file (<code>.nds</code>): same name, ends with <code>.sav</code>. Unless you set your own save folder in melonDS.',
       whereDrastic: 'Folder <code>DraStic/backup</code>, ends with <code>.dsv</code>.',
       whereDelta: 'Long-press the game → export save file. Import it there again afterwards.',
+      whereCitra: 'On PC: right-click the game → <i>Open Save Data Location</i>. On a phone (Citra/Azahar): in the folder you chose on first start, under <code>sdmc/Nintendo 3DS/…/title/00040000/0011c400/data/00000001</code> (Alpha Sapphire: <code>0011c500</code>). The file is called <code>main</code> (no extension); when saving you get a new one to put back.',
+      pickHint: 'A save from Citra? Chrome does not allow direct access in the “AppData” folder. Open it without direct saving – when saving you then get a new “main” to put back.',
+      pickPlain: 'Open without direct saving',
       whereNote: 'Important: use the normal save file – not a save state (the emulator\'s quick save).',
       s3Title: 'Change whatever you want',
       s3Wait: 'Choose your save file first.',
@@ -237,7 +252,7 @@
       addLevel: 'Level',
       addIvs: 'IVs', addIvsRandom: 'Random (like a catch)', addIvsPerfect: 'Perfect (all 31)',
       addMore: 'More: nature, gender, ability, shiny, ball, location',
-      addNature: 'Nature', addGender: 'Gender', addAbility: 'Ability', addShiny: 'Shiny', addBall: 'Ball', addLoc: 'Met at',
+      addNature: 'Nature', addGender: 'Gender', addAbility: 'Ability', addHidden: 'hidden', addShiny: 'Shiny', addBall: 'Ball', addLoc: 'Met at',
       addRandom: 'Random', male: '♂ male', female: '♀ female', onlyMale: 'male only', onlyFemale: 'female only', genderless: 'genderless',
       addPlace: 'Choose a slot →', addCancel: 'Cancel',
       addNote: function (n, id) { return 'Trainer: ' + n + ' (ID ' + id + '). Moves like a wild Pokémon at this level – you can change them afterwards. It is registered as caught in the Pokédex.'; },
@@ -288,9 +303,9 @@
       okDirect: 'Done! The save file is saved.',
       okDirectText: function (f) { return 'The file <code>' + f + '</code> was replaced directly. Start the emulator and load your game – your changes are there.'; },
       okDownload: 'Almost done! The new save file is in your downloads.',
-      okSteps: function (f) {
+      okSteps: function (f, citra) {
         return [
-          'Open the folder you took the save file from.',
+          citra ? 'In Citra, open the save data folder (right-click the game → <i>Open Save Data Location</i>).' : 'Open the folder you took the save file from.',
           'Drag the downloaded file <code>' + f + '</code> in there and replace the old one ("Replace the file" → Yes).',
           'Does the file name contain "(1)"? Then delete the " (1)" so it is called exactly <code>' + f + '</code> again.',
           'Start the emulator, load your game – your changes are there.'
@@ -309,6 +324,15 @@
         ];
       },
       noState: 'Don\'t load a save state afterwards – it brings back the old state without your changes.',
+      okStepsCitraPhone: function (f, tid) {
+        return [
+          'The new file <code>' + f + '</code> is in the "Download" folder (Files app).',
+          'Open the folder you chose on the first start of Citra or Azahar, and in it <code>sdmc</code> → <code>Nintendo 3DS</code> → the two folders with long numbers → <code>title</code> → <code>00040000</code> → <code>' + tid + '</code> → <code>data</code> → <code>00000001</code>.',
+          'Move <code>' + f + '</code> there and replace the old one. If Android added " (1)", delete it again – the name must be exactly <code>' + f + '</code>.',
+          'Open Citra and start the game normally (not from a save state) – your changes are there.'
+        ];
+      },
+      citraSaveTip: '<b>Tip:</b> turn on “Ask where to save each file” in your browser (Chrome: Settings → Downloads). Saving then opens the save dialog – pick Citra\'s save data folder once and overwrite <code>main</code>; after that the dialog remembers the folder.',
       writeFailed: 'The file could not be replaced directly – is the emulator still open? Close it and try again, or download the file.',
       retry: 'Try again',
       conflict: 'The file has changed in the meantime – probably the emulator saved. So it was not overwritten.',
@@ -324,9 +348,9 @@
       backupDownload: 'Download',
       undone: 'Undone – the save file is back to how it was.',
       undoneDownload: 'The original file is in your downloads. Replace your save file with it and everything is back to how it was.',
-      errSize: function (kb) { return 'This is not a DS save file (' + kb + ' KB, expected 512 KB). Use the file created when you save in the game (.sav/.dsv) – not a save state.'; },
-      errGame: function (g) { return 'This is a save file from ' + g + '. Only Pokémon Platinum works here.'; },
-      errUnknown: 'No Platinum save detected. Have you saved in the game at least once? And is it the right file (.sav/.dsv)?',
+      errSize: function (kb) { return 'This is not a matching save file (' + kb + ' KB – Platinum has 512 KB, Omega Ruby / Alpha Sapphire 472 KB). Use the file created when you save in the game (.sav/.dsv or “main”) – not a save state.'; },
+      errGame: function (g) { return 'This is a save file from ' + g + '. Pokémon Platinum and Omega Ruby / Alpha Sapphire work here.'; },
+      errUnknown: 'No Platinum or Omega Ruby / Alpha Sapphire save detected. Have you saved in the game at least once? And is it the right file (.sav/.dsv or “main”)?',
       errBroken: 'The save file is damaged (wrong checksum). Load it in the game once and save again.',
       errRead: 'The file could not be read: ',
       errEdit: 'This could not be changed: ',
@@ -360,7 +384,7 @@
 
   /* ── Namen und Bilder ──────────────────────────────────────────── */
   function itemName(id) { var n = T().items[id]; return n && n !== '???' ? n : '#' + id; }
-  function realItem(id) { var n = T().items[id]; return PtBag.pocketOf(id) >= 0 && !!n && n !== '???'; }
+  function realItem(id) { var n = T().items[id]; return G.Bag.pocketOf(id) >= 0 && !!n && n !== '???'; }
   function itemImg(id, cls) {
     var s = D.itemSprites[id];
     return s ? '<img class="' + (cls || '') + '" src="' + SPR + '/items/' + s + '.png" alt="" loading="lazy">' : '<span class="' + (cls || '') + '"></span>';
@@ -368,6 +392,12 @@
   function typeBadge(t) { return '<span class="type" style="--c:' + TYPE_HEX[t] + '">' + esc(T().types[t]) + '</span>'; }
   function monName(m) { return m.isEgg ? T().species[0] : (m.isNicknamed && m.nickname ? m.nickname : T().species[m.species]); }
   function icon(m) { return '<img src="' + ICON_SPR + (m.isEgg ? 'egg' : m.species) + '.png" alt="" loading="lazy">'; }
+  // Großes Bild: OR/AS als 3D-Renderbild (Pokémon HOME, weich skaliert), fehlt es, das ORAS-Sprite
+  function monImg(m) {
+    var key = (m.form && D.formSprites && D.formSprites[m.species + '-' + m.form]) || m.species;
+    var fb = G.spriteFallback ? ' data-fb="' + G.spriteFallback + key + '.png" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb)this.src=this.dataset.fb"' : '';
+    return '<img class="ed-mon-img' + (G.sprite3d ? ' is-3d' : '') + '" src="' + G.spriteDir + key + '.png"' + fb + ' alt="" loading="lazy">';
+  }
   function maxPP(id, ups) { var b = (D.moveInfo[id] || [])[1] || 0; return b + Math.floor(b * ups / 5); }
 
   /* ── Pokémon finden ────────────────────────────────────────────── */
@@ -471,6 +501,7 @@
   /* ── Datei laden ───────────────────────────────────────────────── */
   function load(file, handle) {
     state.error = '';
+    state.pickHint = false;
     state.result = null;
     state.picker = null;
     state.shift = null;
@@ -478,7 +509,7 @@
     state.add = null;
     return file.arrayBuffer().then(function (buf) {
       var bytes = new Uint8Array(buf);
-      var data = PtSave.parse(bytes, D);
+      var data = HubSave.parse(bytes);
       if (!data.ok) {
         var l = L();
         state.error = data.error === 'size' ? l.errSize(Math.round(bytes.length / 1024))
@@ -486,8 +517,9 @@
         state.save = null;
         return;
       }
-      var g = PtSave.generalBlock(bytes);
-      if (!g || !g.valid) { state.error = L().errBroken; state.save = null; return; }
+      // Beschädigter Hauptteil (Trainer, Team, Beutel): nicht bearbeiten
+      if (!data.checksums.general) { state.error = L().errBroken; state.save = null; return; }
+      useGame(HubSave.get(data.kind));
       state.save = { name: file.name, handle: handle || null, orig: bytes, work: bytes, base: data, data: data, before: null };
       var first = data.party[0];
       state.mon = first ? first.where : null;
@@ -500,17 +532,29 @@
     }).then(render);
   }
 
+  // Merker: Chrome hat den Datei-Zugriff auf einen Spielstand von Omega Rubin / Alpha Saphir verweigert (AppData).
+  // noHandle() liest, noHandle(true/false) setzt bzw. löscht ihn
+  var NO_HANDLE_KEY = 'saveeditor-oras-nohandle';
+  function noHandle(v) {
+    try {
+      if (v === undefined) return localStorage.getItem(NO_HANDLE_KEY) === '1';
+      if (v) localStorage.setItem(NO_HANDLE_KEY, '1'); else localStorage.removeItem(NO_HANDLE_KEY);
+    } catch (e) { /* egal */ }
+    return false;
+  }
   // Am PC (Chrome/Edge) mit Datei-Zugriff öffnen, damit später direkt gespeichert werden kann
   function pickFile() {
     if (!window.showOpenFilePicker || PHONE) { $('file-input').click(); return; }
-    window.showOpenFilePicker({
-      id: 'pokehub-save',
-      types: [{ description: 'DS-Spielstand', accept: { 'application/octet-stream': ['.sav', '.dsv'] } }],
-      multiple: false
-    }).then(function (handles) {
-      return handles[0].getFile().then(function (file) { return load(file, handles[0]); });
+    // Ohne Dateityp-Filter: der Spielstand von Citra heißt „main“ und hat keine Endung
+    window.showOpenFilePicker({ id: 'pokehub-save', multiple: false }).then(function (handles) {
+      return handles[0].getFile().then(function (file) {
+        if (window.OrasSave && file.size === OrasSave.SIZE) noHandle(false);   // Direktzugriff klappt hier
+        return load(file, handles[0]);
+      });
     }).catch(function (err) {
-      if (err && err.name === 'AbortError') return;
+      // Abgebrochen – oder Chrome hat den Ordner gesperrt (AppData, dort liegen Citras Spielstände): Hinweis mit
+      // normaler Auswahl ohne Direktspeichern
+      if (err && err.name === 'AbortError') { state.pickHint = true; render(); return; }
       $('file-input').click();      // z. B. in einem eingebetteten Fenster nicht erlaubt
     });
   }
@@ -520,7 +564,7 @@
     var sv = state.save;
     try {
       var out = fn(sv.work);
-      var data = PtSave.parse(out, D);
+      var data = G.Save.parse(out, D);
       if (!data.ok) throw new Error('check');
       sv.work = out;
       sv.data = data;
@@ -530,9 +574,9 @@
     }
     render();
   }
-  function editMon(w, fn) { change(function (b) { return PtEdit.editMon(b, w, fn); }); }
+  function editMon(w, fn) { change(function (b) { return G.Edit.editMon(b, w, fn); }); }
 
-  // Verschieben (PtEdit.moveMon): danach bleibt das Pokémon ausgewählt. Geht es nicht, steht der Grund über der
+  // Verschieben (G.Edit.moveMon): danach bleibt das Pokémon ausgewählt. Geht es nicht, steht der Grund über der
   // Liste; bei vollem Team bleibt der Verschiebe-Modus an, damit man gleich ein anderes Ziel antippen kann.
   function shiftTo(fromKey, toKey) {
     var sv = state.save, l = L(), from = wParse(fromKey), to = wParse(toKey);
@@ -540,8 +584,8 @@
     state.shiftNote = '';
     if (sv && from && to && fromKey !== toKey) {
       try {
-        var r = PtEdit.moveMon(sv.work, from, to, D);
-        var data = PtSave.parse(r.bytes, D);
+        var r = G.Edit.moveMon(sv.work, from, to, D);
+        var data = G.Save.parse(r.bytes, D);
         if (!data.ok) throw new Error('check');
         sv.work = r.bytes;
         sv.data = data;
@@ -557,11 +601,11 @@
     render();
   }
 
-  function bagOf(bytes) { return PtBag.read(bytes) || PtBag.POCKETS.map(function () { return []; }); }
+  function bagOf(bytes) { return G.Bag.read(bytes) || G.Bag.POCKETS.map(function () { return []; }); }
 
   function setCount(pocket, id, count) {
     change(function (b) {
-      var bag = bagOf(b), list = bag[pocket], P = PtBag.POCKETS[pocket];
+      var bag = bagOf(b), list = bag[pocket], P = G.Bag.POCKETS[pocket];
       var e = list.filter(function (x) { return x.id === id; })[0];
       if (count <= 0) {
         if (e) list.splice(list.indexOf(e), 1);
@@ -573,7 +617,7 @@
         }
         e.count = Math.min(Math.round(count), P.max);
       }
-      return PtBag.write(b, bag);
+      return G.Bag.write(b, bag);
     });
   }
 
@@ -584,7 +628,7 @@
     if (a.trainer.money !== b.trainer.money) out.push('<b>' + esc(l.money) + '</b> ' + l.chFrom(num(a.trainer.money), num(b.trainer.money)));
     if (a.trainer.coins !== b.trainer.coins) out.push('<b>' + esc(l.coins) + '</b> ' + l.chFrom(num(a.trainer.coins), num(b.trainer.coins)));
     var A = bagOf(sv.orig), B = bagOf(sv.work);
-    PtBag.POCKETS.forEach(function (p, pi) {
+    G.Bag.POCKETS.forEach(function (p, pi) {
       var before = {}, after = {}, ids = [];
       A[pi].forEach(function (e) { before[e.id] = e.count; ids.push(e.id); });
       B[pi].forEach(function (e) { after[e.id] = e.count; if (!(e.id in before)) ids.push(e.id); });
@@ -666,7 +710,7 @@
       if (ok === 'conflict') state.result = { kind: 'conflict' };
       else if (ok) { markSaved(); state.result = { kind: 'direct' }; }
       else if (sv.handle && sv.handle.createWritable) state.result = { kind: 'writeFailed' };
-      else { downloadFile(out, sv.name); markSaved(); state.result = { kind: 'download' }; }
+      else { downloadFile(out, fileName(sv)); markSaved(); state.result = { kind: 'download' }; }
     }).then(function () {
       state.busy = false;
       render();
@@ -690,9 +734,9 @@
         render();
         return;
       }
-      if (!ok) downloadFile(before, sv.name);
+      if (!ok) downloadFile(before, fileName(sv));
       sv.orig = sv.work = before;
-      sv.base = sv.data = PtSave.parse(before, D);
+      sv.base = sv.data = G.Save.parse(before, D);
       state.shift = null;
       if (state.mon && !monAt(sv.data, state.mon)) state.mon = sv.data.party[0] ? sv.data.party[0].where : null;
       sv.before = null;
@@ -702,6 +746,8 @@
     });
   }
 
+  // Name der heruntergeladenen Datei: wie die gewählte – Citra (Omega Rubin / Alpha Saphir) findet nur „main“
+  function fileName(sv) { return G.key === 'oras' ? 'main' : sv.name; }
   function downloadFile(bytes, name) {
     var a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
@@ -771,7 +817,7 @@
   // Formular: Art und Level, DVs zufällig/perfekt, „Mehr“ für Wesen, Geschlecht, Fähigkeit, Shiny, Ball, Fangort
   function addFormHtml() {
     var a = state.add, l = L(), t = T(), sv = state.save, sp = a.species;
-    var p = sp ? PtSave.personalEntry(D, sp, 0) : null;
+    var p = sp ? G.Save.personalEntry(D, sp, 0) : null;
     var opt = function (v, text, cur) { return '<option value="' + v + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(text) + '</option>'; };
     var field = function (label, html) { return '<label class="ed-field"><span>' + esc(label) + '</span>' + html + '</label>'; };
     var gender = '', ability = '';
@@ -780,14 +826,16 @@
       gender = ratio > 0 && ratio < 254
         ? '<select class="ed-select" data-act="add-gender">' + opt('', l.addRandom, a.gender) + opt(0, l.male, a.gender) + opt(1, l.female, a.gender) + '</select>'
         : '<span class="ed-fixed">' + esc(ratio === 255 ? l.genderless : ratio === 254 ? l.onlyFemale : l.onlyMale) + '</span>';
-      ability = p[11] && p[11] !== p[10]
-        ? '<select class="ed-select" data-act="add-ability">' + opt('', l.addRandom, a.ability) + opt(0, t.abilities[p[10]], a.ability) + opt(1, t.abilities[p[11]], a.ability) + '</select>'
+      var hidden = p[14] && p[14] !== p[10] && p[14] !== p[11] ? opt(2, t.abilities[p[14]] + ' (' + l.addHidden + ')', a.ability) : '';
+      ability = (p[11] && p[11] !== p[10]) || hidden
+        ? '<select class="ed-select" data-act="add-ability">' + opt('', l.addRandom, a.ability) + opt(0, t.abilities[p[10]], a.ability) +
+          (p[11] && p[11] !== p[10] ? opt(1, t.abilities[p[11]], a.ability) : '') + hidden + '</select>'
         : '<span class="ed-fixed">' + esc(t.abilities[p[10]]) + '</span>';
     }
     var natures = opt('', l.addRandom, a.nature) + t.natures.map(function (n, i) { return opt(i, n, a.nature); }).join('');
     var balls = BALLS.map(function (id) { return opt(id, itemName(id), a.ball); }).join('');
-    // Fangorte in Sinnoh (Spielreihenfolge; ab 126 beginnen Johto und Kanto)
-    var locs = opt(0, t.loc0[0], a.loc) + t.loc0.slice(1, 126).map(function (n, i) { return n ? opt(i + 1, n, a.loc) : ''; }).join('');
+    // Fangorte der Region in Spielreihenfolge (Platin: Sinnoh; Omega Rubin / Alpha Saphir: Hoenn)
+    var locs = opt(0, t.loc0[0], a.loc) + G.catchLocs().map(function (id) { return opt(id, t.loc0[id], a.loc); }).join('');
     var tr = sv.data.trainer;
     return '<div class="ed-mon-head"><div class="ed-mon-title"><b>' + esc(l.addTitle) + '</b></div></div>' +
       '<div class="ed-add-form">' +
@@ -813,26 +861,27 @@
       '</div>';
   }
 
-  // Level-Attacken in Platin (PokéAPI), wie beim Boss-Planer: der Reihe nach, bei vier fliegt die älteste raus
+  // Level-Attacken im Spiel der Datei (PokéAPI), wie beim Boss-Planer: der Reihe nach, bei vier fliegt die älteste raus
   var learnCache = {};
   function levelMoves(species, level) {
-    var p = learnCache[species];
+    var vg = G.versionGroup, maxMove = D.moveInfo.length - 1, key = vg + ':' + species;
+    var p = learnCache[key];
     if (!p) {
-      p = learnCache[species] = fetch('https://pokeapi.co/api/v2/pokemon/' + species).then(function (r) {
+      p = learnCache[key] = fetch('https://pokeapi.co/api/v2/pokemon/' + species).then(function (r) {
         if (!r.ok) throw new Error(r.status);
         return r.json();
       }).then(function (d) {
         var list = [];
         d.moves.forEach(function (m) {
           var id = +((/\/move\/(\d+)\//.exec(m.move.url) || [])[1]);
-          if (!id || id > 467) return;
+          if (!id || id > maxMove) return;
           m.version_group_details.forEach(function (v) {
-            if (v.version_group.name === 'platinum' && v.move_learn_method.name === 'level-up') list.push([v.level_learned_at, id]);
+            if (v.version_group.name === vg && v.move_learn_method.name === 'level-up') list.push([v.level_learned_at, id]);
           });
         });
         return list.sort(function (x, y) { return x[0] - y[0]; });
       });
-      p.catch(function () { delete learnCache[species]; });
+      p.catch(function () { delete learnCache[key]; });
     }
     return p.then(function (list) {
       var known = [];
@@ -858,12 +907,12 @@
       if (state.add !== a || state.save !== sv) return;   // inzwischen abgebrochen oder andere Datei
       try {
         var num = function (v) { return v === '' ? null : +v; };
-        var dec = PtEdit.createMon(sv.work, {
+        var dec = G.Edit.createMon(sv.work, {
           species: a.species, level: a.level, moves: moves || [], ivs: a.ivs, shiny: a.shiny, ball: a.ball, location: a.loc,
           nature: num(a.nature), gender: num(a.gender), ability: num(a.ability)
         }, D);
-        var r = PtEdit.addMon(sv.work, to, dec, D);
-        var data = PtSave.parse(r.bytes, D);
+        var r = G.Edit.addMon(sv.work, to, dec, D);
+        var data = G.Save.parse(r.bytes, D);
         if (!data.ok) throw new Error('check');
         sv.work = r.bytes;
         sv.data = data;
@@ -886,7 +935,7 @@
     var where = m.where.area === 'party' ? l.inTeam : l.inBox(boxName(m.where.box));
     var shifting = state.shift === wKey(m.where);
     var head = '<div class="ed-mon-head">' +
-      (m.isEgg ? icon(m) : '<img class="ed-mon-img" src="' + PT_SPR + m.species + '.png" alt="" loading="lazy">') +
+      (m.isEgg ? icon(m) : monImg(m)) +
       '<div class="ed-mon-title"><b>' + esc(monName(m)) + '</b>' +
         '<span>' + (m.isEgg ? '' : 'Lv. ' + m.level + ' · ') + esc(where) + '</span>' +
         (m.isEgg ? '' : '<div class="types">' + m.types.map(typeBadge).join('') + '</div>') +
@@ -923,9 +972,9 @@
     '</div>';
 
     var friend = '<div class="ed-friend">' +
-      '<input type="range" min="0" max="' + PtEdit.MAX_FRIENDSHIP + '" step="1" value="' + m.friendship + '" data-act="friend" aria-label="' + esc(l.friendship) + '">' +
+      '<input type="range" min="0" max="' + G.Edit.MAX_FRIENDSHIP + '" step="1" value="' + m.friendship + '" data-act="friend" aria-label="' + esc(l.friendship) + '">' +
       '<output>' + m.friendship + '</output>' +
-      '<button type="button" class="small-btn" data-act="friend-max"' + (m.friendship >= PtEdit.MAX_FRIENDSHIP ? ' disabled' : '') + '>' + esc(l.friendshipMax) + '</button>' +
+      '<button type="button" class="small-btn" data-act="friend-max"' + (m.friendship >= G.Edit.MAX_FRIENDSHIP ? ' disabled' : '') + '>' + esc(l.friendshipMax) + '</button>' +
     '</div><p class="ed-hint">' + esc(l.friendshipHint) + '</p>';
 
     return head +
@@ -935,11 +984,11 @@
   }
 
   function bagHtml() {
-    var sv = state.save, l = L(), P = PtBag.POCKETS;
+    var sv = state.save, l = L(), P = G.Bag.POCKETS;
     var bag = bagOf(sv.work), orig = bagOf(sv.orig);
     var chips = '<div class="ed-pockets" role="tablist">' + P.map(function (p, i) {
       return '<button type="button" role="tab" class="ed-chip' + (i === state.pocket ? ' is-active' : '') + '" data-act="pocket" data-p="' + i + '" aria-selected="' + (i === state.pocket) + '">' +
-        esc(l.pockets[i]) + ' <span class="ed-count">' + bag[i].length + '</span></button>';
+        esc(G.pockets[lang][i] || l.pockets[i]) + ' <span class="ed-count">' + bag[i].length + '</span></button>';
     }).join('') + '</div>';
     var pi = state.pocket, list = bag[pi], before = {};
     orig[pi].forEach(function (e) { before[e.id] = e.count; });
@@ -953,7 +1002,7 @@
     }).join('') : '<p class="muted">' + esc(l.bagEmpty) + '</p>';
     var add = list.length >= P[pi].slots ? '<p class="ed-hint">' + esc(l.bagFull) + '</p>'
       : '<button type="button" class="ed-add" data-act="bag-add">' + esc(l.bagAdd) + '</button>';
-    return chips + (pi === KEY_ITEMS ? '<p class="msg msg-warn">' + esc(l.keyWarn) + '</p>' : '') +
+    return chips + (pi === G.keyPocket ? '<p class="msg msg-warn">' + esc(l.keyWarn) + '</p>' : '') +
       '<div class="ed-bag">' + rows + add + '</div>';
   }
 
@@ -967,8 +1016,8 @@
       '</div>';
     }
     return '<div class="ed-money">' +
-      field('money', l.money, b.money, a.money, PtEdit.MAX_MONEY) +
-      field('coins', l.coins, b.coins, a.coins, PtEdit.MAX_COINS) +
+      field('money', l.money, b.money, a.money, G.Edit.MAX_MONEY) +
+      (G.Edit.MAX_COINS ? field('coins', l.coins, b.coins, a.coins, G.Edit.MAX_COINS) : '') +
     '</div>';
   }
 
@@ -984,7 +1033,7 @@
   function pickerOptions(p) {
     var t = T(), l = L(), out = [];
     if (p.kind === 'species') {
-      for (var sp = 1; sp <= 493; sp++) {
+      for (var sp = 1; sp <= (D.speciesCount || 493); sp++) {
         out.push({ id: sp, name: t.species[sp], html: icon({ species: sp }) + '<span><b>' + esc(t.species[sp]) + '</b><small>#' + sp + '</small></span>' });
       }
       return out;                                   // Pokédex-Reihenfolge
@@ -1005,17 +1054,17 @@
       var ids = [];
       if (p.kind === 'held') {
         out.push({ id: 0, name: l.noItem, html: '<span class="ed-row-img"></span><span><b>' + esc(l.noItem) + '</b></span>', top: true });
-        HELD_POCKETS.forEach(function (pi) { ids = ids.concat(PtBag.itemsOf(pi)); });
+        G.heldPockets.forEach(function (pi) { ids = ids.concat(G.Bag.itemsOf(pi)); });
       } else {
         var have = {};
         bagOf(state.save.work)[p.pocket].forEach(function (e) { have[e.id] = true; });
-        ids = PtBag.itemsOf(p.pocket).filter(function (x) { return !have[x]; });
+        ids = G.Bag.itemsOf(p.pocket).filter(function (x) { return !have[x]; });
       }
       ids.filter(realItem).forEach(function (x) {
         out.push({ id: x, name: itemName(x), html: itemImg(x, 'ed-row-img') + '<span><b>' + esc(itemName(x)) + '</b></span>' });
       });
     }
-    if (!(p.kind === 'bag' && p.pocket === TMS)) {
+    if (!(p.kind === 'bag' && p.pocket === G.tmPocket)) {
       var cmp = new Intl.Collator(lang).compare;
       out.sort(function (a, b) { return a.top ? -1 : b.top ? 1 : cmp(a.name, b.name); });
     }
@@ -1095,9 +1144,9 @@
       if (!m) return;
       var moves = m.moves.slice();
       if (p.slot === 'add') moves.push(id); else moves[p.slot] = id;
-      editMon(state.mon, function (d) { PtEdit.setMoves(d, moves, D.moveInfo); });
+      editMon(state.mon, function (d) { G.Edit.setMoves(d, moves, D.moveInfo); });
     } else if (p.kind === 'held') {
-      editMon(state.mon, function (d) { PtEdit.setItem(d, id); });
+      editMon(state.mon, function (d) { G.Edit.setItem(d, id); });
     } else {
       setCount(p.pocket, id, 1);
     }
@@ -1140,7 +1189,7 @@
   }
 
   function resultHtml(r, sv) {
-    var l = L(), name = esc(sv ? sv.name : '');
+    var l = L(), name = esc(sv ? fileName(sv) : '');
     var undoBtn = sv && sv.before ? '<button type="button" class="small-btn" data-act="undo">↶ ' + l.undo + '</button>' : '';
     var note = '<p class="muted">' + l.noState + '</p>';
     switch (r.kind) {
@@ -1148,8 +1197,11 @@
         return '<div class="result-title">' + l.okDirect + '</div><p>' + l.okDirectText(name) + '</p>' + note +
           '<div class="btn-row">' + undoBtn + '</div>';
       case 'download':
+        // Omega Rubin / Alpha Saphir: Citra – am Handy in dessen Spielstand-Ordner (je Edition eigene Title-ID)
+        var citra = G.key === 'oras', tid = sv && sv.data.game === 'as' ? '0011c500' : '0011c400';
+        var steps = citra ? (PHONE ? l.okStepsCitraPhone(name, tid) : l.okSteps(name, true)) : PHONE ? l.okStepsPhone(name, ANDROID) : l.okSteps(name);
         return '<div class="result-title">' + l.okDownload + '</div><ol>' +
-          (PHONE ? l.okStepsPhone(name, ANDROID) : l.okSteps(name)).map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' + note +
+          steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' + (citra && !PHONE ? '<p class="muted">' + l.citraSaveTip + '</p>' : '') + note +
           '<div class="btn-row"><button type="button" class="small-btn" data-act="download">⭳ ' + l.downloadAgain + '</button>' + undoBtn + '</div>';
       case 'writeFailed':
         return '<div class="result-title">' + l.writeFailed + '</div>' +
@@ -1185,6 +1237,8 @@
     if (sv) $('save-card').innerHTML = saveCardHtml(sv);
     $('file-error').hidden = !state.error;
     $('file-error').textContent = state.error;
+    $('pick-hint').hidden = !state.pickHint || !!sv;
+    if (state.pickHint && !sv) $('pick-hint').innerHTML = esc(l.pickHint) + ' <button type="button" class="small-btn" id="pick-plain">' + esc(l.pickPlain) + '</button>';
 
     // Schritt 3: ändern
     var dirty = !!sv && !sameBytes(sv.orig, sv.work);
@@ -1217,12 +1271,27 @@
       $('result').innerHTML = resultHtml(r, sv);
     }
     renderPicker();
+    updateScene();
+  }
+
+  // Platine hinter der Karte (chip.js): Spielstand als Karte, geänderte Stellen, bearbeitete Stelle
+  function updateScene() {
+    if (!window.ChipScene) return;
+    var sv = state.save;
+    if (!sv) { window.ChipScene.update(null); return; }
+    var focus = state.tab === 'bag' ? { area: 'bag' } : state.tab === 'money' ? { area: 'money' } : state.mon;
+    window.ChipScene.update({
+      name: sv.name, orig: sv.orig, work: sv.work, before: sv.before, busy: state.busy,
+      saved: !!state.result && /^(direct|download)$/.test(state.result.kind),
+      focus: focus
+    });
   }
 
   /* ── Ereignisse ────────────────────────────────────────────────── */
   // iPhone kennt .sav/.dsv nicht und graut die Dateien sonst in der Auswahl aus
   if (PHONE) $('file-input').removeAttribute('accept');
   $('drop').addEventListener('click', function () { if (!state.busy) pickFile(); });
+  $('pick-hint').addEventListener('click', function (e) { if (e.target.closest('#pick-plain')) $('file-input').click(); });
   $('file-input').addEventListener('change', function (e) {
     var f = e.target.files[0];
     if (f) load(f, null);
@@ -1240,13 +1309,17 @@
     drop.classList.remove('is-over');
     var item = e.dataTransfer.items && e.dataTransfer.items[0];
     var file = e.dataTransfer.files[0];
+    // Spielstand von Omega Rubin / Alpha Saphir: liegt er bei Citra unter AppData, verweigert Chrome den Datei-Zugriff
+    // (mit Meldung). Ist das einmal passiert, gleich ohne Direktspeichern öffnen – bis ein Zugriff wieder klappt.
+    var oras = !!file && !!window.OrasSave && file.size === OrasSave.SIZE;
+    if (oras && noHandle()) { load(file, null); return; }
     // Datei-Zugriff muss noch im Ereignis angefragt werden
     var hp = item && item.getAsFileSystemHandle ? item.getAsFileSystemHandle() : null;
     if (!hp) { if (file) load(file, null); return; }
     hp.then(function (h) {
-      if (h && h.kind === 'file') return h.getFile().then(function (f) { return load(f, h); });
+      if (h && h.kind === 'file') { if (oras) noHandle(false); return h.getFile().then(function (f) { return load(f, h); }); }
       if (file) return load(file, null);
-    }).catch(function () { if (file) load(file, null); });
+    }).catch(function () { if (oras) noHandle(true); if (file) load(file, null); });
   });
 
   // Klicks im Editor
@@ -1299,7 +1372,7 @@
       var rm = monAt(sv.data, state.mon);
       if (!rm || !window.confirm(L().releaseConfirm(monName(rm)))) return;
       try {
-        var rr = PtEdit.releaseMon(sv.work, state.mon), rd = PtSave.parse(rr.bytes, D);
+        var rr = G.Edit.releaseMon(sv.work, state.mon), rd = G.Save.parse(rr.bytes, D);
         if (!rd.ok) throw new Error('check');
         sv.work = rr.bytes;
         sv.data = rd;
@@ -1313,23 +1386,26 @@
     }
     else if (act === 'mon-reset') {
       // Nur die Änderungen hier (Item, Freundschaft, Attacken) – das Pokémon kann inzwischen woanders liegen
-      var om = origOf(monAt(sv.data, state.mon)), od = om && PtEdit.readMon(sv.orig, om.where);
-      if (od) editMon(state.mon, function (d) { d.set(od.subarray(0x0A, 0x0C), 0x0A); d[0x14] = od[0x14]; d.set(od.subarray(0x28, 0x38), 0x28); });
+      var om = origOf(monAt(sv.data, state.mon)), od = om && G.Edit.readMon(sv.orig, om.where);
+      if (od) editMon(state.mon, function (d) {
+        if (G.Edit.restore) { G.Edit.restore(d, od); return; }
+        d.set(od.subarray(0x0A, 0x0C), 0x0A); d[0x14] = od[0x14]; d.set(od.subarray(0x28, 0x38), 0x28);
+      });
     } else if (act === 'move') openPicker({ kind: 'move', slot: b.dataset.slot === 'add' ? 'add' : +b.dataset.slot });
     else if (act === 'move-del') {
       var m = monAt(sv.data, state.mon), slot = +b.dataset.slot;
-      if (m && m.moves.length > 1) editMon(state.mon, function (d) { PtEdit.setMoves(d, m.moves.filter(function (_, i) { return i !== slot; }), D.moveInfo); });
+      if (m && m.moves.length > 1) editMon(state.mon, function (d) { G.Edit.setMoves(d, m.moves.filter(function (_, i) { return i !== slot; }), D.moveInfo); });
     } else if (act === 'teach') {
       var mt = monAt(sv.data, state.mon);
-      if (mt && mt.moves.length < 4) editMon(state.mon, function (d) { PtEdit.setMoves(d, mt.moves.concat(+b.dataset.move), D.moveInfo); });
+      if (mt && mt.moves.length < 4) editMon(state.mon, function (d) { G.Edit.setMoves(d, mt.moves.concat(+b.dataset.move), D.moveInfo); });
     } else if (act === 'held') openPicker({ kind: 'held' });
-    else if (act === 'held-del') editMon(state.mon, function (d) { PtEdit.setItem(d, 0); });
-    else if (act === 'friend-max') editMon(state.mon, function (d) { PtEdit.setFriendship(d, PtEdit.MAX_FRIENDSHIP); });
+    else if (act === 'held-del') editMon(state.mon, function (d) { G.Edit.setItem(d, 0); });
+    else if (act === 'friend-max') editMon(state.mon, function (d) { G.Edit.setFriendship(d, G.Edit.MAX_FRIENDSHIP); });
     else if (act === 'pocket') { state.pocket = +b.dataset.p; render(); }
     else if (act === 'bag-del') setCount(state.pocket, +b.dataset.id, 0);
     else if (act === 'bag-add') openPicker({ kind: 'bag', pocket: state.pocket });
-    else if (act === 'money-max') change(function (x) { return PtEdit.setMoney(x, PtEdit.MAX_MONEY); });
-    else if (act === 'coins-max') change(function (x) { return PtEdit.setCoins(x, PtEdit.MAX_COINS); });
+    else if (act === 'money-max') change(function (x) { return G.Edit.setMoney(x, G.Edit.MAX_MONEY); });
+    else if (act === 'coins-max') change(function (x) { return G.Edit.setCoins(x, G.Edit.MAX_COINS); });
   });
   // Am PC: Pokémon auf einen Platz ziehen – wie „Verschieben“ und Ziel antippen
   var dragFrom = null;
@@ -1383,10 +1459,10 @@
       else if (k === 'ball' || k === 'loc') a[k] = +el.value;
       else a[k] = el.value;                                   // nature, gender, ability ('' = zufällig)
     }
-    else if (act === 'friend') editMon(state.mon, function (d) { PtEdit.setFriendship(d, +el.value); });
+    else if (act === 'friend') editMon(state.mon, function (d) { G.Edit.setFriendship(d, +el.value); });
     else if (act === 'qty') setCount(state.pocket, +el.dataset.id, Math.max(0, Math.round(+el.value) || 0));
-    else if (act === 'money') change(function (x) { return PtEdit.setMoney(x, +el.value || 0); });
-    else if (act === 'coins') change(function (x) { return PtEdit.setCoins(x, +el.value || 0); });
+    else if (act === 'money') change(function (x) { return G.Edit.setMoney(x, +el.value || 0); });
+    else if (act === 'coins') change(function (x) { return G.Edit.setCoins(x, +el.value || 0); });
   });
   $('ed').addEventListener('input', function (e) {
     var el = e.target;
@@ -1427,7 +1503,7 @@
     if (!b || !state.save || state.busy) return;
     var rec = state.backups.filter(function (x) { return String(x.id) === b.dataset.backup; })[0];
     if (!rec) return;
-    if (b.dataset.act === 'download') downloadFile(new Uint8Array(rec.bytes), state.save.name);
+    if (b.dataset.act === 'download') downloadFile(new Uint8Array(rec.bytes), fileName(state.save));
     // Als Arbeitskopie übernehmen – geprüft wie jede Änderung; zurückgeschrieben wird erst mit „Speichern“
     else change(function () { return new Uint8Array(rec.bytes); });
   });
@@ -1437,7 +1513,7 @@
     var act = b.dataset.act, sv = state.save;
     if (act === 'download') {
       if (state.result && /^(writeFailed|conflict)$/.test(state.result.kind)) { markSaved(); state.result = { kind: 'download' }; }
-      downloadFile(sv.orig, sv.name);
+      downloadFile(sv.orig, fileName(sv));
       render();
     } else if (act === 'reload') {
       // Aktuelle Datei neu einlesen (eigene, ungespeicherte Änderungen fallen dabei weg)

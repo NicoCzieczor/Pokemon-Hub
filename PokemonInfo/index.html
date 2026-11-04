@@ -28,9 +28,11 @@
   <title>Pokédex – Pokémon Hub</title>
   <link rel="stylesheet" href="../Pokelocke/base.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../scene.css">
+  <link rel="stylesheet" href="device.css">
 </head>
 <body>
-<div id="app">
+<div id="app" class="win-frame">
   <nav class="tool-nav" aria-label="Pokémon tools">
     <a class="tool-nav-link" href="../index.html" data-i18n="nav.home">Home</a>
     <a class="tool-nav-link" href="../RunDashboard/index.html" data-i18n="nav.run">Run</a>
@@ -154,6 +156,66 @@
   </div>
 </div>
 
+<!-- Pokédex-Gerät um die Karte (device.js): steht im Code nach der Karte, damit die Tab-Reihenfolge mit der Seite beginnt -->
+<div class="dx" id="dx">
+  <svg class="dx-groove" aria-hidden="true"><path/><path/></svg>
+  <i class="dx-screw dx-screw--tl"></i><i class="dx-screw dx-screw--bl"></i><i class="dx-screw dx-screw--tr"></i><i class="dx-screw dx-screw--br"></i>
+  <div class="dx-side dx-side--l">
+    <div class="dx-top" aria-hidden="true">
+      <span class="dx-lens"></span>
+      <span class="dx-leds"><i class="dx-led dx-led--r"></i><i class="dx-led dx-led--y"></i><i class="dx-led dx-led--g"></i></span>
+    </div>
+    <div class="dx-screen" aria-hidden="true">
+      <div class="dx-frame">
+        <div class="dx-lcd dx-size">
+          <div class="dx-ticks"></div>
+          <span class="dx-tr"><img alt=""></span>
+          <div class="dx-layer dx-layer--sil"><img alt="" hidden></div>
+          <div class="dx-layer dx-layer--mon"><img alt="" hidden></div>
+          <span class="dx-val dx-size-vt"></span><span class="dx-val dx-size-vm"></span>
+          <i class="dx-scan"></i>
+        </div>
+        <div class="dx-foot"><b class="dx-kick" data-k="size"></b></div>
+      </div>
+    </div>
+    <div class="dx-ctrl">
+      <div class="dx-pad">
+        <button class="dx-pad-btn dx-pad-btn--l" type="button" data-go="-1"></button>
+        <button class="dx-pad-btn dx-pad-btn--r" type="button" data-go="1"></button>
+      </div>
+      <div class="dx-pills">
+        <button class="dx-pill dx-pill--shiny" type="button" aria-pressed="false"><b class="dx-cap">Shiny</b><i></i></button>
+        <button class="dx-pill dx-pill--rnd" type="button"><b class="dx-cap" data-k="rndCap"></b><i></i></button>
+      </div>
+    </div>
+  </div>
+  <div class="dx-side dx-side--r">
+    <div class="dx-top dx-top--r">
+      <div class="dx-num" aria-hidden="true">
+        <div class="dx-num-row"><span class="dx-no">No.</span><svg class="dx-digits" viewBox="0 0 23 7"></svg></div>
+        <span class="dx-name"></span>
+        <canvas class="dx-wave"></canvas>
+      </div>
+      <button class="dx-cry" type="button"><i class="dx-grille"></i><b class="dx-cap" data-k="cryCap"></b></button>
+    </div>
+    <div class="dx-screen" aria-hidden="true">
+      <div class="dx-frame">
+        <div class="dx-lcd dx-weight">
+          <div class="dx-saw">
+            <div class="dx-beam">
+              <div class="dx-rider dx-rider--t"><span class="dx-val"></span><span class="dx-tr"><img alt=""></span></div>
+              <div class="dx-rider dx-rider--m"><span class="dx-val"></span><img alt="" hidden></div>
+            </div>
+            <i class="dx-fulcrum"></i>
+          </div>
+        </div>
+        <div class="dx-foot"><b class="dx-kick" data-k="weight"></b></div>
+      </div>
+    </div>
+    <div class="dx-ctrl"><div class="dx-keys" role="group"></div></div>
+  </div>
+</div>
+
 <!-- Pokémon picker modal -->
 <div id="pokemon-modal" class="pokemon-modal">
   <div class="pokemon-modal-content">
@@ -198,6 +260,8 @@
 <script src="../pokemon-names.js"></script>
 <script src="../DamageCalc/mechanics.js"></script>
 <script src="../pokemon-types.js"></script>
+<script src="../scene.js"></script>
+<script src="device.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

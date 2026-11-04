@@ -411,6 +411,10 @@
       sinnohSeen: sinnoh.filter(function (s) { return seenSet.has(s); }).length,
       sinnohTotal: sinnoh.length
     };
+    // Gleiche Namen wie bei Omega Rubin / Alpha Saphir (oras-save.js) – die Oberflächen kennen nur diese
+    dex.regionalCaught = dex.sinnohCaught;
+    dex.regionalSeen = dex.sinnohSeen;
+    dex.regionalTotal = dex.sinnohTotal;
 
     return {
       ok: true,

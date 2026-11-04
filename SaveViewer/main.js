@@ -1,14 +1,14 @@
 /*
- * Save-Viewer – Oberfläche. Liest Spielstände mit PtSave (pt-save.js) und zeigt
+ * Save-Viewer – Oberfläche. Liest Spielstände mit HubSave (hub-save.js: Platin oder Omega Rubin / Alpha Saphir) und zeigt
  * Trainer, Team, Boxen, Fangorte und Pokédex an. Bis zu zwei Spielstände gleichzeitig
  * (z. B. für Duo/Soul Link), die letzten Dateien bleiben in IndexedDB auf dem Gerät.
  */
 (function () {
   'use strict';
 
-  var D = window.PT_DATA;
+  // Spiel des gerade gezeigten Spielstands (useGame): Infos aus hub-save.js und seine Spieldaten
+  var G = HubSave.get('pt'), D = G.D;
   var SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
-  var PT_SPR = SPR + '/pokemon/versions/generation-iv/platinum/';
   var ICON_SPR = SPR + '/pokemon/versions/generation-vii/icons/';
   var MAX_SAVES = 2;
 
@@ -22,14 +22,15 @@
     'fire', 'water', 'grass', 'electric', 'psychic', 'ice', 'dragon', 'dark'];
   var ARCEUS_TYPE = [0, 1, 2, 3, 4, 5, 6, 7, 8, -1, 9, 10, 11, 12, 13, 14, 15, 16];
   var FEMALE = new Set(D.femaleSprites);
-
-  // Orden in Platin-Reihenfolge: Bit im Spielstand, Stadt (Ort-ID), Farbe
-  var BADGES = [
-    { bit: 0, city: 8, color: '#a9a29a' }, { bit: 1, city: 9, color: '#6fcf7b' },
-    { bit: 4, city: 10, color: '#c09cf0' }, { bit: 2, city: 12, color: '#ffa6c4' },
-    { bit: 3, city: 11, color: '#7cc0ff' }, { bit: 5, city: 7, color: '#d7b27a' },
-    { bit: 6, city: 14, color: '#a8ecff' }, { bit: 7, city: 13, color: '#ffe066' }
-  ];
+  function useGame(sv) {
+    G = sv ? sv.game : HubSave.get('pt');
+    D = G.D;
+    FEMALE = new Set(D.femaleSprites);
+  }
+  // Zwei Spielstände aus verschiedenen Spielen: kein Soul Link, Fangorte nur vom gezeigten
+  function sameGame() { return state.saves.length < 2 || state.saves[0].game.key === state.saves[1].game.key; }
+  // Formen, deren Grundform einen eigenen Namen hat (Burmy-Umhang, Westliches Meer, Vivillon-Muster …)
+  var FORM0_NAMED = [412, 413, 422, 423, 550, 585, 586, 666, 669, 670, 671, 710, 711];
 
   var FORMS = {
     de: {
@@ -49,8 +50,10 @@
   };
 
   var VERSIONS = {
-    de: { 1: 'Saphir', 2: 'Rubin', 3: 'Smaragd', 4: 'Feuerrot', 5: 'Blattgrün', 7: 'HeartGold', 8: 'SoulSilver', 10: 'Diamant', 11: 'Perl', 12: 'Platin', 15: 'Colosseum/XD' },
-    en: { 1: 'Sapphire', 2: 'Ruby', 3: 'Emerald', 4: 'FireRed', 5: 'LeafGreen', 7: 'HeartGold', 8: 'SoulSilver', 10: 'Diamond', 11: 'Pearl', 12: 'Platinum', 15: 'Colosseum/XD' }
+    de: { 1: 'Saphir', 2: 'Rubin', 3: 'Smaragd', 4: 'Feuerrot', 5: 'Blattgrün', 7: 'HeartGold', 8: 'SoulSilver', 10: 'Diamant', 11: 'Perl', 12: 'Platin', 15: 'Colosseum/XD',
+      20: 'Weiß', 21: 'Schwarz', 22: 'Weiß 2', 23: 'Schwarz 2', 24: 'X', 25: 'Y', 26: 'Alpha Saphir', 27: 'Omega Rubin' },
+    en: { 1: 'Sapphire', 2: 'Ruby', 3: 'Emerald', 4: 'FireRed', 5: 'LeafGreen', 7: 'HeartGold', 8: 'SoulSilver', 10: 'Diamond', 11: 'Pearl', 12: 'Platinum', 15: 'Colosseum/XD',
+      20: 'White', 21: 'Black', 22: 'White 2', 23: 'Black 2', 24: 'X', 25: 'Y', 26: 'Alpha Sapphire', 27: 'Omega Ruby' }
   };
   var LANGS = { 1: 'JPN', 2: 'ENG', 3: 'FRA', 4: 'ITA', 5: 'GER', 7: 'SPA', 8: 'KOR' };
 
@@ -58,9 +61,9 @@
     de: {
       'nav.home': 'Home', 'nav.run': 'Run', 'nav.team': 'Team', 'nav.trio': 'Trio', 'nav.catchrate': 'Fangrate',
       'nav.damage': 'Schaden', 'nav.types': 'Typen', 'nav.info': 'Dex', 'nav.map': 'Karte', 'nav.save': 'Save', 'nav.rules': 'Regeln',
-      'subtitle': 'Lade deinen Platin-Spielstand und sieh dir Team, Boxen und Fangorte an. Ändern (Bonbons, Beutel, Geld …) geht im <a href="../SaveEditor/index.html">Save-Editor</a>.',
+      'subtitle': 'Lade deinen Spielstand (Platin oder Omega Rubin / Alpha Saphir) und sieh dir Team, Boxen und Fangorte an. Ändern (Bonbons, Beutel, Geld …) geht im <a href="../SaveEditor/index.html">Save-Editor</a>.',
       'drop.title': 'Spielstand hier reinziehen oder antippen',
-      'drop.sub': 'Pokémon Platin · .sav oder .dsv vom Emulator. Die Datei wird nur auf deinem Gerät gelesen und nirgendwo hochgeladen.',
+      'drop.sub': 'Pokémon Platin (.sav/.dsv) oder Omega Rubin / Alpha Saphir („main“ von Citra). Die Datei wird nur auf deinem Gerät gelesen und nirgendwo hochgeladen.',
       'drop.offline': '✓ Funktioniert offline',
       'tab.team': 'Team', 'tab.boxes': 'Boxen', 'tab.encounters': 'Fangorte', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link',
       'help.title': 'Wo finde ich meinen Spielstand?',
@@ -69,21 +72,22 @@
       'help.melon': 'Liegt als <code>.sav</code> neben der ROM-Datei',
       'help.drastic': 'Ordner <code>DraStic/backup</code>, Datei endet auf <code>.dsv</code>',
       'help.delta': 'Spiel lange drücken → Spielstand exportieren → in Dateien sichern',
+      'help.citra': 'Am PC: Rechtsklick aufs Spiel → <i>Speicherdatenordner öffnen</i> → Datei <code>main</code>. Am Handy (Citra/Azahar): im beim ersten Start gewählten Ordner unter <code>sdmc/Nintendo 3DS/…/title/00040000/0011c400/data/00000001</code>',
       'help.hacks': 'ROM-Hacks auf Platin-Basis (z. B. Renegade Platinum) lassen sich meist auch lesen – Basiswerte und Typen können dort aber vom Original abweichen.',
       'foot.local': 'Alles passiert lokal in deinem Browser. Zuletzt geladene Spielstände bleiben nur auf diesem Gerät gespeichert.',
       'foot.credits': 'Speicherformat nach PKHeX · Sprites von PokéAPI',
       addSave: '+ Zweiter Spielstand', addSaveTitle: 'z. B. für Duo- oder Soul-Link-Runs',
       remove: 'Entfernen', loadedAt: 'geladen',
-      errSize: function (kb) { return 'Das sieht nicht nach einem DS-Spielstand aus (' + kb + ' KB, erwartet sind 512 KB). Nimm den Ingame-Spielstand (.sav/.dsv), keinen Savestate.'; },
-      errGame: function (g) { return 'Das ist ein Spielstand von ' + g + ' – bisher wird nur Platin unterstützt.'; },
-      errUnknown: 'Kein Platin-Spielstand erkannt. Achte darauf, den Ingame-Spielstand (.sav/.dsv) zu nehmen und im Spiel mindestens einmal gespeichert zu haben.',
+      errSize: function (kb) { return 'Das sieht nicht nach einem Spielstand aus (' + kb + ' KB – Platin hat 512 KB, Omega Rubin / Alpha Saphir 472 KB). Nimm den Ingame-Spielstand (.sav/.dsv bzw. „main“), keinen Savestate.'; },
+      errGame: function (g) { return 'Das ist ein Spielstand von ' + g + ' – unterstützt werden Platin und Omega Rubin / Alpha Saphir.'; },
+      errUnknown: 'Kein Spielstand von Platin oder Omega Rubin / Alpha Saphir erkannt. Nimm den Ingame-Spielstand (.sav/.dsv bzw. „main“ von Citra) und speichere im Spiel mindestens einmal.',
       errRead: 'Die Datei konnte nicht gelesen werden.',
       errStore: 'Der Spielstand wird angezeigt, konnte auf diesem Gerät aber nicht dauerhaft gespeichert werden (Speicher voll?). Nach einem Neustart ist der alte Stand zu sehen.',
       warnChecksum: 'Die Prüfsumme des Spielstands stimmt nicht – die Datei ist eventuell beschädigt. Angezeigte Werte können falsch sein.',
       warnFallback: 'Der neueste Speicherblock ist beschädigt (Speichern abgebrochen?). Angezeigt wird der vorherige Spielstand.',
       warnBad: function (n) { return n + (n === 1 ? ' Platz enthält' : ' Plätze enthalten') + ' ein beschädigtes Pokémon („Böses Ei“) und wird ausgeblendet.'; },
       id: 'ID', playTime: 'Spielzeit', money: 'Geld', rival: 'Rivale', coins: 'Münzen', started: 'Abenteuer seit', champion: 'Champ',
-      sinnohDex: 'Sinnoh-Dex', nationalDex: 'Nationaldex', caught: 'gefangen', seen: 'gesehen',
+      regionDex: function (r) { return r + '-Dex'; }, nationalDex: 'Nationaldex', caught: 'gefangen', seen: 'gesehen',
       badgeOf: function (c) { return 'Orden aus ' + c; },
       team: 'Team', emptyTeam: 'Kein Pokémon im Team.', daycare: 'Pension', daycareGain: function (n) { return '+' + n + ' EP in der Pension'; },
       box: 'Box', boxEmpty: 'Diese Box ist leer.', graveyard: 'Friedhof-Box', none: 'keine', search: 'In allen Boxen suchen …',
@@ -92,8 +96,8 @@
       encDead: function (n) { return n + ' im Friedhof'; },
       location: 'Ort', noLocation: 'Ohne Fangort', eggs: 'Eier (noch nicht geschlüpft)', hatched: 'aus Ei',
       tagTeam: 'Team', tagDaycare: 'Pension', tagDead: '†', traded: 'getauscht',
-      dexMode: { sinnoh: 'Sinnoh', national: 'National' }, legendCaught: 'gefangen', legendSeen: 'gesehen', legendUnseen: 'unbekannt',
-      lv: 'Lv.', egg: 'Ei', nature: 'Wesen', ability: 'Fähigkeit', item: 'Item', noItem: '—', hiddenPower: 'Kraftreserve',
+      dexMode: { national: 'National' }, legendCaught: 'gefangen', legendSeen: 'gesehen', legendUnseen: 'unbekannt',
+      lv: 'Lv.', egg: 'Ei', nature: 'Wesen', ability: 'Fähigkeit', hiddenAbility: 'versteckt', item: 'Item', noItem: '—', hiddenPower: 'Kraftreserve',
       friendship: 'Freundschaft', eggCycles: 'Ei-Zyklen übrig', pokerus: 'Pokérus', pkrsActive: 'infiziert', pkrsCured: 'immun',
       exp: 'EP', toNext: function (n) { return 'noch ' + n.toLocaleString('de-DE') + ' EP bis zum nächsten Level'; }, maxLevel: 'Maximales Level',
       stats: 'Statuswerte', statNames: ['KP', 'Angriff', 'Verteidigung', 'Initiative', 'Sp.-Angr.', 'Sp.-Vert.'], statShort: ['KP', 'Ang', 'Vert', 'Init', 'SpA', 'SpV'],
@@ -168,9 +172,9 @@
     en: {
       'nav.home': 'Home', 'nav.run': 'Run', 'nav.team': 'Team', 'nav.trio': 'Trio', 'nav.catchrate': 'Catch Rate',
       'nav.damage': 'Damage', 'nav.types': 'Types', 'nav.info': 'Dex', 'nav.map': 'Map', 'nav.save': 'Save', 'nav.rules': 'Rules',
-      'subtitle': 'Load your Platinum save file and browse your team, boxes and catch locations. To change things (candies, bag, money …) use the <a href="../SaveEditor/index.html">Save Editor</a>.',
+      'subtitle': 'Load your save file (Platinum or Omega Ruby / Alpha Sapphire) and browse your team, boxes and catch locations. To change things (candies, bag, money …) use the <a href="../SaveEditor/index.html">Save Editor</a>.',
       'drop.title': 'Drop your save file here or tap',
-      'drop.sub': 'Pokémon Platinum · .sav or .dsv from your emulator. The file is only read on your device and never uploaded.',
+      'drop.sub': 'Pokémon Platinum (.sav/.dsv) or Omega Ruby / Alpha Sapphire (“main” from Citra). The file is only read on your device and never uploaded.',
       'drop.offline': '✓ Works offline',
       'tab.team': 'Team', 'tab.boxes': 'Boxes', 'tab.encounters': 'Encounters', 'tab.dex': 'Pokédex', 'tab.link': 'Soul Link',
       'help.title': 'Where do I find my save file?',
@@ -179,21 +183,22 @@
       'help.melon': 'Stored as <code>.sav</code> next to the ROM',
       'help.drastic': 'Folder <code>DraStic/backup</code>, file ends with <code>.dsv</code>',
       'help.delta': 'Long-press the game → Export Save File → Save to Files',
+      'help.citra': 'On PC: right-click the game → <i>Open Save Data Location</i> → file <code>main</code>. On a phone (Citra/Azahar): in the folder chosen on first start, under <code>sdmc/Nintendo 3DS/…/title/00040000/0011c400/data/00000001</code>',
       'help.hacks': 'Platinum-based ROM hacks (e.g. Renegade Platinum) usually load too – base stats and types may differ from vanilla, though.',
       'foot.local': 'Everything happens locally in your browser. Recently loaded saves are only kept on this device.',
       'foot.credits': 'Save format per PKHeX · Sprites from PokéAPI',
       addSave: '+ Second save', addSaveTitle: 'e.g. for Duo or Soul Link runs',
       remove: 'Remove', loadedAt: 'loaded',
-      errSize: function (kb) { return 'This doesn\'t look like a DS save file (' + kb + ' KB, expected 512 KB). Use the in-game save (.sav/.dsv), not a save state.'; },
-      errGame: function (g) { return 'This is a ' + g + ' save – only Platinum is supported so far.'; },
-      errUnknown: 'No Platinum save detected. Make sure you use the in-game save (.sav/.dsv) and have saved in the game at least once.',
+      errSize: function (kb) { return 'This doesn\'t look like a save file (' + kb + ' KB – Platinum has 512 KB, Omega Ruby / Alpha Sapphire 472 KB). Use the in-game save (.sav/.dsv or “main”), not a save state.'; },
+      errGame: function (g) { return 'This is a ' + g + ' save – supported are Platinum and Omega Ruby / Alpha Sapphire.'; },
+      errUnknown: 'No Platinum or Omega Ruby / Alpha Sapphire save detected. Use the in-game save (.sav/.dsv or “main” from Citra) and save in the game at least once.',
       errRead: 'The file could not be read.',
       errStore: 'The save is shown, but it could not be stored permanently on this device (storage full?). After a restart you will see the previous state.',
       warnChecksum: 'The save checksum doesn\'t match – the file may be corrupted. Values shown could be wrong.',
       warnFallback: 'The newest save block is corrupted (interrupted save?). Showing the previous save instead.',
       warnBad: function (n) { return n + (n === 1 ? ' slot contains' : ' slots contain') + ' a corrupted Pokémon ("Bad Egg") and is hidden.'; },
       id: 'ID', playTime: 'Play time', money: 'Money', rival: 'Rival', coins: 'Coins', started: 'Adventure started', champion: 'Champion',
-      sinnohDex: 'Sinnoh Dex', nationalDex: 'National Dex', caught: 'caught', seen: 'seen',
+      regionDex: function (r) { return r + ' Dex'; }, nationalDex: 'National Dex', caught: 'caught', seen: 'seen',
       badgeOf: function (c) { return 'Badge from ' + c; },
       team: 'Team', emptyTeam: 'No Pokémon in the party.', daycare: 'Day Care', daycareGain: function (n) { return '+' + n + ' EXP at the Day Care'; },
       box: 'Box', boxEmpty: 'This box is empty.', graveyard: 'Graveyard box', none: 'none', search: 'Search all boxes …',
@@ -202,8 +207,8 @@
       encDead: function (n) { return n + ' in the graveyard'; },
       location: 'Location', noLocation: 'No location', eggs: 'Eggs (not hatched yet)', hatched: 'from egg',
       tagTeam: 'Team', tagDaycare: 'Day Care', tagDead: '†', traded: 'traded',
-      dexMode: { sinnoh: 'Sinnoh', national: 'National' }, legendCaught: 'caught', legendSeen: 'seen', legendUnseen: 'unknown',
-      lv: 'Lv.', egg: 'Egg', nature: 'Nature', ability: 'Ability', item: 'Item', noItem: '—', hiddenPower: 'Hidden Power',
+      dexMode: { national: 'National' }, legendCaught: 'caught', legendSeen: 'seen', legendUnseen: 'unknown',
+      lv: 'Lv.', egg: 'Egg', nature: 'Nature', ability: 'Ability', hiddenAbility: 'hidden', item: 'Item', noItem: '—', hiddenPower: 'Hidden Power',
       friendship: 'Friendship', eggCycles: 'Egg cycles left', pokerus: 'Pokérus', pkrsActive: 'infected', pkrsCured: 'cured',
       exp: 'EXP', toNext: function (n) { return n.toLocaleString('en-US') + ' EXP to the next level'; }, maxLevel: 'Max level',
       stats: 'Stats', statNames: ['HP', 'Attack', 'Defense', 'Speed', 'Sp. Atk', 'Sp. Def'], statShort: ['HP', 'Atk', 'Def', 'Spe', 'SpA', 'SpD'],
@@ -280,7 +285,7 @@
   /* ── Zustand ───────────────────────────────────────────────────── */
   var lang = 'de';
   try { lang = localStorage.getItem('hub-lang') === 'en' ? 'en' : 'de'; } catch (e) {}
-  var state = { saves: [], active: 0, tab: 'team', dexMode: 'sinnoh', search: '', pendingSlot: null, link: null };
+  var state = { saves: [], active: 0, tab: 'team', dexMode: 'regional', search: '', pendingSlot: null, link: null };
 
   var $ = function (id) { return document.getElementById(id); };
   function L() { return I18N[lang]; }
@@ -334,6 +339,13 @@
     return m.isNicknamed && m.nickname ? m.nickname : speciesName(m.species);
   }
   function formName(m) {
+    if (D.formNames) {                                   // Omega Rubin / Alpha Saphir: Namen aus den Spieldaten
+      if (m.species === 201) return m.form < 26 ? String.fromCharCode(65 + m.form) : (m.form === 26 ? '!' : '?');
+      if (m.species === 493) return m.form ? T().types[m.form] || '' : '';
+      var names = D.formNames[m.species];
+      if (!names || (!m.form && FORM0_NAMED.indexOf(m.species) < 0)) return '';
+      return names[lang][m.form] || '';
+    }
     if (m.species === 201) return m.form < 26 ? String.fromCharCode(65 + m.form) : (m.form === 26 ? '!' : '?');
     if (m.species === 493) { var t = ARCEUS_TYPE[m.form]; return t >= 0 && m.form ? T().types[t] : ''; }
     var f = FORMS[lang][m.species];
@@ -342,13 +354,10 @@
     return f[m.form] || '';
   }
   function locName(id) {
-    var t = T();
     if (!id) return '—';
-    if (id >= 3000) return t.loc3000[id - 3000] || ('#' + id);
-    if (id >= 2000) return t.loc2000[id - 2000] || ('#' + id);
-    return t.loc0[id] || ('#' + id);
+    return HubSave.locName(D, lang, id) || ('#' + id);
   }
-  function ballItem(b) { return b >= 1 && b <= 16 ? b : (b >= 17 && b <= 24 ? 492 + (b - 17) : 4); }
+  function ballItem(b) { return b >= 1 && b <= 16 ? b : (b >= 17 && b <= 24 ? 492 + (b - 17) : b === 25 ? 576 : 4); }
   function itemImg(id, cls) {
     var s = D.itemSprites[id];
     return s ? '<img class="' + (cls || '') + '" src="' + SPR + '/items/' + s + '.png" alt="" loading="lazy">' : '';
@@ -373,16 +382,23 @@
     }
     return String(sp);
   }
+  // Bilddatei einer Form: Omega Rubin / Alpha Saphir aus den Spieldaten (PokeAPI-Ordner), Platin wie oben
+  function spriteKey(sp, form) {
+    if (D.formSprites) return (form && D.formSprites[sp + '-' + form]) || String(sp);
+    return formKey(sp, form);
+  }
   function spriteTag(m, cls) {
     var fb = SPR + '/pokemon/' + m.species + '.png';
     if (m.isEgg) return '<img class="' + cls + '" src="' + SPR + '/pokemon/egg.png" alt="">';
-    var dir = PT_SPR + (m.shiny ? 'shiny/' : '');
-    if (m.gender === 1 && !m.form && FEMALE.has(m.species)) dir += 'female/';
-    return '<img class="' + cls + (m.shiny ? ' is-shiny' : '') + '" src="' + dir + formKey(m.species, m.form) + '.png" data-fb="' + fb + '" alt="" loading="lazy">';
+    var sub = (m.shiny ? 'shiny/' : '') + (m.gender === 1 && !m.form && FEMALE.has(m.species) ? 'female/' : ''), key = spriteKey(m.species, m.form);
+    // OR/AS: 3D-Bild aus Pokémon HOME, fehlt es, das ORAS-Sprite, dann das Standard-Bild
+    var fb2 = G.spriteFallback ? ' data-fb2="' + fb + '"' : '';
+    if (G.spriteFallback) fb = G.spriteFallback + sub + key + '.png';
+    return '<img class="' + cls + (m.shiny ? ' is-shiny' : '') + (G.sprite3d ? ' is-3d' : '') + '" src="' + G.spriteDir + sub + key + '.png" data-fb="' + fb + '"' + fb2 + ' alt="" loading="lazy">';
   }
   function iconTag(m, cls) {
     if (m.isEgg) return '<img class="' + (cls || '') + '" src="' + ICON_SPR + 'egg.png" alt="" loading="lazy">';
-    return '<img class="' + (cls || '') + '" src="' + ICON_SPR + formKey(m.species, m.form) + '.png" data-fb="' + ICON_SPR + m.species + '.png" alt="" loading="lazy">';
+    return '<img class="' + (cls || '') + '" src="' + ICON_SPR + spriteKey(m.species, m.form) + '.png" data-fb="' + ICON_SPR + m.species + '.png" alt="" loading="lazy">';
   }
   function iconSpecies(sp) {
     return '<img src="' + ICON_SPR + sp + '.png" alt="" loading="lazy">';
@@ -413,7 +429,8 @@
   document.addEventListener('error', function (e) {
     var t = e.target;
     if (!t || t.tagName !== 'IMG') return;
-    if (t.dataset.fb && t.src !== t.dataset.fb) { t.src = t.dataset.fb; return; }
+    if (t.dataset.fb && t.src !== t.dataset.fb && t.src !== t.dataset.fb2) { t.src = t.dataset.fb; return; }
+    if (t.dataset.fb2 && t.src !== t.dataset.fb2) { t.src = t.dataset.fb2; return; }
     t.style.visibility = 'hidden';
   }, true);
 
@@ -449,11 +466,11 @@
   }
 
   function makeSave(rec) {
-    var data = PtSave.parse(new Uint8Array(rec.bytes), D);
+    var data = HubSave.parse(new Uint8Array(rec.bytes));
     if (!data.ok) return { error: data };
     return {
-      slot: rec.slot, fileName: rec.fileName, loadedAt: rec.loadedAt, bytes: rec.bytes, data: data,
-      box: Math.min(Math.max(data.currentBox, 0), 17), grave: loadGrave(data)
+      slot: rec.slot, fileName: rec.fileName, loadedAt: rec.loadedAt, bytes: rec.bytes, data: data, game: HubSave.get(data.kind),
+      box: Math.min(Math.max(data.currentBox, 0), data.boxes.length - 1), grave: loadGrave(data)
     };
   }
 
@@ -499,16 +516,35 @@
 
   /* ── Rendering ─────────────────────────────────────────────────── */
   function render() {
+    useGame(cur());
     applyLang();
     var has = state.saves.length > 0;
     $('drop-section').hidden = has;
     $('loaded').hidden = !has;
-    if (!has) { closeModal(); return; }
+    if (!has) { closeModal(); updateScene(); return; }
     renderSaveBar();
     renderNotices();
     renderTrainer();
     renderTabs();
     renderPanel();
+  }
+
+  // Im PC hinter der Karte (pc.js): die gerade gezeigte Box mit Tapete und Icons, dazu das Team
+  function updateScene() {
+    if (!window.PcScene) return;
+    var sv = cur(), l = L();
+    if (!sv) { window.PcScene.update({ empty: true, boxes: [], team: [] }); return; }
+    var mon = function (m) {
+      return m ? { ref: ref(state.active, m.where), icon: iconTag(m), name: monName(m), lv: m.isEgg ? '' : l.lv + ' ' + m.level, shiny: !!m.shiny } : null;
+    };
+    window.PcScene.update({
+      empty: false,
+      trainer: sv.data.trainer.name || '',
+      box: sv.box,
+      grave: sv.grave,
+      boxes: sv.data.boxes.map(function (b, i) { return { name: boxLabel(sv.data, i), wallpaper: b.wallpaper, slots: b.slots.map(mon) }; }),
+      team: sv.data.party.map(mon)
+    });
   }
 
   function renderSaveBar() {
@@ -556,17 +592,17 @@
     if (started) meta.push('<span>' + l.started + ' <b>' + started + '</b></span>');
     if (t.gameClear) meta.push('<span class="pill" style="color:var(--color-accent);border-color:rgba(var(--t-acc),0.35)">' + l.champion + '</span>');
 
-    var badges = BADGES.map(function (b, i) {
+    var badges = G.badges.map(function (b, i) {
       var on = t.badges[b.bit];
       return '<span class="badge' + (on ? ' on' : '') + '" style="--bc:' + b.color + '" title="' + esc(l.badgeOf(locName(b.city))) + '"><span>' + (i + 1) + '</span></span>';
     }).join('');
 
-    var sPct = Math.round(dex.sinnohCaught / dex.sinnohTotal * 100);
+    var sPct = Math.round(dex.regionalCaught / dex.regionalTotal * 100);
     var dexHtml = '<div class="dex-box">' +
-      '<div class="dex-row"><span>' + l.sinnohDex + '</span><span><b>' + dex.sinnohCaught + '</b> / ' + dex.sinnohTotal + ' ' + l.caught + '</span></div>' +
+      '<div class="dex-row"><span>' + l.regionDex(G.region[lang]) + '</span><span><b>' + dex.regionalCaught + '</b> / ' + dex.regionalTotal + ' ' + l.caught + '</span></div>' +
       '<div class="bar"><span style="width:' + sPct + '%"></span></div>' +
-      '<div class="dex-row"><span>' + dex.sinnohSeen + ' ' + l.seen + '</span>' +
-      (t.nationalDex ? '<span>' + l.nationalDex + ' <b>' + dex.caught.length + '</b> / 493</span>' : '<span></span>') + '</div></div>';
+      '<div class="dex-row"><span>' + dex.regionalSeen + ' ' + l.seen + '</span>' +
+      (t.nationalDex ? '<span>' + l.nationalDex + ' <b>' + dex.caught.length + '</b> / ' + (D.speciesCount || 493) + '</span>' : '<span></span>') + '</div></div>';
 
     $('trainer').innerHTML =
       '<div class="avatar' + (t.gender === 1 ? ' is-f' : '') + '">' + esc((t.name || '?').charAt(0)) + '</div>' +
@@ -582,13 +618,13 @@
   function renderTabs() {
     computeLinks();
     var data = cur().data;
-    var two = state.saves.length === 2;
+    var two = state.saves.length === 2 && sameGame();
     if (!two && state.tab === 'link') state.tab = 'team';
     var counts = {
       team: data.party.length,
       boxes: boxCount(data),
       encounters: encounterGroups(cur()).groups.length,
-      dex: (state.dexMode === 'sinnoh' ? data.dex.sinnohCaught : data.dex.caught.length),
+      dex: (state.dexMode === 'regional' ? data.dex.regionalCaught : data.dex.caught.length),
       link: state.link && state.link.ok ? state.link.result.pairs.length : '–'
     };
     $('tabs').style.setProperty('--n', two ? 5 : 4);
@@ -608,6 +644,7 @@
     else if (state.tab === 'encounters') p.innerHTML = encountersHtml();
     else if (state.tab === 'link') p.innerHTML = linkHtml();
     else p.innerHTML = dexHtml();
+    updateScene();
   }
 
   /* Team */
@@ -765,7 +802,9 @@
 
   function encountersHtml() {
     var l = L();
-    var saves = state.saves;
+    // Verschiedene Spiele lassen sich nicht nach Ort vergleichen – dann nur der gezeigte Spielstand
+    var saves = sameGame() ? state.saves : [cur()];
+    var idxOf = function (i) { return saves.length === state.saves.length ? i : state.active; };
     var groups = saves.map(encounterGroups);
     var keys = [];
     groups.forEach(function (g) { g.keys.forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); }); });
@@ -779,7 +818,7 @@
       var dead = all.filter(function (e) { return e.tag === 'dead'; }).length;
       return '<div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between">' +
         '<div><b style="color:rgb(var(--t-white))">' + esc(sv.data.trainer.name) + '</b> <span class="muted">· ' + l.encSummary(groups[i].groups.length, all.length) +
-        (dead ? ' · ' + l.encDead(dead) : '') + '</span></div>' + graveSelect(sv, i) + '</div>';
+        (dead ? ' · ' + l.encDead(dead) : '') + '</span></div>' + graveSelect(sv, idxOf(i)) + '</div>';
     }).join('');
 
     var multi = saves.length > 1;
@@ -790,7 +829,7 @@
       return '<tr><td>' + esc(groupLabel(k)) + '</td>' + saves.map(function (sv, i) {
         var list = groups[i].map[k];
         return '<td data-label="' + esc(multi ? sv.data.trainer.name : '') + '"' + (multi ? '' : ' data-single') + '>' +
-          (list ? '<div class="enc-mons">' + list.map(function (e) { return encMon(e, i, sv.data.trainer); }).join('') + '</div>' : '<span class="enc-none">—</span>') + '</td>';
+          (list ? '<div class="enc-mons">' + list.map(function (e) { return encMon(e, idxOf(i), sv.data.trainer); }).join('') + '</div>' : '<span class="enc-none">—</span>') + '</td>';
       }).join('') + '</tr>';
     }).join('');
 
@@ -802,18 +841,18 @@
   function dexHtml() {
     var data = cur().data, l = L();
     var caught = new Set(data.dex.caught), seen = new Set(data.dex.seen);
-    var list = state.dexMode === 'sinnoh' ? D.sinnohDex : Array.from({ length: 493 }, function (_, i) { return i + 1; });
+    var list = state.dexMode === 'regional' ? (D.regionalDex || D.sinnohDex) : Array.from({ length: D.speciesCount || 493 }, function (_, i) { return i + 1; });
     var cells = list.map(function (sp, i) {
       var st = caught.has(sp) ? 'caught' : seen.has(sp) ? 'seen' : 'unseen';
-      var no = state.dexMode === 'sinnoh' ? i + 1 : sp;
+      var no = state.dexMode === 'regional' ? i + 1 : sp;
       var title = st === 'unseen' ? '???' : speciesName(sp);
       return '<a class="dex-cell ' + st + '" href="../PokemonInfo/index.html#' + sp + '" title="' + esc('#' + pad(no, 3) + ' ' + title) + '">' + iconSpecies(sp) + '<span>' + pad(no, 3) + '</span></a>';
     }).join('');
-    var c = state.dexMode === 'sinnoh' ? data.dex.sinnohCaught : data.dex.caught.length;
-    var s = state.dexMode === 'sinnoh' ? data.dex.sinnohSeen : data.dex.seen.length;
+    var c = state.dexMode === 'regional' ? data.dex.regionalCaught : data.dex.caught.length;
+    var s = state.dexMode === 'regional' ? data.dex.regionalSeen : data.dex.seen.length;
     return '<div class="dex-tools"><div class="seg">' +
-      ['sinnoh', 'national'].map(function (k) {
-        return '<button type="button" data-act="dexmode" data-k="' + k + '" class="' + (state.dexMode === k ? 'is-active' : '') + '">' + l.dexMode[k] + '</button>';
+      ['regional', 'national'].map(function (k) {
+        return '<button type="button" data-act="dexmode" data-k="' + k + '" class="' + (state.dexMode === k ? 'is-active' : '') + '">' + (k === 'regional' ? G.region[lang] : l.dexMode[k]) + '</button>';
       }).join('') + '</div>' +
       '<div class="legend"><span><i style="background:#62dc96"></i>' + c + ' ' + l.legendCaught + '</span><span><i style="background:#8a8aa0"></i>' + (s - c) + ' ' + l.legendSeen + '</span><span><i style="background:rgba(var(--t-ink),0.12)"></i>' + (list.length - s) + ' ' + l.legendUnseen + '</span></div></div>' +
       '<div class="dex-grid">' + cells + '</div>';
@@ -855,7 +894,7 @@
   }
 
   function computeLinks() {
-    if (state.saves.length !== 2) { state.link = null; return; }
+    if (state.saves.length !== 2 || !sameGame()) { state.link = null; return; }
     if (trainerKey(state.saves[0]) === trainerKey(state.saves[1])) { state.link = { ok: false }; return; }
     var A = linkEntries(state.saves[0]), B = linkEntries(state.saves[1]);
     var fixes = getFixes();
@@ -1081,6 +1120,10 @@
     492: ['shaymin-land', 'shaymin-sky']
   };
   function apiName(m) {
+    if (D.apiSpecies) {                                  // Omega Rubin / Alpha Saphir: Namen aus den Spieldaten
+      var af = D.apiForms && D.apiForms[m.species];
+      return (af && af[m.form]) || D.apiSpecies[m.species] || null;
+    }
     var f = API_FORMS[m.species];
     if (f) return f[m.form] || f[0];
     var en = D.text.en.species[m.species];
@@ -1094,17 +1137,21 @@
   // Fangort für Duos Routenliste: deutscher Name wie in ../locations.js (dort heißen ein paar Orte anders als im
   // Spiel). Der Starter steht im Spiel als Route 201 mit Lv. 5 (wilde Pokémon dort: Lv. 2–4) – auch im Randomizer,
   // wo er eine andere Art ist – und wird zu „Starter-Pokémon“.
+  // In Omega Rubin / Alpha Saphir bekommt man den Starter auf Route 101 mit Lv. 5.
   var DUO_ROUTE_ALIAS = {
-    'Feuriohütte': 'Feurio-Hütte', 'Vollmond-Insel': 'Vollmondinsel', 'Neumond-Insel': 'Neumondinsel',
-    'Halle d. Beginns': 'Halle des Beginns', 'Erholungsgebiet': 'Erholungsareal', 'PKMN-Landgut': 'Pokémon-Landgut',
-    'Maniac-Höhle': 'Ruinengrotte'
+    pt: {
+      'Feuriohütte': 'Feurio-Hütte', 'Vollmond-Insel': 'Vollmondinsel', 'Neumond-Insel': 'Neumondinsel',
+      'Halle d. Beginns': 'Halle des Beginns', 'Erholungsgebiet': 'Erholungsareal', 'PKMN-Landgut': 'Pokémon-Landgut',
+      'Maniac-Höhle': 'Ruinengrotte'
+    },
+    oras: { 'Metaflurtunnel': 'Metarost-Tunnel' }
   };
   function duoRoute(m) {
     if (!m || m.isEgg) return null;
-    if (m.metLocation === 16 && m.metLevel === 5 && !m.eggLocation) return 'Starter-Pokémon';
-    var id = SoulLink.encounterLocation(m), t = D.text.de;
-    var n = !id ? null : id >= 3000 ? t.loc3000[id - 3000] : id >= 2000 ? t.loc2000[id - 2000] : t.loc0[id];
-    return n ? (DUO_ROUTE_ALIAS[n] || n) : null;
+    if (m.metLocation === G.starterMet.location && m.metLevel === G.starterMet.level && !m.eggLocation) return 'Starter-Pokémon';
+    var n = HubSave.locName(D, 'de', SoulLink.encounterLocation(m));
+    var alias = DUO_ROUTE_ALIAS[G.key] || {};
+    return n ? (alias[n] || n) : null;
   }
 
   // [Spielstand von Spieler 1, Spielstand von Spieler 2] – so stehen sie auch hier links und rechts
@@ -1203,7 +1250,7 @@
         box1: names(plan.box, 0, DUO_BOX, duoRoute), box2: names(plan.box, 1, DUO_BOX, duoRoute),
         graves1: names(plan.grave, 0, 0, duoRoute), graves2: names(plan.grave, 1, 0, duoRoute)
       },
-      game: 'platin'
+      game: G.hubGame
     };
     try { localStorage.setItem(DUO_IMPORT_KEY, JSON.stringify(data)); } catch (e) { if (window.PokeHubStorageWarning) window.PokeHubStorageWarning(true); return; }
     location.href = '../Duo/index.html';
@@ -1332,7 +1379,7 @@
     if (m.pokerus >> 4) pkrs = (m.pokerus & 15) ? l.pkrsActive : l.pkrsCured;
     var general = '<div class="d-section"><h4>' + esc(speciesName(m.species)) + '</h4><dl class="kv">' +
       '<dt>' + l.nature + '</dt><dd>' + esc(t.natures[m.nature]) + (neutral ? '' : ' <span class="up">↑' + l.statShort[up + 1] + '</span> <span class="down">↓' + l.statShort[down + 1] + '</span>') + '</dd>' +
-      '<dt>' + l.ability + '</dt><dd>' + esc(t.abilities[m.ability]) + '</dd>' +
+      '<dt>' + l.ability + '</dt><dd>' + esc(t.abilities[m.ability]) + (m.abilityNumber === 4 ? ' <span class="muted">(' + l.hiddenAbility + ')</span>' : '') + '</dd>' +
       '<dt>' + l.item + '</dt><dd>' + (m.item ? itemImg(m.item) + esc(t.items[m.item]) : l.noItem) + '</dd>' +
       '<dt>' + l.hiddenPower + '</dt><dd>' + typeBadge(hpType) + ' ' + m.hiddenPower.power + '</dd>' +
       '<dt>' + l.friendship + '</dt><dd>' + m.friendship + ' / 255</dd>' +
@@ -1392,6 +1439,7 @@
   function openModal(refStr) {
     var r = findMon(refStr);
     if (!r) return;
+    useGame(r.sv);
     lastModalRef = refStr;
     $('modal-card').innerHTML = '<button type="button" class="modal-close" data-act="close" aria-label="' + L().close + '">×</button>' + detailHtml(r.m, r.sv, +refStr.split(':')[0]);
     $('modal').hidden = false;

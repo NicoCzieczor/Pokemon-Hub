@@ -1,0 +1,21 @@
+/*
+ * Teile der Attacken-Animationen (attacks.js): kleine Pixelbilder, die attacks.js im Raster der Sprites malt
+ * (1 Bildpunkt = Maßstab der Szene) und hier nur hinlegt. Mittelpunkt bei left/top, bewegt nur über transform/opacity.
+ */
+
+.fx-layer { position: fixed; inset: 0; z-index: 50; overflow: hidden; pointer-events: none; }
+.fx {
+  position: absolute;
+  display: block;
+  translate: -50% -50%;
+  background: center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+/* Strahl: Muster wiederholt sich der Länge nach (Breite setzt attacks.js), dreht sich um seinen Anfang */
+.fx-beam { translate: none; transform-origin: 0 50%; background-repeat: repeat-x; }
+/* Aus dem Boden: Fußpunkt bei left/top, wächst nach oben */
+.fx-spike, .fx-pillar { translate: -50% -100%; transform-origin: 50% 100%; }
+/* Blitz und Riss: linke obere Ecke bei left/top; Welle: Fußpunkt unten links */
+.fx-cv { translate: none; }
+.fx-wave { translate: 0 -100%; transform-origin: 50% 100%; }

@@ -27,10 +27,38 @@
   <link rel="stylesheet" href="../theme.css">
   <title>Schadens-Rechner – Pokémon Hub</title>
   <link rel="stylesheet" href="../Pokelocke/base.css">
+  <link rel="stylesheet" href="../scene.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="versus.css">
+  <link rel="stylesheet" href="attacks.css">
 </head>
 <body>
-<div id="app">
+<!-- Kräftemessen hinter der Karte: Angreifer links, Verteidiger rechts in ihren Typfarben (versus.js) -->
+<div class="vs" id="vs" data-weather="none">
+  <div class="vs-half vs-half--l" aria-hidden="true"><div class="vs-stripes"></div><div class="vs-band"></div></div>
+  <div class="vs-half vs-half--r" aria-hidden="true"><div class="vs-stripes"></div><div class="vs-band"></div></div>
+  <div class="vs-weather vs-sun" aria-hidden="true"></div>
+  <div class="vs-weather vs-rain" aria-hidden="true"></div>
+  <div class="vs-side vs-side--l">
+    <div class="vs-mon vs-mon--atk"><span class="vs-bob"><img alt=""></span></div>
+    <div class="vs-plate">
+      <div class="vs-move-line"><span class="vs-move-type"></span><b class="vs-move-name"></b></div>
+      <button type="button" class="vs-hit">Angriff!</button>
+      <div class="vs-tally"></div>
+    </div>
+  </div>
+  <div class="vs-side vs-side--r">
+    <div class="vs-hpbox">
+      <div class="vs-hp-head"><b class="vs-name"></b><span class="vs-lv"></span></div>
+      <div class="vs-hp"><i>KP</i><span class="vs-hp-track"><span class="vs-hp-fill"></span></span></div>
+      <span class="vs-hp-num"></span>
+    </div>
+    <div class="vs-mon vs-mon--def"><span class="vs-screen"></span><span class="vs-bob"><img alt=""></span></div>
+    <div class="vs-msg is-empty" aria-live="polite"></div>
+  </div>
+</div>
+
+<div id="app" class="win-frame">
 
 <button class="lang-toggle" id="lang-toggle">DE</button>
 
@@ -252,6 +280,9 @@
 </div>
 
 <script src="../pokemon-names.js"></script>
+<script src="../scene.js"></script>
+<script src="attacks.js"></script>
+<script src="versus.js"></script>
 <script src="mechanics.js"></script>
 <script src="app.js"></script>
 </body>

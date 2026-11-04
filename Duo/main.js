@@ -468,7 +468,17 @@ function renderTeamSlot(player, index, details) {
     slot.innerHTML = '';
     slot.title = '';
   }
+  window.HubStage?.set(player, index, details);   // Kampfbühne neben der Karte (nur am PC)
 }
+
+// Drüberfahren über ein Team-Pokémon: es hüpft auf seinem Podest, ein verknüpfter Partner gegenüber mit
+document.addEventListener('mouseover', e => {
+  const slot = e.target.closest('.pokemon-slot[data-filled]');
+  if (!slot || !window.HubStage || slot.contains(e.relatedTarget)) return;
+  const pl = Number(slot.dataset.player), i = Number(slot.dataset.slot);
+  window.HubStage.hop(pl, i);
+  if (linkedTeamSlots.has(i)) window.HubStage.hop(3 - pl, i);
+});
 
 function renderInfoSlot(details) {
   const slot = document.querySelector('.info-slot[data-slot="info"]');
@@ -2202,33 +2212,37 @@ function routeMonHtml(c) {
     `<span class="route-mon-text"><span class="route-mon-name">${esc(catchName(c))}</span>` +
     `<small>${dead ? '† ' : ''}${esc(window.t('route-where-' + c.where))}</small></span></span>`;
 }
-// Wilde Pokémon einer Route für einen Spieler → { ids, rando: ROM-Name | null (Original) } oder null (kein Platin).
-// Jede Spalte hat ihr eigenes Spiel (wildShared): das eigene kommt aus dem Randomizer-Stand dieses Geräts, das des
-// Mitspielers lädt man bei ihm (ROM laden) oder er teilt es über die Session. Ohne Spiel: die Original-Pokémon.
-const STARTERS_PT = [387, 390, 393];
+// Wilde Pokémon einer Route für einen Spieler → { ids, rando: ROM-Name | null (Original) } oder null (kein Platin bzw.
+// Omega Rubin / Alpha Saphir). Jede Spalte hat ihr eigenes Spiel (wildShared): das eigene kommt aus dem Randomizer-Stand
+// dieses Geräts, das des Mitspielers lädt man bei ihm (ROM laden) oder er teilt es über die Session. Ohne Spiel: die
+// Original-Pokémon (OR/AS: die Edition aus dem Boss-Planer bzw. der Karte).
+const WILD_GAMES = { platin: { key: 'pt', starters: [387, 390, 393] }, 'omega-rot-alpha-saphir': { key: 'oras', starters: [252, 255, 258] } };
+const wildGame = () => WILD_GAMES[routeGame()] || null;
+const orasVersion = () => { try { return localStorage.getItem('bosse-oras-version') === 'as' ? 'as' : 'or'; } catch (e) { return 'or'; } };
 function wildFor(pl, route) {
-  if (routeGame() !== 'platin') return null;
+  const g = wildGame();
+  if (!g) return null;
   const w = wildShared[pl];
-  if (w) return { ids: w.r[route] || null, rando: w.name || '?' };
+  if (w && (w.game || 'pt') === g.key) return { ids: w.r[route] || null, rando: w.name || '?' };
   const R = window.PokeHubRando;
-  return { ids: route === LOC()?.STARTER_LOCATION ? STARTERS_PT : R ? R.originalAt(route) : null, rando: null };
+  return { ids: route === LOC()?.STARTER_LOCATION ? g.starters : R ? R.originalAt(route, g.key, orasVersion()) : null, rando: null };
 }
 // Ein Randomizer-Spiel kurz zusammengefasst (Ort → Arten, nur Gras/Surfen/Angeln) – so wird es geteilt
 function wildSummary(rd) {
-  const R = window.PokeHubRando;
-  if (!R || !rd || !Array.isArray(rd.wild) || !LOC()) return null;
+  const R = window.PokeHubRando, g = wildGame();
+  if (!R || !rd || !g || (rd.game || 'pt') !== g.key || !Array.isArray(rd.wild) || !LOC()) return null;
   const r = {};
-  LOC().encounterList('platin').forEach(p => {
+  LOC().encounterList(routeGame()).forEach(p => {
     const ids = p === LOC().STARTER_LOCATION ? rd.starters : R.speciesAt(rd, p, true);
     if (ids && ids.length) r[p] = ids;
   });
-  return cleanWild({ name: rd.name, r });
+  return cleanWild(g.key === 'pt' ? { name: rd.name, r } : { name: rd.name, game: g.key, r });
 }
 // Platz dieses Geräts: in der Session der eigene, sonst Spieler 1
 const mySlot = () => (syncActive && sessionMySlot ? sessionMySlot : 1);
 // Randomizer-Stand dieses Geräts in die eigene Spalte. fill = nur, wenn dort noch nichts ist (lokal beim Start)
 function syncMyWild(fill) {
-  if (routeGame() !== 'platin') return;
+  if (!wildGame()) return;
   const mine = wildSummary(window.PokeHubRando?.get()), slot = mySlot();
   if (!mine || (fill && wildShared[slot])) return;
   if (JSON.stringify(mine) === JSON.stringify(wildShared[slot] ?? null)) return;
@@ -2249,10 +2263,11 @@ function wildIconsHtml(pl, route) {
 // Je Spieler: welches Spiel (ROM-Name ×) bzw. Original mit „ROM laden“ und – falls dieses Gerät eins hat – „Mein Randomizer-Stand“
 let wildLoading = 0;
 function wildSlotsHtml() {
-  if (routeGame() !== 'platin') return '';
-  const t = window.t, rd = window.PokeHubRando?.get(), mine = rd && Array.isArray(rd.wild);
+  const g = wildGame();
+  if (!g) return '';
+  const t = window.t, rd = window.PokeHubRando?.get(), mine = rd && (rd.game || 'pt') === g.key && Array.isArray(rd.wild);
   return [1, 2].map(pl => {
-    const w = wildShared[pl];
+    const w = wildShared[pl] && (wildShared[pl].game || 'pt') === g.key ? wildShared[pl] : null;
     const body = wildLoading === pl ? `<span class="wild-slot-orig">${esc(t('wild-slot-reading'))}</span>`
       : w ? `<span class="hub-rando-chip" title="${esc(w.name)}"><b>${esc(w.name || '?')}</b><button type="button" data-wild-clear="${pl}" aria-label="${esc(t('wild-slot-clear'))}" title="${esc(t('wild-slot-clear'))}">×</button></span>`
       : `<span class="wild-slot-orig">${esc(t('routes-wild-orig'))}</span>` +
@@ -2264,7 +2279,7 @@ function wildSlotsHtml() {
 // ROM eines Spielers lesen (nur wilde Pokémon und Starter) und in seine Spalte – in der Session sieht es auch der Partner
 const wildFile = document.createElement('input');
 wildFile.type = 'file';
-wildFile.accept = '.nds';
+wildFile.accept = '.nds,.3ds,.cxi,.cci';
 wildFile.addEventListener('change', async () => {
   const file = wildFile.files[0], pl = +wildFile.dataset.pl;
   wildFile.value = '';
@@ -2308,7 +2323,7 @@ function renderRoutes() {
   if (hint) { hint.textContent = hintText; hint.hidden = !hintText; }
   const wildBox = document.getElementById('routes-wild');
   if (wildBox) {
-    wildBox.hidden = game !== 'platin';
+    wildBox.hidden = !wildGame();
     const tog = document.getElementById('routes-wild-toggle');
     if (tog) tog.checked = showWild;
     const srcEl = document.getElementById('routes-wild-src');
@@ -2651,16 +2666,17 @@ async function applyPendingImport() {
     graves[1].push({ ...toDisplayPokemon(get(data.graves2[i], 'graves2', i)), killedBy: 0, linkId: linkBase + i });
   });
 
-  // Spielstände aus Platin → Auswahlliste und Info auf Generation 4
-  if (currentGeneration !== 4) {
-    await loadPokemonList(4);
+  // Spielstände aus Platin → Auswahlliste und Info auf Generation 4, aus Omega Rubin / Alpha Saphir → Generation 6
+  const importGen = data.game === 'omega-rot-alpha-saphir' ? 6 : 4;
+  if (currentGeneration !== importGen) {
+    await loadPokemonList(importGen);
     const gs = document.getElementById('generation-select');
-    if (gs) gs.value = '4';
+    if (gs) gs.value = String(importGen);
   }
   if (!infoGenLocked) {
-    infoGeneration = 4;
+    infoGeneration = importGen;
     const igs = document.getElementById('info-generation-select');
-    if (igs) igs.value = '4';
+    if (igs) igs.value = String(importGen);
     renderInfoPanel();
   }
 

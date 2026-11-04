@@ -40,6 +40,9 @@ const I18N = {
     close: 'Schließen',
     locNotWild: 'nicht wild', locNoneIn: 'In {game} ist dieses Pokémon nicht in freier Wildbahn zu finden – z. B. nur durch Entwicklung, als Geschenk oder per Tausch. Andere Spiele kannst du oben auswählen.',
     locOnlyIn: 'Nur in', bulbaAll: 'Alle Fundorte auf Bulbapedia →', bulbaIncomplete: 'Daten können unvollständig sein',
+    dexSize: 'Größe', dexWeight: 'Gewicht', dexCry: 'Ruf abspielen', dexCryCap: 'Ruf', dexNoCry: 'Kein Ruf',
+    dexPrev: 'Vorige Nummer', dexNext: 'Nächste Nummer', dexRnd: 'Zufälliges Pokémon', dexRndCap: 'Zufall',
+    dexEnter: 'Nummer eingeben', dexDel: 'Löschen', dexOk: 'Nummer laden',
   },
   en: {
     title: 'Pokédex', subtitle: 'Complete information about every Pokémon',
@@ -78,6 +81,9 @@ const I18N = {
     close: 'Close',
     locNotWild: 'not wild', locNoneIn: 'In {game} this Pokémon can\'t be found in the wild – e.g. only by evolving, as a gift or by trading. Pick another game above.',
     locOnlyIn: 'Only in', bulbaAll: 'All locations on Bulbapedia →', bulbaIncomplete: 'Data may be incomplete',
+    dexSize: 'Height', dexWeight: 'Weight', dexCry: 'Play cry', dexCryCap: 'Cry', dexNoCry: 'No cry',
+    dexPrev: 'Previous number', dexNext: 'Next number', dexRnd: 'Random Pokémon', dexRndCap: 'Random',
+    dexEnter: 'Enter number', dexDel: 'Delete', dexOk: 'Load number',
   },
 };
 
@@ -316,6 +322,7 @@ async function apiPokemon(idOrName) {
       stats: Object.fromEntries(e.stats.map(x => [x.stat.name, x.base_stat])),
     })),
     height: d.height, weight: d.weight,
+    cry: d.cries?.latest || d.cries?.legacy || null,
     baseExp: d.base_experience,
     moves: d.moves,
     speciesUrl: d.species?.url ?? null,
@@ -1365,9 +1372,30 @@ function showLoadError(nameOrId) {
   box.querySelector('button').addEventListener('click', () => loadPokemon(nameOrId));
 }
 
+// Pokédex-Gerät um die Karte (device.js): Nummer, Größe, Gewicht, Ruf; Steuerkreuz und Tasten laden andere Nummern
+function updateScene() {
+  if (!window.DexScene || !currentPokemon || !currentSpecies) return;
+  const p = currentPokemon, s = currentSpecies;
+  window.DexScene.update({
+    id: s.id, pid: p.id, name: s.displayName || p.name,
+    sprite: p.sprite, spriteShiny: p.spriteShiny, shiny: isShiny,
+    height: p.height / 10, weight: p.weight / 10, cry: p.cry,
+    max: window.POKEMON_NAMES.de.length - 1, lang: window.LANG,
+    labels: {
+      size: t('dexSize'), weight: t('dexWeight'), cry: t('dexCry'), cryCap: t('dexCryCap'), noCry: t('dexNoCry'),
+      prev: t('dexPrev'), next: t('dexNext'), rnd: t('dexRnd'), rndCap: t('dexRndCap'),
+      enter: t('dexEnter'), del: t('dexDel'), ok: t('dexOk'),
+    },
+    nameOf: n => window.pokemonName(n),
+    go: n => loadPokemon(n),
+    toggleShiny: () => document.getElementById('shiny-btn').click(),
+  });
+}
+
 async function loadPokemon(nameOrId) {
   const seq = ++loadSeq;
   const content = document.getElementById('pokemon-content');
+  window.DexScene?.busy(true);
 
   let p, s;
   try {
@@ -1376,6 +1404,7 @@ async function loadPokemon(nameOrId) {
     s = await apiSpecies(speciesId);
   } catch (err) {
     if (seq !== loadSeq) return;
+    window.DexScene?.busy(false);
     // Seite nicht leeren – das zuletzt gezeigte Pokémon bleibt stehen
     showLoadError(nameOrId);
     if (!currentPokemon) content.style.display = 'none';
@@ -1395,6 +1424,7 @@ async function loadPokemon(nameOrId) {
 
   renderIdentity(p, s);
   renderDetails(s, p);
+  updateScene();
 
   renderAbilities(p, seq);
   renderEvolution(s, seq);
@@ -1496,6 +1526,7 @@ document.getElementById('shiny-btn').addEventListener('click', () => {
   document.getElementById('shiny-btn').classList.toggle('is-active', isShiny);
   document.getElementById('identity-sprite').src = isShiny ? (currentPokemon.spriteShiny || currentPokemon.sprite) : currentPokemon.sprite;
   document.getElementById('identity-sprite').className = 'identity-sprite' + (isShiny ? ' is-shiny' : '');
+  updateScene();
 });
 
 // Aktives Spiel des Hubs geändert (Chip, andere Seite): hier mitwechseln, falls es das Pokémon dort gibt
