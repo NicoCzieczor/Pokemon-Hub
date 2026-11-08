@@ -28,7 +28,7 @@
   <title>Solo Nuzlocke</title>
   <link rel="stylesheet" href="base.css" />
   <style>
-    /* Hintergrund ist die Ruhmeshalle (hall.css) – darunter nur eine dunkle Farbe für den Überscroll */
+    /* Hintergrund ist das Pokémon-Center (center.css) – darunter nur eine dunkle Farbe für den Überscroll */
     html, body {
       min-height: 100%;
       background: rgb(var(--t-n-0d0f2b));
@@ -41,7 +41,7 @@
       padding: 28px 16px;
       font-family: var(--font-main);
     }
-    /* Karte vor der Ruhmeshalle – Rahmen und Hintergrund: #app.win-frame (base.css) */
+    /* Karte mitten im Pokémon-Center – Rahmen und Hintergrund: #app.win-frame (base.css) */
     #app {
       width: min(98vw, 1340px);
       margin: 0 auto;
@@ -559,7 +559,8 @@
       #weakness-section { padding: 16px 14px; }
     }
   </style>
-  <link rel="stylesheet" href="hall.css">
+  <link rel="stylesheet" href="solo-refresh.css">
+  <link rel="stylesheet" href="center.css">
 </head>
 <body>
   <div id="app" class="win-frame">
@@ -585,12 +586,54 @@
     <header>
       <div class="header-main">
         <div>
+          <span class="solo-kicker" data-i18n="solo-kicker">TRAINER-TAGEBUCH</span>
           <h1>Solo Nuzlocke</h1>
-          <p data-i18n="subtitle">Stelle dein Team zusammen, analysiere Typ-Deckung und verwalte deine Box.</p>
+          <p data-i18n="subtitle">Dein Team, dein Weg, deine Geschichte.</p>
         </div>
         <button class="lang-toggle" id="lang-toggle">DE</button>
       </div>
     </header>
+
+    <section id="solo-journey" class="solo-journey" aria-labelledby="journey-heading" data-biome="meadow" data-daytime="day">
+      <div class="journey-scene">
+        <div class="journey-world" aria-hidden="true">
+          <span class="journey-light"></span>
+          <span class="journey-cloud journey-cloud-one"></span>
+          <span class="journey-cloud journey-cloud-two"></span>
+          <span class="journey-ridge journey-ridge-back"></span>
+          <span class="journey-ridge journey-ridge-front"></span>
+          <span class="journey-tree journey-tree-one"></span>
+          <span class="journey-tree journey-tree-two"></span>
+          <span class="journey-ground"></span>
+        </div>
+        <div class="journey-copy">
+          <span class="journey-game" id="journey-game">Kein Spiel gewählt</span>
+          <span class="solo-kicker" data-i18n="journey-kicker">DEINE REISE</span>
+          <h2 id="journey-heading">Wohin führt dein Run?</h2>
+          <p id="journey-note">Wähle ein Spiel und stelle dein erstes Team zusammen.</p>
+        </div>
+        <button type="button" class="journey-open" id="journey-open">
+          <span data-i18n="journey-open">Reise planen</span><span aria-hidden="true">→</span>
+        </button>
+        <div id="journey-party" class="journey-party" aria-label="Aktives Team auf der Reise" data-i18n="journey-party-label" data-i18n-attr="aria-label"></div>
+      </div>
+
+      <div class="journey-dashboard">
+        <div class="solo-summary" aria-label="Run-Übersicht" data-i18n="summary-label" data-i18n-attr="aria-label">
+          <div class="summary-item"><span class="summary-value" id="summary-team">0 / 6</span><span class="summary-label" data-i18n="summary-team">Team</span></div>
+          <div class="summary-item"><span class="summary-value" id="summary-box">0 / 30</span><span class="summary-label" data-i18n="summary-box">Box</span></div>
+          <div class="summary-item"><span class="summary-value" id="summary-routes">–</span><span class="summary-label" data-i18n="summary-routes">Routen</span></div>
+          <div class="summary-item"><span class="summary-value" id="summary-grave">0</span><span class="summary-label" data-i18n="summary-grave">Gefallen</span></div>
+        </div>
+        <div class="journey-progress">
+          <div class="journey-progress-head">
+            <span data-i18n="journey-progress">Reiseverlauf</span>
+            <strong id="journey-progress-value">0%</strong>
+          </div>
+          <div id="journey-waypoints" class="journey-waypoints"></div>
+        </div>
+      </div>
+    </section>
 
     <div id="teams-area">
 
@@ -608,58 +651,112 @@
 
       <!-- Team -->
       <section id="team-panel">
-        <div id="team-builder">
-          <div class="pokemon-slot" data-slot="0"></div>
-          <div class="pokemon-slot" data-slot="1"></div>
-          <div class="pokemon-slot" data-slot="2"></div>
-          <div class="pokemon-slot" data-slot="3"></div>
-          <div class="pokemon-slot" data-slot="4"></div>
-          <div class="pokemon-slot" data-slot="5"></div>
+        <div class="team-panel-head">
+          <div>
+            <span class="solo-kicker" data-i18n="party-kicker">DEINE PARTY</span>
+            <h2 class="team-panel-title" data-i18n="team-title">Aktives Team</h2>
+          </div>
+          <p class="team-panel-hint" data-i18n="team-hint">Pokémon antippen, um es zu fokussieren. Ziehen sortiert dein Team.</p>
+        </div>
+        <div class="team-workspace">
+          <aside id="team-focus" aria-live="polite">
+            <div class="focus-empty">
+              <span class="focus-empty-mark">01</span>
+              <strong data-i18n="focus-empty-title">Dein Lead wartet</strong>
+              <span data-i18n="focus-empty-text">Füge dein erstes Pokémon hinzu und plane von hier aus weiter.</span>
+              <button type="button" class="focus-action" data-focus-action="add" data-i18n="focus-add">Pokémon hinzufügen</button>
+            </div>
+          </aside>
+          <div id="team-builder">
+            <div class="pokemon-slot" data-slot="0"></div>
+            <div class="pokemon-slot" data-slot="1"></div>
+            <div class="pokemon-slot" data-slot="2"></div>
+            <div class="pokemon-slot" data-slot="3"></div>
+            <div class="pokemon-slot" data-slot="4"></div>
+            <div class="pokemon-slot" data-slot="5"></div>
+          </div>
         </div>
       </section>
 
     </div><!-- #teams-area -->
 
-    <!-- Info Slot -->
-    <div class="info-slot" data-slot="info" data-i18n="info-slot-empty">Info-Pokémon wählen</div>
-
-    <!-- Info Panel -->
-    <div id="info-panel">
-      <div id="info-details">
-        <h3 data-i18n="info-title">Pokémon-Info</h3>
-        <div id="info-content">
-          <div id="info-placeholder" class="info-row" data-i18n="info-placeholder">Wähle ein Pokémon aus dem Team oder dem Info-Slot, um Typ, Statuswerte und Attacken zu sehen.</div>
+    <section id="info-section">
+      <div class="section-title-row">
+        <div>
+          <span class="solo-kicker" data-i18n="analysis-kicker">POKÉDEX-CHECK</span>
+          <h2 data-i18n="info-title">Pokémon-Info</h2>
+        </div>
+        <p data-i18n="info-section-hint">Teammitglied fokussieren oder ein anderes Pokémon zum Vergleichen wählen.</p>
+      </div>
+      <div id="info-panel">
+        <div class="info-side">
+          <div class="info-slot" data-slot="info" data-i18n="info-slot-empty">Pokémon zum Prüfen wählen</div>
+          <div id="info-controls">
+            <label for="info-generation-select" class="generation-label" data-i18n="info-gen-label">Generation auswählen</label>
+            <select id="info-generation-select">
+              <option value="1">Gen 1</option>
+              <option value="2">Gen 2</option>
+              <option value="3">Gen 3</option>
+              <option value="4">Gen 4</option>
+              <option value="5">Gen 5</option>
+              <option value="6">Gen 6</option>
+              <option value="7">Gen 7</option>
+              <option value="8">Gen 8</option>
+              <option value="9">Gen 9</option>
+            </select>
+          </div>
+        </div>
+        <div id="info-details">
+          <div id="info-content">
+            <div id="info-placeholder" class="info-row" data-i18n="info-placeholder">Wähle ein Pokémon aus dem Team oder dem Prüf-Slot, um Typ, Statuswerte und Attacken zu sehen.</div>
+          </div>
         </div>
       </div>
-      <div id="info-controls">
-        <h3 data-i18n="info-gen-section">Info-Generation</h3>
-        <label for="info-generation-select" class="generation-label" data-i18n="info-gen-label">Generation auswählen</label>
-        <select id="info-generation-select">
-          <option value="1">Gen 1</option>
-          <option value="2">Gen 2</option>
-          <option value="3">Gen 3</option>
-          <option value="4">Gen 4</option>
-          <option value="5">Gen 5</option>
-          <option value="6">Gen 6</option>
-          <option value="7">Gen 7</option>
-          <option value="8">Gen 8</option>
-          <option value="9">Gen 9</option>
-        </select>
-      </div>
-    </div>
+    </section>
 
     <div id="save-status" aria-live="polite"></div>
 
-    <!-- Inline Box -->
-    <section id="box-section">
-      <button class="box-toggle-btn" id="box-toggle">
-        <span data-i18n="box">Box</span>
-        <span class="box-toggle-icon" id="box-toggle-icon">▼</span>
-      </button>
-      <div id="box-body" style="display:none">
-        <div id="box-slots"></div>
-      </div>
-    </section>
+    <div id="run-storage-row">
+      <!-- Inline Box -->
+      <section id="box-section">
+        <button class="box-toggle-btn run-tool-toggle" id="box-toggle" aria-expanded="false" aria-controls="box-body">
+          <span data-i18n="box">Box</span>
+          <span class="run-tool-toggle-end"><span class="run-tool-count" id="box-count">0 / 30</span><span class="box-toggle-icon run-tool-icon" id="box-toggle-icon">▼</span></span>
+        </button>
+        <div id="box-body" class="run-tool-body" style="display:none">
+          <div id="box-slots"></div>
+        </div>
+      </section>
+
+      <section id="routes-section">
+        <button type="button" class="run-tool-toggle" id="routes-toggle" aria-expanded="false" aria-controls="routes-body">
+          <span data-i18n="routes">Routen</span>
+          <span class="run-tool-toggle-end"><span class="run-tool-count" id="routes-count">–</span><span class="run-tool-icon" id="routes-toggle-icon">▼</span></span>
+        </button>
+        <div id="routes-body" class="run-tool-body" hidden>
+          <div class="routes-head">
+            <label class="routes-game"><span data-i18n="routes-game">Spiel des Runs</span><select id="routes-game-select"></select></label>
+            <div class="routes-filter" role="group" aria-label="Routen filtern" data-i18n="routes-filter-label" data-i18n-attr="aria-label">
+              <button type="button" data-route-filter="all" class="is-on" aria-pressed="true" data-i18n="routes-filter-all">Alle</button>
+              <button type="button" data-route-filter="open" aria-pressed="false" data-i18n="routes-filter-open">Offen</button>
+              <button type="button" data-route-filter="done" aria-pressed="false" data-i18n="routes-filter-done">Erledigt</button>
+            </div>
+          </div>
+          <p id="routes-hint" class="routes-hint"></p>
+          <div id="routes-list" class="routes-list"></div>
+        </div>
+      </section>
+
+      <section id="graveyard-section">
+        <button type="button" class="run-tool-toggle" id="graveyard-toggle" aria-expanded="false" aria-controls="graveyard-body">
+          <span data-i18n="graveyard">Friedhof</span>
+          <span class="run-tool-toggle-end"><span class="run-tool-count" id="graveyard-count">0</span><span class="run-tool-icon" id="graveyard-toggle-icon">▼</span></span>
+        </button>
+        <div id="graveyard-body" class="run-tool-body" hidden>
+          <div id="graveyard-slots"><p class="graveyard-empty" data-i18n="graveyard-empty">Noch keine gefallenen Pokémon.</p></div>
+        </div>
+      </section>
+    </div>
 
     <!-- Weakness Analysis -->
     <section id="weakness-section">
@@ -675,8 +772,27 @@
 
   </div><!-- #app -->
 
-  <!-- Ruhmeshalle hinter der Karte: Team im Scheinwerfer, Ehrentafel (hall.js). Nach #app wegen der Tab-Reihenfolge -->
-  <div class="hf" id="hf" aria-hidden="true"></div>
+  <!-- Pokémon-Center hinter der Karte: Joy, Heilmaschine, PC und das Team als Begleiter (center.js). Nach #app wegen der Tab-Reihenfolge -->
+  <div class="pcs" id="pcs" aria-hidden="true"></div>
+
+  <div id="ctx-menu" class="ctx-menu" role="menu">
+    <button type="button" id="ctx-info" role="menuitem" data-i18n="ctx-info">Details ansehen</button>
+    <button type="button" id="ctx-route" role="menuitem" data-i18n="ctx-route">Fangort festlegen …</button>
+    <button type="button" id="ctx-kill" role="menuitem" class="ctx-danger" data-i18n="ctx-kill">Als gestorben markieren</button>
+    <button type="button" id="ctx-remove" role="menuitem" data-i18n="ctx-remove">Entfernen</button>
+  </div>
+
+  <dialog id="route-dialog" aria-labelledby="route-dialog-title">
+    <div class="route-dialog-card">
+      <div class="route-dialog-head">
+        <div><span class="solo-kicker" data-i18n="route-dialog-kicker">FANGBUCH</span><h2 id="route-dialog-title">Fangort</h2></div>
+        <button type="button" id="route-dialog-close" aria-label="Schließen" data-i18n="modal-close" data-i18n-attr="aria-label">×</button>
+      </div>
+      <input type="search" id="route-dialog-search" class="route-dialog-search" autocomplete="off" placeholder="Route suchen …" data-i18n="route-search" data-i18n-attr="placeholder">
+      <div id="route-dialog-list" class="route-dialog-list"></div>
+      <div id="route-dialog-footer" class="route-dialog-footer"></div>
+    </div>
+  </dialog>
 
   <!-- Pokémon-Auswahl Modal -->
   <div id="pokemon-modal" style="display:none;">
@@ -714,15 +830,50 @@
 
   const TRANSLATIONS = {
     de: {
-      'subtitle':'Stelle dein Team zusammen, analysiere Typ-Deckung und verwalte deine Box.',
+      'subtitle':'Dein Team, dein Weg, deine Geschichte.',
+      'solo-kicker':'TRAINER-TAGEBUCH', 'party-kicker':'DEINE PARTY', 'analysis-kicker':'POKÉDEX-CHECK',
+      'journey-kicker':'DEINE REISE', 'journey-open':'Reise planen', 'journey-progress':'Reiseverlauf',
+      'journey-party-label':'Aktives Team auf der Reise', 'journey-game-none':'Kein Spiel gewählt',
+      'journey-heading-none':'Wohin führt dein Run?', 'journey-heading-empty':'Dein Abenteuer wartet',
+      'journey-heading-next': r => `Nächstes Ziel: ${r}`, 'journey-heading-done':'Alle Fangorte erkundet',
+      'journey-note-none':'Wähle ein Spiel und stelle dein erstes Team zusammen.',
+      'journey-note-empty': g => `${g} ist gewählt. Jetzt fehlt nur noch dein erstes Pokémon.`,
+      'journey-note-progress': (done, total, team) => `${done} von ${total} Fangorten dokumentiert · ${team} im Team`,
+      'journey-note-done': (total, fallen) => `${total} Fangorte abgeschlossen${fallen ? ` · ${fallen} Gefallene bleiben Teil der Reise` : ''}.`,
+      'journey-add':'Erstes Pokémon wählen', 'journey-focus': n => `${n} fokussieren`,
+      'journey-route-open': r => `${r}: noch offen`, 'journey-route-done': r => `${r}: dokumentiert`,
+      'journey-route-missed': r => `${r}: Begegnung verpasst`,
+      'team-title':'Aktives Team', 'team-hint':'Pokémon antippen, um es zu fokussieren. Ziehen sortiert dein Team.',
+      'focus-empty-title':'Dein Lead wartet', 'focus-empty-text':'Füge dein erstes Pokémon hinzu und plane von hier aus weiter.',
+      'focus-add':'Pokémon hinzufügen', 'focus-team': n => `Team · Platz ${n}`, 'focus-box': n => `Box · Platz ${n}`,
+      'focus-grave':'Friedhof', 'focus-bst':'Basiswert-Summe', 'focus-route-none':'Fangort noch offen',
+      'focus-weak':'Schwächen', 'focus-info':'Details', 'focus-replace':'Wechseln', 'focus-to-box':'In die Box', 'focus-to-team':'Ins Team', 'focus-route':'Fangort',
+      'focus-kill':'Gestorben', 'focus-restore':'Zurück in die Box', 'focus-remove':'Entfernen',
+      'summary-label':'Run-Übersicht', 'summary-team':'Team', 'summary-box':'Box', 'summary-routes':'Routen', 'summary-grave':'Gefallen',
+      'info-section-hint':'Teammitglied fokussieren oder ein anderes Pokémon zum Vergleichen wählen.',
       'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
       'nav-catch':'Fangrate', 'nav-damage':'Schaden', 'nav-types':'Typen',
       'box':'Box',
       'info-title':'Pokémon-Info',
-      'info-placeholder':'Wähle ein Pokémon aus dem Team oder dem Info-Slot, um Typ, Statuswerte und Attacken zu sehen.',
+      'info-placeholder':'Wähle ein Pokémon aus dem Team oder dem Prüf-Slot, um Typ, Statuswerte und Attacken zu sehen.',
       'info-gen-section':'Info-Generation', 'info-gen-label':'Generation auswählen',
-      'info-slot-empty':'Info-Pokémon wählen', 'weakness-title':'Team-Typ-Analyse', 'type-gen-label':'Typen wie in',
+      'info-slot-empty':'Pokémon zum Prüfen wählen', 'weakness-title':'Team-Typ-Analyse', 'type-gen-label':'Typen wie in',
       'weakness-empty':'Füge Pokémon zum Team hinzu, um die Typ-Analyse zu sehen.',
+      'slot-empty': n => `Platz ${n}: Pokémon hinzufügen`, 'slot-menu': n => `Aktionen für Platz ${n}`,
+      'ctx-info':'Details ansehen', 'ctx-route':'Fangort festlegen …', 'ctx-kill':'Als gestorben markieren', 'ctx-remove':'Entfernen',
+      'graveyard':'Friedhof', 'graveyard-empty':'Noch keine gefallenen Pokémon.', 'grave-restore':'Zur Box', 'grave-delete':'Löschen',
+      'grave-confirm':'Diesen Eintrag endgültig aus dem Friedhof löschen?', 'storage-full':'Team und Box sind voll.',
+      'routes':'Routen', 'routes-game':'Spiel des Runs', 'routes-game-none':'Spiel wählen …',
+      'routes-filter-label':'Routen filtern', 'routes-filter-all':'Alle', 'routes-filter-open':'Offen', 'routes-filter-done':'Erledigt',
+      'routes-hint-game':'Wähle das Spiel deines Runs. Danach siehst du alle Fangorte in Reihenfolge.',
+      'routes-hint-unrouted': n => `${n} Pokémon ${n === 1 ? 'hat' : 'haben'} noch keinen Fangort.`,
+      'routes-empty':'Für dieses Spiel sind keine Routen hinterlegt.', 'route-open':'Offen', 'route-done':'Eingetragen',
+      'route-missed':'Verpasst', 'route-enter':'Eintragen', 'route-change':'Ändern', 'route-mark-missed':'Verpasst',
+      'route-undo-missed':'Wieder öffnen', 'route-caught': r => `Gefangen: ${r}`, 'route-where-team':'Im Team',
+      'route-where-box':'In der Box', 'route-where-grave':'Gefallen', 'route-dialog-kicker':'FANGBUCH',
+      'route-dialog-title': n => `Fangort für ${n}`, 'route-assign-title': r => `Fang auf ${r}`,
+      'route-search':'Route suchen …', 'route-dialog-empty':'Keine passende Route gefunden.',
+      'route-pick-mon-empty':'Alle Pokémon haben bereits einen Fangort.', 'route-clear':'Fangort entfernen',
       'modal-title':'Wähle ein Pokémon', 'gen-label':'Generation:', 'search-placeholder':'Suche...',
       'modal-close':'Schließen',
       'e4-divider':'Top Vier & Champion', 'weaknesses':'Schwächen', 'immunities':'Immunitäten',
@@ -752,15 +903,50 @@
       'pick-pokemon': slot => `Pokémon wählen – Slot ${slot}`,
     },
     en: {
-      'subtitle':'Build your team, analyse type coverage and manage your box.',
+      'subtitle':'Your team, your path, your story.',
+      'solo-kicker':'TRAINER JOURNAL', 'party-kicker':'YOUR PARTY', 'analysis-kicker':'POKÉDEX CHECK',
+      'journey-kicker':'YOUR JOURNEY', 'journey-open':'Plan journey', 'journey-progress':'Journey progress',
+      'journey-party-label':'Active team on the journey', 'journey-game-none':'No game selected',
+      'journey-heading-none':'Where will your run lead?', 'journey-heading-empty':'Your adventure is waiting',
+      'journey-heading-next': r => `Next destination: ${r}`, 'journey-heading-done':'Every catch location explored',
+      'journey-note-none':'Choose a game and put together your first team.',
+      'journey-note-empty': g => `${g} is selected. All that is missing is your first Pokémon.`,
+      'journey-note-progress': (done, total, team) => `${done} of ${total} catch locations logged · ${team} on the team`,
+      'journey-note-done': (total, fallen) => `${total} catch locations completed${fallen ? ` · ${fallen} fallen remain part of the journey` : ''}.`,
+      'journey-add':'Choose first Pokémon', 'journey-focus': n => `Focus ${n}`,
+      'journey-route-open': r => `${r}: still open`, 'journey-route-done': r => `${r}: logged`,
+      'journey-route-missed': r => `${r}: encounter missed`,
+      'team-title':'Active team', 'team-hint':'Tap a Pokémon to focus it. Drag to reorder your team.',
+      'focus-empty-title':'Your lead is waiting', 'focus-empty-text':'Add your first Pokémon and plan the next step from here.',
+      'focus-add':'Add Pokémon', 'focus-team': n => `Team · Slot ${n}`, 'focus-box': n => `Box · Slot ${n}`,
+      'focus-grave':'Graveyard', 'focus-bst':'Base stat total', 'focus-route-none':'Catch location still open',
+      'focus-weak':'Weaknesses', 'focus-info':'Details', 'focus-replace':'Replace', 'focus-to-box':'Move to box', 'focus-to-team':'Move to team', 'focus-route':'Catch location',
+      'focus-kill':'Fainted', 'focus-restore':'Return to box', 'focus-remove':'Remove',
+      'summary-label':'Run overview', 'summary-team':'Team', 'summary-box':'Box', 'summary-routes':'Routes', 'summary-grave':'Fallen',
+      'info-section-hint':'Focus a team member or choose another Pokémon to compare.',
       'nav-home':'Home', 'nav-run':'Run', 'nav-team':'Team', 'nav-duo':'Duo', 'nav-trio':'Trio',
       'nav-catch':'Catch', 'nav-damage':'Damage', 'nav-types':'Types',
       'box':'Box',
       'info-title':'Pokémon Info',
-      'info-placeholder':'Select a Pokémon from the team or the info slot to see type, stats and moves.',
+      'info-placeholder':'Select a Pokémon from the team or the check slot to see type, stats and moves.',
       'info-gen-section':'Info Generation', 'info-gen-label':'Select generation',
-      'info-slot-empty':'Select Info Pokémon', 'weakness-title':'Team Type Analysis', 'type-gen-label':'Types as in',
+      'info-slot-empty':'Choose a Pokémon to check', 'weakness-title':'Team Type Analysis', 'type-gen-label':'Types as in',
       'weakness-empty':'Add Pokémon to your team to see the type analysis.',
+      'slot-empty': n => `Slot ${n}: add Pokémon`, 'slot-menu': n => `Actions for slot ${n}`,
+      'ctx-info':'View details', 'ctx-route':'Set catch location …', 'ctx-kill':'Mark as fainted', 'ctx-remove':'Remove',
+      'graveyard':'Graveyard', 'graveyard-empty':'No fallen Pokémon yet.', 'grave-restore':'To box', 'grave-delete':'Delete',
+      'grave-confirm':'Permanently remove this entry from the graveyard?', 'storage-full':'The team and box are full.',
+      'routes':'Routes', 'routes-game':'Run game', 'routes-game-none':'Choose game …',
+      'routes-filter-label':'Filter routes', 'routes-filter-all':'All', 'routes-filter-open':'Open', 'routes-filter-done':'Done',
+      'routes-hint-game':'Choose the game for this run. You will then see every catch location in order.',
+      'routes-hint-unrouted': n => `${n} Pokémon ${n === 1 ? 'has' : 'have'} no catch location yet.`,
+      'routes-empty':'No routes are available for this game.', 'route-open':'Open', 'route-done':'Logged',
+      'route-missed':'Missed', 'route-enter':'Log catch', 'route-change':'Change', 'route-mark-missed':'Missed',
+      'route-undo-missed':'Reopen', 'route-caught': r => `Caught: ${r}`, 'route-where-team':'On the team',
+      'route-where-box':'In the box', 'route-where-grave':'Fallen', 'route-dialog-kicker':'CATCH LOG',
+      'route-dialog-title': n => `Catch location for ${n}`, 'route-assign-title': r => `Catch on ${r}`,
+      'route-search':'Search routes …', 'route-dialog-empty':'No matching route found.',
+      'route-pick-mon-empty':'Every Pokémon already has a catch location.', 'route-clear':'Remove catch location',
       'modal-title':'Choose a Pokémon', 'gen-label':'Generation:', 'search-placeholder':'Search...',
       'modal-close':'Close',
       'e4-divider':'Elite Four & Champion', 'weaknesses':'Weaknesses', 'immunities':'Immunities',
@@ -832,8 +1018,11 @@
   <script src="../pokemon-names.js"></script>
   <script src="../DamageCalc/mechanics.js"></script>
   <script src="../pokemon-types.js"></script>
+  <script src="../locations.js"></script>
   <script src="../scene.js"></script>
-  <script src="hall.js"></script>
+  <script src="center/font.js"></script>
+  <script src="followers/index.js"></script>
+  <script src="center.js"></script>
   <script type="module" src="main.js"></script>
   <script>
   const LEVEL_CAPS = {

@@ -60,6 +60,18 @@
 .play .big-btn { text-decoration: none; }
 .play .big-btn:hover { text-decoration: none; color: rgb(var(--t-on-acc)); }
 .play-file { color: var(--color-muted); font-size: 0.84rem; text-align: center; overflow-wrap: anywhere; margin-top: -6px; }
+/* Omega Rubin / Alpha Saphir: Dateiname, Stand beim Speichern der .cxi, Mod (ZIP) als zweiter Weg */
+.out-name { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 700; color: var(--color-muted); }
+.out-name input {
+  font: inherit; font-size: 0.95rem; font-weight: 600; color: rgb(var(--t-white)); min-width: 0;
+  padding: 9px 12px; border-radius: 10px; border: 1px solid rgba(var(--t-ink), 0.16); background: rgba(var(--t-ink), 0.04);
+}
+.out-name input:focus { outline: none; border-color: rgb(var(--t-acc2)); }
+.cxi-status { font-size: 0.86rem; font-weight: 700; text-align: center; color: rgb(var(--t-c-8ef0b4)); }
+.cxi-status.msg-error { color: var(--color-error, #ff6b6b); }
+.play-mod summary { cursor: pointer; color: var(--color-muted); font-size: 0.86rem; font-weight: 700; }
+.play-mod[open] summary { margin-bottom: 8px; }
+.play-mod ol { margin-top: 8px; }
 .play-boss { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--color-muted); font-size: 0.88rem; }
 
 @media (max-width: 560px) {

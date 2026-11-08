@@ -1,0 +1,16 @@
+Kalos-Kartentiles (Pokémon X / Y)
+
+Grafikquelle:
+- Vom Benutzer bereitgestellte europäische Pokémon-X-ROM (Title ID 0004000000055D00).
+- Originale Gelände-Blöcke aus RomFS a/0/4/1, Kartenmatrizen aus a/0/4/2 und Gebietstexturen aus a/0/1/3.
+- Modelle und Texturen: GAME FREAK / Nintendo.
+
+Erzeugung:
+- Karte/tools/render-oras.js --xy liest GARC, LZ11, BCH, PICA200-Materialien und 3DS-Texturen direkt aus der ROM.
+- Karte/tools/make-tiles.py erzeugt daraus die zoombaren WebP-Kartenblätter.
+- Die getrennten X/Y-Funddaten in Karte/kalos-xy.json stammen aus den unveränderten bereitgestellten X- und Y-ROMs (a/0/1/2); der Generator prüft dafür die Original-CRC.
+
+Technische Referenz für die X/Y-Begegnungsstruktur: Universal Pokemon Randomizer ZX
+https://github.com/Ajarmar/universal-pokemon-randomizer-zx/blob/master/src/com/dabomstew/pkrandom/romhandlers/Gen6RomHandler.java
+
+Diese Dateien werden ausschließlich innerhalb des Pokémon-Hub-Projekts als Kartenansicht verwendet.

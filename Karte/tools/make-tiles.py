@@ -29,6 +29,7 @@ ap.add_argument('src')
 ap.add_argument('out')
 ap.add_argument('--interiors', help='Ordner mit interiors.json (Standard: der Render-Ordner)')
 ap.add_argument('--quality', type=int, default=82)
+ap.add_argument('--method', type=int, choices=range(0, 7), default=6)
 ap.add_argument('--preview')
 args = ap.parse_args()
 
@@ -46,7 +47,7 @@ def chunk(r, c):
 def save(z, x, y, img):
     folder = os.path.join(args.out, str(z))
     os.makedirs(folder, exist_ok=True)
-    img.save(os.path.join(folder, f'{x}_{y}.webp'), 'WEBP', quality=args.quality, method=6)
+    img.save(os.path.join(folder, f'{x}_{y}.webp'), 'WEBP', quality=args.quality, method=args.method)
 
 
 # Stufe 4: Blätter aus 4 × 4 Blöcken in voller Auflösung; nebenbei die ganze Karte auf Stufe 2 (1/4) sammeln
@@ -96,6 +97,11 @@ if args.preview:
 
 # ── Wassermuster aus der Meeres-Kulisse (Periode suchen, dann ein Stück an Weltkoordinaten ausgerichtet) ──
 def sea_pattern():
+    pre = os.path.join(args.src, 'sea.png')          # fertiges Muster (Hoenn: fill-oras.py)
+    if os.path.exists(pre):
+        im = Image.open(pre)
+        im.save(os.path.join(args.out, 'sea.png'))
+        return im.width
     p = os.path.join(args.src, 'sea_sample.png')
     if not os.path.exists(p):
         return None
@@ -138,7 +144,10 @@ def encode_ground(chunks):
 ground, multi = encode_ground({key: ch['ground'] for key, ch in info['chunks'].items()})
 
 with open(os.path.join(args.out, 'index.json'), 'w', encoding='utf-8') as f:
-    json.dump({'levels': levels, 'sea': sea, 'shear': round(info['shear'], 4), 'ground': ground, 'multi': multi},
+    json.dump({'version': 3, 'width': COLS * S // 16, 'height': ROWS * S // 16,
+               'nativeZoom': max(level['z'] for level in levels), 'levels': levels,
+               'sea': sea, 'shear': round(info['shear'], 4),
+               'origin': info.get('origin', [0, 0]), 'ground': ground, 'multi': multi},
               f, separators=(',', ':'))
 
 
@@ -182,7 +191,7 @@ if os.path.exists(int_file):
         for k, x, y in a['items']:
             sheet.paste(Image.open(os.path.join(int_dir, imgs[k]['file'])).convert('RGBA'), (x, y))
             out_images[k] = {'a': n, 'x': x, 'y': y, 'w': imgs[k]['w'], 'h': imgs[k]['h'], 'ox': imgs[k]['ox'], 'oz': imgs[k]['oz']}
-        sheet.save(os.path.join(folder, f'{n}.webp'), 'WEBP', quality=args.quality, method=6)
+        sheet.save(os.path.join(folder, f'{n}.webp'), 'WEBP', quality=args.quality, method=args.method)
         sizes.append([aw, ah])
     int_ground = {}
     for k, v in imgs.items():

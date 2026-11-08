@@ -1,0 +1,26 @@
+Pokémon Black / White – sources for the Unova map
+
+WHITE
+The White tiles were rendered locally from a user-provided German Pokémon
+White Nintendo DS ROM (game code IRAD). The ROM is not copied into this
+project. Karte/tools/render-unova.js reads only the required Nitro archives:
+
+  a/0/0/8  map containers and BMD0 models
+  a/0/0/9  world matrices (matrix 0)
+  a/0/1/4  shared texture banks
+
+The renderer rebuilt 229 occupied 32 x 32 map blocks from the original models
+and textures. Karte/tools/make-tiles.py converted that render into the local
+zoom sheets under white/.
+
+BLACK FALLBACK
+A Black ROM was not supplied. Black therefore keeps an aligned fallback made
+from the Mewmaps composite until the matching game files are available:
+
+  https://www.mewmaps.org/black-white
+  https://drive.google.com/file/d/1n0lgrrQYa6t1LBhHGAJPbEGwVy7HjMUu/view
+
+The sheets contain copyrighted Pokémon game imagery. Pokémon and the original
+game assets belong to Nintendo, Creatures Inc. and GAME FREAK. The Black
+fallback remains credited to Mewmaps. These local sheets are used by this
+non-commercial fan tool; no additional license is claimed.

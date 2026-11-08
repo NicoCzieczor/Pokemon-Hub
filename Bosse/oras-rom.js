@@ -77,6 +77,19 @@
             game: TITLES[tid] || null,
             titleId: tid.toUpperCase(),
             has: function (path) { return !!files[path]; },
+            stat: function (path) {
+              var f = files[path];
+              return f ? { size: f.size } : null;
+            },
+            range: function (path, start, end) {
+              var f = files[path];
+              if (!f) return Promise.reject(fail('Datei fehlt: ' + path));
+              start = Number(start); end = Number(end);
+              if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || end > f.size || end - start > MAX_FILE) {
+                return Promise.reject(fail('ungültiger Dateibereich: ' + path));
+              }
+              return read(data + f.off + start, data + f.off + end);
+            },
             file: function (path) {
               var f = files[path];
               if (!f) return Promise.reject(fail('Datei fehlt: ' + path));

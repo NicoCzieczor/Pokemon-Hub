@@ -10,6 +10,7 @@
  *  - Mega-Stein der eigenen Art → Mega-Form (Index 8 im Eintrag), wie im Kampf
  * Story-Reihenfolge, Orte und Rivalen-Zuordnung (nach Starter und Geschlecht des Spielers) stehen unten in STORY/POST –
  * die Trainernummern sind die der ROM. „v“ = nur in Omega Rubin („or“) bzw. Alpha Saphir („as“).
+ * Kämpfe ohne festen Ort dort (Vorstände, Bosse, Rivale später …) bekommen ihn aus den Zonen-Skripten (battleLocs).
  *
  * Aufruf (Node 18+):  node build-bosses-oras.js <rom.3ds|.cxi> [ausgabe-ordner]
  */
@@ -79,6 +80,56 @@ const POST = [
 ];
 const BADGE_LEADERS = ['LEADER_ROXANNE', 'LEADER_BRAWLY', 'LEADER_WATTSON', 'LEADER_FLANNERY', 'LEADER_NORMAN', 'LEADER_WINONA', 'LEADER_TATE_LIZA', 'LEADER_WALLACE'];
 
+// Gen-6-Skript (AMX): Kopf, dann die Befehle komprimiert (7 Bit je Byte, Bit 7 = es geht weiter, erstes Byte mit Vorzeichen)
+function amxWords(raw) {
+  const b = Buffer.from(raw), len = b.readUInt32LE(0), start = b.readUInt32LE(0x0C), n = (b.readUInt32LE(0x14) - start) / 4;
+  const out = new Int32Array(n);
+  for (let i = 0, j = 0, x = 0, f = start; i < n && f < len;) {
+    const c = b[f++], v = c & 0x7f;
+    x = ++j === 1 ? ((((v >> 6) === 0 ? 1 : 0) - 1) << 6) | v : (x << 7) | v;
+    if (c & 0x80) continue;
+    out[i++] = x; j = 0;
+  }
+  return out;
+}
+// Wo ein Trainer per Skript gekämpft wird: Zonendateien (a/0/1/3), Teil 2 = Skript der Zone. Ein Kampf ist der Aufruf einer
+// Funktion, die (direkt oder bis zwei Ebenen tiefer) die Kampffunktion des Spiels aufruft – in der Native-Tabelle des
+// Skripts der Name mit dem Hash 0x0B144EC1. Die Trainernummer steht als gepackter Push (Opcode 188, Wert in den oberen
+// 16 Bit) unter den Argumenten davor. Dazu Trainer, die als Person in der Zone stehen (Skript 3000 + Nummer, Partner 5000 + …).
+// → { Trainer: Set(Ort) }
+function battleLocs(zoneFiles) {
+  const u16 = (b, o) => b[o] | b[o + 1] << 8, u32 = (b, o) => (b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0;
+  const pack = b => { const n = u16(b, 2), o = []; for (let i = 0; i <= n; i++) o.push(u32(b, 4 + i * 4)); return o.slice(0, n).map((x, i) => b.subarray(x, o[i + 1])); };
+  const zt = zoneFiles[zoneFiles.length - 2], out = {};
+  for (let z = 0; z < zt.length / 56; z++) {
+    const loc = u16(zt, z * 56 + 0x1C) & 0x1FF;
+    try {
+      const e = pack(zoneFiles[z])[1];
+      for (let i = 0, o = 8 + e[4] * 0x14; i < e[5]; i++, o += 0x30) {
+        const s = u16(e, o + 14), id = s >= 5000 && s < 6000 ? s - 5000 : s >= 3000 && s < 4000 ? s - 3000 : 0;
+        if (id) (out[id] = out[id] || new Set()).add(loc);
+      }
+    } catch (err) { /* Zone ohne Personen */ }
+    let raw, w;
+    try { raw = Buffer.from(pack(zoneFiles[z])[2]); if (raw.readUInt32LE(4) !== 0x0A0AF1E0) continue; w = amxWords(raw); } catch (e) { continue; }
+    let N = -1;
+    for (let o = raw.readUInt32LE(0x24), k = 0; o + 8 <= raw.readUInt32LE(0x28); o += 8, k++) if (raw.readUInt32LE(o + 4) === 0x0B144EC1) N = k;
+    if (N < 0) continue;
+    const procs = []; for (let i = 0; i < w.length; i++) if (w[i] === 46) procs.push(i);   // 46 = PROC
+    const procOf = i => { let lo = 0, hi = procs.length - 1, r = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (procs[m] <= i) { r = procs[m]; lo = m + 1; } else hi = m - 1; } return r; };
+    const fight = new Set();
+    for (let i = 0; i + 1 < w.length; i++) if (w[i] === 135 && w[i + 1] === N) fight.add(procOf(i));   // 135 = SYSREQ.N
+    for (let lvl = 0; lvl < 2; lvl++) for (let i = 0; i + 1 < w.length; i++) if (w[i] === 49 && fight.has((i * 4 + w[i + 1]) / 4)) fight.add(procOf(i));   // 49 = CALL
+    for (let i = 0; i + 1 < w.length; i++) {
+      if (w[i] !== 49 || !fight.has((i * 4 + w[i + 1]) / 4)) continue;
+      for (let k = i - 1; k >= Math.max(0, i - 14) && w[k] !== 49 && w[k] !== 46; k--) {
+        if ((w[k] & 0xffff) === 188 && (w[k] >>> 16) > 0) (out[w[k] >>> 16] = out[w[k] >>> 16] || new Set()).add(loc);
+      }
+    }
+  }
+  return out;
+}
+
 const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 (async () => {
@@ -86,6 +137,7 @@ const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '
   if (!rom.game) throw new Error('Keine Omega-Rubin-/Alpha-Saphir-ROM');
   const [de, en, g] = await Promise.all([OrasRom.readTexts(rom, 'de'), OrasRom.readTexts(rom, 'en'), OrasRom.readGameData(rom)]);
   const ptBoss = JSON.parse(fs.readFileSync(path.join(HUB, 'Bosse', 'bosses.json'), 'utf8'));
+  const fought = battleLocs(OrasRom._internal.garc(await rom.file('a/0/1/3'), true));
 
   // Alle Trainer mit Namen und Team (Platzhalter ohne Namen fallen weg)
   const trainers = {};
@@ -107,6 +159,11 @@ const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '
   };
   const group = (list) => list.map(s => {
     const ids = s.ids || { all: s.id };
+    // ohne festen Ort: der eine Ort, an dem die Skripte diese Trainer kämpfen lassen
+    if (s.l == null) {
+      const at = new Set(); Object.values(ids).forEach(id => (fought[id] || []).forEach(l => at.add(l)));
+      if (at.size === 1) s = { ...s, l: [...at][0] };
+    }
     Object.values(ids).forEach(id => {
       const t = trainers[id];
       if (!t) throw new Error('Trainer fehlt: ' + s.key + ' ' + id);

@@ -107,11 +107,20 @@ let selectedSlot = null, selectedSlotType = 'team';
 let activePokemonInfo = null, infoPokemon = null;
 let teamPokemon = new Array(6).fill(null);
 let boxPokemon  = new Array(30).fill(null);
+let graveyardPokemon = [];
+let soloGame = '';
+let routeMarks = {};
+let stateHydrating = true;
+let pendingHubGameSave = false;
+let focusedTarget = { type: 'team', index: 0 };
 let infoGenLocked = false;
 let renderGeneration = 0;
 
 let dragSource = null; // { type: 'team'|'box', slot: number }
 let boxOpen    = false;
+let routesOpen = false;
+let graveyardOpen = false;
+let routeFilter = 'all';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Texte und Adressen, die in HTML landen
@@ -122,6 +131,37 @@ function listName(id, name) { return window.pokemonName(id, name) || capitalize(
 function formatLabel(t) { return t.split('-').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function getDisplayName(name) { return allPokemonList.find(p => p.name===name)?.displayName || capitalize(name); }
 function getTypeEffectiveness(atk, defs) { return window.PokemonTypes.effectiveness(atk, defs, typeGen); }
+function pokemonLabel(p) {
+  if (!p) return '';
+  return window.LANG === 'en'
+    ? capitalize(p.baseName || p.speciesName || p.name)
+    : (p.germanName || capitalize(p.name));
+}
+function cleanRoute(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim().replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 100);
+}
+function cleanGame(value) {
+  return typeof value === 'string' && window.PokeHubGame?.list?.includes(value) ? value : '';
+}
+function routeLabel(route) { return window.PokeHubLocations?.label(cleanRoute(route), window.LANG) || cleanRoute(route); }
+function serializePokemon(p) {
+  if (!p?.name) return null;
+  const route = cleanRoute(p.route);
+  return route ? { name: p.name, route } : p.name;
+}
+function serializeGrave(p) {
+  if (!p?.name) return null;
+  return {
+    name: p.name,
+    id: Number(p.id) || null,
+    germanName: p.germanName || '',
+    sprite: p.sprite || '',
+    route: cleanRoute(p.route) || null,
+  };
+}
+function storedName(value) { return typeof value === 'string' ? value : value && typeof value.name === 'string' ? value.name : ''; }
+function storedRoute(value) { return value && typeof value === 'object' ? cleanRoute(value.route) : ''; }
 
 const evolutionItemNames = {
   de: {
@@ -356,19 +396,36 @@ function applySlotTypeStyle(slot, types, borderAlpha) {
 function renderTeamSlot(index, details) {
   const slot = document.querySelector(`.pokemon-slot[data-slot="${index}"]`);
   if (!slot) return;
+  slot.setAttribute('role', 'button');
+  slot.setAttribute('tabindex', '0');
   if (details) {
     slot.dataset.filled = 'true';
-    const name = esc(details.germanName || capitalize(details.name));
-    applySlotTypeStyle(slot, typesOf(details), 1.0);
-    slot.innerHTML = `<div style="text-align:center" draggable="false"><img src="${esc(details.sprite)}" alt="${name}" style="width:60px;height:60px" draggable="false"><div style="font-size:13px" draggable="false">${name}</div></div>`;
+    const name = esc(pokemonLabel(details));
+    const monTypes = typesOf(details);
+    const route = cleanRoute(details.route);
+    applySlotTypeStyle(slot, monTypes, 1.0);
+    slot.setAttribute('aria-label', `${pokemonLabel(details)}, ${window.t('focus-team', index + 1)}`);
+    slot.title = route ? window.t('route-caught', routeLabel(route)) : '';
+    slot.innerHTML = `
+      <span class="slot-number" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
+      <div class="slot-mon" draggable="false">
+        <img src="${esc(details.sprite)}" alt="" draggable="false">
+        <strong class="slot-name">${name}</strong>
+        <span class="slot-types">${monTypes.map(type => `<span class="slot-type" style="--type-color:${TYPE_SLOT[type]?.[0] || '#888'}">${esc(window.typeLabel(type))}</span>`).join('')}</span>
+        ${route ? `<span class="slot-route">${esc(routeLabel(route))}</span>` : ''}
+      </div>
+      <button type="button" class="slot-menu" data-slot-menu="${index}" aria-label="${esc(window.t('slot-menu', index + 1))}">•••</button>`;
   } else {
     slot.removeAttribute('data-filled');
     slot.style.background = '';
     slot.style.removeProperty('--type-c1');
     slot.style.removeProperty('--type-c2');
     delete slot.dataset.typed;
+    slot.removeAttribute('title');
+    slot.setAttribute('aria-label', window.t('slot-empty', index + 1));
     slot.innerHTML = '';
   }
+  slot.classList.toggle('is-focused', focusedTarget.type === 'team' && focusedTarget.index === index && !!details);
 }
 
 function renderInfoSlot(details) {
@@ -376,8 +433,8 @@ function renderInfoSlot(details) {
   if (!slot) return;
   if (details) {
     slot.dataset.filled = 'true';
-    const name = esc(details.germanName || capitalize(details.name));
-    slot.innerHTML = `<div style="text-align:center"><img src="${esc(details.sprite)}" alt="${name}" style="width:60px;height:60px"><div style="font-size:13px">${name}</div></div>`;
+    const name = esc(pokemonLabel(details));
+    slot.innerHTML = `<div class="info-slot-mon"><img src="${esc(details.sprite)}" alt=""><div><small>${esc(window.t('analysis-kicker'))}</small><strong>${name}</strong></div></div>`;
   } else {
     slot.removeAttribute('data-filled');
     slot.innerHTML = window.t('info-slot-empty');
@@ -388,10 +445,12 @@ function updateBoxSlots() {
   document.querySelectorAll('.box-slot').forEach((slot, i) => {
     const p = boxPokemon[i];
     if (p) {
-      const name = esc(p.germanName || capitalize(p.name));
+      const name = esc(pokemonLabel(p));
       applySlotTypeStyle(slot, typesOf(p), 1.0);
-      slot.innerHTML = `<img src="${esc(p.sprite)}" alt="${name}" style="width:40px;height:40px;image-rendering:pixelated"><div style="font-size:0.65rem;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56px;margin-top:2px">${name}</div>`;
+      slot.innerHTML = `<img src="${esc(p.sprite)}" alt=""><div class="box-slot-name">${name}</div><button type="button" class="box-slot-menu slot-menu" data-box-menu="${i}" aria-label="${esc(window.t('slot-menu', i + 1))}">•••</button>`;
       slot.dataset.filled = 'true';
+      slot.setAttribute('aria-label', `${pokemonLabel(p)}, ${window.t('focus-box', i + 1)}`);
+      slot.title = p.route ? window.t('route-caught', routeLabel(p.route)) : '';
     } else {
       slot.style.background = '';
       slot.style.removeProperty('--type-c1');
@@ -399,8 +458,96 @@ function updateBoxSlots() {
       delete slot.dataset.typed;
       slot.innerHTML = '';
       delete slot.dataset.filled;
+      slot.removeAttribute('title');
+      slot.setAttribute('aria-label', window.t('slot-empty', i + 1));
     }
+    slot.classList.toggle('is-focused', focusedTarget.type === 'box' && focusedTarget.index === i && !!p);
   });
+  updateSoloSummary();
+}
+
+function getFocusedPokemon() {
+  if (focusedTarget.type === 'team') return teamPokemon[focusedTarget.index] || null;
+  if (focusedTarget.type === 'box') return boxPokemon[focusedTarget.index] || null;
+  if (focusedTarget.type === 'grave') return graveyardPokemon[focusedTarget.index] || null;
+  return null;
+}
+
+function focusPokemon(type, index, syncInfo = true) {
+  const list = type === 'team' ? teamPokemon : type === 'box' ? boxPokemon : graveyardPokemon;
+  if (!list?.[index]) return;
+  focusedTarget = { type, index };
+  const mon = list[index];
+  if (syncInfo) {
+    infoGenLocked = false;
+    infoPokemon = activePokemonInfo = mon;
+    renderInfoSlot(mon);
+    renderInfoPanel();
+  }
+  renderFocusPanel();
+  teamPokemon.forEach((p, i) => document.querySelector(`.pokemon-slot[data-slot="${i}"]`)?.classList.toggle('is-focused', type === 'team' && index === i && !!p));
+  document.querySelectorAll('.box-slot').forEach((slot, i) => slot.classList.toggle('is-focused', type === 'box' && index === i && !!boxPokemon[i]));
+  document.querySelectorAll('.grave-slot').forEach((slot, i) => slot.classList.toggle('is-focused', type === 'grave' && index === i));
+  renderJourney();
+}
+
+function ensureFocus() {
+  if (getFocusedPokemon()) return;
+  const teamIndex = teamPokemon.findIndex(Boolean);
+  if (teamIndex >= 0) focusedTarget = { type: 'team', index: teamIndex };
+  else {
+    const boxIndex = boxPokemon.findIndex(Boolean);
+    focusedTarget = boxIndex >= 0 ? { type: 'box', index: boxIndex } : graveyardPokemon.length ? { type: 'grave', index: 0 } : { type: 'team', index: 0 };
+  }
+}
+
+function renderFocusPanel() {
+  const panel = document.getElementById('team-focus');
+  if (!panel) return;
+  ensureFocus();
+  const p = getFocusedPokemon();
+  if (!p) {
+    panel.innerHTML = `<div class="focus-empty"><span class="focus-empty-mark">01</span><strong>${esc(window.t('focus-empty-title'))}</strong><span>${esc(window.t('focus-empty-text'))}</span><button type="button" class="focus-action" data-focus-action="add">${esc(window.t('focus-add'))}</button></div>`;
+    return;
+  }
+
+  const name = pokemonLabel(p);
+  const monTypes = typesOf(p);
+  const colors = monTypes.map(type => TYPE_SLOT[type]?.[0]).filter(Boolean);
+  const bst = p.stats ? Object.values(p.stats).reduce((sum, value) => sum + (Number(value) || 0), 0) : '–';
+  const weaknesses = monTypes.length ? genTypes().filter(type => getTypeEffectiveness(type, monTypes) >= 2) : [];
+  const location = cleanRoute(p.route);
+  const source = focusedTarget.type === 'team' ? window.t('focus-team', focusedTarget.index + 1)
+    : focusedTarget.type === 'box' ? window.t('focus-box', focusedTarget.index + 1) : window.t('focus-grave');
+  const moveAction = focusedTarget.type === 'team'
+    ? `<button type="button" class="focus-action" data-focus-action="move-box">${esc(window.t('focus-to-box'))}</button>`
+    : focusedTarget.type === 'box'
+      ? `<button type="button" class="focus-action" data-focus-action="move-team">${esc(window.t('focus-to-team'))}</button>`
+      : `<button type="button" class="focus-action" data-focus-action="restore">${esc(window.t('focus-restore'))}</button>`;
+  const finalAction = focusedTarget.type === 'grave'
+    ? `<button type="button" class="focus-action is-danger" data-focus-action="remove-grave">${esc(window.t('focus-remove'))}</button>`
+    : `<button type="button" class="focus-action is-danger" data-focus-action="kill">${esc(window.t('focus-kill'))}</button>`;
+
+  panel.style.setProperty('--focus-c1', colors[0] || 'rgb(var(--t-acc2))');
+  panel.style.setProperty('--focus-c2', colors[1] || colors[0] || 'rgb(var(--t-acc))');
+  panel.innerHTML = `
+    <div class="focus-visual"><span class="focus-index">${focusedTarget.type === 'grave' ? '†' : String(focusedTarget.index + 1).padStart(2, '0')}</span><img class="focus-sprite" src="${esc(p.sprite)}" alt=""></div>
+    <div class="focus-copy">
+      <span class="focus-eyebrow">${esc(source)}</span>
+      <h3 class="focus-name">${esc(name)}</h3>
+      <div class="focus-types">${monTypes.map(type => `<span class="focus-type" style="--type-color:${TYPE_SLOT[type]?.[0] || '#888'}">${esc(window.typeLabel(type))}</span>`).join('')}</div>
+      <div class="focus-meta">
+        <span><small>${esc(window.t('focus-bst'))}</small><strong>${bst}</strong></span>
+        <span><small>${esc(window.t('focus-weak'))}</small><strong>${weaknesses.length || '–'}</strong></span>
+        <span class="focus-route"><small>${esc(window.t('focus-route'))}</small><strong>${esc(location ? routeLabel(location) : window.t('focus-route-none'))}</strong></span>
+      </div>
+      <div class="focus-actions">
+        <button type="button" class="focus-action is-primary" data-focus-action="info">${esc(window.t('focus-info'))}</button>
+        ${focusedTarget.type === 'grave' ? '' : `<button type="button" class="focus-action" data-focus-action="replace">${esc(window.t('focus-replace'))}</button>`}
+        <button type="button" class="focus-action" data-focus-action="route">${esc(window.t('focus-route'))}</button>
+        ${moveAction}${finalAction}
+      </div>
+    </div>`;
 }
 
 // ── Coverage recommendations ──────────────────────────────────────────────────
@@ -505,15 +652,10 @@ function renderCoverageSection(allActive) {
 }
 
 // ── Type analysis ─────────────────────────────────────────────────────────────
-// Ruhmeshalle hinter der Karte (hall.js): das Team nacheinander im Scheinwerfer, Ehrentafel mit sechs Rahmen
+// Run-Cockpit aktuell halten: Fokus-Dossier und kompakte Kennzahlen statt einer rein dekorativen Bühne.
 function updateScene() {
-  if (!window.HallScene) return;
-  window.HallScene.update(teamPokemon.map(p => p ? {
-    key: p.name,
-    name: window.LANG === 'en' ? capitalize(p.baseName || p.name) : (p.germanName || capitalize(p.name)),
-    sprite: window.HubScene.monSprite(p.id, p.sprite),
-    types: typesOf(p).map(t => ({ key: t, name: window.typeLabel ? window.typeLabel(t) : t })),
-  } : null));
+  renderFocusPanel();
+  updateSoloSummary();
 }
 
 function renderTeamWeaknessPanel() {
@@ -829,14 +971,456 @@ async function renderInfoPanel() {
   infoContent.appendChild(movesList);
 }
 
+// ── Run management: overview, routes and graveyard ──────────────────────────
+function routeGame() { return soloGame || cleanGame(window.PokeHubGame?.get?.()) || ''; }
+function fixRouteGame() { if (!soloGame) soloGame = cleanGame(routeGame()); }
+
+function allCatches() {
+  const catches = [];
+  teamPokemon.forEach((mon, index) => { if (mon) catches.push({ where: 'team', index, mon }); });
+  boxPokemon.forEach((mon, index) => { if (mon) catches.push({ where: 'box', index, mon }); });
+  graveyardPokemon.forEach((mon, index) => { if (mon) catches.push({ where: 'grave', index, mon }); });
+  return catches;
+}
+
+function routeRows() {
+  const game = routeGame();
+  const catches = allCatches();
+  const locations = window.PokeHubLocations;
+  const base = game && locations ? locations.encounterList(game) : [];
+  const known = game && locations ? locations.known(game) : null;
+  // Fangorte eines anderen Spiels bleiben am Pokémon gespeichert, tauchen im aktiven Run aber nicht auf.
+  const used = [...catches.map(c => cleanRoute(c.mon.route)), ...Object.keys(routeMarks)]
+    .filter(route => route && (!known || known.has(route)));
+  const order = game && locations ? [locations.STARTER_LOCATION, ...(locations.LOCATION_ORDER[game] || []), ...base] : [];
+  const position = route => {
+    const index = order.indexOf(route);
+    return index < 0 ? Number.POSITIVE_INFINITY : index;
+  };
+  return [...new Set([...base, ...used])]
+    .sort((a, b) => position(a) - position(b) || a.localeCompare(b, 'de'))
+    .map(route => ({
+      route,
+      catches: catches.filter(c => cleanRoute(c.mon.route) === route),
+      missed: !!routeMarks[route],
+    }));
+}
+
+function rowDone(row) { return !!(row.catches.length || row.missed); }
+
+// ── Solo journey: the run becomes a small, state-driven travelling scene ────
+const JOURNEY_BIOMES = {
+  coast: new Set(['rubin-saphir', 'smaragd', 'omega-rot-alpha-saphir', 'sonne-mond', 'ultrasonne-ultramond']),
+  mountain: new Set(['diamant-perl', 'platin', 'bdsp']),
+  city: new Set(['schwarz-weiss', 'schwarz2-weiss2', 'x-y']),
+  moor: new Set(['schwert-schild']),
+  sunset: new Set(['karmesin-purpur']),
+};
+
+function journeyBiome(game) {
+  return Object.entries(JOURNEY_BIOMES).find(([, games]) => games.has(game))?.[0] || 'meadow';
+}
+
+function journeyDaytime() {
+  const hour = new Date().getHours();
+  if (hour < 6 || hour >= 21) return 'night';
+  if (hour < 9) return 'dawn';
+  if (hour >= 18) return 'dusk';
+  return 'day';
+}
+
+function journeyGameLabel(game) {
+  return game ? (window.PokeHubGame?.label?.(game, window.LANG) || formatLabel(game)) : window.t('journey-game-none');
+}
+
+// Pokémon-Center neben der Karte (center.js): das Team als Begleiter, Box und Friedhof am PC
+function updateCenter() {
+  if (!window.CenterScene) return;
+  const dexOf = p => (p.id > 0 && p.id < 10000 ? p.id : window.POKEMON_NAMES?.forms?.[p.name]?.[0] || allPokemonList.find(x => x.name === p.speciesName)?.id || 0);
+  window.CenterScene.update({
+    team: teamPokemon.map(p => p ? { key: p.name, name: pokemonLabel(p), dex: dexOf(p) } : null),
+    focus: focusedTarget.type === 'team' && teamPokemon[focusedTarget.index] ? focusedTarget.index : -1,
+    box: boxPokemon.filter(Boolean).length,
+    boxMax: boxPokemon.length || 30,
+    graves: graveyardPokemon.map(p => p.name),
+  });
+}
+
+function renderJourney() {
+  const root = document.getElementById('solo-journey');
+  if (!root) return;
+
+  const game = routeGame();
+  const gameLabel = journeyGameLabel(game);
+  const rows = routeRows();
+  const done = rows.filter(rowDone).length;
+  const nextIndex = rows.findIndex(row => !rowDone(row));
+  const next = nextIndex >= 0 ? rows[nextIndex] : null;
+  const active = teamPokemon.map((mon, index) => ({ mon, index })).filter(entry => entry.mon);
+  const progress = rows.length ? Math.round(done / rows.length * 100) : 0;
+
+  root.dataset.biome = journeyBiome(game);
+  root.dataset.daytime = journeyDaytime();
+  root.classList.toggle('has-team', !!active.length);
+  root.style.setProperty('--journey-progress', `${progress}%`);
+
+  const gameEl = document.getElementById('journey-game');
+  const heading = document.getElementById('journey-heading');
+  const note = document.getElementById('journey-note');
+  const progressEl = document.getElementById('journey-progress-value');
+  if (gameEl) gameEl.textContent = gameLabel;
+  if (progressEl) progressEl.textContent = `${progress}%`;
+
+  if (!game) {
+    if (heading) heading.textContent = window.t('journey-heading-none');
+    if (note) note.textContent = window.t('journey-note-none');
+  } else if (!active.length || !rows.length) {
+    if (heading) heading.textContent = window.t('journey-heading-empty');
+    if (note) note.textContent = window.t('journey-note-empty', gameLabel);
+  } else if (next) {
+    if (heading) heading.textContent = window.t('journey-heading-next', routeLabel(next.route));
+    if (note) note.textContent = window.t('journey-note-progress', done, rows.length, active.length);
+  } else {
+    if (heading) heading.textContent = window.t('journey-heading-done');
+    if (note) note.textContent = window.t('journey-note-done', rows.length, graveyardPokemon.length);
+  }
+
+  const party = document.getElementById('journey-party');
+  if (party) {
+    party.innerHTML = active.length ? active.map(({ mon, index }, rank) => {
+      const name = pokemonLabel(mon);
+      const focused = focusedTarget.type === 'team' && focusedTarget.index === index;
+      const sprite = mon.sprite ? `<img src="${esc(mon.sprite)}" alt="" draggable="false">` : `<span class="journey-mon-fallback">?</span>`;
+      return `<button type="button" class="journey-mon${focused ? ' is-focused' : ''}" data-journey-team="${index}" data-rank="${rank}" aria-label="${esc(window.t('journey-focus', name))}">
+        <span class="journey-mon-shadow" aria-hidden="true"></span>${sprite}<span class="journey-mon-name">${esc(name)}</span>
+      </button>`;
+    }).join('') : `<button type="button" class="journey-empty-party" data-journey-add>
+      <span class="journey-pokeball" aria-hidden="true"></span><span>${esc(window.t('journey-add'))}</span>
+    </button>`;
+  }
+
+  updateCenter();
+
+  const waypoints = document.getElementById('journey-waypoints');
+  if (!waypoints) return;
+  if (!rows.length) {
+    waypoints.innerHTML = `<button type="button" class="journey-no-route" data-journey-open>${esc(window.t('journey-open'))}<span aria-hidden="true">→</span></button>`;
+    return;
+  }
+
+  const visible = 7;
+  const pivot = nextIndex >= 0 ? nextIndex : rows.length - 1;
+  const start = Math.max(0, Math.min(pivot - 2, rows.length - visible));
+  const shown = rows.slice(start, start + visible);
+  const points = [];
+  if (start > 0) points.push('<span class="journey-more" aria-hidden="true">•••</span>');
+  shown.forEach((row, offset) => {
+    const absoluteIndex = start + offset;
+    const current = absoluteIndex === nextIndex;
+    const state = row.missed ? 'missed' : row.catches.length ? 'done' : current ? 'current' : 'open';
+    const label = routeLabel(row.route);
+    const aria = window.t(state === 'missed' ? 'journey-route-missed' : state === 'done' ? 'journey-route-done' : 'journey-route-open', label);
+    const caught = row.catches[0]?.mon;
+    const marker = caught?.sprite
+      ? `<img src="${esc(caught.sprite)}" alt="">`
+      : state === 'missed' ? '<span aria-hidden="true">×</span>'
+        : state === 'done' ? '<span aria-hidden="true">✓</span>'
+          : current ? '<span aria-hidden="true">◆</span>' : '<span aria-hidden="true">·</span>';
+    points.push(`<button type="button" class="journey-point is-${state}" data-journey-route="${esc(row.route)}" aria-label="${esc(aria)}">
+      <span class="journey-point-marker">${marker}</span><span class="journey-point-label">${esc(label)}</span>
+    </button>`);
+  });
+  if (start + shown.length < rows.length) points.push('<span class="journey-more" aria-hidden="true">•••</span>');
+  waypoints.innerHTML = points.join('');
+}
+
+function openJourneyRoutes(route = '') {
+  routeFilter = 'all';
+  toggleRoutes(true);
+  const section = document.getElementById('routes-section');
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  section?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  requestAnimationFrame(() => {
+    if (!routeGame()) {
+      document.getElementById('routes-game-select')?.focus({ preventScroll: true });
+      return;
+    }
+    const row = [...document.querySelectorAll('#routes-list .route-row')].find(item => item.dataset.route === route);
+    row?.classList.add('is-journey-target');
+    row?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
+    setTimeout(() => row?.classList.remove('is-journey-target'), 1400);
+  });
+}
+
+function updateSoloSummary() {
+  const teamCount = teamPokemon.filter(Boolean).length;
+  const boxCount = boxPokemon.filter(Boolean).length;
+  const rows = routeRows();
+  const done = rows.filter(rowDone).length;
+  const values = {
+    'summary-team': `${teamCount} / 6`,
+    'summary-box': `${boxCount} / 30`,
+    'summary-routes': rows.length ? `${done} / ${rows.length}` : '–',
+    'summary-grave': String(graveyardPokemon.length),
+    'box-count': `${boxCount} / 30`,
+    'routes-count': rows.length ? `${done} / ${rows.length}` : '–',
+    'graveyard-count': String(graveyardPokemon.length),
+  };
+  Object.entries(values).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  });
+  renderJourney();
+}
+window.updateSoloSummary = updateSoloSummary;
+
+function renderRouteGameSelect() {
+  const select = document.getElementById('routes-game-select');
+  if (!select) return;
+  const current = routeGame();
+  const games = (window.PokeHubGame?.list || []).filter(game => window.PokeHubLocations?.LOCATION_PRESETS?.[game]);
+  select.innerHTML = `<option value="">${esc(window.t('routes-game-none'))}</option>` + games
+    .map(game => `<option value="${esc(game)}">${esc(window.PokeHubGame.label(game, window.LANG))}</option>`).join('');
+  select.value = current;
+}
+
+function routeMonHtml(catchEntry) {
+  const p = catchEntry.mon;
+  const dead = catchEntry.where === 'grave';
+  return `<span class="route-mon${dead ? ' is-dead' : ''}"><img src="${esc(p.sprite)}" alt=""><span><strong>${esc(pokemonLabel(p))}</strong><small>${esc(window.t(`route-where-${catchEntry.where}`))}</small></span></span>`;
+}
+
+let routeRowsShown = [];
+function renderRoutes() {
+  renderRouteGameSelect();
+  const rows = routeRows();
+  const unrouted = allCatches().filter(c => !cleanRoute(c.mon.route) && c.where !== 'grave');
+  const hint = document.getElementById('routes-hint');
+  if (hint) {
+    hint.textContent = !routeGame() ? window.t('routes-hint-game') : unrouted.length ? window.t('routes-hint-unrouted', unrouted.length) : '';
+    hint.hidden = !hint.textContent;
+  }
+  document.querySelectorAll('[data-route-filter]').forEach(button => {
+    const active = button.dataset.routeFilter === routeFilter;
+    button.classList.toggle('is-on', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+
+  const list = document.getElementById('routes-list');
+  routeRowsShown = rows.filter(row => routeFilter === 'all' || (routeFilter === 'open' ? !rowDone(row) : rowDone(row)));
+  if (list && routesOpen) {
+    list.innerHTML = routeRowsShown.length ? routeRowsShown.map((row, index) => {
+      const status = row.missed
+        ? `<span class="route-missed">× ${esc(window.t('route-missed'))}</span>`
+        : row.catches.length ? row.catches.map(routeMonHtml).join('') : `<span class="route-empty">${esc(window.t('route-open'))}</span>`;
+      const primary = row.catches.length
+        ? `<button type="button" class="route-action" data-route-action="change" data-row="${index}">${esc(window.t('route-change'))}</button>`
+        : `<button type="button" class="route-action" data-route-action="assign" data-row="${index}">${esc(window.t('route-enter'))}</button>`;
+      const missed = row.catches.length ? '' : `<button type="button" class="route-action" data-route-action="missed" data-row="${index}" title="${esc(window.t(row.missed ? 'route-undo-missed' : 'route-mark-missed'))}">${row.missed ? '↶' : '×'}</button>`;
+      return `<div class="route-row${rowDone(row) ? ' is-done' : ''}" data-route="${esc(row.route)}">
+        <div class="route-name" title="${esc(routeLabel(row.route))}">${esc(routeLabel(row.route))}</div>
+        <div class="route-status">${status}</div>
+        <div class="route-actions">${primary}${missed}</div>
+      </div>`;
+    }).join('') : `<p class="routes-empty">${esc(window.t('routes-empty'))}</p>`;
+  }
+  updateSoloSummary();
+}
+
+function toggleRoutes(force) {
+  routesOpen = typeof force === 'boolean' ? force : !routesOpen;
+  const body = document.getElementById('routes-body');
+  const toggle = document.getElementById('routes-toggle');
+  if (body) body.hidden = !routesOpen;
+  if (toggle) toggle.setAttribute('aria-expanded', String(routesOpen));
+  const icon = document.getElementById('routes-toggle-icon');
+  if (icon) icon.textContent = routesOpen ? '▲' : '▼';
+  if (routesOpen) renderRoutes();
+}
+
+function toggleGraveyard(force) {
+  graveyardOpen = typeof force === 'boolean' ? force : !graveyardOpen;
+  const body = document.getElementById('graveyard-body');
+  const toggle = document.getElementById('graveyard-toggle');
+  if (body) body.hidden = !graveyardOpen;
+  if (toggle) toggle.setAttribute('aria-expanded', String(graveyardOpen));
+  const icon = document.getElementById('graveyard-toggle-icon');
+  if (icon) icon.textContent = graveyardOpen ? '▲' : '▼';
+  if (graveyardOpen) renderGraveyard();
+}
+
+function renderGraveyard() {
+  const container = document.getElementById('graveyard-slots');
+  if (!container) return;
+  if (!graveyardPokemon.length) {
+    container.innerHTML = `<p class="graveyard-empty">${esc(window.t('graveyard-empty'))}</p>`;
+  } else {
+    container.innerHTML = `<div class="graveyard-grid">${graveyardPokemon.map((p, index) => {
+      const route = cleanRoute(p.route);
+      return `<button type="button" class="grave-slot${focusedTarget.type === 'grave' && focusedTarget.index === index ? ' is-focused' : ''}" data-grave-index="${index}" title="${esc(route ? window.t('route-caught', routeLabel(route)) : pokemonLabel(p))}">
+        <img src="${esc(p.sprite)}" alt=""><span class="grave-slot-name">${esc(pokemonLabel(p))}</span>${route ? `<span class="grave-route">${esc(routeLabel(route))}</span>` : ''}
+      </button>`;
+    }).join('')}</div>`;
+  }
+  updateSoloSummary();
+}
+
+function rerenderRun() {
+  teamPokemon.forEach((p, i) => renderTeamSlot(i, p));
+  updateBoxSlots();
+  renderGraveyard();
+  renderRoutes();
+  renderFocusPanel();
+  renderTeamWeaknessPanel();
+}
+
+function removePokemonAt(type, index) {
+  if (type === 'team') teamPokemon[index] = null;
+  else if (type === 'box') boxPokemon[index] = null;
+  else if (type === 'grave') graveyardPokemon.splice(index, 1);
+  ensureFocus();
+  rerenderRun();
+  saveState();
+}
+
+function killPokemon(type, index) {
+  const source = type === 'team' ? teamPokemon : type === 'box' ? boxPokemon : null;
+  const p = source?.[index];
+  if (!p) return;
+  source[index] = null;
+  graveyardPokemon.push(p);
+  focusedTarget = { type: 'grave', index: graveyardPokemon.length - 1 };
+  rerenderRun();
+  saveState();
+}
+
+function movePokemon(type, index, destination) {
+  const source = type === 'team' ? teamPokemon : boxPokemon;
+  const target = destination === 'team' ? teamPokemon : boxPokemon;
+  const p = source?.[index];
+  const free = target.findIndex(item => !item);
+  if (!p || free < 0) {
+    if (p) alert(window.t('storage-full'));
+    return;
+  }
+  source[index] = null;
+  target[free] = p;
+  focusedTarget = { type: destination, index: free };
+  rerenderRun();
+  saveState();
+}
+
+function restoreGrave(index) {
+  const p = graveyardPokemon[index];
+  const boxSlot = boxPokemon.findIndex(item => !item);
+  const teamSlot = teamPokemon.findIndex(item => !item);
+  if (!p || (boxSlot < 0 && teamSlot < 0)) {
+    if (p) alert(window.t('storage-full'));
+    return;
+  }
+  graveyardPokemon.splice(index, 1);
+  if (boxSlot >= 0) {
+    boxPokemon[boxSlot] = p;
+    focusedTarget = { type: 'box', index: boxSlot };
+  } else {
+    teamPokemon[teamSlot] = p;
+    focusedTarget = { type: 'team', index: teamSlot };
+  }
+  rerenderRun();
+  saveState();
+}
+
+let routeDialogState = null;
+function showRouteDialog() {
+  const dialog = document.getElementById('route-dialog');
+  if (!dialog) return;
+  const search = document.getElementById('route-dialog-search');
+  if (search) search.value = '';
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
+  renderRouteDialog();
+  if (matchMedia('(hover: hover)').matches) setTimeout(() => search?.focus(), 0);
+}
+
+function closeRouteDialog() {
+  const dialog = document.getElementById('route-dialog');
+  if (!dialog) return;
+  if (typeof dialog.close === 'function' && dialog.open) dialog.close();
+  else dialog.removeAttribute('open');
+  routeDialogState = null;
+}
+
+function openRoutePicker(mon) {
+  if (!mon) return;
+  if (!routeGame()) {
+    toggleRoutes(true);
+    document.getElementById('routes-game-select')?.focus();
+    return;
+  }
+  routeDialogState = { mode: 'route', mon };
+  showRouteDialog();
+}
+
+function openCatchPicker(route) {
+  routeDialogState = { mode: 'catch', route };
+  showRouteDialog();
+}
+
+function renderRouteDialog() {
+  if (!routeDialogState) return;
+  const title = document.getElementById('route-dialog-title');
+  const list = document.getElementById('route-dialog-list');
+  const footer = document.getElementById('route-dialog-footer');
+  const search = document.getElementById('route-dialog-search');
+  const locale = window.LANG === 'de' ? 'de' : 'en';
+  const query = search?.value.trim().toLocaleLowerCase(locale) || '';
+  if (!title || !list || !footer) return;
+
+  if (routeDialogState.mode === 'route') {
+    const mon = routeDialogState.mon;
+    title.textContent = window.t('route-dialog-title', pokemonLabel(mon));
+    const rows = routeRows().filter(row => !query || routeLabel(row.route).toLocaleLowerCase(locale).includes(query));
+    list.innerHTML = rows.length ? rows.map((row, index) => `<button type="button" class="route-dialog-option${cleanRoute(mon.route) === row.route ? ' is-selected' : ''}" data-dialog-choice="${index}"><span>${esc(routeLabel(row.route))}</span><small>${row.missed ? esc(window.t('route-missed')) : row.catches.length ? esc(window.t('route-done')) : esc(window.t('route-open'))}</small></button>`).join('') : `<p class="routes-empty">${esc(window.t('route-dialog-empty'))}</p>`;
+    routeDialogState.choices = rows;
+    footer.innerHTML = cleanRoute(mon.route) ? `<button type="button" data-dialog-action="clear">${esc(window.t('route-clear'))}</button>` : '';
+  } else {
+    const route = routeDialogState.route;
+    title.textContent = window.t('route-assign-title', routeLabel(route));
+    const catches = allCatches().filter(c => c.where !== 'grave' && !cleanRoute(c.mon.route) && (!query || pokemonLabel(c.mon).toLocaleLowerCase(locale).includes(query)));
+    list.innerHTML = catches.length ? catches.map((c, index) => `<button type="button" class="route-dialog-option" data-dialog-choice="${index}"><span class="route-mon"><img src="${esc(c.mon.sprite)}" alt=""><span><strong>${esc(pokemonLabel(c.mon))}</strong><small>${esc(window.t(`route-where-${c.where}`))}</small></span></span></button>`).join('') : `<p class="routes-empty">${esc(window.t('route-pick-mon-empty'))}</p>`;
+    routeDialogState.choices = catches;
+    footer.innerHTML = `<button type="button" data-dialog-action="missed">${esc(window.t(routeMarks[route] ? 'route-undo-missed' : 'route-mark-missed'))}</button>`;
+  }
+}
+
+function commitRouteDialogChoice(index) {
+  const choice = routeDialogState?.choices?.[index];
+  if (!choice) return;
+  fixRouteGame();
+  if (routeDialogState.mode === 'route') {
+    routeDialogState.mon.route = choice.route;
+    delete routeMarks[choice.route];
+  } else {
+    choice.mon.route = routeDialogState.route;
+    delete routeMarks[routeDialogState.route];
+  }
+  closeRouteDialog();
+  rerenderRun();
+  saveState();
+}
+
 // ── Save / Load ───────────────────────────────────────────────────────────────
 function saveState() {
   let ok = true;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       generation: currentGeneration,
-      team: teamPokemon.map(p => p?.name||null),
-      box:  boxPokemon.map(p => p?.name||null),
+      team: teamPokemon.map(serializePokemon),
+      box: boxPokemon.map(serializePokemon),
+      graveyard: graveyardPokemon.map(serializeGrave).filter(Boolean),
+      game: soloGame || null,
+      routeMarks: Object.fromEntries(Object.entries(routeMarks).filter(([route, missed]) => missed && cleanRoute(route)).map(([route]) => [cleanRoute(route), true])),
+      focus: focusedTarget,
     }));
   } catch (e) { ok = false; console.error('Speichern fehlgeschlagen:', e); }
   const s = document.getElementById('save-status');
@@ -867,27 +1451,41 @@ async function loadSaved(name) {
 
 async function retryPlaceholders() {
   let changed = false;
-  for (const list of [teamPokemon, boxPokemon]) {
+  for (const list of [teamPokemon, boxPokemon, graveyardPokemon]) {
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
       if (!p?.placeholder) continue;
       let d;
       try { d = await fetchWithSpecies(p.name); } catch { return; }   // noch offline – beim nächsten Mal
-      if (list[i] === p) { list[i] = d; changed = true; }
+      if (list[i] === p) { d.route = cleanRoute(p.route) || undefined; list[i] = d; changed = true; }
     }
   }
   if (!changed) return;
-  teamPokemon.forEach((p, i) => renderTeamSlot(i, p));
-  updateBoxSlots();
-  renderTeamWeaknessPanel();
+  rerenderRun();
 }
 window.addEventListener('online', retryPlaceholders);
 
 async function loadSavedState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return;
+  if (!raw) {
+    soloGame = cleanGame(window.PokeHubGame?.get?.());
+    return false;
+  }
+  let changedByHub = false;
   try {
     const state = JSON.parse(raw);
+    const savedGame = cleanGame(state.game);
+    const hubGame = cleanGame(window.PokeHubGame?.get?.());
+    changedByHub = !!hubGame && hubGame !== savedGame;
+    soloGame = hubGame || savedGame;
+    if (!hubGame && savedGame) window.PokeHubGame?.set?.(savedGame);
+    routeMarks = {};
+    if (!changedByHub && state.routeMarks && typeof state.routeMarks === 'object') {
+      Object.entries(state.routeMarks).forEach(([route, missed]) => { const clean = cleanRoute(route); if (clean && missed) routeMarks[clean] = true; });
+    }
+    if (state.focus && ['team', 'box', 'grave'].includes(state.focus.type) && Number.isInteger(Number(state.focus.index))) {
+      focusedTarget = { type: state.focus.type, index: Math.max(0, Number(state.focus.index)) };
+    }
     if (state.generation) {
       currentGeneration = Number(state.generation)||1;
       infoGeneration = currentGeneration;
@@ -898,15 +1496,37 @@ async function loadSavedState() {
     }
     if (Array.isArray(state.team)) {
       for (let i=0; i<6; i++) {
-        if (state.team[i]) { const d=await loadSaved(state.team[i]); teamPokemon[i]=d; renderTeamSlot(i,d); }
+        const name = storedName(state.team[i]);
+        if (name) { const d=await loadSaved(name); if (d) d.route = storedRoute(state.team[i]) || undefined; teamPokemon[i]=d; renderTeamSlot(i,d); }
       }
     }
     if (Array.isArray(state.box)) {
       for (let i=0; i<30; i++) {
-        if (state.box[i]) boxPokemon[i] = await loadSaved(state.box[i]);
+        const name = storedName(state.box[i]);
+        if (name) { const d = await loadSaved(name); if (d) d.route = storedRoute(state.box[i]) || undefined; boxPokemon[i] = d; }
       }
     }
-  } catch(e) { console.error('Fehler beim Laden:', e); }
+    if (Array.isArray(state.graveyard)) {
+      const savedGraves = state.graveyard.slice(0, 200);
+      for (const entry of savedGraves) {
+        const name = storedName(entry);
+        if (!name) continue;
+        const d = await loadSaved(name);
+        if (!d) continue;
+        d.route = storedRoute(entry) || undefined;
+        if (entry && typeof entry === 'object') {
+          if (!d.sprite && typeof entry.sprite === 'string') d.sprite = entry.sprite;
+          if (!d.germanName && typeof entry.germanName === 'string') d.germanName = entry.germanName;
+        }
+        graveyardPokemon.push(d);
+      }
+    }
+  } catch(e) {
+    console.error('Fehler beim Laden:', e);
+    soloGame = cleanGame(window.PokeHubGame?.get?.());
+    routeMarks = {};
+  }
+  return changedByHub;
 }
 
 // ── Pokémon list ──────────────────────────────────────────────────────────────
@@ -972,8 +1592,10 @@ function toggleBox() {
   boxOpen = !boxOpen;
   const body = document.getElementById('box-body');
   const icon = document.getElementById('box-toggle-icon');
+  const toggle = document.getElementById('box-toggle');
   if (body) body.style.display = boxOpen ? 'block' : 'none';
   if (icon) icon.textContent = boxOpen ? '▲' : '▼';
+  if (toggle) toggle.setAttribute('aria-expanded', String(boxOpen));
   if (boxOpen) updateBoxSlots();
 }
 
@@ -993,6 +1615,9 @@ function handleDrop(target) {
   if (!srcVal) return;
   const tgtVal = get(target.type, target.slot);
 
+  if (focusedTarget.type === src.type && focusedTarget.index === src.slot) focusedTarget = { type: target.type, index: target.slot };
+  else if (focusedTarget.type === target.type && focusedTarget.index === target.slot) focusedTarget = { type: src.type, index: src.slot };
+
   set(src.type,    src.slot,    tgtVal || null);
   set(target.type, target.slot, srcVal);
 
@@ -1001,6 +1626,7 @@ function handleDrop(target) {
 
   updateBoxSlots();
   renderTeamWeaknessPanel();
+  renderRoutes();
   saveState();
 }
 
@@ -1140,14 +1766,71 @@ function initTouchDrag() {
   });
 }
 
+// ── Discoverable slot actions (mouse, touch and keyboard) ───────────────────
+let ctxTarget = null;
+let ctxAnchor = null;
+const ctxMenu = document.getElementById('ctx-menu');
+
+function showCtxMenu(type, index, x, y, anchor = null) {
+  const p = type === 'team' ? teamPokemon[index] : boxPokemon[index];
+  if (!p || !ctxMenu) return;
+  hideCtxMenu();
+  ctxTarget = { type, index };
+  ctxAnchor = anchor;
+  if (ctxAnchor) ctxAnchor.setAttribute('aria-expanded', 'true');
+  ctxMenu.style.display = 'block';
+  const width = ctxMenu.offsetWidth;
+  const height = ctxMenu.offsetHeight;
+  ctxMenu.style.left = `${Math.max(6, Math.min(x, window.innerWidth - width - 6))}px`;
+  ctxMenu.style.top = `${Math.max(6, Math.min(y, window.innerHeight - height - 6))}px`;
+  ctxMenu.querySelector('button')?.focus({ preventScroll: true });
+}
+
+function hideCtxMenu() {
+  if (ctxAnchor) ctxAnchor.setAttribute('aria-expanded', 'false');
+  if (ctxMenu) ctxMenu.style.display = 'none';
+  ctxTarget = null;
+  ctxAnchor = null;
+}
+
+function focusedList() {
+  return focusedTarget.type === 'team' ? teamPokemon : focusedTarget.type === 'box' ? boxPokemon : graveyardPokemon;
+}
+
+function openFocusedInInfo() {
+  const p = getFocusedPokemon();
+  if (!p) return;
+  infoGenLocked = false;
+  infoPokemon = activePokemonInfo = p;
+  renderInfoSlot(p);
+  renderInfoPanel();
+  document.getElementById('info-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // ── Slots init ────────────────────────────────────────────────────────────────
 function initSlots() {
   document.querySelectorAll('.pokemon-slot').forEach((slot, i) => {
-    slot.addEventListener('click', () => {
-      selectedSlot = i; selectedSlotType = 'team';
-      openModal(window.t('pick-pokemon', i+1));
+    slot.addEventListener('click', event => {
+      const menuButton = event.target.closest('[data-slot-menu]');
+      if (menuButton && teamPokemon[i]) {
+        event.stopPropagation();
+        const rect = menuButton.getBoundingClientRect();
+        showCtxMenu('team', i, rect.right, rect.bottom + 4, menuButton);
+        return;
+      }
+      if (teamPokemon[i]) focusPokemon('team', i);
+      else {
+        selectedSlot = i; selectedSlotType = 'team';
+        openModal(window.t('pick-pokemon', i+1));
+      }
     });
-    slot.addEventListener('contextmenu', e => { e.preventDefault(); removePokemon(i, 'team'); });
+    slot.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && event.target === slot) { event.preventDefault(); slot.click(); }
+    });
+    slot.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (teamPokemon[i]) showCtxMenu('team', i, e.clientX, e.clientY, slot);
+    });
 
     slot.setAttribute('draggable', 'true');
     slot.addEventListener('dragstart', e => {
@@ -1207,15 +1890,28 @@ function initBoxSlots() {
     const slot = document.createElement('div');
     slot.className = 'box-slot';
     slot.dataset.slot = i;
-    slot.addEventListener('click', () => {
-      selectedSlot = i; selectedSlotType = 'box';
-      openModal(`Box – Slot ${i+1}`);
+    slot.setAttribute('role', 'button');
+    slot.setAttribute('tabindex', '0');
+    slot.addEventListener('click', event => {
+      const menuButton = event.target.closest('[data-box-menu]');
+      if (menuButton && boxPokemon[i]) {
+        event.stopPropagation();
+        const rect = menuButton.getBoundingClientRect();
+        showCtxMenu('box', i, rect.right, rect.bottom + 4, menuButton);
+        return;
+      }
+      if (boxPokemon[i]) focusPokemon('box', i);
+      else {
+        selectedSlot = i; selectedSlotType = 'box';
+        openModal(`Box – Slot ${i+1}`);
+      }
+    });
+    slot.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && event.target === slot) { event.preventDefault(); slot.click(); }
     });
     slot.addEventListener('contextmenu', e => {
       e.preventDefault();
-      boxPokemon[i] = null;
-      updateBoxSlots();
-      saveState();
+      if (boxPokemon[i]) showCtxMenu('box', i, e.clientX, e.clientY, slot);
     });
     slot.setAttribute('draggable', 'true');
     slot.addEventListener('dragstart', e => {
@@ -1258,15 +1954,21 @@ async function selectPokemon(pokemon) {
     if (seq !== pickSeq) return;
     if (type === 'team') {
       teamPokemon[slot] = details;
-      renderTeamSlot(slot, details);
-      renderTeamWeaknessPanel();
+      focusedTarget = { type: 'team', index: slot };
     } else if (type === 'box') {
       boxPokemon[slot] = details;
-      updateBoxSlots();
+      focusedTarget = { type: 'box', index: slot };
     } else if (type === 'info') {
       infoGenLocked = false;
       infoPokemon = activePokemonInfo = details;
       renderInfoSlot(details);
+      renderInfoPanel();
+    }
+    if (type === 'team' || type === 'box') {
+      infoGenLocked = false;
+      infoPokemon = activePokemonInfo = details;
+      renderInfoSlot(details);
+      rerenderRun();
       renderInfoPanel();
     }
     saveState();
@@ -1275,15 +1977,7 @@ async function selectPokemon(pokemon) {
 }
 
 function removePokemon(index, type='team') {
-  if (type === 'team') {
-    teamPokemon[index] = null;
-    renderTeamSlot(index, null);
-    renderTeamWeaknessPanel();
-  } else {
-    boxPokemon[index] = null;
-    updateBoxSlots();
-  }
-  saveState();
+  removePokemonAt(type, index);
 }
 
 // ── Box section: drag team slot onto header to auto-place ─────────────────────
@@ -1318,9 +2012,160 @@ if (boxSection) {
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
+// Klicks im Pokémon-Center (center.js): Begleiter → fokussieren, PC → Box
+document.addEventListener('solosceneaction', event => {
+  const action = event.detail?.action;
+  if (action === 'slot') {
+    const index = Number(event.detail?.slot);
+    if (Number.isInteger(index) && teamPokemon[index]) focusPokemon('team', index);
+  } else if (action === 'box') {
+    if (!boxOpen) toggleBox();
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    document.getElementById('box-section')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  }
+});
+
 document.getElementById('box-toggle').addEventListener('click', toggleBox);
+document.getElementById('routes-toggle')?.addEventListener('click', () => toggleRoutes());
+document.getElementById('graveyard-toggle')?.addEventListener('click', () => toggleGraveyard());
+document.getElementById('journey-open')?.addEventListener('click', () => {
+  const next = routeRows().find(row => !rowDone(row));
+  openJourneyRoutes(next?.route || '');
+});
+document.getElementById('journey-party')?.addEventListener('click', event => {
+  const teamButton = event.target.closest('[data-journey-team]');
+  if (teamButton) {
+    focusPokemon('team', Number(teamButton.dataset.journeyTeam));
+    return;
+  }
+  if (event.target.closest('[data-journey-add]')) {
+    const index = teamPokemon.findIndex(item => !item);
+    if (index < 0) return;
+    selectedSlot = index;
+    selectedSlotType = 'team';
+    openModal(window.t('pick-pokemon', index + 1));
+  }
+});
+document.getElementById('journey-waypoints')?.addEventListener('click', event => {
+  const route = event.target.closest('[data-journey-route]')?.dataset.journeyRoute;
+  if (route != null) openJourneyRoutes(route);
+  else if (event.target.closest('[data-journey-open]')) openJourneyRoutes();
+});
 document.getElementById('close-modal').addEventListener('click', closeModal);
 document.getElementById('pokemon-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+document.getElementById('routes-game-select')?.addEventListener('change', event => {
+  soloGame = cleanGame(event.target.value);
+  routeMarks = {};
+  if (soloGame) window.PokeHubGame?.set?.(soloGame);
+  else window.PokeHubGame?.clear?.();
+  renderRoutes();
+  saveState();
+});
+document.querySelectorAll('[data-route-filter]').forEach(button => button.addEventListener('click', () => {
+  routeFilter = button.dataset.routeFilter;
+  renderRoutes();
+}));
+document.getElementById('routes-list')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-route-action]');
+  const row = button ? routeRowsShown[Number(button.dataset.row)] : null;
+  if (!button || !row) return;
+  if (button.dataset.routeAction === 'assign') openCatchPicker(row.route);
+  else if (button.dataset.routeAction === 'change') openRoutePicker(row.catches[0]?.mon);
+  else if (button.dataset.routeAction === 'missed') {
+    fixRouteGame();
+    if (routeMarks[row.route]) delete routeMarks[row.route]; else routeMarks[row.route] = true;
+    renderRoutes();
+    saveState();
+  }
+});
+
+document.getElementById('graveyard-slots')?.addEventListener('click', event => {
+  const slot = event.target.closest('[data-grave-index]');
+  if (slot) focusPokemon('grave', Number(slot.dataset.graveIndex));
+});
+
+document.getElementById('team-focus')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-focus-action]');
+  if (!button) return;
+  const action = button.dataset.focusAction;
+  const p = getFocusedPokemon();
+  if (action === 'add') {
+    const index = teamPokemon.findIndex(item => !item);
+    if (index < 0) { alert(window.t('storage-full')); return; }
+    selectedSlot = index; selectedSlotType = 'team'; openModal(window.t('pick-pokemon', index + 1));
+  } else if (action === 'info') openFocusedInInfo();
+  else if (action === 'replace' && p && focusedTarget.type !== 'grave') {
+    selectedSlot = focusedTarget.index; selectedSlotType = focusedTarget.type;
+    openModal(focusedTarget.type === 'team' ? window.t('pick-pokemon', focusedTarget.index + 1) : `Box – Slot ${focusedTarget.index + 1}`);
+  } else if (action === 'route') openRoutePicker(p);
+  else if (action === 'move-box') movePokemon('team', focusedTarget.index, 'box');
+  else if (action === 'move-team') movePokemon('box', focusedTarget.index, 'team');
+  else if (action === 'kill') killPokemon(focusedTarget.type, focusedTarget.index);
+  else if (action === 'restore') restoreGrave(focusedTarget.index);
+  else if (action === 'remove-grave' && confirm(window.t('grave-confirm'))) removePokemonAt('grave', focusedTarget.index);
+});
+
+document.getElementById('ctx-info')?.addEventListener('click', () => {
+  const target = ctxTarget;
+  hideCtxMenu();
+  if (target) { focusPokemon(target.type, target.index); openFocusedInInfo(); }
+});
+document.getElementById('ctx-route')?.addEventListener('click', () => {
+  const target = ctxTarget;
+  const p = target ? (target.type === 'team' ? teamPokemon[target.index] : boxPokemon[target.index]) : null;
+  hideCtxMenu();
+  openRoutePicker(p);
+});
+document.getElementById('ctx-kill')?.addEventListener('click', () => {
+  const target = ctxTarget;
+  hideCtxMenu();
+  if (target) killPokemon(target.type, target.index);
+});
+document.getElementById('ctx-remove')?.addEventListener('click', () => {
+  const target = ctxTarget;
+  hideCtxMenu();
+  if (target) removePokemonAt(target.type, target.index);
+});
+
+document.addEventListener('click', event => { if (ctxMenu?.style.display === 'block' && !ctxMenu.contains(event.target)) hideCtxMenu(); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape') hideCtxMenu(); });
+
+document.getElementById('route-dialog-close')?.addEventListener('click', closeRouteDialog);
+document.getElementById('route-dialog-search')?.addEventListener('input', renderRouteDialog);
+document.getElementById('route-dialog-list')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-dialog-choice]');
+  if (button) commitRouteDialogChoice(Number(button.dataset.dialogChoice));
+});
+document.getElementById('route-dialog-footer')?.addEventListener('click', event => {
+  const action = event.target.closest('[data-dialog-action]')?.dataset.dialogAction;
+  if (!action || !routeDialogState) return;
+  if (action === 'clear' && routeDialogState.mode === 'route') delete routeDialogState.mon.route;
+  else if (action === 'missed' && routeDialogState.mode === 'catch') {
+    const route = routeDialogState.route;
+    fixRouteGame();
+    if (routeMarks[route]) delete routeMarks[route]; else routeMarks[route] = true;
+  }
+  closeRouteDialog();
+  rerenderRun();
+  saveState();
+});
+document.getElementById('route-dialog')?.addEventListener('click', event => { if (event.target === event.currentTarget) closeRouteDialog(); });
+document.getElementById('route-dialog')?.addEventListener('close', () => { routeDialogState = null; });
+function adoptHubGame(value) {
+  const next = cleanGame(value);
+  if (next === soloGame) return false;
+  soloGame = next;
+  routeMarks = {};
+  renderRoutes();
+  if (stateHydrating) pendingHubGameSave = true;
+  else saveState();
+  return true;
+}
+
+document.addEventListener('hubgamechange', event => {
+  adoptHubGame(event.detail?.game ?? window.PokeHubGame?.get?.());
+});
 
 const searchInput = document.getElementById('pokemon-search');
 if (searchInput) searchInput.addEventListener('input', e => renderPokemonList(e.target.value));
@@ -1337,7 +2182,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { _tipPinned
 // ── Language change ───────────────────────────────────────────────────────────
 document.addEventListener('langchange', async () => {
   const active = [
-    ...teamPokemon, ...boxPokemon,
+    ...teamPokemon, ...boxPokemon, ...graveyardPokemon,
     ...(activePokemonInfo ? [activePokemonInfo] : []),
   ].filter(Boolean);
 
@@ -1352,9 +2197,13 @@ document.addEventListener('langchange', async () => {
   [...pokemonList, ...allPokemonList].forEach(p => { p.displayName = listName(p.id, p.name); });
 
   teamPokemon.forEach((p, i) => renderTeamSlot(i, p));
-  if (boxOpen) updateBoxSlots();
+  updateBoxSlots();
 
   renderInfoSlot(infoPokemon);
+  renderGraveyard();
+  renderRoutes();
+  renderFocusPanel();
+  if (routeDialogState) renderRouteDialog();
   renderTeamWeaknessPanel();
   renderInfoPanel();
   window.PokemonTypes.fillGenSelect(document.getElementById('type-gen-select'));
@@ -1379,12 +2228,21 @@ async function init() {
   initSlots();
   initBoxSlots();
   initTouchDrag();
-  await loadSavedState();
+  const gameChangedByHub = await loadSavedState();
+  ensureFocus();
+  const focused = getFocusedPokemon();
+  if (focused) infoPokemon = activePokemonInfo = focused;
+  rerenderRun();
+  stateHydrating = false;
+  if (gameChangedByHub || pendingHubGameSave) {
+    pendingHubGameSave = false;
+    saveState();
+  }
   await loadAllPokemonBasic();
   await loadPokemonList(currentGeneration);
   renderInfoSlot(infoPokemon);
   renderInfoPanel();
-  renderTeamWeaknessPanel();
+  rerenderRun();
   setTimeout(retryPlaceholders, 15000);   // z. B. nach einem kurzen API-Fehler beim Start
 }
 

@@ -52,6 +52,22 @@ header p { margin: 0; color: var(--color-muted); }
   background: linear-gradient(135deg, rgba(var(--t-g-bec8e6), 0.18), rgba(var(--t-g-7882aa), 0.12));
   color: rgb(var(--t-g-dfe5f5));
 }
+body.is-dp { --c-sea: #315f9d; }
+body.is-dp .game-badge {
+  border-color: rgba(174, 203, 255, 0.5);
+  background: linear-gradient(135deg, rgba(70, 139, 255, 0.32) 0 48%, rgba(255, 129, 190, 0.28) 52% 100%);
+  color: #f5f8ff;
+}
+body.is-rs .game-badge {
+  border-color: rgba(190, 205, 255, 0.55);
+  background: linear-gradient(135deg, rgba(222, 62, 64, 0.35) 0 48%, rgba(54, 105, 222, 0.34) 52% 100%);
+  color: #fff;
+}
+body.is-unova-b2w2 .game-badge {
+  border-color: rgba(218, 227, 247, 0.55);
+  background: linear-gradient(135deg, rgba(20, 28, 45, 0.82) 0 48%, rgba(230, 237, 249, 0.3) 52% 100%);
+  color: #fff;
+}
 
 /* ── Aufteilung: Karte links, Infos rechts ── */
 .map-layout {
@@ -154,6 +170,8 @@ header p { margin: 0; color: var(--color-muted); }
 .leaflet-container img { border-radius: 0; }
 /* Stark vergrößert: Spielgrafik pixelgenau statt verschwommen */
 .z-pixel .game-sheet, .z-pixel .sea-tile { image-rendering: pixelated; }
+/* Eigene Grafikebene mit fester Rasterung: beim stufenlosen Zoomen (smooth-wheel.js) skaliert nur die Grafikkarte */
+.game-sheet { will-change: transform; }
 /* Innenkarte: drumherum dunkel wie im Spiel */
 #map.is-interior { background: rgb(var(--t-n-0b0c18)); }
 

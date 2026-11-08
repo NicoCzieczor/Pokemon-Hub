@@ -1,0 +1,20 @@
+Pokémon Feuerrot / Blattgrün – Kartenquellen
+=================================================
+
+Die Kartenbilder wurden lokal aus der vom Benutzer bereitgestellten deutschen
+Pokémon-Feuerrot-ROM (Game Code BPRD) gerendert. Die ROM selbst ist nicht Teil
+dieses Projekts und wurde nicht in den Projektordner kopiert.
+
+Der Renderer sucht die Kartenstrukturen anhand ihrer GBA-Datenformate und liest
+MapHeader, MapLayout, Tilesets, Metatiles, Paletten und Kartenverbindungen aus.
+425 Karten wurden erkannt; 61 zusammenhängende Außenkarten aus Kanto und den
+Sevii-Eilanden bilden die sichtbare Welt. Im finalen Render fehlen keine Tiles
+und keine Metatiles.
+
+Blattgrün verwendet für diese Oberwelt denselben Feuerrot-Render. Die wilden
+Pokémon werden dennoch editionsspezifisch aus der PokeAPI geladen. Eine
+Blattgrün-ROM kann später separat gerendert und verglichen werden.
+
+Pokémon, die Karten- und Grafikdaten sind Eigentum von GAME FREAK, Nintendo,
+Creatures Inc. und The Pokémon Company. Diese Dateien dienen nur der privaten,
+lokalen Darstellung innerhalb des Pokémon Hubs.

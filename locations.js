@@ -143,6 +143,15 @@
     'Prachtpolis City': 'Ever Grande City',
     'Seegrasulb City': 'Lilycove City',
     'Kampfzone (Hoenn)': 'Hoenn Battle Frontier',
+    // nur Omega Rubin / Alpha Saphir
+    'Seewoge Malvenfroh': 'Sea Mauville',
+    Kampfresort: 'Battle Resort',
+    Siegelkammer: 'Sealed Chamber',
+    Sonnengrotte: 'Scorched Slab',
+    Wunderwald: 'Mirage Forest',
+    Wunderhöhle: 'Mirage Cave',
+    Wundereiland: 'Mirage Island',
+    Wunderberg: 'Mirage Mountain',
     Zweiblattdorf: 'Twinleaf Town',
     Sandgemme: 'Sandgem Town',
     Jubelstadt: 'Jubilife City',
@@ -413,15 +422,17 @@
       'Route 131', 'Himmelturm', 'Route 132', 'Route 133', 'Route 134', 'Siegesstraße',
       'Wunderturm', 'Wüstenunterführung', 'Geschenk / Tausch'
     ],
+    // Omega Rubin / Alpha Saphir: Orte mit wilden Pokémon laut ROM (Karte/oras.json) – auch Städte mit Wasser, ohne die
+    // Orte, die es nur auf dem GBA gab (Wunderturm, Wüstenunterführung); Seewoge Malvenfroh statt Schiffswrack
     'omega-rot-alpha-saphir': [
-      'Route 101', 'Route 102', 'Route 103', 'Route 104', 'Blütenburgwald', 'Route 105', 'Route 106',
-      'Granithöhle', 'Route 107', 'Route 108', 'Route 109', 'Route 110', 'Route 111', 'Wüstenruine',
-      'Feuriger Pfad', 'Route 112', 'Schlotberg', 'Steilpass', 'Route 113', 'Route 114', 'Meteorfälle',
-      'Route 115', 'Metarost-Tunnel', 'Route 116', 'Route 117', 'Route 118', 'Route 119', 'Route 120',
-      'Route 121', 'Safari-Zone', 'Route 122', 'Pyroberg', 'Route 123', 'Route 124', 'Route 125',
-      'Küstenhöhle', 'Route 126', 'Route 127', 'Route 128', 'Tiefseehöhle', 'Route 129', 'Route 130',
-      'Route 131', 'Himmelturm', 'Route 132', 'Route 133', 'Route 134', 'Siegesstraße',
-      'Wunderturm', 'Wüstenunterführung', 'Geschenk / Tausch'
+      'Route 101', 'Route 102', 'Route 103', 'Blütenburg City', 'Route 104', 'Blütenburgwald', 'Route 105',
+      'Route 106', 'Faustauhaven', 'Granithöhle', 'Route 107', 'Route 108', 'Seewoge Malvenfroh', 'Route 109',
+      'Graphitport City', 'Route 110', 'Route 111', 'Wüstenruine', 'Feuriger Pfad', 'Route 112', 'Schlotberg',
+      'Steilpass', 'Route 113', 'Route 114', 'Meteorfälle', 'Route 115', 'Metarost-Tunnel', 'Route 116',
+      'Route 117', 'Route 118', 'Route 119', 'Route 120', 'Route 121', 'Safari-Zone', 'Route 122', 'Pyroberg',
+      'Route 123', 'Route 124', 'Moosbach City', 'Route 125', 'Küstenhöhle', 'Route 126', 'Xeneroville',
+      'Route 127', 'Route 128', 'Tiefseehöhle', 'Route 129', 'Route 130', 'Route 131', 'Floßbrunn', 'Himmelturm',
+      'Route 132', 'Route 133', 'Route 134', 'Siegesstraße', 'Geschenk / Tausch'
     ],
     'diamant-perl': [
       'Route 201', 'See der Wahrheit', 'Route 202', 'Route 203', 'Erzelingen-Tor', 'Route 204',
@@ -552,12 +563,12 @@
       'Höhlenatelier', 'Wunderinsel', 'Prachtpolis City', 'Seegrasulb City',
       'Kampfzone (Hoenn)', 'Wandernde Pokémon'
     ],
+    // ORAS: Wunder-Orte (Gleitflug), Siegelkammer, Sonnengrotte, Kampfresort; die Event-Inseln und die Kampfzone
+    // des GBA gibt es nicht
     'omega-rot-alpha-saphir': [
-      'Schiffswrack', 'Urzeithöhle', 'Neu Malvenfroh', 'Team Aquas Versteck',
-      'Team Magmas Versteck', 'Inselhöhle', 'Grabmal', 'Terrahöhle', 'Ozeanhöhle',
-      'Ferneiland', 'Insel im Süden', 'Entstehungsinsel', 'Nabelfels', 'Wandelhöhle',
-      'Höhlenatelier', 'Wunderinsel', 'Prachtpolis City', 'Seegrasulb City',
-      'Kampfzone (Hoenn)', 'Wandernde Pokémon'
+      'Urzeithöhle', 'Neu Malvenfroh', 'Team Aquas Versteck', 'Team Magmas Versteck', 'Inselhöhle', 'Grabmal',
+      'Siegelkammer', 'Sonnengrotte', 'Insel im Süden', 'Wunderwald', 'Wunderhöhle', 'Wundereiland', 'Wunderberg',
+      'Prachtpolis City', 'Seegrasulb City', 'Kampfresort'
     ],
     'diamant-perl': [
       'Speersäule', 'Zerrwelt', 'Höhle der Umkehr', 'Scheidequelle', 'Alte Villa',

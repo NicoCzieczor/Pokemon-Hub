@@ -6,7 +6,10 @@
  *    sofort aus dem Speicher – immer alle aus derselben Version. Eine neue Version kommt als Ganzes mit einem
  *    neuen Service Worker (VERSION ändert sich), nicht Datei für Datei; offene Seiten lädt pwa.js dann neu.
  *  - Antworten der PokeAPI und Sprites werden gespeichert, sobald sie einmal geladen wurden.
- *  - Kartenblätter der Sinnoh-Karte (Karte/tiles/) ebenso – sie ändern sich nur, wenn die Karte neu gerendert wird.
+ *  - Kartenblätter der Sinnoh-, Hoenn-, Kanto-, Gold/Silber-, HG/SS-, Einall- und FR/LG-Karte
+ *    (Karte/tiles/, Karte/tiles-oras/, Karte/tiles-kanto/, Karte/tiles-gold-silver/,
+ *    Karte/tiles-hgss/, Karte/tiles-unova/, Karte/tiles-frlg/)
+ *    ebenso – sie ändern sich nur, wenn die Karte neu gerendert wird.
  *  - Supabase (Duo-Sync) läuft nie über den Speicher, sondern immer live.
  *  - Randomizer, Omega Rubin / Alpha Saphir: Die ROM (rund 2 GB) liest CheerpJ stückweise über …/Randomizer/__rom/…
  *    – geliefert wird sie von hier aus der Datei, die die Seite schickt bzw. in IndexedDB abgelegt hat (romResponse).
@@ -15,9 +18,9 @@
  * und zählt dabei VERSION hoch (tests/sw-version.test.cjs prüft das). Die vorderen Stellen von VERSION dürfen
  * von Hand angehoben werden. Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = '0.1.31';            // steht unten auf der Startseite
-const CONTENT = 'c77061cd6b';       // ändert sich mit jeder Datei → neue Version für alle Geräte
-const TILE_VERSION = 't1';
+const VERSION = '0.1.64';            // steht unten auf der Startseite
+const CONTENT = 'dc6d61e912';       // ändert sich mit jeder Datei → neue Version für alle Geräte
+const TILE_VERSION = 't17';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
 const API_CACHE = `${PREFIX}api`;
@@ -68,8 +71,24 @@ const PRECACHE = [
   './RunDashboard/journal.js',
   './Pokelocke/index.html',
   './Pokelocke/main.js',
-  './Pokelocke/hall.css',
-  './Pokelocke/hall.js',
+  './Pokelocke/solo-refresh.css',
+  './Pokelocke/center.css',
+  './Pokelocke/center.js',
+  './Pokelocke/center/font.js',
+  './Pokelocke/center/font.png',
+  './Pokelocke/center/frame.png',
+  './Pokelocke/center/room-l.png',
+  './Pokelocke/center/room-r.png',
+  './Pokelocke/center/counter.png',
+  './Pokelocke/center/esca-l.png',
+  './Pokelocke/center/esca-r.png',
+  './Pokelocke/center/pc-on.png',
+  './Pokelocke/center/ball.png',
+  './Pokelocke/center/see.png',
+  './Pokelocke/center/nurse.png',
+  './Pokelocke/center/lucas.png',
+  './Pokelocke/center/lucia.png',
+  './Pokelocke/followers/index.js',
   './Pokelocke/pokeapi.js',
   './Pokelocke/base.css',
   './Duo/index.html',
@@ -126,6 +145,22 @@ const PRECACHE = [
   './Karte/hoenn.js',
   './Karte/oras.json',
   './Karte/encounter-areas-oras.js',
+  './Karte/kanto.css',
+  './Karte/kanto.js',
+  './Karte/smooth-wheel.js',
+  './Karte/kanto.json',
+  './Karte/yellow.json',
+  './Karte/gold-silver.json',
+  './Karte/crystal.json',
+  './Karte/ruby-sapphire.json',
+  './Karte/emerald.json',
+  './Karte/diamond-pearl.json',
+  './Karte/hgss.json',
+  './Karte/unova.json',
+  './Karte/unova-b2w2.json',
+  './Karte/frlg.json',
+  './Karte/kalos-xy.json',
+  './Karte/alola-sm.json',
   './Bosse/index.html',
   './Bosse/style.css',
   './Bosse/app.js',
@@ -134,10 +169,47 @@ const PRECACHE = [
   './Bosse/rando.js',
   './Bosse/bosses.json',
   './Bosse/oras-rom.js',
+  './Randomizer/cxi-build.js',
   './Bosse/bosses-oras.json',
   './Karte/tiles/index.json',
   './Karte/tiles/interiors.json',
   './Karte/tiles/sea.png',
+  './Karte/tiles/0/0_0.webp',
+  './Karte/tiles-oras/index.json',
+  './Karte/tiles-oras/places.json',
+  './Karte/tiles-oras/sea.png',
+  './Karte/tiles-oras/0/0_0.webp',
+  './Karte/tiles-kanto/index.json',
+  './Karte/tiles-kanto/0/0_0.webp',
+  './Karte/tiles-yellow/index.json',
+  './Karte/tiles-yellow/0/0_0.webp',
+  './Karte/tiles-gold-silver/index.json',
+  './Karte/tiles-gold-silver/0/0_0.webp',
+  './Karte/tiles-crystal/index.json',
+  './Karte/tiles-crystal/0/0_0.webp',
+  './Karte/tiles-ruby-sapphire/index.json',
+  './Karte/tiles-ruby-sapphire/0/0_0.webp',
+  './Karte/tiles-emerald/index.json',
+  './Karte/tiles-emerald/0/0_0.webp',
+  './Karte/tiles-diamond-pearl/index.json',
+  './Karte/tiles-diamond-pearl/0/0_0.webp',
+  './Karte/tiles-hgss/index.json',
+  './Karte/tiles-hgss/interiors.json',
+  './Karte/tiles-hgss/sea.png',
+  './Karte/tiles-hgss/0/0_0.webp',
+  './Karte/tiles-unova/index.json',
+  './Karte/tiles-unova/black/index.json',
+  './Karte/tiles-unova/black/0/0_0.webp',
+  './Karte/tiles-unova/white/index.json',
+  './Karte/tiles-unova/white/0/0_0.webp',
+  './Karte/tiles-unova-b2w2/index.json',
+  './Karte/tiles-unova-b2w2/0/0_0.webp',
+  './Karte/tiles-frlg/index.json',
+  './Karte/tiles-frlg/0/0_0.webp',
+  './Karte/tiles-kalos-xy/index.json',
+  './Karte/tiles-kalos-xy/0/0_0.webp',
+  './Karte/tiles-alola-sm/index.json',
+  './Karte/tiles-alola-sm/0/0_0.webp',
   './SaveViewer/index.html',
   './SaveViewer/style.css',
   './SaveViewer/data-pt.js',
@@ -236,7 +308,7 @@ self.addEventListener('fetch', event => {
   if (url.origin === self.location.origin && (req.headers.has('range') || /\.jar$/.test(url.pathname))) return;
 
   const own = url.href.startsWith(self.registration.scope);   // nur Dateien des Hubs, nicht anderer Seiten auf github.io
-  if (own && /\/Karte\/tiles\/(\d+|in)\//.test(url.pathname)) {
+  if (own && /\/Karte\/tiles(?:-(?:oras|kanto|yellow|gold-silver|crystal|ruby-sapphire|emerald|diamond-pearl|hgss|unova|unova-b2w2|frlg|kalos-xy|alola-sm))?\/(\d+|in)\//.test(url.pathname)) {
     event.respondWith(cacheFirst(event, TILE_CACHE, TILE_MAX_ENTRIES, false));
   } else if (own) {
     event.respondWith(staticFirst(event));

@@ -17,6 +17,8 @@
  *
  * Aufruf (Node 18+):  node render-platin.js <ausgabe-ordner> [cache-ordner] [--data=platin.json]
  *                     [--only=TWINLEAF_TOWN,…|Zeile:Spalte,…|map_matrix_009,…] [--interiors-only] [--no-interiors]
+ *                     [--ref=<commit>]  [--props=<Nr.>,…|none] [--no-model] [--nocrop]  (Innenkarten in Teilen:
+ *                     nur diese Requisiten eines Blocks, ohne das Kartenmodell, ohne Zuschnitt – Pokelocke/tools/build-center.js)
  * Ausgabe: <ausgabe>/chunk_<Zeile>_<Spalte>.png (512 × 512 je Kartenblock) + render.json,
  *          <ausgabe>/interior_<Matrix>__<Gebiet>.png + interiors.json
  * Danach baut make-tiles.py daraus die Kartenblätter (Karte/tiles/).
@@ -31,9 +33,16 @@ const opts = Object.fromEntries(argv.filter(a => a.startsWith('--')).map(a => { 
 const [outArg, cacheArg] = argv.filter(a => !a.startsWith('--'));
 const OUT = path.resolve(outArg || 'render');
 const CACHE = path.resolve(cacheArg || path.join(os.tmpdir(), 'platin-karte-cache'));
-const RAW = 'https://raw.githubusercontent.com/pret/pokeplatinum/main/';
-fs.mkdirSync(CACHE, { recursive: true });
-fs.mkdirSync(OUT, { recursive: true });
+// --ref=<commit>: Stand von pokeplatinum (seit 4. 11. 2026 liegen Kopf-Tabelle und Matrizen auf main anders –
+// c6689696d5fb51a644239702cb556eb52012a46a ist der letzte Stand mit dem alten Aufbau)
+const RAW = `https://raw.githubusercontent.com/pret/pokeplatinum/${opts.ref || 'main'}/`;
+// Beim Import durch die HG/SS- oder Einall-Renderer werden deren CLI-Argumente
+// nicht als Platin-Ausgabeordner behandelt. Die abgeleiteten Renderer legen
+// ihre eigenen Zielordner an.
+if (require.main === module) {
+  fs.mkdirSync(CACHE, { recursive: true });
+  fs.mkdirSync(OUT, { recursive: true });
+}
 
 const TILE = 16;            // Welteinheiten pro Kachel
 const CH = 32;              // Kacheln pro Kartenblock
@@ -530,7 +539,7 @@ function parseBdhc(buf, o) {
 }
 
 // ── Hauptteil ────────────────────────────────────────────────────────────────
-(async () => {
+async function main() {
   console.log('Lade Kartendaten …');
   const headersSrc = await get('include/data/map_headers.h');
   const headers = {};
@@ -681,7 +690,7 @@ function parseBdhc(buf, o) {
     const model = parseBMD(buf, mdlOff);
     const ar = await w.areaFor(r, c, model);
     const world = [1, 0, 0, ox, 0, 1, 0, alt, 0, 0, 1, oz];
-    for (const d of runSbc(model)) {
+    for (const d of opts['no-model'] ? [] : runSbc(model)) {
       const mat = model.mats[d.mat];
       if (!mat || !model.shapes[d.shp]) continue;
       if (((mat.polyAttr >> 4) & 3) === 3) { STATS.shadow++; continue; }
@@ -692,6 +701,7 @@ function parseBdhc(buf, o) {
     for (let p = 16 + attrSize; p + 48 <= 16 + attrSize + propSize; p += 48) {
       const id = buf.readUInt32LE(p);
       if (id === 0) continue;
+      if (opts.props && !opts.props.split(',').includes(String((p - 16 - attrSize) / 48))) continue;
       const m = await propModel(id);
       if (!m) continue;
       const px = buf.readInt32LE(p + 4) / 4096, py = buf.readInt32LE(p + 8) / 4096, pz = buf.readInt32LE(p + 12) / 4096;
@@ -755,6 +765,7 @@ function parseBdhc(buf, o) {
         if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
       }
       if (x1 < 0) continue;
+      if (opts.nocrop) { x0 = 4; y0 = 4; x1 = W - 5; y1 = H - 5; }
       x0 = Math.max(0, x0 - 4); y0 = Math.max(0, y0 - 4); x1 = Math.min(W - 1, x1 + 4); y1 = Math.min(H - 1, y1 + 4);
       const cw = x1 - x0 + 1, chh = y1 - y0 + 1;
       const crop = new Uint8ClampedArray(cw * chh * 4);
@@ -839,4 +850,14 @@ function parseBdhc(buf, o) {
   console.log(`Fertig. Normalen: ${STATS.normals}, Farben: ${STATS.colors}, Texturmatrizen: ${STATS.texmtx}, Schatten übersprungen: ${STATS.shadow}`);
   if (STATS.missingTex.size) console.log('  Fehlende Texturen:', [...STATS.missingTex].join(', '));
   if (STATS.unknownGx.size) console.log('  Unbekannte GX-Befehle:', [...STATS.unknownGx].map(x => '0x' + x.toString(16)).join(', '));
-})().catch(e => { console.error(e); process.exit(1); });
+}
+
+// Der Nitro-Parser und Rasterizer werden auch vom HG/SS-Renderer verwendet. Der bisherige CLI-Aufruf bleibt
+// unverändert; beim Import wird lediglich der gemeinsame Kern bereitgestellt und kein Renderlauf gestartet.
+module.exports = {
+  TILE, CH, SIZE, SHEAR, IDENT, STATS,
+  writePNG, nitroBlocks, parseTex0, decodeTexture, parseBMD, runSbc, emitShape,
+  Canvas, drawTri, edgeMarking, fillHoles, parseBdhc, mul,
+};
+
+if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });

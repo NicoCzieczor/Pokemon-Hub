@@ -1,0 +1,256 @@
+/*
+ * „Rast im Pokémon-Center" neben Solo Nuzlocke (center.js). Alle Maße in Raum-Pixeln × --s (ganzzahlig):
+ * so bleiben die Pixel des Spiels scharf. Bilder: center/ (tools/build-center.py), followers/ (build-followers.py).
+ * Um den Raum herum ist es wie im Spiel dunkel; Klassik: Nacht, Graphit: warmes Schwarz, Papier: helles Papier.
+ */
+:root {
+  --pcs-void: #07081a;
+  --pcs-glow: rgba(255, 214, 140, 0.10);
+  --pcs-shade: rgba(0, 0, 0, 0.55);
+}
+:root[data-theme='graphite'] {
+  --pcs-void: #0d0b09;
+  --pcs-glow: rgba(255, 196, 120, 0.08);
+  --pcs-shade: rgba(0, 0, 0, 0.6);
+}
+:root[data-theme='paper'] {
+  --pcs-void: #e9e2d0;
+  --pcs-glow: rgba(255, 255, 255, 0.55);
+  --pcs-shade: rgba(84, 66, 40, 0.28);
+}
+
+.pcs {
+  --s: 4;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 34% 60% at 0% 45%, var(--pcs-glow), transparent 70%),
+    radial-gradient(ellipse 34% 60% at 100% 45%, var(--pcs-glow), transparent 70%),
+    var(--pcs-void);
+}
+.pcs.is-bare .pcs-side,
+.pcs.is-bare .pcs-label { display: none; }
+
+.pcs i { display: block; font-style: normal; }
+.pcs button { padding: 0; border: 0; margin: 0; background-color: transparent; font: inherit; pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pcs button:focus { outline: none; }
+
+/* Eine Seite = ein Ausschnitt des Raums; seine linke obere Ecke setzt center.js (transform) */
+.pcs-side { position: absolute; left: 0; top: 0; height: calc(var(--s) * 196px); }
+.pcs-side--l { width: calc(var(--s) * 144px); }
+.pcs-side--r { width: calc(var(--s) * 108px); }
+.pcs-room,
+.pcs-esca,
+.pcs-fig,
+.pcs-counter,
+.pcs-pc,
+.pcs-balls i,
+.pcs-mon-spr,
+.pcs-see { image-rendering: pixelated; background-repeat: no-repeat; }
+
+.pcs-room {
+  position: absolute;
+  inset: 0;
+  background: url('center/room-l.png') 0 0 / 100% 100% no-repeat;
+  filter: drop-shadow(0 calc(var(--s) * 6px) calc(var(--s) * 8px) var(--pcs-shade));
+}
+.pcs-side--r .pcs-room { background-image: url('center/room-r.png'); }
+
+/* Rolltreppen: 4 Bilder der Texturanimation (links hinauf, rechts hinab) */
+.pcs-esca {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: calc(var(--s) * 114px);
+  width: calc(var(--s) * 32px);
+  height: calc(var(--s) * 60px);
+  background: url('center/esca-l.png') 0 0 / 400% 100%;
+  animation: pcs-four 0.6s steps(4, end) infinite;
+}
+.pcs-side--r .pcs-esca {
+  left: calc(var(--s) * 70px);
+  top: calc(var(--s) * 126px);
+  width: calc(var(--s) * 36px);
+  height: calc(var(--s) * 62px);
+  background-image: url('center/esca-r.png');
+  animation-direction: reverse;
+}
+@keyframes pcs-four { to { background-position: 133.333% 0; } }
+
+/* Figuren mit Blatt nebeneinander (32 × 32 je Bild): --n Bilder, --f das gezeigte */
+.pcs-fig {
+  --f: 0;
+  position: absolute;
+  width: calc(var(--s) * 32px);
+  height: calc(var(--s) * 32px);
+  background-size: calc(var(--n) * 100%) 100%;
+  background-position: calc(var(--f) / (var(--n) - 1) * 100%) 0;
+}
+.pcs-nurse {
+  --n: 17;
+  z-index: 2;
+  left: calc(var(--s) * 104px);
+  top: calc(var(--s) * 35px);
+  background-image: url('center/nurse.png');
+}
+.pcs-counter {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--s) * 84px);
+  top: calc(var(--s) * 57px);
+  width: calc(var(--s) * 52px);
+  height: calc(var(--s) * 29px);
+  background: url('center/counter.png') 0 0 / 100% 100%;
+}
+.pcs-player {
+  --n: 28;
+  z-index: 22;   /* Reihe 6: wie ein Begleiter in derselben Reihe (center.js: 10 + 2 · Reihe) */
+  left: calc(var(--s) * 104px);
+  top: calc(var(--s) * 67px);
+  background-image: url('center/lucas.png');
+}
+.pcs-player.is-lucia { background-image: url('center/lucia.png'); }
+.pcs-player.is-hop { animation: pcs-hop-once 0.32s steps(4, end); }
+@keyframes pcs-hop-once { 50% { transform: translateY(calc(var(--s) * -4px)); } }
+
+/* Heilmaschine: Klickfläche über Maschine und Joy, Mini-Bälle in den sechs Mulden */
+.pcs-hit--heal {
+  position: absolute;
+  z-index: 5;
+  left: calc(var(--s) * 84px);
+  top: calc(var(--s) * 12px);
+  width: calc(var(--s) * 54px);
+  height: calc(var(--s) * 48px);
+}
+.pcs-balls { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.pcs-balls i {
+  position: absolute;
+  left: calc(var(--s) * var(--x) * 1px);
+  top: calc(var(--s) * var(--y) * 1px);
+  width: calc(var(--s) * 5px);
+  height: calc(var(--s) * 5px);
+  background: url('center/ball.png') 0 0 / 400% 100%;
+  visibility: hidden;
+}
+.pcs-balls.is-on i.is-in { visibility: visible; }
+.pcs-balls.is-glow i.is-in { animation: pcs-ball 0.6s steps(1, end) 4; }
+@keyframes pcs-ball {
+  0% { background-position: 0 0; }
+  25% { background-position: 33.333% 0; }
+  50% { background-position: 66.667% 0; }
+  75% { background-position: 33.333% 0; }
+}
+
+/* PC: Bildschirm aus → an (pc_moni 1–4) und wieder aus */
+.pcs-pc {
+  position: absolute;
+  z-index: 6;
+  left: calc(var(--s) * 38px);
+  top: calc(var(--s) * 12px);
+  width: calc(var(--s) * 22px);
+  height: calc(var(--s) * 40px);
+  background: url('center/pc-on.png') 0 0 / 400% 100%;
+}
+.pcs-pc.is-on { background-position: 100% 0; animation: pcs-moni-on 0.36s steps(3, end); }
+.pcs-pc.is-off { background-position: 0 0; animation: pcs-moni-off 0.36s steps(3, end); }
+@keyframes pcs-moni-on { from { background-position: 0 0; } to { background-position: 100% 0; } }
+@keyframes pcs-moni-off { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+/* Begleiter: außen die Lage (center.js, transform), Mitte die Effekte, innen das Laufblatt */
+.pcs-floor { position: absolute; inset: 0; }
+.pcs-mon {
+  --fs: 32;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--s) * var(--fs) * 1px);
+  height: calc(var(--s) * var(--fs) * 1px);
+  opacity: 0;
+}
+.pcs-mon.is-ready { opacity: 1; }
+.pcs-mon-fx { position: absolute; inset: 0; transform-origin: 50% 90%; }
+.pcs-mon-spr {
+  position: absolute;
+  inset: 0;
+  background-size: 800% 100%;
+  animation: pcs-down 0.5s steps(2, end) infinite;
+}
+.pcs-mon-spr[data-dir='up'] { animation-name: pcs-up; }
+.pcs-mon-spr[data-dir='left'] { animation-name: pcs-left; }
+.pcs-mon-spr[data-dir='right'] { animation-name: pcs-right; }
+.pcs-mon-spr.is-walking { animation-duration: 0.267s; }
+@keyframes pcs-down { from { background-position: 0 0; } to { background-position: 28.571% 0; } }
+@keyframes pcs-up { from { background-position: 28.571% 0; } to { background-position: 57.143% 0; } }
+@keyframes pcs-left { from { background-position: 57.143% 0; } to { background-position: 85.714% 0; } }
+@keyframes pcs-right { from { background-position: 85.714% 0; } to { background-position: 114.286% 0; } }
+
+.pcs-mon-fx.is-away { visibility: hidden; }
+.pcs-mon-fx.is-out { animation: pcs-out 0.42s ease-out; }
+.pcs-mon-fx.is-in { animation: pcs-in 0.42s ease-in forwards; }
+.pcs-mon-fx.is-lost { animation: pcs-lost 1.6s ease-in forwards; }
+@keyframes pcs-out {
+  0% { transform: scale(0.1); filter: brightness(6); }
+  55% { transform: scale(1.12); filter: brightness(3); }
+  100% { transform: scale(1); filter: none; }
+}
+@keyframes pcs-in {
+  0% { transform: scale(1); filter: none; }
+  35% { transform: scale(1.05); filter: sepia(1) saturate(8) hue-rotate(-40deg) brightness(0.9); }
+  100% { transform: scale(0); filter: sepia(1) saturate(8) hue-rotate(-40deg) brightness(0.9); }
+}
+@keyframes pcs-lost {
+  0% { filter: none; opacity: 1; transform: none; }
+  40% { filter: grayscale(1) brightness(1.15); opacity: 0.8; }
+  100% { filter: grayscale(1) brightness(1.4); opacity: 0; transform: translateY(calc(var(--s) * -10px)); }
+}
+
+/* „!"-Blase über dem Kopf */
+.pcs-see {
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--s) * (var(--fs) * 0.5px - 8px));
+  top: calc(var(--s) * -12px);
+  width: calc(var(--s) * 16px);
+  height: calc(var(--s) * 16px);
+  background: url('center/see.png') 0 0 / 100% 100%;
+  animation: pcs-see 0.2s steps(2, end);
+}
+@keyframes pcs-see { from { transform: translateY(calc(var(--s) * 3px)); } }
+
+/* Textfenster (Rahmen und Schrift des Spiels, <canvas> in Raum-Pixeln) */
+/* base.css zieht jede <canvas> auf 100 % Breite – hier zählt die Breite in Raum-Pixeln (--cw, center.js) */
+.pcs canvas { image-rendering: pixelated; width: calc(var(--s) * var(--cw, 0) * 1px) !important; height: auto !important; }
+.pcs-msg {
+  position: absolute;
+  z-index: 30;
+  top: calc(var(--s) * 202px);
+  pointer-events: auto;
+  cursor: default;
+}
+.pcs-side--l .pcs-msg { cursor: pointer; }
+.pcs-label {
+  position: fixed;
+  z-index: 40;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transition: opacity 0.12s steps(2, end);
+}
+.pcs-label.is-on { opacity: 1; }
+
+@media (max-width: 1100px) {
+  .pcs { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pcs-esca,
+  .pcs-mon-spr,
+  .pcs-mon-fx,
+  .pcs-see,
+  .pcs-player.is-hop { animation: none !important; }
+  .pcs-mon-fx.is-in,
+  .pcs-mon-fx.is-lost { opacity: 0; }
+}

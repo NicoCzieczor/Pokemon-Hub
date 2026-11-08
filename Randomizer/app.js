@@ -61,13 +61,28 @@
       downloadOras: 'Mod herunterladen (ZIP)',
       playStepsOras: function (f, tid) {
         return [
-          'Entpacke <code>' + f + '</code>. Darin liegen der Ordner <code>romfs</code> und die Datei <code>code.bin</code>.',
+          'Entpacke <code>' + f + '</code>. Darin liegen der Ordner <code>romfs</code> und die Datei <code>code.bin</code> – kein ganzes Spiel, nur die gewürfelten Teile. Gespielt wird weiter deine originale ROM (<code>.3ds</code>), Citra legt den Mod beim Start darüber.',
           'In Citra: Rechtsklick aufs Spiel → <i>Mod-Ordner öffnen</i> (das ist <code>load/mods/' + tid + '</code>). Einen alten Mod darin vorher löschen, dann <code>romfs</code> und <code>code.bin</code> hineinkopieren.',
           '<b>Wichtig:</b> Der Mod nutzt denselben Spielstand wie das Original. Sichere deinen Spielstand (Rechtsklick → <i>Speicherdatenordner öffnen</i>, Datei <code>main</code> kopieren) und lösch ihn dann – sonst geht es mit dem alten Stand weiter.',
-          'Spiel starten und ein neues Abenteuer beginnen. Zurück zum Original: den Mod-Ordner leeren.'
+          'In Citra wie immer das originale Spiel starten – mit dem Mod ist es jetzt gewürfelt – und ein neues Abenteuer beginnen. Zurück zum Original: den Mod-Ordner leeren.'
         ];
       },
       playPhoneOras: function (f, tid) { return 'Die Datei <code>' + f + '</code> landet unter „Download“. Entpacke sie und kopier <code>romfs</code> und <code>code.bin</code> in den Mod-Ordner des Spiels (<code>load/mods/' + tid + '</code> im Ordner von Citra bzw. Azahar).'; },
+      // Ganzes Spiel (.cxi) aus ROM + Mod (cxi-build.js)
+      outName: 'Dateiname', saveCxi: 'Spiel speichern (.cxi)', cxiInfo: function (gb) { return 'ganzes Spiel, ca. ' + gb + ' GB'; },
+      cxiBuilding: 'Spiel wird zusammengesetzt …', cxiSaving: function (pct) { return 'Spiel wird gespeichert … ' + pct + ' %'; },
+      cxiSaved: function (n) { return '„' + n + '“ ist gespeichert.'; }, cxiStarted: function (n) { return 'Download von „' + n + '“ gestartet (ca. 1,8 GB – das dauert einen Moment).'; },
+      errCxi: 'Das Spiel ließ sich nicht speichern: ', errCxiNew: 'Dieser Mod enthält Dateien, die es im Spiel nicht gibt – nimm dafür die ZIP.',
+      playStepsCxi: function (f) {
+        return [
+          'Speichere <code>' + f + '</code> – am besten in den Ordner deiner ROM, dann zeigt Citra es gleich in der Spieleliste. Das ist ein ganzes, fertig gewürfeltes Spiel.',
+          'In Citra <code>' + f + '</code> starten: Doppelklick in der Spieleliste (sonst <i>Datei → Datei laden…</i>). Den Mod-Ordner dabei leer lassen – sonst legt Citra einen alten Mod zusätzlich darüber.',
+          '<b>Wichtig:</b> Das Spiel nutzt denselben Spielstand wie das Original. Sichere deinen Spielstand (Rechtsklick → <i>Speicherdatenordner öffnen</i>, Datei <code>main</code> kopieren) und lösch ihn dann – sonst geht es mit dem alten Stand weiter.',
+          'Neues Abenteuer beginnen!'
+        ];
+      },
+      playPhoneCxi: function (f) { return 'Die Datei <code>' + f + '</code> landet unter „Download“ (ca. 1,8 GB). In Citra bzw. Azahar mit <i>+</i> den Ordner „Download“ als Spieleordner hinzufügen – dann steht das Spiel in der Liste.'; },
+      modAlt: function (size) { return 'Lieber nur den Mod für den Mod-Ordner (ZIP, ' + size + ')?'; },
       s2Title: 'Neues Spiel würfeln',
       run: 'Neues Spiel würfeln',
       runAgain: 'Nochmal würfeln',
@@ -130,13 +145,27 @@
       downloadOras: 'Download mod (ZIP)',
       playStepsOras: function (f, tid) {
         return [
-          'Unzip <code>' + f + '</code>. It contains the folder <code>romfs</code> and the file <code>code.bin</code>.',
+          'Unzip <code>' + f + '</code>. It contains the folder <code>romfs</code> and the file <code>code.bin</code> – not a whole game, only the randomized parts. You keep playing your original ROM (<code>.3ds</code>); Citra lays the mod over it on start.',
           'In Citra: right-click the game → <i>Open Mods Location</i> (that is <code>load/mods/' + tid + '</code>). Delete an old mod there first, then copy <code>romfs</code> and <code>code.bin</code> into it.',
           '<b>Important:</b> the mod uses the same save as the original. Back up your save (right-click → <i>Open Save Data Location</i>, copy the file <code>main</code>) and then delete it – otherwise you continue the old save.',
-          'Start the game and begin a new adventure. Back to the original: empty the mods folder.'
+          'In Citra, start the original game as usual – with the mod it is now randomized – and begin a new adventure. Back to the original: empty the mods folder.'
         ];
       },
       playPhoneOras: function (f, tid) { return 'The file <code>' + f + '</code> ends up in “Download”. Unzip it and copy <code>romfs</code> and <code>code.bin</code> into the game\'s mods folder (<code>load/mods/' + tid + '</code> in the Citra or Azahar folder).'; },
+      outName: 'File name', saveCxi: 'Save game (.cxi)', cxiInfo: function (gb) { return 'whole game, about ' + gb + ' GB'; },
+      cxiBuilding: 'Putting the game together …', cxiSaving: function (pct) { return 'Saving the game … ' + pct + ' %'; },
+      cxiSaved: function (n) { return '“' + n + '” is saved.'; }, cxiStarted: function (n) { return 'Download of “' + n + '” started (about 1.8 GB – this takes a moment).'; },
+      errCxi: 'The game could not be saved: ', errCxiNew: 'This mod contains files the game does not have – use the ZIP for it.',
+      playStepsCxi: function (f) {
+        return [
+          'Save <code>' + f + '</code> – best in the folder of your ROM, then Citra shows it right in the game list. It is a whole, randomized game.',
+          'Start <code>' + f + '</code> in Citra: double-click it in the game list (or <i>File → Load File…</i>). Keep the mods folder empty – otherwise Citra lays an old mod over it as well.',
+          '<b>Important:</b> the game uses the same save as the original. Back up your save (right-click → <i>Open Save Data Location</i>, copy the file <code>main</code>) and then delete it – otherwise you continue the old save.',
+          'Begin a new adventure!'
+        ];
+      },
+      playPhoneCxi: function (f) { return 'The file <code>' + f + '</code> ends up in “Download” (about 1.8 GB). In Citra or Azahar, add the “Download” folder as a games folder with <i>+</i> – then the game is in the list.'; },
+      modAlt: function (size) { return 'Rather just the mod for the mods folder (ZIP, ' + size + ')?'; },
       s2Title: 'Roll a new game',
       run: 'Roll a new game',
       runAgain: 'Roll again',
@@ -431,8 +460,74 @@
 
   function clearResult() {
     const r = state.result;
-    if (r) { URL.revokeObjectURL(r.url); if (r.logUrl) URL.revokeObjectURL(r.logUrl); }
+    if (r) { URL.revokeObjectURL(r.url); if (r.logUrl) URL.revokeObjectURL(r.logUrl); if (r.cxiUrl) URL.revokeObjectURL(r.cxiUrl); }
     state.result = null;
+    state.cxi = null;
+  }
+
+  /* ── Ganzes Spiel (.cxi): ROM + Mod, zusammengesetzt aus Stücken der ROM-Datei (cxi-build.js) ── */
+  // Dateiname ohne Endung, ohne Zeichen, die Windows/Android nicht mögen
+  function cleanName(s) {
+    const n = String(s || '').replace(/\.(cxi|zip|3ds)$/i, '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '').trim().slice(0, 120);
+    return n || outName(state.rom).replace(/\.zip$/, '');
+  }
+  function setCxiStatus(text, isError) {
+    state.cxi = { text: text, error: !!isError };
+    const el = $('cxi-status');
+    if (el) { el.hidden = !text; el.textContent = text; el.classList.toggle('msg-error', !!isError); }
+  }
+  async function saveCxi() {
+    const r = state.result, l = L();
+    if (!r || !r.mod || (state.cxi && state.cxi.busy)) return;
+    const file = state.rom.file, name = cleanName(state.outName) + '.cxi';
+    // Dialog zuerst (braucht den Klick als Auslöser), dann zusammensetzen
+    let handle = null;
+    if (window.showSaveFilePicker && !PHONE) {
+      try {
+        handle = await window.showSaveFilePicker({ suggestedName: name, id: 'pokehub-cxi',
+          types: [{ description: '3DS-Spiel (.cxi)', accept: { 'application/octet-stream': ['.cxi'] } }] });
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        handle = null;                                           // z. B. Ordner gesperrt: als Download
+      }
+    }
+    state.cxi = { busy: true };
+    setCxiStatus(l.cxiBuilding);
+    state.cxi.busy = true;
+    try {
+      const mods = { code: null, files: {} };
+      for (const e of r.mod) {
+        const d = new Uint8Array(await e.blob.arrayBuffer());
+        if (e.name === 'code.bin') mods.code = d;
+        else if (e.name.startsWith('romfs/')) mods.files[e.name.slice(6)] = d;
+      }
+      const plan = await CxiBuild.build((s, e) => file.slice(s, e).arrayBuffer().then(b => new Uint8Array(b)), mods);
+      const blob = new Blob(plan.parts.map(x => (x instanceof Uint8Array ? x : file.slice(x.start, x.end))), { type: 'application/octet-stream' });
+      if (handle) {
+        const w = await handle.createWritable(), rd = blob.stream().getReader();
+        let done = 0, shown = -1;
+        for (;;) {
+          const c = await rd.read();
+          if (c.done) break;
+          await w.write(c.value);
+          done += c.value.length;
+          const pct = Math.floor(done * 100 / blob.size);
+          if (pct !== shown) { shown = pct; setCxiStatus(l.cxiSaving(pct)); state.cxi.busy = true; }
+        }
+        await w.close();
+        setCxiStatus(l.cxiSaved(handle.name || name));
+      } else {
+        if (r.cxiUrl) URL.revokeObjectURL(r.cxiUrl);
+        r.cxiUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = r.cxiUrl; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setCxiStatus(l.cxiStarted(name));
+      }
+    } catch (e) {
+      const m = e && e.message || '';
+      setCxiStatus(/^newFile:/.test(m) ? l.errCxiNew : l.errCxi + (m || e), true);
+    }
   }
 
   async function run() {
@@ -540,9 +635,12 @@
       const fileName = outName(state.rom);
       const zip = await makeZip(entries);
       const info = await readTeamsOras(entries, fileName);
+      const part = await romPart(state.rom.file);
+      state.outName = fileName.replace(/\.zip$/, '');
       state.result = {
         url: URL.createObjectURL(zip), logUrl: log ? URL.createObjectURL(log) : null,
-        fileName: fileName, size: zip.size, starters: info.starters, boss: info.boss, oras: true, titleId: state.rom.titleId
+        fileName: fileName, size: zip.size, starters: info.starters, boss: info.boss, oras: true, titleId: state.rom.titleId,
+        mod: entries, gameSize: part.size
       };
     } catch (e) {
       const l = L(), msg = e && e.message;
@@ -627,6 +725,7 @@
 
   function playHtml(r) {
     const l = L(), T = (r.oras ? OD : D).text[lang];
+    if (r.oras && r.mod) return playHtmlOras(r, l, T);
     // OR/AS: 3D-Renderbilder aus Pokémon HOME (weich skaliert)
     const spr = r.oras ? SPR + '/pokemon/other/home/' : PT_SPR;
     // Starter erst auf Wunsch zeigen – sonst ist die Überraschung im neuen Spiel weg
@@ -644,6 +743,34 @@
         (r.boss ? '<span>' + esc(l.bossReady) + '</span><a class="small-btn" href="../Bosse/index.html">' + esc(l.bossOpen) + '</a>' : '') +
         (r.logUrl ? '<a class="small-btn" href="' + r.logUrl + '" download="' + esc(r.fileName.replace(/\.(nds|zip)$/, '')) + '-Log.txt">' + esc(l.log) + '</a>' : '') +
       '</div>' + starters;
+  }
+
+  function startersHtml(r, l, T) {
+    const spr = r.oras ? SPR + '/pokemon/other/home/' : PT_SPR;
+    return r.starters ? '<details class="starters-spoiler"><summary>' + esc(l.starters) + '</summary><div class="starters">' +
+      r.starters.map(s => '<div class="starter"><img' + (r.oras ? ' class="is-3d"' : '') + ' src="' + spr + s + '.png" alt="" loading="lazy"><b>' + esc(T.species[s] || '#' + s) + '</b></div>').join('') +
+      '</div></details>' : '';
+  }
+  function playHtmlOras(r, l, T) {
+    const base = cleanName(state.outName), cxi = base + '.cxi', zip = base + '.zip', st = state.cxi;
+    const gb = (Math.round(r.gameSize / 1073741824 * 10) / 10).toLocaleString(lang === 'en' ? 'en' : 'de');
+    const li = s => '<li>' + s + '</li>';
+    return '<div class="play-title">' + esc(l.playTitle) + '</div>' +
+      '<label class="out-name"><span>' + esc(l.outName) + '</span><input id="out-name" type="text" spellcheck="false" autocomplete="off" value="' + esc(base) + '"></label>' +
+      '<button type="button" class="big-btn" id="save-cxi">' +
+        '<svg class="dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>' +
+        '<span>' + esc(l.saveCxi) + '</span></button>' +
+      '<p class="play-file"><span data-fname="cxi">' + esc(cxi) + '</span> · ' + esc(l.cxiInfo(gb)) + '</p>' +
+      '<p class="cxi-status' + (st && st.error ? ' msg-error' : '') + '" id="cxi-status"' + (st && st.text ? '' : ' hidden') + '>' + esc(st && st.text || '') + '</p>' +
+      '<ol>' + l.playStepsCxi('<span data-fname="cxi">' + esc(cxi) + '</span>').map((s, i) => (i === 0 && PHONE ? l.playPhoneCxi('<span data-fname="cxi">' + esc(cxi) + '</span>') : s)).map(li).join('') + '</ol>' +
+      '<details class="play-mod"><summary>' + esc(l.modAlt(mb(r.size))) + '</summary>' +
+        '<a class="small-btn" id="zip-link" href="' + r.url + '" download="' + esc(zip) + '">' + esc(l.downloadOras) + '</a>' +
+        '<ol>' + l.playStepsOras('<span data-fname="zip">' + esc(zip) + '</span>', esc(r.titleId || '')).map((s, i) => (i === 1 && PHONE ? l.playPhoneOras('<span data-fname="zip">' + esc(zip) + '</span>', esc(r.titleId || '')) : s)).map(li).join('') + '</ol>' +
+      '</details>' +
+      '<div class="play-boss">' +
+        (r.boss ? '<span>' + esc(l.bossReady) + '</span><a class="small-btn" href="../Bosse/index.html">' + esc(l.bossOpen) + '</a>' : '') +
+        (r.logUrl ? '<a class="small-btn" href="' + r.logUrl + '" data-log download="' + esc(base) + '-Log.txt">' + esc(l.log) + '</a>' : '') +
+      '</div>' + startersHtml(r, l, T);
   }
 
   function render() {
@@ -721,6 +848,15 @@
     editor.render();
   });
   $('run').addEventListener('click', run);
+  $('play').addEventListener('click', e => { if (e.target.closest('#save-cxi')) saveCxi(); });
+  $('play').addEventListener('input', e => {
+    if (e.target.id !== 'out-name') return;
+    state.outName = e.target.value;
+    const base = cleanName(state.outName);
+    $('play').querySelectorAll('[data-fname]').forEach(el => { el.textContent = base + '.' + el.dataset.fname; });
+    const z = $('zip-link'); if (z) z.setAttribute('download', base + '.zip');
+    const lg = $('play').querySelector('[data-log]'); if (lg) lg.setAttribute('download', base + '-Log.txt');
+  });
   $('lang-toggle').addEventListener('click', () => {
     lang = lang === 'de' ? 'en' : 'de';
     try { localStorage.setItem('hub-lang', lang); } catch (e) { /* egal */ }

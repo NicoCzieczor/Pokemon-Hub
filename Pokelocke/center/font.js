@@ -1,0 +1,2 @@
+// Erzeugt von tools/build-center.py: Zeichen von font.png (je 16 px breit) und ihre Breite im Spiel
+window.CenterFont = { chars: " !#$%&'()*+,-./0123456789:;=?ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz…ÄÖÜäöüßéèàâêîôûçÉ♂♀’“”„", widths: [4,6,6,7,6,6,5,6,6,6,6,5,6,5,6,6,6,6,6,6,6,6,6,6,6,5,5,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,5,6,6,3,5,6,4,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,4,6,6,6,6,6,6,5,6,6,6] };

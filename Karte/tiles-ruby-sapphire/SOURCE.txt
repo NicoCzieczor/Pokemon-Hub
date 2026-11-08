@@ -1,0 +1,16 @@
+Pokémon Rubin/Saphir – Kartenquellen
+=====================================
+
+Die Hoenn-Karte wurde aus der vollständigen pret/pokeruby-Disassembly
+gerendert. Verwendet werden die originalen GBA-Tilesets, Paletten,
+Metatiles, Layout-Blöcke und Kartenverbindungen von Rubin und Saphir.
+Der Kampfturm, die vierteilige Safari-Zone und weitere Außenbereiche
+sind als eigene Kartenbereiche enthalten. Die Funddaten stammen für
+beide Editionen direkt aus ihren getrennten Begegnungstabellen.
+
+Quelle: https://github.com/pret/pokeruby
+Stand: 5784633ce4ef
+
+Pokémon, die Karten- und Grafikdaten sind Eigentum von GAME FREAK, Nintendo,
+Creatures Inc. und The Pokémon Company. Die Ausgabe dient nur der privaten,
+lokalen Darstellung innerhalb des Pokémon Hubs.

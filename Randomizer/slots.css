@@ -121,6 +121,7 @@
 .sl-sym { display: grid; place-items: center; width: var(--sym); height: var(--sym); }
 .sl-sym img { width: 120%; height: 120%; object-fit: contain; }
 .sl-sym img.is-ball { width: 58%; height: 58%; }
+.sl-sym img.is-wide { width: 144%; height: 144%; }   /* 96-px-Sprites (ab Gen 5) so groß wie die 80-px-Platin-Sprites */
 .sl-reel.is-spin .sl-strip { animation: sl-spin var(--rd, 0.35s) linear infinite; filter: blur(0.7px); }
 @keyframes sl-spin { to { translate: 0 calc(var(--sym) * -12); } }
 .sl-stop { position: absolute; left: 0; right: 0; top: calc(var(--sym) * 0.25); display: none; }
@@ -169,28 +170,169 @@
 
 /* Hebel rechts am Gehäuse */
 .sl-lever {
+  --lever-y: 0px;
+  --lever-x: 0px;
+  --lever-arm-x: 0px;
+  --lever-tilt: 0deg;
+  --lever-scale: 1;
+  --lever-progress: 0;
   position: absolute;
-  right: -30px;
-  top: 92px;
-  width: 30px;
-  height: 120px;
+  right: -32px;
+  top: 78px;
+  width: 52px;
+  height: 164px;
   padding: 0;
   border: 0;
+  border-radius: 22px;
   background: none;
-  cursor: pointer;
+  color: var(--bulb);
+  cursor: grab;
   pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .sl-lever:disabled { cursor: default; }
-.sl-arm { position: absolute; left: 12px; bottom: 0; width: 7px; height: 100px; border-radius: 4px; background: linear-gradient(90deg, #8c90a0, var(--metal), #8c90a0); transform-origin: 50% 100%; }
-.sl-knob { position: absolute; left: 2px; top: 0; width: 27px; height: 27px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff8, transparent 40%), var(--knob); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); z-index: 1; }
-.sl-lever::after { content: ''; position: absolute; left: 0; bottom: -8px; width: 30px; height: 16px; border-radius: 6px; background: var(--cab-lo); }
-.sl[data-state="ready"] .sl-lever { animation: sl-nudge 2.4s ease-in-out infinite; }
+/* Verschraubte Metallplatte und leuchtende Führungsschiene */
+.sl-lever-plate {
+  position: absolute;
+  left: 10px;
+  top: 24px;
+  width: 40px;
+  height: 136px;
+  overflow: hidden;
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  border-radius: 18px 18px 13px 13px;
+  background:
+    radial-gradient(circle at 8px 9px, #4d4f58 0 2px, #e9ebf2 2.5px 4px, transparent 4.5px),
+    radial-gradient(circle at calc(100% - 8px) 9px, #4d4f58 0 2px, #e9ebf2 2.5px 4px, transparent 4.5px),
+    radial-gradient(circle at 8px calc(100% - 9px), #4d4f58 0 2px, #e9ebf2 2.5px 4px, transparent 4.5px),
+    radial-gradient(circle at calc(100% - 8px) calc(100% - 9px), #4d4f58 0 2px, #e9ebf2 2.5px 4px, transparent 4.5px),
+    linear-gradient(90deg, #747884, var(--metal) 35%, #f2f3f7 50%, #a4a8b3 70%, #696d78);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2), 0 7px 13px rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+.sl-lever-plate::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 14px;
+  bottom: 14px;
+  width: 10px;
+  border-radius: 8px;
+  background: #111019;
+  box-shadow: inset 2px 0 4px #000, 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+.sl-lever-plate::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  width: 4px;
+  height: 98px;
+  border-radius: 4px;
+  background: linear-gradient(var(--trim-2), var(--bulb));
+  box-shadow: 0 0 9px var(--trim-2), 0 0 15px var(--bulb);
+  opacity: 0.85;
+  transform: scaleY(var(--lever-progress));
+  transform-origin: 50% 0;
+}
+.sl-arm {
+  position: absolute;
+  left: 25px;
+  bottom: 20px;
+  width: 9px;
+  height: 112px;
+  border: 1px solid #686b75;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #666a75, #f4f5f8 38%, var(--metal) 58%, #747884 100%);
+  box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.45), inset -1px 0 rgba(255, 255, 255, 0.55);
+  transform: translateX(var(--lever-arm-x)) scaleY(var(--lever-scale)) rotate(var(--lever-tilt));
+  transform-origin: 50% 100%;
+  will-change: transform;
+  z-index: 2;
+}
+.sl-knob {
+  position: absolute;
+  left: 10px;
+  top: 16px;
+  width: 40px;
+  height: 40px;
+  border: 3px solid color-mix(in srgb, var(--knob), #28040a 32%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 25%, rgba(255, 255, 255, 0.9) 0 7%, rgba(255, 255, 255, 0.32) 8% 17%, transparent 19%),
+    radial-gradient(circle at 48% 40%, color-mix(in srgb, var(--knob), white 24%), var(--knob) 52%, color-mix(in srgb, var(--knob), black 38%));
+  box-shadow: inset -5px -7px 10px rgba(0, 0, 0, 0.28), 0 5px 10px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(255, 255, 255, 0.14);
+  transform: translate3d(var(--lever-x), var(--lever-y), 0) rotate(var(--lever-tilt));
+  will-change: transform;
+  z-index: 3;
+}
+.sl-knob::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 2px solid var(--bulb);
+  border-radius: 50%;
+  opacity: 0;
+  scale: 0.7;
+  transition: opacity 0.12s, scale 0.18s;
+  box-shadow: 0 0 14px var(--bulb);
+}
+.sl-lever-label {
+  position: absolute;
+  left: -3px;
+  top: -17px;
+  width: 60px;
+  padding: 3px 4px;
+  border: 1px solid color-mix(in srgb, var(--bulb), transparent 35%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--glass), transparent 5%);
+  color: var(--bulb);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: 0 0 7px var(--bulb);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 4;
+}
+.sl[data-state="ready"] .sl-lever:not(.is-dragging):not(.is-pull):not(.is-returning) { animation: sl-nudge 2.4s ease-in-out infinite; }
 @keyframes sl-nudge { 0%, 80%, 100% { translate: 0 0; } 88% { translate: 0 6px; } }
-.sl-lever.is-pull .sl-knob { animation: sl-knob 0.6s ease-in-out; }
-.sl-lever.is-pull .sl-arm { animation: sl-arm 0.6s ease-in-out; }
-@keyframes sl-knob { 45% { translate: 0 76px; } }
-@keyframes sl-arm { 45% { scale: 1 0.25; } }
-.sl[data-state="off"] .sl-lever, .sl[data-state="spin"] .sl-lever { opacity: 0.6; }
+.sl-lever.is-dragging { cursor: grabbing; animation: none; }
+.sl-lever.is-armed .sl-knob::after { opacity: 0.85; scale: 1; }
+.sl-lever.is-armed .sl-lever-label { color: #fff; border-color: var(--bulb); background: var(--knob); }
+.sl-lever.is-settling .sl-knob, .sl-lever.is-settling .sl-arm, .sl-lever.is-settling .sl-lever-plate::after { transition: transform 0.09s ease-out, opacity 0.09s; }
+.sl-lever.is-returning .sl-knob, .sl-lever.is-returning .sl-arm { transition: transform 0.48s cubic-bezier(0.16, 1.55, 0.32, 1); }
+.sl-lever.is-returning .sl-lever-plate::after { transition: transform 0.38s ease-out, opacity 0.2s; }
+.sl-lever.is-pull .sl-knob { animation: sl-knob 0.64s cubic-bezier(0.2, 0.8, 0.25, 1); }
+.sl-lever.is-pull .sl-arm { animation: sl-arm 0.64s cubic-bezier(0.2, 0.8, 0.25, 1); }
+.sl-lever.is-pull .sl-lever-plate::after { animation: sl-track-pull 0.64s ease-in-out; }
+@keyframes sl-knob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  43%, 55% { transform: translate3d(0, 80px, 0) scale(0.96); }
+  78% { transform: translate3d(0, -5px, 0) scale(1.03); }
+}
+@keyframes sl-arm {
+  0%, 100% { transform: scaleY(1); }
+  43%, 55% { transform: scaleY(0.28); }
+  78% { transform: scaleY(1.04); }
+}
+@keyframes sl-track-pull {
+  0%, 100% { transform: scaleY(0); opacity: 0.15; }
+  43%, 55% { transform: scaleY(1); opacity: 1; }
+}
+.sl.is-lever-hit .sl-machine { animation: sl-machine-hit 0.28s ease-out; }
+@keyframes sl-machine-hit { 35% { transform: translateX(3px) rotate(0.35deg); } 70% { transform: translateX(-2px) rotate(-0.2deg); } }
+.sl-lever:focus-visible { outline: none; }
+.sl-lever:focus-visible .sl-lever-plate { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25), 0 0 0 3px var(--trim-2), 0 0 18px var(--trim-2), 0 7px 13px rgba(0, 0, 0, 0.5); }
+.sl[data-state="off"] .sl-lever, .sl[data-state="spin"] .sl-lever { opacity: 0.5; filter: saturate(0.55); }
+.sl[data-state="off"] .sl-lever-label, .sl[data-state="spin"] .sl-lever-label { text-shadow: none; }
 
 .sl-tray { height: 26px; margin: -6px 18px 0; border-radius: 0 0 16px 16px; background: linear-gradient(180deg, var(--cab-lo), var(--cab)); box-shadow: inset 0 6px 10px rgba(0, 0, 0, 0.5); }
 
@@ -279,4 +421,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sl-bulbs, .sl-mascot, .sl[data-state="off"] .sl-coin, .sl[data-state="ready"] .sl-lever, .sl-reel.is-spin .sl-strip { animation: none; }
+  .sl-lever.is-pull .sl-knob, .sl-lever.is-pull .sl-arm, .sl-lever.is-pull .sl-lever-plate::after, .sl.is-lever-hit .sl-machine { animation-duration: 0.01ms; }
+  .sl-lever.is-settling .sl-knob, .sl-lever.is-settling .sl-arm, .sl-lever.is-returning .sl-knob, .sl-lever.is-returning .sl-arm, .sl-lever.is-returning .sl-lever-plate::after { transition-duration: 0.01ms; }
 }

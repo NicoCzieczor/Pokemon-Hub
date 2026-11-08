@@ -1,0 +1,15 @@
+Pokémon Smaragd – Kartenquellen
+=================================
+
+Die Hoenn-Karte wurde aus der vollständigen pret/pokeemerald-Disassembly
+gerendert. Verwendet werden Smaragds originale GBA-Tilesets, Paletten,
+Metatiles, Layout-Blöcke und Kartenverbindungen. Kampffront, Safari-Zone
+und weitere Außenbereiche sind als eigene Kartenbereiche enthalten.
+Die Funddaten stammen direkt aus Smaragds Begegnungstabellen.
+
+Quelle: https://github.com/pret/pokeemerald
+Stand: 731ad5bfd6e6
+
+Pokémon, die Karten- und Grafikdaten sind Eigentum von GAME FREAK, Nintendo,
+Creatures Inc. und The Pokémon Company. Die Ausgabe dient nur der privaten,
+lokalen Darstellung innerhalb des Pokémon Hubs.

@@ -1,5 +1,5 @@
 // Alle Seiten starten fehlerfrei; Laden mit Platzhaltern (F03), Backup (F07/F08/Z4), verspätete Antworten (F15),
-// Sicherungen im Save-Editor (F04), Speicherhinweis (F10), ROM im Worker (F09)
+// Sicherungen im Save-Editor (F04), Speicherhinweis (F10), ROM im Worker (F09), ziehbarer Slot-Hebel (F11)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -199,6 +199,50 @@ await run('F09 worker', async () => {
   });
   check('F09 Einlesen läuft im Worker und meldet „keine Platin-ROM“', r.workers === 1 && r.kein === 'notPlatinum', JSON.stringify(r));
   check('F09 keine JavaScript-Fehler', errors.length === 0, errors.join(' | '));
+  await page.close();
+});
+
+// ── F11: Spielhallen-Hebel folgt dem Pointer und löst nur am Anschlag aus ──
+await run('F11 slot lever', async () => {
+  const { page, errors } = await openPage(browser, `${BASE}/Randomizer/index.html`, { storage: {} });
+  await page.setViewport({ width: 1920, height: 1080 });
+  await waitFor(page, () => document.getElementById('sl')?.classList.contains('is-full'));
+  await page.evaluate(() => {
+    window.__slotRolls = 0;
+    window.SlotScene.update({ rom: true, busy: false, phase: '', secs: '', error: false, result: null,
+      roll: () => { window.__slotRolls++; }, pick: () => {} });
+  });
+  await sleep(80);
+
+  const box = await page.$eval('.sl-lever', e => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width }; });
+  const x = box.x + box.w / 2, y = box.y + 36;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 6, y + 68, { steps: 4 });
+  const dragging = await page.evaluate(() => {
+    const l = document.querySelector('.sl-lever');
+    return { drag: l.classList.contains('is-dragging'), armed: l.classList.contains('is-armed'), y: parseFloat(l.style.getPropertyValue('--lever-y')), rolls: window.__slotRolls };
+  });
+  check('F11 langer Zug folgt dem Pointer und rastet ein', dragging.drag && dragging.armed && dragging.y >= 60 && dragging.rolls === 0, JSON.stringify(dragging));
+  await page.mouse.up();
+  await sleep(150);
+  check('F11 langer Zug würfelt genau einmal', await page.evaluate(() => window.__slotRolls) === 1);
+
+  await sleep(550);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 32, { steps: 3 });
+  await page.mouse.up();
+  await sleep(150);
+  check('F11 kurzer Zug würfelt nicht', await page.evaluate(() => window.__slotRolls) === 1);
+
+  await sleep(450);
+  await page.focus('.sl-lever');
+  await page.keyboard.press('Space');
+  await sleep(310);
+  const keyboard = await page.evaluate(() => ({ rolls: window.__slotRolls, focus: document.activeElement === document.querySelector('.sl-lever'), label: document.querySelector('.sl-lever').getAttribute('aria-label') }));
+  check('F11 Hebel funktioniert per Tastatur', keyboard.rolls === 2 && keyboard.focus && /Hebel/.test(keyboard.label), JSON.stringify(keyboard));
+  check('F11 keine JavaScript-Fehler', errors.length === 0, errors.join(' | '));
   await page.close();
 });
 

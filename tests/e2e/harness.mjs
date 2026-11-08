@@ -51,7 +51,8 @@ export async function launch() {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'pokehub-e2e-'));
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
-    headless: true, userDataDir: profile, args: ['--no-first-run', '--no-default-browser-check'],
+    headless: true, userDataDir: profile,
+    args: ['--no-first-run', '--no-default-browser-check', '--no-sandbox', '--disable-gpu'],
   });
   return { browser, profile };
 }
@@ -59,6 +60,7 @@ export async function launch() {
 // Neue Seite mit Mocks. opts: { fail: Set von Pokémon-Namen, die fehlschlagen; fake: Startzustand für Supabase; storage: localStorage-Inhalt }
 export async function openPage(browser, url, opts = {}) {
   const page = await browser.newPage();
+  if (opts.timeout) page.setDefaultNavigationTimeout(opts.timeout);
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('dialog', d => (opts.onDialog ? opts.onDialog(d) : d.accept()));
@@ -86,7 +88,7 @@ export async function openPage(browser, url, opts = {}) {
       for (const [k, v] of Object.entries(storage)) localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
     }
   }, opts.fake || null, opts.storage || null);
-  await page.goto(url, { waitUntil: 'networkidle0' });
+  await page.goto(url, { waitUntil: opts.waitUntil || 'networkidle0' });
   return { page, errors };
 }
 

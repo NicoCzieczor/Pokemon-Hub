@@ -1,12 +1,28 @@
 /*
- * Interaktive Karte von Sinnoh (Pokémon Platin).
+ * Interaktive Karte von Sinnoh (Pokémon Platin) – und mit denselben Funktionen von Johto & Kanto (HeartGold/SoulSilver).
  * Daten: platin.json (tools/build-platin.js) und die Kartenkacheln in tiles/ (tools/render-platin.js +
  * tools/make-tiles.py) – beides aus pret/pokeplatinum, das Kartenbild aus den 3D-Modellen des Spiels.
+ * HG/SS: hgss.json (tools/build-hgss.js) und tiles-hgss/ (tools/render-hgss.js) im selben Format, wilde Pokémon
+ * je Edition ({ heartgold: […], soulsilver: […] }) und mit den HG/SS-eigenen Arten (Zertrümmerer, Kopfnuss, Radio …).
  * Koordinaten sind Spiel-Kacheln: x nach rechts, z nach unten. Leaflet (CRS.Simple) bekommt [−z, x].
  * Das Bild zeigt die Welt aus dem Blickwinkel der Spielkamera: höher gelegene Stellen erscheinen weiter oben.
  */
 window.LANG = localStorage.getItem('hub-lang') || 'de';
 document.documentElement.lang = window.LANG;
+
+// Welches Spiel: der Spiel-Chip des Hubs entscheidet (Platin ist die Grundeinstellung)
+const IS_HGSS = !!(window.PokeHubGame && window.PokeHubGame.get() === 'heartgold-soulsilver');
+const GAME = IS_HGSS
+  ? { key: 'hgss', data: 'hgss.json', tiles: 'tiles-hgss/', body: 'is-hgss', versions: ['heartgold', 'soulsilver'], storage: 'karte-hgss-version',
+      starters: [152, 153, 154, 155, 156, 157, 158, 159, 160], planner: false, rando: false, scene: false }
+  : { key: 'platin', data: 'platin.json', tiles: 'tiles/', body: '', versions: null,
+      starters: [387, 388, 389, 390, 391, 392, 393, 394, 395], planner: true, rando: true, scene: true };
+if (GAME.body && !window.KARTE_HOENN && !window.KARTE_RETRO) document.body.classList.add(GAME.body);
+// Edition (nur HG/SS): HeartGold oder SoulSilver – bestimmt die wilden Pokémon und einige feste Begegnungen
+const edition = () => {
+  if (!GAME.versions) return null;
+  try { const v = localStorage.getItem(GAME.storage); return GAME.versions.includes(v) ? v : GAME.versions[0]; } catch (e) { return GAME.versions[0]; }
+};
 
 // Schlichte Symbole statt Emojis (Farbe aus der Schrift)
 const ICON_PIN = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>';
@@ -106,7 +122,49 @@ const TRANSLATIONS = {
     wildRandoOld: 'The loaded randomizer data is older and does not know the wild Pokémon yet – load the ROM again above.',
   },
 };
-const tr = () => TRANSLATIONS[window.LANG] || TRANSLATIONS.de;
+// Zusätzliche Begegnungsarten (HG/SS) und die HG/SS-Fassung der Texte
+const EXTRA = {
+  de: {
+    rockSmash: 'Zertrümmerer', headbutt: 'Kopfnuss', headbuttRare: 'Kopfnuss (seltene Bäume)', headbuttSecret: 'Kopfnuss (besondere Bäume)',
+    hoenn: 'Hoenn-Klang (Radio)', sinnoh: 'Sinnoh-Klang (Radio)', nightFish: 'Nachts an der Angel', special: 'Besondere Pokémon',
+    static: 'Feste Begegnung', giftMon: 'Geschenk', egg: 'Ei', swarmGrass: 'Gras', swarmSurf: 'Surfen', swarmFish: 'Angeln',
+    swarmHint: 'Nur wenn das Radio (Pokémon-Talk) hier einen Schwarm meldet – dann statt 40 % der Begegnungen.',
+    radioHint: 'Mit dem Hoenn- bzw. Sinnoh-Klang im Radio statt der Plätze mit 10 %.',
+    johto: 'Johto', kanto: 'Kanto', heartgold: 'HeartGold', soulsilver: 'SoulSilver', editionLabel: 'Edition',
+  },
+  en: {
+    rockSmash: 'Rock Smash', headbutt: 'Headbutt', headbuttRare: 'Headbutt (rare trees)', headbuttSecret: 'Headbutt (special trees)',
+    hoenn: 'Hoenn Sound (radio)', sinnoh: 'Sinnoh Sound (radio)', nightFish: 'At night on the rod', special: 'Special Pokémon',
+    static: 'Static encounter', giftMon: 'Gift', egg: 'Egg', swarmGrass: 'grass', swarmSurf: 'surfing', swarmFish: 'fishing',
+    swarmHint: 'Only while the radio (Pokémon Talk) reports a swarm here – then instead of 40 % of the encounters.',
+    radioHint: 'With the Hoenn or Sinnoh Sound on the radio instead of the 10 % slots.',
+    johto: 'Johto', kanto: 'Kanto', heartgold: 'HeartGold', soulsilver: 'SoulSilver', editionLabel: 'Version',
+  },
+};
+const HGSS_TEXT = {
+  de: {
+    title: 'Karte von Johto & Kanto', gameBadge: 'HeartGold / SoulSilver',
+    note: 'Karte aus den 3D-Modellen, Gebäuden, Texturen und dem Licht von HeartGold/SoulSilver gerendert, Positionen und Inhalte aus dem Spielcode (pret/pokeheartgold), deutsche Namen aus der deutschen Spiel-ROM.',
+    backToMap: 'Johto & Kanto', groupTowns: 'Städte', groupRoutes: 'Routen', groupPlaces: 'Höhlen, Türme & Orte',
+    hiddenHint: 'Mit dem Itemradar oder durch Absuchen der Stelle zu finden.',
+    monNotInGame: 'gibt es in HG/SS nicht',
+    monNoWildText: '{p} steht auf der Karte nicht als wildes Pokémon. Vielleicht bekommst du es in HG/SS auf anderem Weg: Geschenk, Ei, Tausch, Pokéwalker, Safari-Zone oder eine besondere Begegnung.',
+    monNotInGameText: '{p} gibt es erst ab Gen {g} – in HG/SS nicht.',
+  },
+  en: {
+    title: 'Map of Johto & Kanto', gameBadge: 'HeartGold / SoulSilver',
+    note: 'Map rendered from HeartGold/SoulSilver\'s own 3D models, buildings, textures and lighting; positions and contents from the game code (pret/pokeheartgold), German names from the German game ROM.',
+    backToMap: 'Johto & Kanto', groupTowns: 'Towns & cities', groupRoutes: 'Routes', groupPlaces: 'Caves, towers & places',
+    hiddenHint: 'Find them with the Dowsing MCHN or by checking the spot.',
+    monNotInGame: 'not in HG/SS',
+    monNoWildText: '{p} is not listed as a wild Pokémon on the map. You may get it another way in HG/SS: gift, egg, trade, Pokéwalker, Safari Zone or a special encounter.',
+    monNotInGameText: '{p} only exists from Gen {g} – not in HG/SS.',
+  },
+};
+const tr = () => {
+  const lang = TRANSLATIONS[window.LANG] ? window.LANG : 'de';
+  return { ...TRANSLATIONS[lang], ...EXTRA[lang], ...(IS_HGSS ? HGSS_TEXT[lang] : {}) };
+};
 const t = (key, vars) => {
   let s = tr()[key] ?? TRANSLATIONS.de[key] ?? key;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(v);
@@ -121,6 +179,7 @@ const nm = o => (o ? (isEn() ? o.en || o.de : o.de || o.en) : '');
 const className = cls => TrainerClasses.className(cls, isEn());
 const trainerName = (name, cls) => TrainerClasses.trainerName(name, isEn(), cls);
 const trainerTitle = (cls, name) => [className(cls), trainerName(name, cls)].filter(Boolean).join(' ');
+const trTitle = tr => (tr.de || tr.en ? nm(tr) : trainerTitle(tr.cls, tr.name));
 const CLASS_NAMES = TrainerClasses.CLASS_NAMES;
 
 // ── Darstellung der Marker ────────────────────────────────────────────────────
@@ -133,7 +192,7 @@ const STYLE = {
   trainer:  { radius: 4.5, color: '#0d0f2b', weight: 1.5, fillColor: '#ffaa3c', fillOpacity: 1 },
   entrance: { radius: 6, color: '#ffffff', weight: 2, fillColor: '#b48cff', fillOpacity: 1 },
 };
-const STARTER_IDS = new Set([387, 388, 389, 390, 391, 392, 393, 394, 395]);
+const STARTER_IDS = new Set(GAME.starters);
 const itemSprite = it => {
   if (it.tm && it.move?.type) return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${/^hm/.test(it.id) ? 'hm' : 'tm'}-${it.move.type}.png`;
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${it.id}.png`;
@@ -209,9 +268,11 @@ const parsePos = s => s.split(',').map(v => (v === '' ? undefined : +v));
 
 // Kartenbild: wenige große Blätter je Detailstufe (tiles/<z>/<x>_<y>.webp, 2^z Pixel pro Spielkachel).
 // Die Übersicht (kleinste Stufe) liegt immer ganz unten; darüber nur die Blätter, die gerade zu sehen sind –
-// die gröbere Stufe bleibt drunter, bis die feinere geladen ist.
+// die gröbere Stufe bleibt drunter, bis die feinere da ist. Ein Blatt (2048 px) zu dekodieren dauert spürbar
+// (40–70 ms): das passiert vorab im Hintergrund (img.decode), erst danach kommt es auf die Karte. Geladen wird schon
+// beim Schieben, mit Vorlauf um den Ausschnitt; geladene Blätter bleiben (bis KEEP), Zurückschieben dekodiert nichts neu.
 function setupSheets() {
-  const W = D.width, H = D.height;
+  const W = D.width, H = D.height, KEEP = window.PokeHubLite ? 6 : 24, used = [];
   const levels = [...TILES.levels].sort((a, b) => a.z - b.z).map((lv, i) => {
     const pane = map.createPane(`sheets${lv.z}`);
     pane.style.zIndex = 210 + i;
@@ -222,25 +283,52 @@ function setupSheets() {
       const x0 = sx * span, z0 = sy * span;
       // 1 Pixel Überlappung nach rechts/unten, damit bei Zwischen-Zoomstufen keine Fuge durchscheint
       const x1 = Math.min(W, x0 + span) + px, z1 = Math.min(H, z0 + span) + px;
-      return { url: `tiles/${lv.z}/${key}.webp`, bounds: L.latLngBounds(ll(x0, z1), ll(x1, z0)), layer: null };
+      return { url: `${GAME.tiles}${lv.z}/${key}.webp`, bounds: L.latLngBounds(ll(x0, z1), ll(x1, z0)), pane: `sheets${lv.z}`, img: null, ready: false, layer: null, want: false };
     });
     return { z: lv.z, pane: `sheets${lv.z}`, sheets };
   });
   sheetPanes = levels.map(lv => map.getPane(lv.pane));
-  const show = (lv, s, on) => {
-    if (on && !s.layer) s.layer = L.imageOverlay(s.url, s.bounds, { pane: lv.pane, className: 'game-sheet', interactive: false }).addTo(map);
-    else if (!on && s.layer) { map.removeLayer(s.layer); s.layer = null; }
+  // Beim Zoomen werden neue Blätter schon geladen und dekodiert, aber erst am Ende eingehängt – ein neues Blatt
+  // mitten im Gleiten müsste der Browser sofort malen (das ruckelt); danach ist es ohne Wartezeit scharf
+  let zooming = false;
+  map.on('zoomstart', () => { zooming = true; });
+  map.on('zoomend', () => { zooming = false; });
+  const attach = s => { if (!s.layer && s.ready && s.want && !zooming) s.layer = L.imageOverlay(s.img, s.bounds, { pane: s.pane, className: 'game-sheet', interactive: false }).addTo(map); };
+  const detach = s => { if (s.layer) { map.removeLayer(s.layer); s.layer = null; } };
+  const load = s => {
+    const i = used.indexOf(s);
+    if (i >= 0) used.splice(i, 1);
+    used.push(s);
+    if (s.img) return attach(s);
+    const img = s.img = new Image();
+    img.decoding = 'async';
+    img.src = s.url;
+    (img.decode ? img.decode() : Promise.resolve()).catch(() => {}).then(() => {
+      if (s.img !== img) return;
+      s.ready = true;
+      attach(s);
+    });
+    // zu viele im Speicher: die am längsten nicht gebrauchten loslassen
+    for (let k = 0; used.length > KEEP && k < used.length;) {
+      const o = used[k];
+      if (o.want) { k++; continue; }
+      detach(o); o.img = null; o.ready = false; used.splice(k, 1);
+    }
   };
   const update = () => {
     if (inMap) return; // in einer Innenkarte bleibt die Oberwelt, wie sie ist
-    const zoom = map.getZoom(), view = map.getBounds().pad(0.3);
+    const zoom = map.getZoom(), view = map.getBounds().pad(0.6);
     levels.forEach((lv, i) => {
       // Stufe ab etwa 1¼ Zoomstufen unter ihrer vollen Auflösung zeigen; die gröbste immer
       const on = i === 0 || zoom >= lv.z - 1.25;
-      for (const s of lv.sheets) show(lv, s, on && (i === 0 || view.intersects(s.bounds)));
+      for (const s of lv.sheets) {
+        s.want = on && (i === 0 || view.intersects(s.bounds));
+        if (s.want) load(s); else detach(s);
+      }
     });
   };
   map.on('moveend zoomend', update);
+  map.on('move', L.Util.throttle(update, 120));
   map.on('overworld', update);
   update();
 }
@@ -260,7 +348,7 @@ const SeaLayer = L.GridLayer.extend({
 async function init() {
   applyLang();
   try {
-    const [r1, r2] = await Promise.all([fetch('platin.json'), fetch('tiles/index.json')]);
+    const [r1, r2] = await Promise.all([fetch(GAME.data), fetch(`${GAME.tiles}index.json`)]);
     if (!r1.ok || !r2.ok) throw new Error(r1.ok ? r2.status : r1.status);
     [D, TILES] = await Promise.all([r1.json(), r2.json()]);
     ground = decodeGround(TILES);
@@ -272,6 +360,7 @@ async function init() {
   }
   setupMap();
   buildMarkers();
+  setupEditionSwitch();
   buildSearchIndex();
   setupInteriorBar();
   $('map-loading').hidden = true;
@@ -286,11 +375,13 @@ async function init() {
 function setupMap() {
   const CH = D.chunk;
   map = L.map('map', {
-    crs: L.CRS.Simple, minZoom: -1.5, maxZoom: MAX_ZOOM, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 90,
+    crs: L.CRS.Simple, minZoom: -1.5, maxZoom: MAX_ZOOM, zoomSnap: 0.25, zoomDelta: 0.5,
+    // Mausrad/Touchpad stufenlos (smooth-wheel.js) statt Leaflets Sprüngen, die schnelles Drehen verschluckten
+    scrollWheelZoom: false, smoothWheelZoom: true,
     // SVG statt Canvas: base.css zwingt jedes <canvas> auf 100 % Breite, das würde Leaflets Zeichenfläche verzerren
     attributionControl: false, preferCanvas: false, zoomControl: true,
   });
-  if (TILES.sea) seaLayer = new SeaLayer({ pattern: TILES.sea, nativeZoom: NATIVE_ZOOM, minZoom: -2, maxZoom: MAX_ZOOM }).addTo(map);
+  if (TILES.sea) seaLayer = new SeaLayer({ pattern: TILES.sea, nativeZoom: NATIVE_ZOOM, minZoom: -2, maxZoom: MAX_ZOOM, tileSize: 512, updateWhenZooming: false, keepBuffer: 1 }).addTo(map);
   map.createPane('interior').style.zIndex = 230;
 
   // Ausschnitt: alle Blöcke, die zu einem Ort gehören
@@ -320,22 +411,30 @@ function setupMap() {
   selLayer = L.layerGroup().addTo(map);
   map.on('zoomend', onZoom);
   onZoom();
+  let busyTimer = 0;
+  map.on('movestart zoomstart', () => { clearTimeout(busyTimer); document.body.classList.add('map-busy'); });
+  map.on('moveend zoomend', () => { clearTimeout(busyTimer); busyTimer = setTimeout(() => document.body.classList.remove('map-busy'), 250); });
 
   // Ort unter dem Mauszeiger bzw. Finger
   const chunkAt = latlng => {
     const { x, z } = tileAt(latlng);
     return D.chunks[Math.floor(z / CH)]?.[Math.floor(x / CH)] ?? -1;
   };
-  map.on('mousemove', e => {
-    if (inMap || matchMedia('(pointer: coarse)').matches) return;
-    const li = chunkAt(e.latlng);
+  const coarse = matchMedia('(pointer: coarse)');
+  let hoverLi = -2;
+  const setHover = li => {
+    if (li === hoverLi) return;
+    hoverLi = li;
     const box = $('hover-name');
     if (li < 0) { box.hidden = true; map.getContainer().style.cursor = ''; return; }
     box.hidden = false;
     box.textContent = locName(D.locations[li]);
     map.getContainer().style.cursor = 'pointer';
-  });
-  map.on('mouseout', () => { $('hover-name').hidden = true; });
+  };
+  map.on('mousemove', e => { if (!inMap && !coarse.matches) setHover(chunkAt(e.latlng)); });
+  map.on('mouseout', () => setHover(-1));
+  map.on('movestart zoomstart', () => { if (hoverLi >= 0) setHover(-1); });
+  setupMap.resetHover = () => { hoverLi = -2; };
   map.on('click', e => {
     if (inMap) return;
     const li = chunkAt(e.latlng);
@@ -352,6 +451,9 @@ function onZoom() {
   // Über der Auflösung der Kacheln: Pixel scharf vergrößern statt verschwimmen lassen
   el.classList.toggle('z-pixel', z >= NATIVE_ZOOM + 0.75);
   const scale = z >= 4.5 ? 2.1 : z >= 2.5 ? 1.6 : z >= 1.5 ? 1.3 : z >= 0.5 ? 1 : 0.75;
+  if (scale === onZoom.scale && !onZoom.dirty) return;
+  onZoom.scale = scale;
+  onZoom.dirty = false;
   for (const kind of KINDS) for (const g of [layers[kind], inLayers[kind]]) g?.eachLayer(m => m.setRadius(STYLE[kind].radius * scale));
 }
 
@@ -368,7 +470,7 @@ function markerText(m) {
   if (m.k === 'trainer') {
     const lv = entry.party.map(p => p.lv);
     const lvText = lv.length ? ` · ${t('level')} ${Math.min(...lv)}${Math.max(...lv) !== Math.min(...lv) ? '–' + Math.max(...lv) : ''}` : '';
-    return `${trainerTitle(entry.cls, entry.name)}${lvText}`;
+    return `${trTitle(entry)}${lvText}`;
   }
   const kind = entry.kind === 'hidden' ? t('kHiddenOne') : entry.kind === 'gift' ? t('kGiftOne') : t('kBallOne');
   return `${kind}: ${itemName(entry)}${entry.qty > 1 ? ' ×' + entry.qty : ''}`;
@@ -403,8 +505,37 @@ function buildMarkers() {
     });
   });
   syncKinds();
+  onZoom.dirty = true;
   onZoom();
 }
+// HG/SS: Schalter HeartGold / SoulSilver vor den Filtern (wilde Pokémon und einige feste Begegnungen)
+function setupEditionSwitch() {
+  if (!GAME.versions) return;
+  const seg = document.createElement('span');
+  seg.className = 'rb-version';
+  seg.setAttribute('role', 'group');
+  const draw = () => {
+    seg.setAttribute('aria-label', t('editionLabel'));
+    seg.innerHTML = GAME.versions.map(v => `<button type="button" class="chip rb-version-btn rb-version-btn--${v}" data-version="${v}" aria-pressed="${edition() === v}">${esc(t(v))}</button>`).join('');
+  };
+  draw();
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('[data-version]');
+    if (!b || b.dataset.version === edition()) return;
+    try { localStorage.setItem(GAME.storage, b.dataset.version); } catch (err) { /* nur für diese Sitzung */ }
+    editionChanged();
+  });
+  $('filter-chips').prepend(seg);
+  // Andere Seite (Tab) hat die Edition umgestellt
+  window.addEventListener('storage', e => { if (e.key === GAME.storage) editionChanged(); });
+  function editionChanged() {
+    draw();
+    buildSearchIndex();
+    if (selected >= 0) renderLocation(selected); else if (monView != null) renderMon(monView); else renderDirectory();
+  }
+  setupEditionSwitch.redraw = draw;
+}
+
 // Marker-Ebenen passend zu Filtern und Ansicht (Oberwelt oder Innenkarte) zeigen
 function syncKinds() {
   for (const kind of KINDS) {
@@ -441,7 +572,7 @@ async function openInterior(key, opts = {}) {
   const m = D.maps?.[key];
   if (!m) return;
   try {
-    if (!INT) { const r = await fetch('tiles/interiors.json'); if (!r.ok) throw new Error(r.status); INT = await r.json(); }
+    if (!INT) { const r = await fetch(`${GAME.tiles}interiors.json`); if (!r.ok) throw new Error(r.status); INT = await r.json(); }
   } catch (e) { return; }
   const img = INT.images[imageKey(m)];
   if (!img) return;
@@ -455,6 +586,7 @@ async function openInterior(key, opts = {}) {
     map.removeLayer(selLayer);
     if (focusMarker) { map.removeLayer(focusMarker); focusMarker = null; }
     $('hover-name').hidden = true;
+    setupMap.resetHover?.();
     map.getContainer().style.cursor = '';
     map.getContainer().classList.add('is-interior');
   }
@@ -467,7 +599,7 @@ async function openInterior(key, opts = {}) {
   svg.setAttribute('viewBox', `${img.x} ${img.y} ${img.w} ${img.h}`);
   svg.setAttribute('preserveAspectRatio', 'none');
   const image = document.createElementNS(SVGNS, 'image');
-  image.setAttribute('href', `tiles/in/${img.a}.webp`);
+  image.setAttribute('href', `${GAME.tiles}in/${img.a}.webp`);
   image.setAttribute('width', aw);
   image.setAttribute('height', ah);
   svg.appendChild(image);
@@ -495,6 +627,7 @@ async function openInterior(key, opts = {}) {
     inLayers.entrance.addLayer(marker);
   }
   syncKinds();
+  onZoom.dirty = true;
   onZoom();
 
   map.setMaxBounds(bounds.pad(0.6));
@@ -636,6 +769,7 @@ function locationFromHash() {
 function showMobileChip(li) {
   const l = D.locations[li];
   const box = $('hover-name');
+  setupMap.resetHover?.();
   box.hidden = false;
   box.innerHTML = `<b>${esc(locName(l))}</b> <button type="button" class="chip-details">${esc(t('details'))} ↓</button>`;
   box.querySelector('button').addEventListener('click', () => $('side').scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -666,8 +800,14 @@ function renderDirectory() {
         return `<button type="button" class="dir-item" data-loc="${li}">${esc(locName(l))}${n ? `<small>${n}</small>` : ''}</button>`;
       }).join('')}</div>
     </div>`;
-  $('side-content').innerHTML = `<div class="side-head"><h2>${esc(t('allPlaces'))}</h2><p>${esc(t('dirHint'))}</p></div>
-    ${group(t('groupTowns'), byType.towns)}${group(t('groupRoutes'), byType.routes)}${group(t('groupPlaces'), byType.places)}`;
+  const regions = [...new Set(D.locations.map(l => l.region).filter(Boolean))];
+  const groups = regions.length > 1
+    ? regions.map(r => {
+      const of = list => list.filter(li => D.locations[li].region === r);
+      return group(`${t(r)} · ${t('groupTowns')}`, of(byType.towns)) + group(`${t(r)} · ${t('groupRoutes')}`, of(byType.routes)) + group(`${t(r)} · ${t('groupPlaces')}`, of(byType.places));
+    }).join('')
+    : group(t('groupTowns'), byType.towns) + group(t('groupRoutes'), byType.routes) + group(t('groupPlaces'), byType.places);
+  $('side-content').innerHTML = `<div class="side-head"><h2>${esc(t('allPlaces'))}</h2><p>${esc(t('dirHint'))}</p></div>${groups}`;
   $('side-content').querySelectorAll('[data-loc]').forEach(b => b.addEventListener('click', () => selectLocation(+b.dataset.loc, { fly: true })));
   updateScene();
 }
@@ -693,7 +833,7 @@ function renderLocation(li, focus) {
     ? `<div class="ent-row map-row"><span>${esc(t('interiorMaps'))}:</span>${mapKeys.map(k => `<button type="button" class="mini-btn map-btn${k === inMap ? ' is-on' : ''}" data-map="${esc(k)}">${ICON_MAP}${esc(areaName(D.maps[k].area) || locName(l))}</button>`).join('')}</div>`
     : '';
   const tab = (key, label, count, disabled) => `<button type="button" class="tab${currentTab === key ? ' is-active' : ''}" data-tab="${key}"${disabled ? ' disabled' : ''}>${esc(label)}${count != null ? ` <small>${count}</small>` : ''}</button>`;
-  const wildCount = l.wild.length;   // Tab auch dann, wenn der gewürfelte Stand hier nichts hat (Schalter zum Original)
+  const wildCount = baseWild(l).length + specialsOf(l).length;   // Tab auch dann, wenn der gewürfelte Stand hier nichts hat (Schalter zum Original)
   const backMon = monBack != null && MONS.get(monBack);
   $('side-content').innerHTML = `
     <div class="side-head">
@@ -784,7 +924,7 @@ function itemsHTML(l) {
 }
 
 function partyHTML(party) {
-  return `<div class="party">${party.map(p => `<span class="mon" title="${esc(nm(p))}${p.item ? ' · ' + esc(nm(p.item)) : ''}">
+  return `<div class="party">${party.map(p => `<span class="mon" title="${esc(nm(p))}${p.item ? ' · ' + esc(nm(p.item)) : ''}${p.moves ? ' · ' + esc(p.moves.map(nm).join(', ')) : ''}">
       <img src="${monSprite(p.id)}" alt="" loading="lazy">
       <span class="mon-name">${esc(nm(p))}</span><small>${t('level')} ${p.lv}</small>
     </span>`).join('')}</div>`;
@@ -797,17 +937,17 @@ function trainersHTML(l) {
   const rivalGroups = new Map();
   l.trainers.forEach((tr, i) => {
     if (tr.cls === 'RIVAL') {
-      const key = `${tr.name}|${tr.area}|${tr.pos || ''}`;
+      const key = `${tr.name || tr.en}|${tr.area}|${tr.pos || ''}`;
       if (!rivalGroups.has(key)) { rivalGroups.set(key, { tr, i, variants: [] }); rows.push(rivalGroups.get(key)); }
       rivalGroups.get(key).variants.push({ tr, i });
     } else rows.push({ tr, i });
   });
   return `<div class="list-group">${rows.map(({ tr, i, variants }) => {
     const head = `<div class="tr-head">
-        <span class="row-title">${esc(trainerTitle(tr.cls, tr.name))}</span>
+        <span class="row-title">${esc(trTitle(tr))}</span>
         ${tr.double ? `<span class="badge">${esc(t('double'))}</span>` : ''}
         ${areaTag(tr.area)}${posBtn(tr)}
-        <a class="pin" href="../Bosse/index.html#${esc(tr.id)}" title="${esc(t('toPlanner'))}" aria-label="${esc(t('toPlanner'))}">${ICON_SWORDS}</a>
+        ${GAME.planner ? `<a class="pin" href="../Bosse/index.html#${esc(tr.id)}" title="${esc(t('toPlanner'))}" aria-label="${esc(t('toPlanner'))}">${ICON_SWORDS}</a>` : ''}
       </div>`;
     if (variants && variants.length > 1) {
       return `<div class="row row--trainer" data-ref="t${i}">${head}
@@ -824,13 +964,17 @@ function trainersHTML(l) {
 
 // ── Randomizer: wilde Pokémon aus der gewürfelten ROM (rando-state.js), das Original per Schalter ──
 let wildMode = 'rando';   // 'rando' | 'orig' – zählt nur, wenn ein Stand mit wilden Pokémon geladen ist
-const randoState = () => (window.PokeHubRando ? window.PokeHubRando.get() : null);
+const randoState = () => (GAME.rando && window.PokeHubRando ? window.PokeHubRando.get() : null);
 const randoWild = () => { const s = randoState(); return s && Array.isArray(s.wild) ? s.wild : null; };
 const usingRando = () => wildMode === 'rando' && !!randoWild();
 // Wilde Pokémon eines Ortes im gerade gezeigten Stand; Einträge ohne Tabellen-Nummer bleiben wie im Original
+// Grundstand eines Ortes: Platin eine Liste, HG/SS je Edition
+const baseWild = l => (Array.isArray(l.wild) ? l.wild : (l.wild && l.wild[edition()]) || []);
+// Besondere Pokémon (feste Begegnungen, Geschenke, Eier) – manche nur in einer Edition (Ho-Oh/Lugia-Level, Latios/Latias)
+const specialsOf = l => (l.special || []).filter(s => !s.ver || s.ver === edition());
 function wildOf(l) {
   const rw = usingRando() ? randoWild() : null;
-  if (!rw) return l.wild;
+  if (!rw) return baseWild(l);
   const N = window.POKEMON_NAMES || { de: [], en: [] };
   const named = list => list.map(s => ({ ...s, de: N.de[s.id] || `#${s.id}`, en: N.en[s.id] || N.de[s.id] || `#${s.id}` }));
   return l.wild.map(w => {
@@ -860,7 +1004,7 @@ document.addEventListener('hubrandochange', () => { if (D) setWildMode('rando');
 
 function wildHTML(l) {
   const wild = wildOf(l);
-  if (!wild.length) return wildModeHTML() + `<p class="empty">${esc(t('noWild'))}</p>`;
+  if (!wild.length && !specialsOf(l).length) return wildModeHTML() + `<p class="empty">${esc(t('noWild'))}</p>`;
   const lv = s => (s.min === s.max ? `${s.min}` : `${s.min}–${s.max}`);
   const monCell = s => `<span class="wild-mon"><img src="${monSprite(s.id)}" alt="" loading="lazy">${esc(nm(s))}</span>`;
   const simple = (title, list) => (list?.length ? `<div class="wild-block">
@@ -885,14 +1029,20 @@ function wildHTML(l) {
       </div>`;
   };
   const extras = w => {
-    const chips = [['swarm', w.swarm], ['radar', w.radar], ['dualSlot', w.dualSlot]].filter(([, list]) => list?.length);
+    const label = key => (key === 'swarm' && w.swarmMethod ? `${t('swarm')} (${t('swarm' + w.swarmMethod[0].toUpperCase() + w.swarmMethod.slice(1))})` : key === 'nightFish' ? `${t('nightFish')} (${t('goodRod')}, ${t('superRod')})` : t(key));
+    const hint = key => (key === 'swarm' && w.swarmMethod ? t('swarmHint') : key === 'hoenn' || key === 'sinnoh' ? t('radioHint') : '');
+    const chips = SPECIAL_KEYS.map(key => [key, w[key]]).filter(([, list]) => list?.length);
     if (!chips.length) return '';
-    return `<div class="wild-extras">${chips.map(([key, list]) => `<div><span class="extra-label">${esc(t(key))}:</span> ${list.map(s => `<span class="extra-mon" data-mon="${s.id}"><img src="${monSprite(s.id)}" alt="" loading="lazy">${esc(nm(s))}</span>`).join('')}</div>`).join('')}</div>`;
+    return `<div class="wild-extras">${chips.map(([key, list]) => `<div${hint(key) ? ` title="${esc(hint(key))}"` : ''}><span class="extra-label">${esc(label(key))}:</span> ${list.map(s => `<span class="extra-mon" data-mon="${s.id}"><img src="${monSprite(s.id)}" alt="" loading="lazy">${esc(nm(s))}</span>`).join('')}</div>`).join('')}</div>`;
   };
+  // Feste Begegnungen, geschenkte Pokémon und Eier (HG/SS)
+  const specials = specialsOf(l);
+  const specialHTML = specials.length ? `<div class="wild-area"><h3>${esc(t('special'))}</h3><table class="wild-table"><tbody>${specials.map(s =>
+    `<tr data-mon="${s.id}"><td>${monCell(s)}</td><td class="lv">${s.kind === 'egg' ? '' : `${t('level')} ${s.lv}`}</td><td class="pct">${esc(t(s.kind === 'static' ? 'static' : s.kind === 'egg' ? 'egg' : 'giftMon'))}${s.area ? ' · ' + esc(areaName(s.area)) : ''}</td></tr>`).join('')}</tbody></table></div>` : '';
   return wildModeHTML() + wild.map(w => `<div class="wild-area">
       ${wild.length > 1 || w.area ? `<h3>${esc(w.area ? areaName(w.area) : t('outside'))}</h3>` : ''}
-      ${grass(w)}${simple(t('surf'), w.surf)}${simple(t('oldRod'), w.oldRod)}${simple(t('goodRod'), w.goodRod)}${simple(t('superRod'), w.superRod)}${extras(w)}
-    </div>`).join('');
+      ${grass(w)}${TABLE_KEYS.map(k => simple(t(k), w[k])).join('')}${extras(w)}
+    </div>`).join('') + specialHTML;
 }
 
 // ── Meer hinter der Karte (sea.js) ────────────────────────────────────────────
@@ -900,7 +1050,7 @@ function wildHTML(l) {
 // ohne Ort (Liste aller Orte) zeigt es Route 220 – eine Meeresroute mit Surfen und allen drei Angeln
 let seaLi = -1;
 function updateScene() {
-  if (!window.SeaScene || !D) return;
+  if (!GAME.scene || !window.SeaScene || !D) return;
   if (selected >= 0) seaLi = selected;
   else if (monView == null) seaLi = -1;
   const l = seaLi >= 0 ? D.locations[seaLi] : D.locations.find(x => x.en === 'Route 220');
@@ -928,8 +1078,12 @@ function updateScene() {
 
 // ── Ein Pokémon: wo es wild vorkommt ──────────────────────────────────────────
 const ROD_KEYS = ['surf', 'oldRod', 'goodRod', 'superRod'];
-const SPECIAL_KEYS = ['swarm', 'radar', 'dualSlot'];
-const METHOD_ORDER = ['grass', ...ROD_KEYS, ...SPECIAL_KEYS];
+// Tabellen mit Chance: Surfen, Angeln – und in HG/SS Zertrümmerer und Kopfnuss
+const TABLE_KEYS = [...ROD_KEYS, 'rockSmash', 'headbutt', 'headbuttRare', 'headbuttSecret'];
+// Nur unter Bedingungen (Schwarm, Pokéradar, GBA-Modul, Radio, nachts an der Angel)
+const SPECIAL_KEYS = ['swarm', 'radar', 'dualSlot', 'hoenn', 'sinnoh', 'nightFish'];
+const GIFT_KEYS = ['static', 'giftMon', 'egg'];
+const METHOD_ORDER = ['grass', ...TABLE_KEYS, ...SPECIAL_KEYS, ...GIFT_KEYS];
 const genOfId = id => [151, 251, 386, 493, 649, 721, 809, 905].findIndex(n => id <= n) + 1 || 9;
 
 function methodText(e) {
@@ -939,7 +1093,7 @@ function methodText(e) {
     const pct = times.every(k => e[k] === e.morning) ? `${e.morning} %` : times.filter(k => e[k]).map(k => `${t(k)} ${e[k]} %`).join(' · ');
     return `${t('grass')} ${pct}${lv}`;
   }
-  return e.p != null ? `${t(e.key)} ${e.p} %${lv}` : t(e.key);
+  return e.p != null ? `${t(e.key)} ${e.p} %${lv}` : `${t(e.key)}${GIFT_KEYS.includes(e.key) ? lv : ''}`;
 }
 
 function renderMon(id, opts = {}) {
@@ -970,7 +1124,7 @@ function renderMon(id, opts = {}) {
     <div class="mon-places">${places.map(({ li, list }) => {
       const l = D.locations[li];
       const chips = [...list].sort((a, b) => METHOD_ORDER.indexOf(a.key) - METHOD_ORDER.indexOf(b.key) || a.area.localeCompare(b.area))
-        .map(e => `<span class="mp-chip${SPECIAL_KEYS.includes(e.key) ? ' is-special' : ''}">${e.area ? `<b>${esc(areaName(e.area))}</b> ` : ''}${esc(methodText(e))}</span>`).join('');
+        .map(e => `<span class="mp-chip${SPECIAL_KEYS.includes(e.key) || GIFT_KEYS.includes(e.key) ? ' is-special' : ''}">${e.area ? `<b>${esc(areaName(e.area))}</b> ` : ''}${esc(methodText(e))}</span>`).join('');
       return `<button type="button" class="mon-place" data-loc="${li}"><span class="mp-name">${esc(locName(l))}<small>${esc(typeLabel(l))}</small></span><span class="mp-methods">${chips}</span></button>`;
     }).join('')}</div>`;
   $('back-btn').addEventListener('click', renderDirectory);
@@ -1016,9 +1170,12 @@ function buildMonIndex() {
       grass.set(s.id, g);
     }));
     grass.forEach(g => add(g.s, li, g.e));
-    ROD_KEYS.forEach(key => (w[key] || []).forEach(s => add(s, li, { key, p: s.p, min: s.min, max: s.max, area })));
+    TABLE_KEYS.forEach(key => (w[key] || []).forEach(s => add(s, li, { key, p: s.p, min: s.min, max: s.max, area })));
     SPECIAL_KEYS.forEach(key => (w[key] || []).forEach(s => add(s, li, { key, area })));
   }));
+  // Feste Begegnungen und Geschenke (HG/SS)
+  D.locations.forEach((l, li) => specialsOf(l).forEach(s =>
+    add(s, li, { key: s.kind === 'static' ? 'static' : s.kind === 'egg' ? 'egg' : 'giftMon', area: s.area || '', ...(s.kind === 'egg' ? {} : { min: s.lv, max: s.lv }) })));
 }
 const bestChance = list => Math.max(0, ...list.map(e => (e.key === 'grass' ? Math.max(e.morning, e.day, e.night) : e.p || 0)));
 // Name eines Pokémon, das auf der Karte nicht wild vorkommt (pokemon-names.js)
@@ -1029,7 +1186,7 @@ function buildSearchIndex() {
   D.locations.forEach((l, li) => {
     searchIndex.push({ type: 'loc', li, keys: [l.de, l.en].map(norm) });
     l.items.forEach((it, i) => searchIndex.push({ type: 'item', li, i, keys: [it.de, it.en, it.move?.de, it.move?.en].filter(Boolean).map(norm) }));
-    l.trainers.forEach((tr, i) => searchIndex.push({ type: 'trainer', li, i, keys: [TrainerClasses.trainerName(tr.name, true, tr.cls), TrainerClasses.trainerName(tr.name, false, tr.cls), CLASS_NAMES[tr.cls]?.[0], CLASS_NAMES[tr.cls]?.[1]].filter(Boolean).map(norm) }));
+    l.trainers.forEach((tr, i) => searchIndex.push({ type: 'trainer', li, i, keys: (tr.de || tr.en ? [tr.de, tr.en] : [TrainerClasses.trainerName(tr.name, true, tr.cls), TrainerClasses.trainerName(tr.name, false, tr.cls), CLASS_NAMES[tr.cls]?.[0], CLASS_NAMES[tr.cls]?.[1]]).filter(Boolean).map(norm) }));
   });
   buildMonIndex();
   MONS.forEach(m => searchIndex.push({ type: 'mon', id: m.id, keys: [m.de, m.en].map(norm) }));
@@ -1068,7 +1225,7 @@ function runSearch(q) {
       return `<button type="button" class="sr" data-n="${n}"><img class="sr-ico" src="${itemSprite(it)}" alt="" onerror="this.style.visibility='hidden'"><span class="sr-main">${esc(itemName(it))}</span><small>${esc(kind)} · ${esc(locName(l))}</small></button>`;
     }
     const tr = l.trainers[e.i];
-    return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">${ICON_PERSON}</span><span class="sr-main">${esc(trainerTitle(tr.cls, tr.name))}</span><small>${esc(locName(l))}</small></button>`;
+    return `<button type="button" class="sr" data-n="${n}"><span class="sr-ico">${ICON_PERSON}</span><span class="sr-main">${esc(trTitle(tr))}</span><small>${esc(locName(l))}</small></button>`;
   }).join('');
   box.hidden = false;
   box.querySelectorAll('.sr').forEach(b => b.addEventListener('click', () => pickResult(top[+b.dataset.n].e)));
@@ -1092,8 +1249,8 @@ function pickResult(e) {
   if (matchMedia('(max-width: 900px)').matches) $('side').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 let searchTimer = null;
-// Omega Rubin / Alpha Saphir: hoenn.js hat die Seite übernommen (Suche, Sprache, Start) – Sinnoh bleibt aus
-if (!window.KARTE_HOENN) {
+// Spezialkarten für Hoenn/Kanto haben die Seite übernommen (Suche, Sprache, Start) – Sinnoh bleibt aus
+if (!window.KARTE_HOENN && !window.KARTE_RETRO) {
   $('map-search').addEventListener('input', e => { clearTimeout(searchTimer); searchTimer = setTimeout(() => runSearch(e.target.value), 120); });
   $('map-search').addEventListener('keydown', e => {
     if (e.key === 'Escape') { $('search-results').hidden = true; e.target.blur(); }
@@ -1109,6 +1266,8 @@ function applyLang() {
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const v = dict[el.dataset.i18nPlaceholder]; if (typeof v === 'string') el.placeholder = v; });
   $('interior-select').setAttribute('aria-label', isEn() ? 'Area' : 'Bereich');
   $('lang-toggle').textContent = window.LANG.toUpperCase();
+  document.title = `${t('title')} (${t('gameBadge')}) – Pokémon Hub`;
+  setupEditionSwitch.redraw?.();
   if (!D) return;
   labelLayer?.eachLayer(m => { const el = m.getElement()?.querySelector('span'); if (el) el.textContent = locName(D.locations[m.locIndex]); });
   if (selected >= 0) renderLocation(selected); else if (monView != null) renderMon(monView); else renderDirectory();
@@ -1125,7 +1284,7 @@ window.addEventListener('hashchange', () => {
   else if (!inner && inMap) closeInterior();
 });
 
-if (!window.KARTE_HOENN) $('lang-toggle').addEventListener('click', () => {
+if (!window.KARTE_HOENN && !window.KARTE_RETRO) $('lang-toggle').addEventListener('click', () => {
   window.LANG = window.LANG === 'de' ? 'en' : 'de';
   localStorage.setItem('hub-lang', window.LANG);
   document.documentElement.lang = window.LANG;
@@ -1133,5 +1292,10 @@ if (!window.KARTE_HOENN) $('lang-toggle').addEventListener('click', () => {
 });
 
 // Randomizer-Stand: Chip „Randomizer: Name ×“ bzw. „Randomizer-ROM laden“ im Kopf
-if (window.PokeHubRando) window.PokeHubRando.chip($('map-rando'));
-if (!window.KARTE_HOENN) init();
+if (window.PokeHubRando && GAME.rando && !window.KARTE_RETRO && !window.KARTE_HOENN) window.PokeHubRando.chip($('map-rando'));
+// Zwischen Platin und HG/SS (beide über diese Seite) beim Wechsel des Spiel-Chips neu laden
+document.addEventListener('hubgamechange', () => {
+  if (window.KARTE_HOENN || window.KARTE_RETRO) return;
+  if ((window.PokeHubGame && window.PokeHubGame.get() === 'heartgold-soulsilver') !== IS_HGSS) location.reload();
+});
+if (!window.KARTE_HOENN && !window.KARTE_RETRO) init();

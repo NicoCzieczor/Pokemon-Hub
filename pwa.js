@@ -712,12 +712,51 @@
     Karte: ['Karte Hoenn (Omega Rubin / Alpha Saphir)', 'Hoenn Map (Omega Ruby / Alpha Sapphire)'],
     Bosse: ['Boss-Planer (Omega Rubin / Alpha Saphir)', 'Boss Planner (Omega Ruby / Alpha Sapphire)']
   };
+  var PAGE_TITLES_KANTO = {
+    Karte: ['Karte Kanto (Rot / Blau)', 'Kanto Map (Red / Blue)']
+  };
+  var PAGE_TITLES_YELLOW = {
+    Karte: ['Karte Kanto (Gelb)', 'Kanto Map (Yellow)']
+  };
+  var PAGE_TITLES_GS = {
+    Karte: ['Karte Johto & Kanto (Gold / Silber)', 'Johto & Kanto Map (Gold / Silver)']
+  };
+  var PAGE_TITLES_CRYSTAL = {
+    Karte: ['Karte Johto & Kanto (Kristall)', 'Johto & Kanto Map (Crystal)']
+  };
+  var PAGE_TITLES_EMERALD = {
+    Karte: ['Karte Hoenn (Smaragd)', 'Hoenn Map (Emerald)']
+  };
+  var PAGE_TITLES_RS = {
+    Karte: ['Karte Hoenn (Rubin / Saphir)', 'Hoenn Map (Ruby / Sapphire)']
+  };
+  var PAGE_TITLES_DP = {
+    Karte: ['Karte Sinnoh (Diamant / Perl)', 'Sinnoh Map (Diamond / Pearl)']
+  };
+  var PAGE_TITLES_HGSS = {
+    Karte: ['Karte Johto & Kanto (HeartGold / SoulSilver)', 'Johto & Kanto Map (HeartGold / SoulSilver)']
+  };
+  var PAGE_TITLES_UNOVA = {
+    Karte: ['Karte Einall (Schwarz / Weiß)', 'Unova Map (Black / White)']
+  };
+  var PAGE_TITLES_B2W2 = {
+    Karte: ['Karte Einall (Schwarz 2 / Weiß 2)', 'Unova Map (Black 2 / White 2)']
+  };
+  var PAGE_TITLES_FRLG = {
+    Karte: ['Karte Kanto & Sevii-Eilande (Feuerrot / Blattgrün)', 'Kanto & Sevii Islands Map (FireRed / LeafGreen)']
+  };
+  var PAGE_TITLES_XY = {
+    Karte: ['Karte Kalos (X / Y)', 'Kalos Map (X / Y)']
+  };
+  var PAGE_TITLES_SM = {
+    Karte: ['Karte Alola (Sonne / Mond)', 'Alola Map (Sun / Moon)']
+  };
   function labelToolNav() {
     var en = 0;
     try { en = localStorage.getItem('hub-lang') === 'en' ? 1 : 0; } catch (e) {}
-    // Karte und Boss-Planer zeigen mit Omega Rubin / Alpha Saphir als Hub-Spiel Hoenn statt Sinnoh
-    var area = hubArea(location.href), oras = currentGame() === 'omega-rot-alpha-saphir';
-    var page = oras && PAGE_TITLES_ORAS[area] || PAGE_TITLES[area];
+    // Karte und Boss-Planer zeigen mit ORAS Hoenn; weitere unterstützte Spiele laden ihre eigene Kartenwelt.
+    var area = hubArea(location.href), game = currentGame(), oras = game === 'omega-rot-alpha-saphir', kanto = game === 'rot-blau', yellow = game === 'gelb', gs = game === 'gold-silber', crystal = game === 'kristall', rs = game === 'rubin-saphir', emerald = game === 'smaragd', dp = game === 'diamant-perl', hgss = game === 'heartgold-soulsilver', unova = game === 'schwarz-weiss', b2w2 = game === 'schwarz2-weiss2', frlg = game === 'feuerrot-blattgruen', xy = game === 'x-y', sm = game === 'sonne-mond';
+    var page = oras && PAGE_TITLES_ORAS[area] || kanto && PAGE_TITLES_KANTO[area] || yellow && PAGE_TITLES_YELLOW[area] || gs && PAGE_TITLES_GS[area] || crystal && PAGE_TITLES_CRYSTAL[area] || rs && PAGE_TITLES_RS[area] || emerald && PAGE_TITLES_EMERALD[area] || dp && PAGE_TITLES_DP[area] || hgss && PAGE_TITLES_HGSS[area] || unova && PAGE_TITLES_UNOVA[area] || b2w2 && PAGE_TITLES_B2W2[area] || frlg && PAGE_TITLES_FRLG[area] || xy && PAGE_TITLES_XY[area] || sm && PAGE_TITLES_SM[area] || PAGE_TITLES[area];
     if (page) document.title = page[en] + ' – Pokémon Hub';
     var nav = document.querySelector('.tool-nav');
     if (!nav) return;

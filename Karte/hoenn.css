@@ -1,36 +1,15 @@
-/* Karte von Hoenn (hoenn.js): Regionskarte als Raster, Editions-Umschalter, Bosse des Ortes.
-   Nur aktiv mit body.is-hoenn – die Sinnoh-Karte (Leaflet) bleibt dann ausgeblendet. */
-body.is-hoenn #map,
+/* Karte von Hoenn (hoenn.js): gerenderte Oberwelt (tiles-oras/) in derselben Leaflet-Karte wie Sinnoh,
+   Editions-Umschalter, Bosse des Ortes. Nur aktiv mit body.is-hoenn. */
 body.is-hoenn #interior-bar { display: none !important; }
-
-/* Höhe nach dem Seitenverhältnis der Regionskarte (28 × 15) */
-body.is-hoenn .map-wrap { height: auto; aspect-ratio: 28 / 15; max-height: var(--map-h); }
-
-.hoenn-map {
-  position: absolute; inset: 0;
-  display: grid; place-items: center;
-  background: var(--c-sea);
-  overflow: hidden;
+/* Meer: Farbe und Muster des gerenderten Meeres von Hoenn (tiles-oras/sea.png) */
+body.is-hoenn { --c-sea: #3171b6; }
+body.is-hoenn .sea-tile { background-image: url('tiles-oras/sea.png'); }
+/* Ganz weit weg: Hoenn ist breit, die Namen würden sich nur überdecken */
+.z-vfar .loc-label { display: none; }
+/* Hochkant (Handy): Karte nicht höher als nötig – Hoenn ist fast doppelt so breit wie hoch */
+@media (max-width: 760px) {
+  body.is-hoenn .map-wrap { height: min(var(--map-h), 78vw); }
 }
-.hm-svg { width: 100%; height: 100%; display: block; }
-.hm-sea { fill: var(--c-sea); }
-.hm-wave { stroke: rgba(255, 255, 255, 0.10); stroke-width: 1.2; }
-
-.hm-cell, .hm-spot { cursor: pointer; transition: filter 0.15s ease, stroke-width 0.15s ease; }
-.hm-land { fill: #7cc36a; stroke: #3f7a35; stroke-width: 1.5; }
-.hm-water { fill: rgba(255, 255, 255, 0.22); stroke: rgba(255, 255, 255, 0.45); stroke-width: 1.2; stroke-dasharray: 3 3; }
-.hm-town { fill: #f6f1e3; stroke: #e0475b; stroke-width: 2.5; }
-.hm-link { pointer-events: none; }
-.hm-link-land { fill: #5fa64f; }
-.hm-link-water { fill: rgba(255, 255, 255, 0.30); }
-.hm-spot { fill: #ffd23f; stroke: #5a4300; stroke-width: 1.5; }
-.hm-spot:not(.has-wild) { fill: #e9e2c8; }
-.hm-cell:hover, .hm-spot:hover { filter: brightness(1.12) drop-shadow(0 0 3px rgba(255, 255, 255, 0.7)); }
-.hm-cell.is-on, .hm-spot.is-on {
-  stroke: rgb(var(--t-acc2)); stroke-width: 3.5; stroke-dasharray: none;
-  filter: drop-shadow(0 0 6px rgba(var(--t-acc2), 0.85));
-}
-.hm-water.is-on { fill: rgba(var(--t-acc2), 0.35); }
 
 /* Edition: Omega Rubin / Alpha Saphir (statt der Filter-Chips der Sinnoh-Karte) */
 .hm-version { display: inline-flex; gap: 6px; flex-wrap: wrap; }

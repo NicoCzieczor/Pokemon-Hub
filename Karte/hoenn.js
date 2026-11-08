@@ -2,13 +2,13 @@
  * Karte von Hoenn (Omega Rubin / Alpha Saphir) – übernimmt die Karten-Seite, wenn das Hub-Spiel OR/AS ist
  * (sonst läuft wie bisher app.js mit Sinnoh).
  *
- * Anders als bei Platin gibt es keine aus dem Spiel gerenderte Oberwelt: Die Regionskarte ist das Raster der
- * Hoenn-Karte (28 × 15 Felder, pret/pokeemerald) – Städte, Routen (Land/Wasser) und Orte zum Antippen.
- * Daneben je Ort die wilden Pokémon mit Raten und Leveln (Gras, Langes Gras, Horden, DexNav, Surfen, Zertrümmerer,
+ * Die Karte ist – wie bei Platin – die Oberwelt aus den 3D-Modellen und Texturen des Spiels (tiles-oras/, gebaut mit
+ * tools/render-oras.js aus der eigenen ROM): Städte und Routen als Flächen zum Antippen, Höhlen & Orte an ihren
+ * Eingängen; Item-Bälle, TMs und Trainer als Punkte (Filter oben). Daneben je Ort die wilden Pokémon mit Raten und Leveln (Gras, Langes Gras, Horden, DexNav, Surfen, Zertrümmerer,
  * Angeln), für Omega Rubin oder Alpha Saphir, aus dem Randomizer-Stand oder dem Original, dazu die Bosse des Ortes
  * (Boss-Planer). Suche nach Orten und Pokémon, Direktlinks #<ort> und #pokemon-<nr>, das Meer hinter der Karte (sea.js).
  *
- * Daten: oras.json (tools/build-oras.js), ../SaveViewer/data-oras.js (Namen), ../Bosse/oras-rom.js (Raten gewürfelter
+ * Daten: oras.json (tools/build-oras.js), tiles-oras/index.json + places.json (tools/render-oras.js), ../SaveViewer/data-oras.js (Namen), ../Bosse/oras-rom.js (Raten gewürfelter
  * Zonen), ../Bosse/bosses-oras.json (Bosse). Aussehen: hoenn.css.
  */
 (function () {
@@ -25,7 +25,7 @@
     de: {
       title: 'Karte von Hoenn', badge: 'Omega Rubin / Alpha Saphir',
       subtitle: 'Wilde Pokémon jedes Ortes – mit Raten, Horden, DexNav und Angeln – und die Bosse dort. Ort auf der Karte antippen oder suchen.',
-      search: 'Ort oder Pokémon suchen…', note: 'Regionskarte nach dem Raster der Hoenn-Karte (pret/pokeemerald). Wilde Pokémon aus der ROM von Omega Rubin; Alpha Saphir mit seinen Editions-Pokémon (Unterschiede aus PKHeX).',
+      search: 'Ort oder Pokémon suchen…', note: 'Karte aus den 3D-Modellen und Texturen von Omega Rubin gerendert. Wilde Pokémon aus der ROM von Omega Rubin; Alpha Saphir mit seinen Editions-Pokémon (Unterschiede aus PKHeX).',
       or: 'Omega Rubin', as: 'Alpha Saphir', all: 'Alle Orte', hint: 'Tippe auf die Karte oder wähle einen Ort.', back: 'Alle Orte',
       towns: 'Städte', routes: 'Routen', places: 'Höhlen, Inseln & Orte', mirage: 'Wunder-Orte & Sonstiges',
       town: 'Stadt', city: 'Stadt', route: 'Route', place: 'Ort', tabWild: 'Wilde Pokémon', tabBoss: 'Bosse',
@@ -36,12 +36,16 @@
       versionDiff: 'In Alpha Saphir gibt es hier andere Editions-Pokémon.',
       toBoss: 'Im Boss-Planer', cap: 'Level-Cap', mon: 'Pokémon', monWhere: function (n) { return n === 1 ? 'Kommt an 1 Ort wild vor' : 'Kommt an ' + n + ' Orten wild vor'; },
       monNone: 'Kommt in diesem Spiel nicht wild vor.', places1: '1 Ort', placesN: function (n) { return n + ' Orte'; }, noResults: 'Nichts gefunden.',
-      toDex: 'Im Pokédex ansehen →', loadError: 'Die Kartendaten konnten nicht geladen werden.', loading: 'Karte wird geladen…'
+      toDex: 'Im Pokédex ansehen →', loadError: 'Die Kartendaten konnten nicht geladen werden.', loading: 'Karte wird geladen…',
+      tabItems: 'Items', tabTrainers: 'Trainer', fItem: 'Items', fTm: 'TMs', fTrainer: 'Trainer',
+      kBall: 'Item-Bälle', kTm: 'TMs & VMs', noItems: 'Hier liegen keine Items.', noTrainers: 'Hier gibt es keine Trainer.',
+      inside: 'drinnen', showOnMap: 'Auf der Karte zeigen', double: 'Doppelkampf', ballOne: 'Item-Ball', trainerOne: 'Trainer',
+      itemsNote: 'Nur Item-Bälle – versteckte Items und Geschenke stehen bei Omega Rubin / Alpha Saphir nicht in einer Tabelle.'
     },
     en: {
       title: 'Map of Hoenn', badge: 'Omega Ruby / Alpha Sapphire',
       subtitle: 'The wild Pokémon of every place – with rates, hordes, DexNav and fishing – and the bosses there. Tap a place on the map or search.',
-      search: 'Search a place or Pokémon…', note: 'Region map after the grid of the Hoenn town map (pret/pokeemerald). Wild Pokémon from the Omega Ruby ROM; Alpha Sapphire with its version exclusives (differences from PKHeX).',
+      search: 'Search a place or Pokémon…', note: 'Map rendered from the 3D models and textures of Omega Ruby. Wild Pokémon from the Omega Ruby ROM; Alpha Sapphire with its version exclusives (differences from PKHeX).',
       or: 'Omega Ruby', as: 'Alpha Sapphire', all: 'All places', hint: 'Tap the map or choose a place.', back: 'All places',
       towns: 'Towns & cities', routes: 'Routes', places: 'Caves, islands & places', mirage: 'Mirage spots & more',
       town: 'Town', city: 'City', route: 'Route', place: 'Place', tabWild: 'Wild Pokémon', tabBoss: 'Bosses',
@@ -52,13 +56,15 @@
       versionDiff: 'Alpha Sapphire has other version exclusives here.',
       toBoss: 'In the Boss Planner', cap: 'Level cap', mon: 'Pokémon', monWhere: function (n) { return n === 1 ? 'Found wild in 1 place' : 'Found wild in ' + n + ' places'; },
       monNone: 'Not found in the wild in this game.', places1: '1 place', placesN: function (n) { return n + ' places'; }, noResults: 'Nothing found.',
-      toDex: 'Open in Pokédex →', loadError: 'The map data could not be loaded.', loading: 'Loading map…'
+      toDex: 'Open in Pokédex →', loadError: 'The map data could not be loaded.', loading: 'Loading map…',
+      tabItems: 'Items', tabTrainers: 'Trainers', fItem: 'Items', fTm: 'TMs', fTrainer: 'Trainers',
+      kBall: 'Item balls', kTm: 'TMs & HMs', noItems: 'There are no items here.', noTrainers: 'There are no trainers here.',
+      inside: 'inside', showOnMap: 'Show on the map', double: 'Double battle', ballOne: 'Item ball', trainerOne: 'Trainer',
+      itemsNote: 'Item balls only – Omega Ruby / Alpha Sapphire keep hidden items and gifts in no table.'
     }
   };
   var METHODS = ['grass', 'tall', 'horde', 'dexnav', 'surf', 'smash', 'old', 'good', 'super'];
   var WATER = ['surf', 'old', 'good', 'super'];
-  var WATER_ROUTES = [105, 106, 107, 108, 109, 122, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134];
-  var CELL = 32;
   var SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
 
   var D = null, N = null, B = null, selected = -1, monView = null, tab = 'wild', mode = 'rando';
@@ -92,67 +98,242 @@
     }).filter(function (w) { return w.t; });
   }
 
-  /* ── Regionskarte ──────────────────────────────────────────────── */
-  function cellKind(l) {
-    if (l.type === 'route') return WATER_ROUTES.indexOf(+l.en.replace(/\D/g, '')) >= 0 ? 'water' : 'land';
-    return l.type === 'town' || l.type === 'city' ? 'town' : 'spot';
-  }
-  function mapSvg() {
-    var W = D.width * CELL, H = D.height * CELL, parts = [], links = [];
-    var at = function (x, y) { return y >= 0 && y < D.height && x >= 0 && x < D.width ? D.grid[y][x] : -1; };
-    var PAD = { town: 3, land: 7, water: 7, spot: 8 };
-    // Verbindungen zwischen benachbarten Orten (Route ↔ Stadt, Route ↔ Route) als schmale Stege
-    D.grid.forEach(function (row, y) {
-      row.forEach(function (li, x) {
-        if (li < 0) return;
-        [[1, 0], [0, 1]].forEach(function (d) {
-          var o = at(x + d[0], y + d[1]);
-          if (o < 0 || o === li) return;
-          var k = [cellKind(D.locations[li]), cellKind(D.locations[o])].indexOf('water') >= 0 && cellKind(D.locations[li]) !== 'land' && cellKind(D.locations[o]) !== 'land' ? 'water' : 'land';
-          var cx = x * CELL + CELL / 2, cy = y * CELL + CELL / 2;
-          links.push(d[0] ? '<rect class="hm-link hm-link-' + k + '" x="' + cx + '" y="' + (cy - 3) + '" width="' + CELL + '" height="6"></rect>'
-            : '<rect class="hm-link hm-link-' + k + '" x="' + (cx - 3) + '" y="' + cy + '" width="6" height="' + CELL + '"></rect>');
+  /* ── Karte ─────────────────────────────────────────────────────── */
+  // Spielkacheln wie bei Platin: x nach rechts, z nach unten; Leaflet (CRS.Simple) bekommt [−z, x]. Die Schrägsicht
+  // hebt eine Stelle um shear · Höhe nach oben – Flächen und Eingänge tragen diesen Versatz (lift) schon mit.
+  var TILES = null, P = null, map = null, selLayer = null, labelLayer = null, NATIVE = 4, spots = [];
+  var BASE = 'tiles-oras/';
+  var ll = function (x, z) { return L.latLng(-z, x); };
+  var areasOf = function (li) { return (P && P.areas[D.locations[li].id]) || []; };
+  // Items: [Item, Anzahl, Attacke (TM/VM), x, z, Versatz] – x = null: drinnen. Trainer: [Nummer, x, z, Versatz]
+  var itemsOf = function (li) { return (P && P.items && P.items[D.locations[li].id]) || []; };
+  var trainersOf = function (li) { return ((P && P.trainers && P.trainers[D.locations[li].id]) || []).filter(function (r) { return B && B.trainers[r[0]]; }); };
+  var ITEM_SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/';
+  var TYPES = ['normal', 'fighting', 'flying', 'poison', 'ground', 'rock', 'bug', 'ghost', 'steel', 'fire', 'water', 'grass', 'electric', 'psychic', 'ice', 'dragon', 'dark', 'fairy'];
+  var itemBase = function (r) { return (N && N.text[lang()].items[r[0]]) || '#' + r[0]; };
+  var itemName = function (r) { return r[2] ? itemBase(r) + ' ' + ((N && N.text[lang()].moves[r[2]]) || '') : itemBase(r); };
+  var itemIcon = function (r) {
+    if (r[2]) { var mi = N.moveInfo[r[2]], hm = /^HM/.test(N.text.en.items[r[0]] || ''); return ITEM_SPR + (hm ? 'hm-' : 'tm-') + TYPES[mi ? mi[0] : 0] + '.png'; }
+    return N.itemSprites[r[0]] ? ITEM_SPR + N.itemSprites[r[0]] + '.png' : '';
+  };
+  var trainerTitle = function (id) { var t = B.trainers[id], en = lang() === 'en'; return (en ? t.ce : t.cd) + ' ' + (en ? t.ne : t.nd); };
+  var levels = function (id) { var lv = B.trainers[id].p.map(function (p) { return p[2]; }), a = Math.min.apply(null, lv), b = Math.max.apply(null, lv); return a === b ? '' + a : a + '–' + b; };
+  var STYLE = {
+    item: { radius: 5, color: '#ffffff', weight: 1.5, fillColor: '#ff5a5a', fillOpacity: 1 },
+    tm: { radius: 5.5, color: '#0d0f2b', weight: 1.5, fillColor: '#57d2ff', fillOpacity: 1 },
+    trainer: { radius: 4.5, color: '#0d0f2b', weight: 1.5, fillColor: '#ffaa3c', fillOpacity: 1 }
+  };
+  var KINDS = ['item', 'tm', 'trainer'], layers = {}, shown = {}, focusRing = null;
+  var entrancesOf = function (li) { return (P && P.entrances[D.locations[li].id]) || []; };
+
+  // Blätter je Detailstufe (tiles-oras/<z>/<x>_<y>.webp); die gröbste immer. Ein Blatt (2048 px) zu dekodieren dauert
+  // spürbar (40–70 ms) – das passiert vorab im Hintergrund (img.decode), erst danach kommt es auf die Karte; bis dahin
+  // bleibt die gröbere Stufe darunter zu sehen. Geladen wird schon beim Schieben, mit Vorlauf um den Ausschnitt;
+  // geladene Blätter bleiben (bis KEEP), damit Zurückschieben nichts neu dekodiert.
+  function setupSheets() {
+    var W = P.width, H = P.height, KEEP = window.PokeHubLite ? 6 : 24, used = [];
+    var levels = TILES.levels.slice().sort(function (a, b) { return a.z - b.z; }).map(function (lv, i) {
+      var pane = map.createPane('sheets' + lv.z);
+      pane.style.zIndex = 210 + i;
+      pane.style.pointerEvents = 'none';
+      var span = lv.size / Math.pow(2, lv.z), px = 1 / Math.pow(2, lv.z);
+      return { z: lv.z, pane: 'sheets' + lv.z, sheets: lv.sheets.map(function (key) {
+        var s = key.split('_').map(Number), x0 = s[0] * span, z0 = s[1] * span;
+        return { url: BASE + lv.z + '/' + key + '.webp', bounds: L.latLngBounds(ll(x0, Math.min(H, z0 + span) + px), ll(Math.min(W, x0 + span) + px, z0)), pane: 'sheets' + lv.z, img: null, ready: false, layer: null, want: false };
+      }) };
+    });
+    // Beim Zoomen werden neue Blätter schon geladen und dekodiert, aber erst am Ende eingehängt – ein neues Blatt
+    // mitten im Gleiten müsste der Browser sofort malen (das ruckelt); danach ist es ohne Wartezeit scharf
+    var zooming = false;
+    map.on('zoomstart', function () { zooming = true; });
+    map.on('zoomend', function () { zooming = false; });
+    var attach = function (s) { if (!s.layer && s.ready && s.want && !zooming) s.layer = L.imageOverlay(s.img, s.bounds, { pane: s.pane, className: 'game-sheet', interactive: false }).addTo(map); };
+    var detach = function (s) { if (s.layer) { map.removeLayer(s.layer); s.layer = null; } };
+    var load = function (s) {
+      var i = used.indexOf(s);
+      if (i >= 0) used.splice(i, 1);
+      used.push(s);
+      if (s.img) return attach(s);
+      var img = s.img = new Image();
+      img.decoding = 'async';
+      img.src = s.url;
+      (img.decode ? img.decode() : Promise.resolve()).catch(function () { /* zeigt es dann eben ohne */ }).then(function () {
+        if (s.img !== img) return;
+        s.ready = true;
+        attach(s);
+      });
+      // zu viele im Speicher: die am längsten nicht gebrauchten loslassen
+      for (var k = 0; used.length > KEEP && k < used.length; ) {
+        var o = used[k];
+        if (o.want) { k++; continue; }
+        detach(o); o.img = null; o.ready = false; used.splice(k, 1);
+      }
+    };
+    var update = function () {
+      var zoom = map.getZoom(), view = map.getBounds().pad(0.6);
+      levels.forEach(function (lv, i) {
+        var on = i === 0 || zoom >= lv.z - 1.25;
+        lv.sheets.forEach(function (s) {
+          s.want = on && (i === 0 || view.intersects(s.bounds));
+          if (s.want) load(s); else detach(s);
         });
       });
-    });
-    // Felder eines Ortes: zusammenhängende Reihen, gleiche Reihen untereinander zu einem Rechteck vereint
+    };
+    map.on('zoomend moveend', update);
+    map.on('move', L.Util.throttle(update, 120));
+    update();
+  }
+  // Offenes Meer zwischen den Gebieten: Wassermuster aus dem Spiel (tiles-oras/sea.png), an der Welt ausgerichtet
+  var SeaLayer = L.GridLayer.extend({
+    createTile: function (coords) {
+      var el = document.createElement('div');
+      el.className = 'sea-tile';
+      var size = this.options.pattern * Math.pow(2, coords.z - this.options.nativeZoom), ts = this.getTileSize();
+      if (size >= 2) {
+        el.style.backgroundSize = size + 'px ' + size + 'px';
+        // Muster an der Welt ausrichten (48 px passt nicht glatt in 256er Kacheln)
+        var off = function (v) { return -(((v % size) + size) % size) + 'px'; };
+        el.style.backgroundPosition = off(coords.x * ts.x) + ' ' + off(coords.y * ts.y);
+      } else el.style.backgroundImage = 'none';
+      return el;
+    }
+  });
+  // Ort an einer Bildstelle: Flächen (mit ihrem Versatz) oder ein Eingang in der Nähe
+  function locAt(latlng) {
+    var x = latlng.lng, z = -latlng.lat, best = -1;
     D.locations.forEach(function (l, li) {
-      var runs = [];
-      D.grid.forEach(function (row, y) {
-        for (var x = 0; x < D.width; x++) {
-          if (row[x] !== li) continue;
-          var x0 = x;
-          while (x + 1 < D.width && row[x + 1] === li) x++;
-          var prev = runs.filter(function (r) { return r.x0 === x0 && r.x1 === x && r.y1 === y - 1; })[0];
-          if (prev) prev.y1 = y; else runs.push({ x0: x0, x1: x, y0: y, y1: y });
-        }
-      });
-      var k = cellKind(l), pad = PAD[k];
-      runs.forEach(function (r) {
-        parts.push('<rect class="hm-cell hm-' + k + '" data-li="' + li + '" x="' + (r.x0 * CELL + pad) + '" y="' + (r.y0 * CELL + pad) + '" width="' + ((r.x1 - r.x0 + 1) * CELL - 2 * pad) +
-          '" height="' + ((r.y1 - r.y0 + 1) * CELL - 2 * pad) + '" rx="' + (k === 'town' ? 4 : 9) + '"></rect>');
-      });
+      if (best >= 0) return;
+      if (areasOf(li).some(function (r) { return x >= r[0] && x < r[2] && z >= r[1] - r[4] && z < r[3] - r[4]; })) best = li;
     });
-    parts = links.concat(parts);
-    // Höhlen & Orte außerhalb des Rasters: Raute auf ihrem Feld (mehrere auf einem Feld nebeneinander)
-    var used = {};
+    return best;
+  }
+  function onZoom() {
+    var z = map.getZoom(), el = map.getContainer();
+    el.classList.toggle('z-vfar', z < -1.25);
+    el.classList.toggle('z-far', z < 0);
+    el.classList.toggle('z-mid', z >= 0 && z < 1.5);
+    el.classList.toggle('z-near', z >= 1.5);
+    el.classList.toggle('z-pixel', z >= NATIVE + 0.75);
+    var r = z < -1.25 ? 3.5 : z < 0.5 ? 5 : z < 2.5 ? 6.5 : 8;
+    spots.forEach(function (m) { m.setRadius(r); });
+    var f = z >= 4.5 ? 2.1 : z >= 2.5 ? 1.6 : z >= 1.5 ? 1.3 : z >= 0.5 ? 1 : 0.75;
+    KINDS.forEach(function (k) { if (layers[k]) layers[k].eachLayer(function (m) { m.setRadius(STYLE[k].radius * f); }); });
+  }
+  function setupMap() {
+    map = L.map('map', {
+      crs: L.CRS.Simple, minZoom: -2.5, maxZoom: NATIVE + 2, zoomSnap: 0.25, zoomDelta: 0.5,
+      scrollWheelZoom: false, smoothWheelZoom: true,   // stufenlos (smooth-wheel.js)
+      attributionControl: false, preferCanvas: false, zoomControl: true
+    });
+    if (TILES.sea) new SeaLayer({ pattern: TILES.sea, nativeZoom: NATIVE, minZoom: -3, maxZoom: NATIVE + 2 }).addTo(map);
+    var pts = [];
+    D.locations.forEach(function (l, li) { areasOf(li).forEach(function (r) { pts.push(ll(r[0], r[1] - r[4]), ll(r[2], r[3] - r[4])); }); });
+    var land = L.latLngBounds(pts);
+    map.fitBounds(land, { padding: [10, 10] });
+    map.setMaxBounds(land.pad(0.3));
+    setupSheets();
+    // Namen der Städte und Routen
+    labelLayer = L.layerGroup().addTo(map);
     D.locations.forEach(function (l, li) {
-      if (!l.at || D.grid[l.at[1]] && D.grid[l.at[1]][l.at[0]] === li) return;
-      var inGrid = D.grid.some(function (row) { return row.indexOf(li) >= 0; });
-      if (inGrid) return;
-      var key = l.at[0] + ':' + l.at[1], n = used[key] = (used[key] || 0) + 1;
-      var off = [[0.74, 0.26], [0.26, 0.26], [0.74, 0.74], [0.26, 0.74]][(n - 1) % 4];
-      var cx = (l.at[0] + off[0]) * CELL, cy = (l.at[1] + off[1]) * CELL, r = 6;
-      parts.push('<path class="hm-spot' + (l.wild.length ? ' has-wild' : '') + '" data-li="' + li + '" d="M' + cx + ' ' + (cy - r) + 'L' + (cx + r) + ' ' + cy + 'L' + cx + ' ' + (cy + r) + 'L' + (cx - r) + ' ' + cy + 'Z"></path>');
+      var at = P.labels[l.id];
+      if (!at) return;
+      var m = L.marker(ll(at[0], at[1] - at[2]), {
+        icon: L.divIcon({ className: 'loc-label loc-label--' + l.type, html: '<span>' + esc(locName(l)) + '</span>', iconSize: null }),
+        interactive: false, keyboard: false
+      });
+      m.locIndex = li;
+      labelLayer.addLayer(m);
     });
-    return '<svg class="hm-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + esc(tx().title) + '">' +
-      '<defs><pattern id="hm-waves" width="16" height="8" patternUnits="userSpaceOnUse"><path d="M0 6 Q4 2 8 6 T16 6" fill="none" class="hm-wave"/></pattern></defs>' +
-      '<rect class="hm-sea" x="0" y="0" width="' + W + '" height="' + H + '"></rect><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="url(#hm-waves)"></rect>' +
-      parts.join('') + '</svg>';
+    // Höhlen & Orte: an ihren Eingängen
+    var renderer = L.svg({ padding: 0.3 });
+    D.locations.forEach(function (l, li) {
+      if (areasOf(li).length) return;
+      entrancesOf(li).forEach(function (e) {
+        spots.push(L.circleMarker(ll(e[0], e[1] - e[2]), { renderer: renderer, radius: 6, color: '#3b2a00', weight: 1.5, fillColor: l.wild.length ? '#ffd23f' : '#e9e2c8', fillOpacity: 1, bubblingMouseEvents: false })
+          .bindTooltip(function () { return esc(locName(l)); }, { direction: 'top', offset: [0, -6], className: 'map-tip' })
+          .on('click', function () { tab = 'wild'; select(li); })
+          .addTo(map));
+      });
+    });
+    // Items, TMs, Trainer: erst sichtbar, wenn ihr Filter an ist
+    KINDS.forEach(function (k) { layers[k] = L.layerGroup(); });
+    D.locations.forEach(function (l, li) {
+      itemsOf(li).forEach(function (r, i) {
+        if (r[3] == null) return;
+        var k = r[2] ? 'tm' : 'item';
+        L.circleMarker(ll(r[3], r[4] - r[5]), Object.assign({ renderer: renderer, bubblingMouseEvents: false }, STYLE[k]))
+          .bindTooltip(function () { return esc((r[2] ? '' : tx().ballOne + ': ') + itemName(r) + (r[1] > 1 ? ' ×' + r[1] : '')); }, { direction: 'top', offset: [0, -6], className: 'map-tip' })
+          .on('click', function () { tab = 'items'; select(li, { fromMap: true, focus: 'i' + i }); })
+          .addTo(layers[k]);
+      });
+      trainersOf(li).forEach(function (r, i) {
+        if (r[1] == null) return;
+        L.circleMarker(ll(r[1], r[2] - r[3]), Object.assign({ renderer: renderer, bubblingMouseEvents: false }, STYLE.trainer))
+          .bindTooltip(function () { return esc(trainerTitle(r[0]) + ' · ' + tx().level + ' ' + levels(r[0])); }, { direction: 'top', offset: [0, -6], className: 'map-tip' })
+          .on('click', function () { tab = 'trainers'; select(li, { fromMap: true, focus: 't' + i }); })
+          .addTo(layers.trainer);
+      });
+    });
+    syncKinds();
+    selLayer = L.layerGroup().addTo(map);
+    map.on('zoomend', onZoom);
+    onZoom();
+    var hn = $('hover-name');
+    map.on('mousemove', function (e) {
+      if (matchMedia('(pointer: coarse)').matches) return;
+      var li = locAt(e.latlng);
+      if (li < 0) { hn.hidden = true; map.getContainer().style.cursor = ''; return; }
+      hn.textContent = locName(D.locations[li]);
+      hn.hidden = false;
+      map.getContainer().style.cursor = 'pointer';
+    });
+    map.on('mouseout', function () { hn.hidden = true; });
+    map.on('click', function (e) { var li = locAt(e.latlng); if (li >= 0) { tab = 'wild'; select(li, { fromMap: true }); } });
+  }
+  // Umriss eines Ortes: 10 × 10-Zellen seiner Flächen, Kanten ohne Nachbarn des Ortes
+  function drawArea(li) {
+    var cells = {}, segs = [];
+    areasOf(li).forEach(function (r) {
+      for (var x = r[0]; x < r[2]; x += 10) for (var z = r[1]; z < r[3]; z += 10) cells[x + ':' + z] = r[4];
+      selLayer.addLayer(L.rectangle(L.latLngBounds(ll(r[0], r[3] - r[4]), ll(r[2], r[1] - r[4])), { stroke: false, fillColor: '#57d2ff', fillOpacity: 0.14, interactive: false }));
+    });
+    Object.keys(cells).forEach(function (k) {
+      var c = k.split(':').map(Number), x = c[0], z = c[1], up = cells[k];
+      var has = function (dx, dz) { return (x + dx) + ':' + (z + dz) in cells; };
+      if (!has(0, -10)) segs.push([ll(x, z - up), ll(x + 10, z - up)]);
+      if (!has(0, 10)) segs.push([ll(x, z + 10 - up), ll(x + 10, z + 10 - up)]);
+      if (!has(-10, 0)) segs.push([ll(x, z - up), ll(x, z + 10 - up)]);
+      if (!has(10, 0)) segs.push([ll(x + 10, z - up), ll(x + 10, z + 10 - up)]);
+    });
+    if (segs.length) selLayer.addLayer(L.polyline(segs, { color: '#57d2ff', weight: 2, opacity: 0.95, interactive: false }));
+    entrancesOf(li).forEach(function (e) {
+      selLayer.addLayer(L.circleMarker(ll(e[0], e[1] - e[2]), { radius: 12, color: '#57d2ff', weight: 2.5, fill: false, interactive: false }));
+    });
   }
   function drawSelection() {
+    if (!selLayer) return;
+    selLayer.clearLayers();
     var sel = selected >= 0 ? [selected] : monView != null ? monPlaces(monView).map(function (p) { return p.li; }) : [];
-    document.querySelectorAll('#hoenn-map [data-li]').forEach(function (el) { el.classList.toggle('is-on', sel.indexOf(+el.dataset.li) >= 0); });
+    sel.forEach(drawArea);
+    labelLayer.eachLayer(function (m) { var el = m.getElement(); if (el) el.classList.toggle('is-selected', sel.indexOf(m.locIndex) >= 0); });
+  }
+  function syncKinds() { KINDS.forEach(function (k) { if (!layers[k]) return; if (shown[k]) layers[k].addTo(map); else map.removeLayer(layers[k]); }); }
+  function pulseAt(x, z) {
+    if (focusRing) map.removeLayer(focusRing);
+    var ref = focusRing = L.marker(ll(x, z), { icon: L.divIcon({ className: 'focus-ring', html: '<span></span>', iconSize: [36, 36] }), interactive: false, keyboard: false }).addTo(map);
+    setTimeout(function () { if (focusRing === ref) { map.removeLayer(ref); focusRing = null; } }, 2600);
+  }
+  function flyToPoint(x, z) { if (!map) return; map.flyTo(ll(x, z), Math.max(map.getZoom(), 3), { duration: 0.6 }); pulseAt(x, z); }
+  // Zum Ort fliegen (Fläche bzw. Eingänge)
+  function flyTo(li) {
+    if (!map) return;
+    var pts = [];
+    areasOf(li).forEach(function (r) { pts.push(ll(r[0], r[1] - r[4]), ll(r[2], r[3] - r[4])); });
+    entrancesOf(li).forEach(function (e) { pts.push(ll(e[0] - 12, e[1] - e[2] - 12), ll(e[0] + 12, e[1] - e[2] + 12)); });
+    if (!pts.length) return;
+    var b = L.latLngBounds(pts);
+    if (map.getBounds().contains(b) && map.getZoom() >= 0.5) return;
+    map.flyToBounds(b, { padding: [40, 40], maxZoom: 3, duration: 0.6 });
   }
 
   /* ── Seitenleiste ──────────────────────────────────────────────── */
@@ -236,26 +417,76 @@
     }).join('') + '</div>';
   }
 
-  function select(li) {
+  function select(li, opts) {
     selected = li; monView = null;
     var l = D.locations[li];
     history.replaceState(null, '', '#' + l.slug);
-    if (tab === 'boss' && !bossesAt(l).length) tab = 'wild';
-    renderLocation();
+    renderLocation(opts && opts.focus);
     drawSelection();
+    if (!(opts && opts.fromMap)) flyTo(li);
   }
-  function renderLocation() {
-    var t = tx(), l = D.locations[selected], bosses = bossesAt(l);
+  var posBtn = function (x, z, lift) {
+    if (x == null) return '<span class="area">' + esc(tx().inside) + '</span>';
+    return '<button type="button" class="pin" data-pos="' + x + ',' + (z - lift) + '" title="' + esc(tx().showOnMap) + '" aria-label="' + esc(tx().showOnMap) + '">' + PIN + '</button>';
+  };
+  var PIN = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>';
+  var SWORDS = '<svg class="ico" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 26 20 12m0 0 3-6 3-1-1 3-6 3M26 26 12 12m0 0-3-6-3-1 1 3 6 3M9 23l-2 2m16-2 2 2"/></svg>';
+  function itemsHtml(li) {
+    var t = tx(), list = itemsOf(li).map(function (r, i) { return { r: r, i: i }; });
+    if (!list.length) return '<p class="empty">' + esc(t.noItems) + '</p>';
+    var group = function (title, rows) {
+      if (!rows.length) return '';
+      rows.sort(function (a, b) { return (a.r[3] == null) - (b.r[3] == null) || itemBase(a.r).localeCompare(itemBase(b.r), lang()); });
+      return '<div class="list-group"><h3>' + esc(title) + ' <small>' + rows.length + '</small></h3>' + rows.map(function (x) {
+        var r = x.r, move = r[2] && N.text[lang()].moves[r[2]];
+        return '<div class="row' + (r[2] ? ' is-tm' : '') + '" data-ref="i' + x.i + '"><img class="item-ico" src="' + itemIcon(r) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
+          '<div class="row-main"><span class="row-title">' + esc(itemBase(r)) + (r[1] > 1 ? ' <small>×' + r[1] + '</small>' : '') + '</span>' + (move ? '<span class="row-sub">' + esc(move) + '</span>' : '') + '</div>' +
+          posBtn(r[3], r[4], r[5]) + '</div>';
+      }).join('') + '</div>';
+    };
+    return group(t.kBall, list.filter(function (x) { return !x.r[2]; })) + group(t.kTm, list.filter(function (x) { return x.r[2]; })) + '<p class="hint">' + esc(t.itemsNote) + '</p>';
+  }
+  function trainersHtml(li) {
+    var t = tx(), en = lang() === 'en', list = trainersOf(li).map(function (r, i) { return { r: r, i: i }; });
+    if (!list.length) return '<p class="empty">' + esc(t.noTrainers) + '</p>';
+    list.sort(function (a, b) { return (a.r[1] == null) - (b.r[1] == null) || Math.max.apply(null, B.trainers[a.r[0]].p.map(function (p) { return p[2]; })) - Math.max.apply(null, B.trainers[b.r[0]].p.map(function (p) { return p[2]; })); });
+    return '<div class="list-group">' + list.map(function (x) {
+      var r = x.r, tr = B.trainers[r[0]];
+      return '<div class="row row--trainer" data-ref="t' + x.i + '"><div class="tr-head"><span class="row-title">' + esc(trainerTitle(r[0])) + '</span>' +
+        (tr.d ? '<span class="badge">' + esc(t.double) + '</span>' : '') + posBtn(r[1], r[2], r[3]) +
+        '<a class="pin" href="../Bosse/index.html#t=' + r[0] + '" title="' + esc(t.toBoss) + '" aria-label="' + esc(t.toBoss) + '">' + SWORDS + '</a></div>' +
+        '<div class="party">' + tr.p.map(function (p) {
+          return '<span class="mon" title="' + esc(monName(p[0])) + '"><img src="' + sprite(p[0]) + '" alt="" loading="lazy"><span class="mon-name">' + esc(monName(p[0])) + '</span><small>' + t.level + ' ' + p[2] + '</small></span>';
+        }).join('') + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function renderLocation(focus) {
+    var t = tx(), l = D.locations[selected], bosses = bossesAt(l), its = itemsOf(selected), trs = trainersOf(selected);
+    var has = { wild: true, items: its.length > 0, trainers: trs.length > 0, boss: bosses.length > 0 };
+    if (!has[tab]) tab = 'wild';
     var sub = [l.en !== l.de ? (lang() === 'en' ? l.de : l.en) : null, typeLabel(l)].filter(Boolean).join(' · ');
     var tabBtn = function (k, label, n, off) { return '<button type="button" class="tab' + (tab === k ? ' is-active' : '') + '" data-tab="' + k + '"' + (off ? ' disabled' : '') + '>' + esc(label) + (n != null ? ' <small>' + n + '</small>' : '') + '</button>'; };
     $('side-content').innerHTML = '<div class="side-head"><div class="back-row"><button type="button" class="back-btn" id="hm-back">← ' + esc(t.back) + '</button></div>' +
       '<h2>' + esc(locName(l)) + '</h2><p class="loc-sub">' + esc(sub) + '</p></div>' +
-      '<div class="tabs">' + tabBtn('wild', t.tabWild, null, false) + tabBtn('boss', t.tabBoss, bosses.length, !bosses.length) + '</div>' +
-      '<div class="tab-body">' + (tab === 'boss' ? bossHtml(l) : wildHtml(l)) + '</div>';
+      '<div class="tabs">' + tabBtn('wild', t.tabWild, null, false) + tabBtn('items', t.tabItems, its.length, !its.length) + tabBtn('trainers', t.tabTrainers, trs.length, !trs.length) +
+      tabBtn('boss', t.tabBoss, bosses.length, !bosses.length) + '</div>' +
+      '<div class="tab-body">' + (tab === 'boss' ? bossHtml(l) : tab === 'items' ? itemsHtml(selected) : tab === 'trainers' ? trainersHtml(selected) : wildHtml(l)) + '</div>';
     $('hm-back').addEventListener('click', renderDirectory);
     $('side-content').querySelectorAll('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { tab = b.dataset.tab; renderLocation(); }); });
     $('side-content').querySelectorAll('[data-mode]').forEach(function (b) { b.addEventListener('click', function () { mode = b.dataset.mode; renderLocation(); }); });
     $('side-content').querySelectorAll('[data-mon]').forEach(function (r) { r.addEventListener('click', function () { renderMon(+r.dataset.mon); }); });
+    $('side-content').querySelectorAll('[data-pos]').forEach(function (b) {
+      b.addEventListener('click', function () { var p = b.dataset.pos.split(',').map(Number); flyToPoint(p[0], p[1]); });
+    });
+    if (focus) {
+      var row = $('side-content').querySelector('[data-ref="' + focus + '"]');
+      if (row) {
+        row.classList.add('is-flash');
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        var pin = row.querySelector('[data-pos]');
+        if (pin) { var q = pin.dataset.pos.split(',').map(Number); pulseAt(q[0], q[1]); }
+      }
+    }
     updateScene();
   }
 
@@ -326,11 +557,24 @@
       if (!k.some(function (x) { return x.indexOf(key) === 0; })) continue;
       hits.push({ type: 'mon', id: id, s: 2, n: monPlaces(id).length });
     }
+    // Items und TMs (Name, Attacke) sowie Trainer (Klasse + Name) mit ihrem Ort
+    D.locations.forEach(function (l, li) {
+      itemsOf(li).forEach(function (r, i) {
+        var k = [norm(itemBase(r)), r[2] ? norm(N.text[lang()].moves[r[2]]) : ''];
+        if (k.some(function (x) { return x && x.indexOf(key) === 0; })) hits.push({ type: 'item', li: li, i: i, r: r, s: 1.2 });
+      });
+      trainersOf(li).forEach(function (r, i) {
+        var tr = B.trainers[r[0]], k = [norm(tr.nd), norm(tr.ne), norm(trainerTitle(r[0]))];
+        if (k.some(function (x) { return x.indexOf(key) === 0; })) hits.push({ type: 'trainer', li: li, i: i, r: r, s: 1.1 });
+      });
+    });
     hits.sort(function (a, b) { return b.s - a.s; });
     var top = hits.slice(0, 14);
     if (!top.length) { box.innerHTML = '<div class="sr-empty">' + esc(t.noResults) + '</div>'; box.hidden = false; return; }
     box.innerHTML = top.map(function (h, n) {
       if (h.type === 'loc') { var l = D.locations[h.li]; return '<button type="button" class="sr" data-n="' + n + '"><span class="sr-ico">◆</span><span class="sr-main">' + esc(locName(l)) + '</span><small>' + esc(typeLabel(l)) + '</small></button>'; }
+      if (h.type === 'item') return '<button type="button" class="sr" data-n="' + n + '"><img class="sr-ico" src="' + itemIcon(h.r) + '" alt="" onerror="this.style.visibility=\'hidden\'"><span class="sr-main">' + esc(itemName(h.r)) + '</span><small>' + esc(locName(D.locations[h.li])) + '</small></button>';
+      if (h.type === 'trainer') return '<button type="button" class="sr" data-n="' + n + '"><span class="sr-ico">' + SWORDS + '</span><span class="sr-main">' + esc(trainerTitle(h.r[0])) + '</span><small>' + esc(locName(D.locations[h.li])) + '</small></button>';
       return '<button type="button" class="sr' + (h.n ? '' : ' sr--off') + '" data-n="' + n + '"><img class="sr-ico" src="' + sprite(h.id) + '" alt=""><span class="sr-main">' + esc(monName(h.id)) + '</span><small>' + esc(t.mon + ' · ' + (h.n === 1 ? t.places1 : t.placesN(h.n))) + '</small></button>';
     }).join('');
     box.hidden = false;
@@ -339,7 +583,10 @@
         var h = top[+b.dataset.n];
         box.hidden = true;
         $('map-search').blur();
-        if (h.type === 'loc') select(h.li); else renderMon(h.id);
+        if (h.type === 'loc') select(h.li);
+        else if (h.type === 'item') { tab = 'items'; select(h.li, { focus: 'i' + h.i }); }
+        else if (h.type === 'trainer') { tab = 'trainers'; select(h.li, { focus: 't' + h.i }); }
+        else renderMon(h.id);
       });
     });
   }
@@ -356,9 +603,19 @@
     document.title = t.title + ' (' + t.badge + ') – Pokémon Hub';
     $('map-search').placeholder = t.search;
     var v = version();
+    var count = function (k) { var n = 0; if (P) D.locations.forEach(function (l, li) { if (k === 'trainer') n += trainersOf(li).filter(function (r) { return r[1] != null; }).length; else n += itemsOf(li).filter(function (r) { return r[3] != null && !!r[2] === (k === 'tm'); }).length; }); return n; };
     $('filter-chips').innerHTML = '<span class="hm-version" role="group">' + ['or', 'as'].map(function (k) {
       return '<button type="button" class="chip" data-version="' + k + '" aria-pressed="' + (v === k) + '">' + esc(t[k]) + '</button>';
-    }).join('') + '</span>';
+    }).join('') + '</span>' + (P ? KINDS.map(function (k) {
+      return '<button type="button" class="chip' + (shown[k] ? ' is-on' : '') + '" aria-pressed="' + !!shown[k] + '" data-kind="' + k + '"><i class="dot dot--' + k + '"></i><span>' + esc(t[{ item: 'fItem', tm: 'fTm', trainer: 'fTrainer' }[k]]) + '</span> <b>' + count(k) + '</b></button>';
+    }).join('') : '');
+    $('filter-chips').querySelectorAll('[data-kind]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = b.dataset.kind; shown[k] = !shown[k];
+        b.classList.toggle('is-on', shown[k]); b.setAttribute('aria-pressed', String(shown[k]));
+        syncKinds();
+      });
+    });
     $('filter-chips').querySelectorAll('[data-version]').forEach(function (b) {
       b.addEventListener('click', function () {
         try { localStorage.setItem('bosse-oras-version', b.dataset.version); } catch (e) { /* egal */ }
@@ -384,33 +641,21 @@
 
   function init() {
     document.body.classList.add('is-hoenn');
-    var wrap = document.querySelector('.map-wrap');
-    var host = document.createElement('div');
-    host.id = 'hoenn-map';
-    host.className = 'hoenn-map';
-    wrap.insertBefore(host, wrap.firstChild);
     applyLang();
     $('map-loading').textContent = tx().loading;
     Promise.all([
       fetch('oras.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }),
       window.ORAS_DATA ? Promise.resolve() : script('../SaveViewer/data-oras.js'),
       window.OrasRom ? Promise.resolve() : script('../Bosse/oras-rom.js'),
-      fetch('../Bosse/bosses-oras.json').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      fetch('../Bosse/bosses-oras.json').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+      fetch(BASE + 'index.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(BASE + 'places.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     ]).then(function (r) {
-      D = r[0]; N = window.ORAS_DATA; B = r[3];
+      D = r[0]; N = window.ORAS_DATA; B = r[3]; TILES = r[4]; P = r[5];
+      NATIVE = Math.max.apply(null, TILES.levels.map(function (lv) { return lv.z; }));
       $('map-loading').hidden = true;
-      host.innerHTML = mapSvg();
-      host.addEventListener('click', function (e) { var el = e.target.closest('[data-li]'); if (el) { tab = 'wild'; select(+el.dataset.li); } });
-      host.addEventListener('mousemove', function (e) {
-        var el = e.target.closest('[data-li]'), hn = $('hover-name');
-        if (!el) { hn.hidden = true; return; }
-        var box = wrap.getBoundingClientRect();
-        hn.textContent = locName(D.locations[+el.dataset.li]);
-        hn.style.left = (e.clientX - box.left + 12) + 'px';
-        hn.style.top = (e.clientY - box.top + 12) + 'px';
-        hn.hidden = false;
-      });
-      host.addEventListener('mouseleave', function () { $('hover-name').hidden = true; });
+      setupMap();
+      applyLang();   // Filter mit Zahlen, jetzt wo die Orte da sind
       if (!fromHash()) renderDirectory();
     }).catch(function () {
       $('map-loading').textContent = tx().loadError;

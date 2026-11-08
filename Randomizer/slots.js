@@ -16,6 +16,10 @@ window.SlotScene = (function () {
 
   var PLAT = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum/';
   var BALL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
+  // Platin-Sprites gibt es nur bis Nr. 493 – gewürfelte Starter aus Omega Rubin / Alpha Saphir reichen bis 721: dann das
+  // normale Pixel-Sprite (Gen 5 im Schwarz/Weiß-Stil, 96 statt 80 px groß → Klasse is-wide gleicht das aus)
+  var DEF = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
+  var monSrc = function (id) { return id <= 493 ? PLAT + id + '.png' : DEF + id + '.png'; };
   var root = document.getElementById('sl');
   var card = document.getElementById('app');
   if (window.PokeHubLite || !root || !card || !window.HubScene) return { update: function () {} };
@@ -24,12 +28,12 @@ window.SlotScene = (function () {
     de: {
       title: 'SPIELHALLE', insert: 'ROM einwerfen', ready: 'Hebel ziehen!', win: 'Neues Spiel!', reveal: 'Starter oben aufklappen',
       error: 'Kein Gewinn …', ticket: 'NEUES SPIEL', boss: 'Boss-Planer: Teams bereit', rolls: 'Gewürfelt: {n}',
-      lever: 'Neues Spiel würfeln', coin: 'Original-Spiel auswählen', get: 'Herunterladen'
+      lever: 'Hebel ziehen, um ein neues Spiel zu würfeln', pull: 'ZIEH!', coin: 'Original-Spiel auswählen', get: 'Herunterladen'
     },
     en: {
       title: 'GAME CORNER', insert: 'Insert ROM', ready: 'Pull the lever!', win: 'New game!', reveal: 'Open the starters above',
       error: 'No win …', ticket: 'NEW GAME', boss: 'Boss Planner: teams ready', rolls: 'Rolled: {n}',
-      lever: 'Roll a new game', coin: 'Choose the original game', get: 'Download'
+      lever: 'Pull the lever to roll a new game', pull: 'PULL!', coin: 'Choose the original game', get: 'Download'
     }
   };
   var tr = function () { return TR[document.documentElement.lang] || TR.de; };
@@ -52,30 +56,32 @@ window.SlotScene = (function () {
   root.innerHTML =
     '<div class="sl-carpet" aria-hidden="true"></div>' +
     '<div class="sl-machine">' +
-      '<div class="sl-marquee"><i class="sl-bulbs"></i><b class="sl-title"></b></div>' +
+      '<div class="sl-marquee" aria-hidden="true"><i class="sl-bulbs"></i><b class="sl-title"></b></div>' +
       '<div class="sl-face">' +
         '<div class="sl-window">' + [0, 1, 2].map(reelHtml).join('') + '<i class="sl-line"></i></div>' +
         '<div class="sl-led"><span class="sl-msg"></span><span class="sl-secs"></span></div>' +
-        '<button type="button" class="sl-coin" tabindex="-1"><i></i></button>' +
+        '<button type="button" class="sl-coin"><i aria-hidden="true"></i></button>' +
       '</div>' +
-      '<button type="button" class="sl-lever" tabindex="-1"><i class="sl-knob"></i><i class="sl-arm"></i></button>' +
-      '<div class="sl-tray"></div>' +
+      '<button type="button" class="sl-lever"><i class="sl-lever-plate" aria-hidden="true"></i><i class="sl-arm" aria-hidden="true"></i><i class="sl-knob" aria-hidden="true"></i><span class="sl-lever-label" aria-hidden="true"></span></button>' +
+      '<div class="sl-tray" aria-hidden="true"></div>' +
     '</div>' +
     '<div class="sl-printer">' +
       '<img class="sl-mascot" alt="" src="' + PLAT + '35.png">' +
       '<div class="sl-box"><i class="sl-slot"></i><small class="sl-rolls"></small></div>' +
-      '<a class="sl-ticket" tabindex="-1"><b class="sl-t-head"></b><span class="sl-t-name"></span><small class="sl-t-meta"></small><em class="sl-t-boss"></em></a>' +
+      '<a class="sl-ticket"><b class="sl-t-head"></b><span class="sl-t-name"></span><small class="sl-t-meta"></small><em class="sl-t-boss"></em></a>' +
     '</div>' +
     '<div class="sl-coins" aria-hidden="true"></div>';
   var el = {
     title: root.querySelector('.sl-title'), reels: root.querySelectorAll('.sl-reel'), msg: root.querySelector('.sl-msg'), secs: root.querySelector('.sl-secs'),
-    coin: root.querySelector('.sl-coin'), lever: root.querySelector('.sl-lever'), tray: root.querySelector('.sl-tray'),
+    coin: root.querySelector('.sl-coin'), lever: root.querySelector('.sl-lever'), leverLabel: root.querySelector('.sl-lever-label'), tray: root.querySelector('.sl-tray'),
     rolls: root.querySelector('.sl-rolls'), ticket: root.querySelector('.sl-ticket'), tHead: root.querySelector('.sl-t-head'),
     tName: root.querySelector('.sl-t-name'), tMeta: root.querySelector('.sl-t-meta'), tBoss: root.querySelector('.sl-t-boss'),
     coins: root.querySelector('.sl-coins')
   };
 
-  var data = null, last = null, revealed = false, stopTimer = [];
+  var data = null, last = null, revealed = false, stopTimer = [], leverTimer = [];
+  var PULL_MAX = 80, PULL_TRIGGER = 0.7;
+  var drag = null, leverLocked = false, suppressClickUntil = 0;
   var KEY = 'randomizer-rolls';
   var rolls = 0;
   try { rolls = Number(localStorage.getItem(KEY)) || 0; } catch (e) { /* ohne Zähler */ }
@@ -96,8 +102,8 @@ window.SlotScene = (function () {
     el.reels.forEach(function (reel, i) {
       stopTimer.push(setTimeout(function () {
         var img = reel.querySelector('.sl-stop img'), id = ids && ids[i];
-        img.className = id ? '' : 'is-ball';
-        img.src = id ? PLAT + id + '.png' : BALL;
+        img.className = id ? (id > 493 ? 'is-wide' : '') : 'is-ball';
+        img.src = id ? monSrc(id) : BALL;
         reel.classList.remove('is-spin');
         reel.classList.add('is-stop');
         reel.classList.remove('is-bump');
@@ -113,6 +119,95 @@ window.SlotScene = (function () {
   function idleReels() {
     stopTimer.forEach(clearTimeout);
     el.reels.forEach(function (reel) { reel.classList.remove('is-spin', 'is-stop', 'is-bump'); });
+  }
+
+  /* ── Hebel: ziehen, einrasten, zurückfedern ────────────────────── */
+  function clearLeverTimers() {
+    leverTimer.forEach(clearTimeout);
+    leverTimer = [];
+  }
+  function setPull(y, x) {
+    y = Math.max(0, Math.min(PULL_MAX, y || 0));
+    x = Math.max(-4, Math.min(4, x || 0));
+    var p = y / PULL_MAX;
+    el.lever.style.setProperty('--lever-y', y.toFixed(1) + 'px');
+    el.lever.style.setProperty('--lever-x', x.toFixed(1) + 'px');
+    el.lever.style.setProperty('--lever-arm-x', (x * 0.18).toFixed(1) + 'px');
+    el.lever.style.setProperty('--lever-tilt', (x * 0.55).toFixed(1) + 'deg');
+    el.lever.style.setProperty('--lever-scale', (1 - p * 0.72).toFixed(3));
+    el.lever.style.setProperty('--lever-progress', p.toFixed(3));
+    el.lever.classList.toggle('is-armed', p >= PULL_TRIGGER);
+    return p;
+  }
+  function clearLeverState() {
+    el.lever.classList.remove('is-pull', 'is-dragging', 'is-settling', 'is-returning', 'is-armed');
+    root.classList.remove('is-lever-hit');
+    setPull(0, 0);
+  }
+  function canPull() {
+    return !leverLocked && !el.lever.disabled && data && !data.busy && typeof data.roll === 'function';
+  }
+  function rollOnce() {
+    if (!data || data.busy || typeof data.roll !== 'function') return;
+    data.roll();
+  }
+  function finishLever(ms) {
+    leverTimer.push(setTimeout(function () {
+      clearLeverState();
+      leverLocked = false;
+    }, ms));
+  }
+  // Klick, Enter und Leertaste: derselbe vollständige Zug wie früher, nur mit dem neuen Hebel
+  function autoPull() {
+    if (!canPull()) return;
+    leverLocked = true;
+    clearLeverTimers();
+    clearLeverState();
+    el.lever.classList.add('is-pull');
+    leverTimer.push(setTimeout(function () {
+      root.classList.add('is-lever-hit');
+      rollOnce();
+    }, 260));
+    finishLever(660);
+  }
+  function cancelDrag() {
+    if (!drag) return;
+    var d = drag;
+    drag = null;
+    if (el.lever.hasPointerCapture && el.lever.hasPointerCapture(d.id)) el.lever.releasePointerCapture(d.id);
+    el.lever.classList.remove('is-dragging', 'is-settling', 'is-armed');
+    el.lever.classList.add('is-returning');
+    setPull(0, 0);
+    finishLever(480);
+  }
+  function commitDrag() {
+    leverLocked = true;
+    clearLeverTimers();
+    el.lever.classList.remove('is-dragging');
+    el.lever.classList.add('is-settling', 'is-armed');
+    setPull(PULL_MAX, 0);
+    leverTimer.push(setTimeout(function () {
+      el.lever.classList.remove('is-settling', 'is-armed');
+      el.lever.classList.add('is-returning');
+      root.classList.add('is-lever-hit');
+      setPull(0, 0);
+      rollOnce();
+    }, 90));
+    finishLever(620);
+  }
+  function endDrag(e, cancelled) {
+    if (!drag || (e && e.pointerId !== drag.id)) return;
+    var d = drag;
+    drag = null;
+    if (el.lever.hasPointerCapture && el.lever.hasPointerCapture(d.id)) el.lever.releasePointerCapture(d.id);
+    if (d.moved) suppressClickUntil = performance.now() + 600;
+    if (!cancelled && d.progress >= PULL_TRIGGER) commitDrag();
+    else {
+      el.lever.classList.remove('is-dragging', 'is-settling', 'is-armed');
+      el.lever.classList.add('is-returning');
+      setPull(0, 0);
+      finishLever(480);
+    }
   }
 
   // Münzregen aus der Schale, wenn ein neues Spiel fertig ist
@@ -134,14 +229,19 @@ window.SlotScene = (function () {
     el.msg.textContent = state === 'off' ? t.insert : state === 'spin' ? d.phase : state === 'lose' ? t.error : state === 'win' ? (revealed ? t.win : t.reveal) : t.ready;
     el.secs.textContent = state === 'spin' && d.secs ? d.secs : '';
     el.lever.title = t.lever;
+    el.lever.setAttribute('aria-label', t.lever);
+    el.leverLabel.textContent = t.pull;
     el.coin.title = t.coin;
+    el.coin.setAttribute('aria-label', t.coin);
     el.lever.disabled = state === 'off' || state === 'spin';
+    if (el.lever.disabled && drag) cancelDrag();
     el.rolls.textContent = rolls ? t.rolls.replace('{n}', rolls) : '';
     el.ticket.classList.toggle('is-out', !!r && !d.busy);
     if (r) {
       el.ticket.href = r.url;
       el.ticket.setAttribute('download', r.fileName);
       el.ticket.title = t.get;
+      el.ticket.setAttribute('aria-label', t.get + ': ' + r.fileName);
       el.tHead.textContent = t.ticket;
       el.tName.textContent = r.fileName;
       el.tMeta.textContent = r.size;
@@ -175,12 +275,31 @@ window.SlotScene = (function () {
     render();
   }, true);
 
+  el.lever.addEventListener('pointerdown', function (e) {
+    if (!canPull() || (e.button != null && e.button !== 0)) return;
+    clearLeverTimers();
+    clearLeverState();
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, progress: 0 };
+    el.lever.classList.add('is-dragging');
+    el.lever.setPointerCapture(e.pointerId);
+    el.lever.focus({ preventScroll: true });
+    e.preventDefault();
+  });
+  el.lever.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var dy = Math.max(0, e.clientY - drag.y);
+    var dx = (e.clientX - drag.x) * 0.12;
+    drag.moved = drag.moved || dy > 3 || Math.abs(e.clientX - drag.x) > 4;
+    drag.progress = setPull(dy, dx);
+    e.preventDefault();
+  });
+  el.lever.addEventListener('pointerup', function (e) { endDrag(e, false); });
+  el.lever.addEventListener('pointercancel', function (e) { endDrag(e, true); });
+  el.lever.addEventListener('lostpointercapture', function (e) { endDrag(e, true); });
+  el.lever.addEventListener('dragstart', function (e) { e.preventDefault(); });
   el.lever.addEventListener('click', function () {
-    if (el.lever.disabled || !data || !data.roll) return;
-    el.lever.classList.remove('is-pull');
-    void el.lever.offsetWidth;
-    el.lever.classList.add('is-pull');
-    setTimeout(function () { data.roll(); }, 260);
+    if (performance.now() < suppressClickUntil) return;
+    autoPull();
   });
   el.coin.addEventListener('click', function () { if (data && data.pick && !data.busy) data.pick(); });
 

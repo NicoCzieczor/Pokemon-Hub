@@ -21,7 +21,8 @@ window.SeaScene = (function () {
   var PLAT = SPR + 'versions/generation-iv/platinum/';
   var root = document.getElementById('km');
   var card = document.getElementById('app');
-  if (window.PokeHubLite || !root || !card || !window.HubScene) return { update: function () {} };
+  var game = window.PokeHubGame && window.PokeHubGame.get();
+  if (window.PokeHubLite || game === 'rot-blau' || game === 'gelb' || game === 'gold-silber' || game === 'kristall' || game === 'rubin-saphir' || game === 'smaragd' || game === 'diamant-perl' || game === 'heartgold-soulsilver' || game === 'schwarz-weiss' || game === 'schwarz2-weiss2' || game === 'feuerrot-blattgruen' || game === 'x-y' || game === 'sonne-mond' || !root || !card || !window.HubScene) return { update: function () {} };
 
   var TR = {
     de: {
@@ -210,6 +211,18 @@ window.SeaScene = (function () {
     el.bob.style.left = bob.x + 'px'; el.bob.style.top = bob.y + 'px';
     el.cast.style.left = bob.x + 'px'; el.cast.style.top = (bob.y + 3 * bp + 18) + 'px';
   }
+
+  // Schaum zieht in Kunst-Pixel-Schritten (6 px) an der Küste entlang, der äußere langsamer und rückwärts – per Takt
+  // statt CSS-Animation: stroke-dashoffset kann nur der Hauptthread animieren, als CSS-Animation in jedem Bild
+  (function foamTick() {
+    var foam = el.surf.querySelectorAll('.km-foam'), t0 = performance.now();
+    setInterval(function () {
+      if (document.hidden || reduce.matches || document.body.classList.contains('map-busy')) return;
+      var t = (performance.now() - t0) / 1000;
+      foam[0].style.strokeDashoffset = -(Math.floor(t / 26 * 80) % 80) * 6;
+      foam[1].style.strokeDashoffset = -(79 - Math.floor(t / 40 * 80) % 80) * 6;
+    }, 250);
+  })();
 
   // Brandung als Rahmen um die Karte (SVG ragt SURF px über die Karte hinaus): Schaum an der Küste, dahinter
   // Wellen, die von außen heranlaufen (sea.css skaliert sie von --fx/--fy auf --nx/--ny)

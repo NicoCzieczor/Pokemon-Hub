@@ -1,0 +1,22 @@
+Pokémon Sonne/Mond – Alola-Kartenatlas
+
+Grafikquelle:
+- Echte Feldmodelle, Texturen, NPCs und Beleuchtung aus dem RomFS der vom Nutzer
+  bereitgestellten sauberen Pokémon-Ultra-Sonne-ROM.
+- Genutzte Archive: a/0/8/2 (Feldszenen) und a/0/8/6 (Terrain).
+- Gerendert mit USUMStudio; Aufnahmeautomatisierung: tools/capture-usum.py.
+- Atlas und WebP-Kartenblätter: tools/build-alola-sm.py.
+- Editionsgetrennte Sonne/Mond-Funddaten: offizieller PokeAPI-Datensatz data/v2/csv.
+
+Die lokale ROM-Sammlung enthielt keine originale Sonne- oder Mond-ROM. Deshalb
+werden ausschließlich die mit Sonne/Mond geteilten Alola-Orte verwendet; USUM-
+exklusive Gebiete wurden bewusst ausgeschlossen. Der Menüpunkt und die Ortsauswahl
+bilden Sonne/Mond ab, die sichtbaren 3D-Assets stammen transparent dokumentiert aus
+der technisch kompatiblen Ultra-Sonne-Feldfassung.
+
+Technische Referenzen:
+- https://github.com/Aqua-0/USUM-Studio
+- https://github.com/Ajarmar/universal-pokemon-randomizer-zx/blob/master/src/com/dabomstew/pkrandom/config/gen7_offsets.ini
+- https://github.com/PokeAPI/pokeapi/tree/master/data/v2/csv
+
+Pokémon und zugehörige Namen/Assets © Nintendo / Creatures Inc. / GAME FREAK inc.

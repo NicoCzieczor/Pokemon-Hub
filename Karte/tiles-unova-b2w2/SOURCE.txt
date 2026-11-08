@@ -1,0 +1,29 @@
+Pokémon Schwarz 2 / Weiß 2 – Quellen der Einall-Karte
+=====================================================
+
+KARTENGRAFIK
+Die Kartenblätter wurden lokal aus einer vom Benutzer bereitgestellten
+deutschen Pokémon-Weiß-2-ROM (Spielcode IRDD) gerendert. Die ROM wird nicht
+in dieses Projekt kopiert. Karte/tools/render-unova.js liest ausschließlich
+die benötigten Nitro-Archive:
+
+  a/0/0/8  Kartencontainer und BMD0-Modelle
+  a/0/0/9  Weltmatrizen (Matrix 0)
+  a/0/1/4  gemeinsame NSBTX-Texturbanken
+
+Der Renderer hat 277 belegte 32 × 32-Kartenblöcke aus 187 Modellen und deren
+Originaltexturen rekonstruiert. Für Schwarz 2 liegt keine separate ROM vor;
+deshalb verwenden beide Editionen derzeit die gemeinsame Weiß-2-Oberwelt.
+
+ORTE UND FUNDDATEN
+Ortsflächen und editionsspezifische Begegnungen stammen direkt aus der
+Black-2/White-2-Decompilation von fuddlesworth/pokebw2:
+
+  https://github.com/fuddlesworth/pokebw2
+  Stand: 137d6def4ed4
+
+Die getrennten black2-/white2-Tabellen werden ohne PokeAPI-Fallback gelesen.
+
+Pokémon, Kartenmodelle, Texturen und Spieldaten sind Eigentum von Nintendo,
+Creatures Inc., GAME FREAK und The Pokémon Company. Die Ausgabe dient nur der
+privaten, lokalen Darstellung innerhalb des Pokémon Hubs.

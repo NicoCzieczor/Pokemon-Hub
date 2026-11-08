@@ -1,0 +1,11 @@
+Pokemon Diamond/Pearl map tiles
+
+Rendered from the original Nintendo DS map data tracked by pret/pokediamond:
+https://github.com/pret/pokediamond
+
+Source commit: b623abef1b4d
+Files used: overworld matrix, land models, building models, area texture banks
+Renderer: ../tools/render-diamond-pearl.js
+Tile packer: ../tools/make-tiles.py
+
+Pokemon and all related assets are trademarks of Nintendo, Creatures and GAME FREAK.

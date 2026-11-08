@@ -1,0 +1,15 @@
+Pokémon Kristall – Kartenquellen
+==================================
+
+Die Kartenbilder wurden aus der vollständigen pret/pokecrystal-Disassembly
+gerendert. Verwendet werden Kristalls eigene Game-Boy-Color-Tilesets,
+Paletten, Metatiles, Map-Blöcke und Kartenverbindungen – einschließlich
+der zusätzlichen Duellturm-Außenkarte. Die Funddaten stammen direkt aus
+Kristalls Morgen-, Tages-, Nacht- und Wasser-Begegnungstabellen.
+
+Quelle: https://github.com/pret/pokecrystal
+Stand: 3c813b0b4d82
+
+Pokémon, die Karten- und Grafikdaten sind Eigentum von GAME FREAK, Nintendo,
+Creatures Inc. und The Pokémon Company. Die Ausgabe dient nur der privaten,
+lokalen Darstellung innerhalb des Pokémon Hubs.

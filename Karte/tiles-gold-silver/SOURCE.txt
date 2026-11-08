@@ -1,0 +1,18 @@
+Pokémon Gold / Silber – Kartenquellen
+=======================================
+
+Die Kartenbilder wurden aus der vollständigen pret/pokegold-Disassembly
+gerendert. Verwendet werden die originalen Game-Boy-Color-Tilesets,
+Tagespaletten, Dachgrafiken, Metatiles, Map-Blöcke und Kartenverbindungen.
+
+Die Welt umfasst 72 Außenkarten aus Johto und Kanto. Die Funddaten werden
+ebenfalls direkt aus den Gold-/Silber-Begegnungstabellen der Disassembly
+erzeugt; Morgen-, Tages- und Nachtbegegnungen werden für die gemeinsame
+Kartenansicht zusammengeführt.
+
+Quelle: https://github.com/pret/pokegold
+Stand: f2cde36f49b9
+
+Pokémon, die Karten- und Grafikdaten sind Eigentum von GAME FREAK, Nintendo,
+Creatures Inc. und The Pokémon Company. Die Ausgabe dient nur der privaten,
+lokalen Darstellung innerhalb des Pokémon Hubs.

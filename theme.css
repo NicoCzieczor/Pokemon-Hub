@@ -778,4 +778,4 @@ img.is-3d { image-rendering: auto !important; }
 /* Handy & Tablet (pwa.js, html.hub-lite): die Szenen neben der Karte gibt es dort nicht */
 html.hub-lite #stage, html.hub-lite #enc, html.hub-lite #ty, html.hub-lite #vs, html.hub-lite #dx, html.hub-lite #km,
 html.hub-lite #ru, html.hub-lite #jr, html.hub-lite #pc, html.hub-lite #ch, html.hub-lite #sl, html.hub-lite #hf,
-html.hub-lite #tl, html.hub-lite #bs { display: none !important; }
+html.hub-lite #tl, html.hub-lite #bs, html.hub-lite #pcs { display: none !important; }

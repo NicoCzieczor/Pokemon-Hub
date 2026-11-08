@@ -118,29 +118,29 @@
   stroke: var(--foam-line);
   stroke-width: 3;
   stroke-dasharray: 34 7 9 12 52 6 14 9 22 15 6 8;
-  animation: km-foam 26s linear infinite;
+  /* Zieht in 6-px-Schritten an der Küste entlang – per Takt aus sea.js (foamTick): stroke-dashoffset kann nur der
+     Hauptthread animieren, als CSS-Animation müsste er es in jedem Bild neu berechnen */
 }
 .km-foam--b {
   stroke: var(--foam);
   stroke-width: 2;
   stroke-dasharray: 12 22 30 16 6 26 18 30;
   opacity: 0.6;
-  animation-duration: 40s;
-  animation-direction: reverse;
 }
-@keyframes km-foam { to { stroke-dashoffset: -480; } }
 .km-wave {
   stroke: var(--foam);
   stroke-width: 3;
   stroke-dasharray: 70 18 24 30 110 22 40 26 16 34;
   opacity: 0;
-  animation: km-surf 7.2s cubic-bezier(0.4, 0, 0.8, 1) infinite;
+  /* Gestuft wie das Wasser: Wellen an SVG-Rechtecken (transform) brauchen sonst in jedem Bild Layout und Malen.
+     Das Anlaufen (langsam → schnell) steckt im Zwischenschritt bei 40 %. */
+  animation: km-surf 7.2s steps(14) infinite;
 }
 .km-wave:nth-child(2) { animation-delay: -2.4s; stroke-dashoffset: -140; }
 .km-wave:nth-child(3) { animation-delay: -4.8s; stroke-dashoffset: -290; }
 @keyframes km-surf {
   0% { transform: scale(var(--fx), var(--fy)); opacity: 0; }
-  40% { opacity: 0.5; }
+  40% { transform: scale(calc(var(--fx) * 0.7 + 0.3), calc(var(--fy) * 0.7 + 0.3)); opacity: 0.5; }
   88% { transform: scale(1, 1); opacity: 0.9; }
   100% { transform: scale(1, 1); opacity: 0; }
 }
@@ -200,11 +200,11 @@
   left: 0;
   width: 100%;
   transition: translate 0.75s cubic-bezier(0.45, 0, 0.75, 0.3), opacity 0.75s;
-  animation: km-float 1.8s linear infinite;
+  animation: km-float 1.8s steps(1, end) infinite;
 }
 .km-up img { top: 0; }
 .km-down img { top: calc(var(--wl) * -1); filter: var(--under); opacity: var(--under-a); }
-@keyframes km-float { 0%, 49.9% { transform: none; } 50%, 100% { transform: translateY(calc(var(--k) * 1px)); } }
+@keyframes km-float { 0% { transform: translateY(0); } 50%, 100% { transform: translateY(calc(var(--k) * 1px)); } }
 .km-swim.is-gone .km-up img, .km-swim.is-gone .km-down img { translate: 0 var(--sink); }
 .km-swim.is-gone .km-down img, .km-swim.is-gone .km-wake { opacity: 0; }
 .km-body .km-ring { left: var(--cx); top: var(--wl); width: calc(var(--cw) * 1.25); }
@@ -214,13 +214,22 @@
   top: calc(var(--wl) - var(--k) * 1px);
   width: calc(var(--k) * 34px);
   height: calc(var(--k) * 2px);
-  background: repeating-linear-gradient(90deg, var(--foam) 0 calc(var(--k) * 6px), transparent 0 calc(var(--k) * 11px));
+  overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, #000, transparent);
   mask-image: linear-gradient(90deg, #000, transparent);
-  animation: km-wake 0.9s steps(3) infinite;
   transition: opacity 0.5s;
 }
-@keyframes km-wake { from { background-position: 0 0; } to { background-position: calc(var(--k) * 11px) 0; } }
+.km-wake::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--k) * -11px);
+  width: calc(100% + var(--k) * 11px);
+  background: repeating-linear-gradient(90deg, var(--foam) 0 calc(var(--k) * 6px), transparent 0 calc(var(--k) * 11px));
+  animation: km-wake 0.9s steps(3) infinite;
+}
+@keyframes km-wake { to { transform: translateX(calc(var(--k) * 11px)); } }
 
 /* Namensschild beim Drüberfahren: Name und Chance beim Surfen */
 .km-tag {
@@ -287,7 +296,7 @@
   overflow: hidden;
   pointer-events: auto;
 }
-.km-bob-px { display: block; width: calc(var(--bp) * 7); height: calc(var(--bp) * 9); animation: km-float 1.6s linear infinite; transition: translate 0.35s ease-in; }
+.km-bob-px { display: block; width: calc(var(--bp) * 7); height: calc(var(--bp) * 9); animation: km-float 1.6s steps(1, end) infinite; transition: translate 0.35s ease-in; }
 .km-bob-px .b-o { fill: var(--b-o); }
 .km-bob-px .b-r { fill: var(--b-r); }
 .km-bob-px .b-h { fill: var(--b-h); }
@@ -435,3 +444,7 @@
   .km-foam { animation: none; }
   .km-wave { animation: none; opacity: 0; }
 }
+
+/* Solange die Karte geschoben oder gezoomt wird (app.js setzt map-busy), stehen die Daueranimationen still –
+   Brandung und Schaum (stroke-dashoffset) und Kielwasser (background-position) kosten sonst in jedem Bild Hauptthread-Zeit */
+.map-busy .km *, .map-busy .km *::before, .map-busy .km *::after { animation-play-state: paused !important; }

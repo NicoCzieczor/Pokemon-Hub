@@ -1,0 +1,236 @@
+/* Kanto / Pokémon Rot & Blau – Ergänzungen zur gemeinsamen Kartenoberfläche. */
+body:is(.is-kanto, .is-yellow, .is-gs, .is-crystal, .is-rs, .is-emerald, .is-hgss, .is-unova, .is-unova-b2w2, .is-frlg, .is-xy, .is-sm) #km { display: none !important; }
+body:is(.is-kanto, .is-yellow, .is-gs, .is-crystal, .is-rs, .is-emerald, .is-hgss, .is-unova, .is-unova-b2w2, .is-frlg, .is-xy, .is-sm) .map-rando { display: none !important; }
+body:is(.is-kanto, .is-yellow, .is-gs, .is-crystal, .is-rs, .is-emerald, .is-hgss, .is-unova, .is-unova-b2w2, .is-frlg, .is-xy, .is-sm) .map-card {
+  background:
+    linear-gradient(180deg, rgba(155, 188, 15, 0.07), transparent 180px),
+    var(--color-surface);
+}
+body:is(.is-kanto, .is-yellow, .is-gs, .is-crystal, .is-rs, .is-emerald, .is-unova, .is-unova-b2w2, .is-frlg, .is-xy, .is-sm) #map { background: #071b22; }
+body:is(.is-kanto, .is-yellow, .is-gs, .is-crystal, .is-rs, .is-emerald, .is-hgss, .is-unova, .is-unova-b2w2, .is-frlg, .is-xy, .is-sm) .leaflet-image-layer.kanto-sheet {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.rb-version { display: inline-flex; gap: 4px; padding: 2px; border-radius: 999px; background: rgba(var(--t-ink), 0.05); }
+.rb-version .chip { margin: 0; }
+.rb-version-btn--red[aria-pressed="true"] {
+  border-color: rgba(255, 91, 91, 0.85);
+  background: rgba(255, 91, 91, 0.18);
+  color: rgb(var(--t-white));
+}
+.rb-version-btn--blue[aria-pressed="true"] {
+  border-color: rgba(87, 160, 255, 0.9);
+  background: rgba(87, 160, 255, 0.18);
+  color: rgb(var(--t-white));
+}
+.rb-version-btn--gold[aria-pressed="true"] {
+  border-color: rgba(245, 199, 72, 0.98);
+  background: rgba(185, 129, 18, 0.28);
+  color: #fff8c7;
+}
+.rb-version-btn--silver[aria-pressed="true"] {
+  border-color: rgba(203, 218, 232, 0.98);
+  background: rgba(139, 158, 177, 0.28);
+  color: #f4f8fc;
+}
+.rb-version-btn--ruby[aria-pressed="true"] {
+  border-color: rgba(255, 104, 104, 0.95);
+  background: rgba(211, 52, 59, 0.28);
+  color: #fff;
+}
+.rb-version-btn--sapphire[aria-pressed="true"] {
+  border-color: rgba(102, 155, 255, 0.95);
+  background: rgba(47, 91, 200, 0.3);
+  color: #fff;
+}
+.rb-version-btn--heartgold[aria-pressed="true"] {
+  border-color: rgba(236, 190, 76, 0.95);
+  background: rgba(236, 190, 76, 0.2);
+  color: rgb(var(--t-white));
+}
+.rb-version-btn--soulsilver[aria-pressed="true"] {
+  border-color: rgba(183, 207, 225, 0.95);
+  background: rgba(183, 207, 225, 0.18);
+  color: rgb(var(--t-white));
+}
+.rb-version-btn--black[aria-pressed="true"] {
+  border-color: rgba(190, 198, 211, 0.9);
+  background: rgba(12, 15, 22, 0.72);
+  color: #fff;
+}
+.rb-version-btn--white[aria-pressed="true"] {
+  border-color: rgba(255, 255, 255, 0.98);
+  background: rgba(244, 247, 251, 0.94);
+  color: #111827;
+}
+.rb-version-btn--black-2[aria-pressed="true"] {
+  border-color: rgba(188, 199, 216, 0.92);
+  background: rgba(12, 15, 22, 0.76);
+  color: #fff;
+}
+.rb-version-btn--white-2[aria-pressed="true"] {
+  border-color: rgba(255, 255, 255, 0.98);
+  background: rgba(240, 246, 255, 0.94);
+  color: #101827;
+}
+.rb-version-btn--firered[aria-pressed="true"] {
+  border-color: rgba(255, 103, 63, 0.95);
+  background: rgba(220, 54, 40, 0.25);
+  color: #fff;
+}
+.rb-version-btn--leafgreen[aria-pressed="true"] {
+  border-color: rgba(113, 218, 111, 0.95);
+  background: rgba(47, 157, 82, 0.24);
+  color: #fff;
+}
+.rb-version-btn--x[aria-pressed="true"] {
+  border-color: rgba(82, 156, 255, 0.96);
+  background: rgba(45, 102, 220, 0.28);
+  color: #fff;
+}
+.rb-version-btn--y[aria-pressed="true"] {
+  border-color: rgba(244, 78, 96, 0.96);
+  background: rgba(194, 35, 65, 0.28);
+  color: #fff;
+}
+.rb-version-btn--sun[aria-pressed="true"] {
+  border-color: rgba(255, 182, 51, 0.98);
+  background: rgba(240, 118, 28, 0.28);
+  color: #fff7d6;
+}
+.rb-version-btn--moon[aria-pressed="true"] {
+  border-color: rgba(132, 164, 255, 0.98);
+  background: rgba(75, 72, 192, 0.3);
+  color: #f1f4ff;
+}
+
+.kanto-area { cursor: pointer; transition: fill-opacity 120ms ease, stroke-opacity 120ms ease; }
+.kanto-selection { filter: drop-shadow(0 0 4px rgba(255, 218, 8, 0.65)); }
+.kanto-label-wrap { background: none; border: 0; }
+.kanto-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  display: block;
+  width: max-content;
+  max-width: 120px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  color: #f4f7d7;
+  background: rgba(5, 21, 25, 0.72);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 0 1px 1px #000;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.kanto-label--route { color: #d8e6b0; background: rgba(5, 21, 25, 0.54); font-size: 8px; font-weight: 700; }
+.kanto-label--place { color: #ffe981; }
+
+body:is(.is-kanto, .is-yellow, .is-gs, .is-crystal, .is-rs, .is-emerald, .is-hgss, .is-unova, .is-unova-b2w2, .is-frlg, .is-xy, .is-sm) .wild-table tbody tr[data-mon] { cursor: pointer; }
+body:is(.is-kanto, .is-yellow, .is-gs, .is-crystal, .is-rs, .is-emerald, .is-hgss, .is-unova, .is-unova-b2w2, .is-frlg, .is-xy, .is-sm) .wild-table tbody tr[data-mon]:hover td { background: rgba(var(--t-acc2), 0.08); }
+body:is(.is-kanto, .is-yellow, .is-gs, .is-crystal, .is-rs, .is-emerald, .is-hgss, .is-unova, .is-unova-b2w2, .is-frlg, .is-xy, .is-sm) .item-ico[src*="tm-normal"] { filter: hue-rotate(155deg) saturate(1.35); }
+
+body.is-unova .map-card {
+  background: linear-gradient(180deg, rgba(31, 167, 172, 0.09), transparent 190px), var(--color-surface);
+}
+body.is-unova #map { background: #0c2130; }
+body.is-unova .map-note a { color: rgb(var(--t-acc2)); }
+body.is-unova-b2w2 .map-card {
+  background: linear-gradient(150deg, rgba(84, 116, 176, 0.1), rgba(239, 243, 255, 0.035)), rgba(10, 18, 28, 0.92);
+}
+body.is-unova-b2w2 #map { background: #0d102b; }
+body.is-unova-b2w2 .map-note a { color: rgb(var(--t-acc2)); }
+/* Das Schwarz-Fallback bringt seine englischen Beschriftungen bereits im Bild mit.
+   Der echte Weiß-Render ist unbeschriftet und erhält die übersetzten HTML-Labels. */
+body.is-unova[data-map-edition="black"] .kanto-label-wrap { display: none; }
+
+body.is-frlg .map-card {
+  background: linear-gradient(180deg, rgba(226, 74, 46, 0.09), transparent 190px), var(--color-surface);
+}
+body.is-frlg #map { background: #10271f; }
+body.is-frlg .map-note a { color: rgb(var(--t-acc2)); }
+
+/* HG/SS (läuft über app.js wie Platin): offenes Meer als Wassermuster des Spiels, Grundfarbe = sein Mittelwert */
+body.is-hgss { --c-sea: #2575fa; }
+body.is-hgss .sea-tile { background-image: url('tiles-hgss/sea.png'); }
+body.is-hgss .map-card {
+  background: linear-gradient(150deg, rgba(236, 190, 76, 0.08), rgba(183, 207, 225, 0.05)), rgba(10, 18, 28, 0.92);
+}
+body.is-hgss .map-note a { color: rgb(var(--t-acc2)); }
+.kanto-sea { background-color: transparent; background-repeat: repeat; image-rendering: pixelated; }
+.row--trainer .hint { margin: 0; font-size: 0.72rem; color: var(--color-muted); }
+
+body.is-gs .map-card {
+  background: linear-gradient(180deg, rgba(217, 173, 53, 0.1), transparent 190px), var(--color-surface);
+}
+body.is-gs #map { background: #081c24; }
+body.is-gs .map-note a { color: rgb(var(--t-acc2)); }
+
+body.is-yellow .map-card {
+  background: linear-gradient(150deg, rgba(252, 232, 94, 0.08), rgba(255, 196, 63, 0.025)), rgba(10, 18, 28, 0.92);
+}
+body.is-yellow #map { background: #071b22; }
+body.is-yellow .map-note a { color: rgb(var(--t-acc2)); }
+
+body.is-crystal .map-card {
+  background: linear-gradient(150deg, rgba(94, 211, 252, 0.08), rgba(107, 98, 255, 0.025)), rgba(10, 18, 28, 0.92);
+}
+body.is-crystal #map { background: #081c24; }
+body.is-crystal .map-note a { color: rgb(var(--t-acc2)); }
+
+body.is-emerald .map-card {
+  background: linear-gradient(150deg, rgba(45, 211, 126, 0.09), rgba(57, 137, 255, 0.025)), rgba(10, 18, 28, 0.92);
+}
+body.is-emerald #map { background: #061b27; }
+body.is-emerald .map-note a { color: rgb(var(--t-acc2)); }
+
+body.is-rs .map-card {
+  background: linear-gradient(150deg, rgba(222, 62, 64, 0.08), rgba(54, 105, 222, 0.045)), rgba(10, 18, 28, 0.92);
+}
+body.is-rs #map { background: #061b27; }
+body.is-rs .map-note a { color: rgb(var(--t-acc2)); }
+
+body.is-xy .map-card {
+  background: linear-gradient(150deg, rgba(65, 134, 255, 0.09), rgba(229, 54, 88, 0.055)), rgba(10, 18, 28, 0.92);
+}
+body.is-xy #map { background: #0d102b; }
+body.is-xy .map-note a { color: rgb(var(--t-acc2)); }
+body.is-xy .leaflet-image-layer.kanto-sheet { image-rendering: auto; }
+
+body.is-sm .map-card {
+  background: linear-gradient(145deg, rgba(255, 151, 55, 0.09), rgba(89, 105, 224, 0.07)), rgba(10, 18, 28, 0.94);
+}
+body.is-sm #map { background: #071d39; }
+body.is-sm .map-note a { color: rgb(var(--t-acc2)); }
+body.is-sm .leaflet-image-layer.kanto-sheet { image-rendering: auto; }
+body.is-sm .kanto-area {
+  cursor: pointer;
+  stroke: rgba(126, 231, 255, 0.72);
+  stroke-width: 1.5;
+  stroke-opacity: 0.2;
+  fill: rgba(98, 211, 255, 0.01);
+  fill-opacity: 0.025 !important;
+  transition: fill-opacity 130ms ease, stroke-opacity 130ms ease, filter 130ms ease;
+}
+body.is-sm .kanto-area:hover,
+body.is-sm .kanto-area:focus {
+  stroke-opacity: 1 !important;
+  fill-opacity: 0.13 !important;
+  filter: drop-shadow(0 0 4px rgba(87, 216, 255, 0.82));
+}
+
+@media (max-width: 620px) {
+  .rb-version { width: 100%; justify-content: center; }
+  .kanto-label { font-size: 8px; padding: 1px 3px; }
+  .kanto-label--route { font-size: 7px; }
+}
+
+/* HG/SS: Beschriftungen nach Zoom (kanto.js setzt z-far / z-vfar am Kartencontainer) */
+.z-far .kanto-label--route { display: none; }
+.z-vfar .kanto-label--place { display: none; }

@@ -1,0 +1,13 @@
+Pokémon Gelb – Kartenquellen
+===============================
+
+Die Kartenbilder wurden aus der vollständigen pret/pokeyellow-Disassembly gerendert.
+Verwendet werden Gelbs eigene Kartenblöcke, Tilesets und die offiziellen ortsabhängigen
+Game-Boy-Color-Paletten. Die Funddaten stammen aus Gelbs Begegnungstabellen.
+
+Quelle: https://github.com/pret/pokeyellow
+Stand: b452f2ab0718
+
+Pokémon, die Karten- und Grafikdaten sind Eigentum von GAME FREAK, Nintendo,
+Creatures Inc. und The Pokémon Company. Die Ausgabe dient nur der privaten,
+lokalen Darstellung innerhalb des Pokémon Hubs.

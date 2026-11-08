@@ -1,0 +1,628 @@
+/*
+ * SOLO–01 Trainer Console
+ * The Solo page is the screen; the desktop gutters form one physical one-player handheld.
+ */
+
+:root {
+  --con-body-hi: #3d4d76;
+  --con-body: #293757;
+  --con-body-lo: #171f36;
+  --con-edge: #101728;
+  --con-line: rgba(220, 235, 255, 0.16);
+  --con-glint: rgba(255, 255, 255, 0.15);
+  --con-ink: #e6eefc;
+  --con-muted: rgba(222, 234, 252, 0.58);
+  --con-accent: #67d8dc;
+  --con-accent-soft: rgba(103, 216, 220, 0.22);
+  --con-second: #f1c75b;
+  --con-a: #e65358;
+  --con-a-lo: #8e252b;
+  --con-b: #5b87ca;
+  --con-b-lo: #2e4e80;
+  --con-key-hi: #414754;
+  --con-key: #292e38;
+  --con-key-lo: #12151b;
+  --con-lcd: #101b2b;
+  --con-lcd-ink: #8de4d8;
+  --con-well: rgba(5, 12, 28, 0.16);
+  --con-side-glow: rgba(255, 255, 255, 0.045);
+}
+
+:root[data-theme='graphite'] {
+  --con-body-hi: #35332f;
+  --con-body: #25231f;
+  --con-body-lo: #141311;
+  --con-edge: #0d0c0b;
+  --con-line: rgba(240, 226, 204, 0.13);
+  --con-glint: rgba(255, 239, 209, 0.09);
+  --con-ink: #eee8de;
+  --con-muted: rgba(238, 232, 222, 0.52);
+  --con-accent: #e6ad4b;
+  --con-accent-soft: rgba(230, 173, 75, 0.2);
+  --con-second: #86a7c6;
+  --con-a: #b94940;
+  --con-a-lo: #6d2723;
+  --con-b: #557595;
+  --con-b-lo: #2d4155;
+  --con-key-hi: #47433e;
+  --con-key: #302d29;
+  --con-key-lo: #171513;
+  --con-lcd: #18140e;
+  --con-lcd-ink: #e8b854;
+  --con-well: rgba(0, 0, 0, 0.18);
+  --con-side-glow: rgba(255, 243, 220, 0.03);
+}
+
+:root[data-theme='paper'] {
+  --con-body-hi: #ded6c4;
+  --con-body: #c8bea8;
+  --con-body-lo: #aa9f87;
+  --con-edge: #514b40;
+  --con-line: rgba(62, 55, 44, 0.2);
+  --con-glint: rgba(255, 253, 242, 0.5);
+  --con-ink: #39342b;
+  --con-muted: rgba(57, 52, 43, 0.58);
+  --con-accent: #bd4037;
+  --con-accent-soft: rgba(189, 64, 55, 0.18);
+  --con-second: #39769c;
+  --con-a: #c94b42;
+  --con-a-lo: #873027;
+  --con-b: #4d7d9d;
+  --con-b-lo: #31536b;
+  --con-key-hi: #55514c;
+  --con-key: #393632;
+  --con-key-lo: #211f1d;
+  --con-lcd: #d9e0c3;
+  --con-lcd-ink: #40502a;
+  --con-well: rgba(79, 66, 45, 0.08);
+  --con-side-glow: rgba(255, 255, 255, 0.23);
+}
+
+@media (min-width: 1101px) {
+  body > #app.win-frame {
+    width: min(98vw, 1340px);
+    box-shadow:
+      inset 0 0 0 3px rgba(var(--t-n-0d0f2b), 0.58),
+      inset 0 0 0 4px rgba(var(--t-acc), 0.24),
+      0 0 0 7px var(--con-edge),
+      0 0 0 9px var(--con-line),
+      0 26px 72px rgba(var(--t-shade), 0.5);
+  }
+
+  :root[data-theme='paper'] body > #app.win-frame {
+    box-shadow:
+      inset 0 0 0 3px rgba(var(--t-n-0d0f2b), 0.5),
+      inset 0 0 0 4px rgba(var(--t-acc), 0.2),
+      0 0 0 6px var(--con-edge),
+      0 0 0 8px var(--con-line),
+      0 24px 64px rgba(var(--t-shade), 0.34);
+  }
+}
+
+.solo-trail {
+  --strip: 0px;
+  --cl: 0px;
+  --cr: 100vw;
+  --app-left: 0px;
+  --app-right: 100vw;
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--con-ink);
+  font-family: var(--font-main);
+  opacity: 0;
+  background:
+    radial-gradient(ellipse 70% 42% at 50% -8%, var(--con-glint), transparent 72%),
+    radial-gradient(circle at var(--cl) 50%, var(--con-side-glow), transparent min(18vw, 270px)),
+    radial-gradient(circle at var(--cr) 50%, var(--con-side-glow), transparent min(18vw, 270px)),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.12), transparent 7%, transparent 93%, rgba(0, 0, 0, 0.12)),
+    linear-gradient(165deg, var(--con-body-hi), var(--con-body) 42%, var(--con-body-lo));
+  transition: opacity 220ms ease;
+}
+
+.solo-trail.is-ready {
+  opacity: 1;
+}
+
+.console-shell,
+.console-screen-rim,
+.console-grip,
+.console-screw {
+  position: absolute;
+}
+
+.console-shell {
+  inset: 0;
+  pointer-events: none;
+}
+
+.console-shell::before,
+.console-shell::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--con-line);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.22);
+}
+
+.console-shell::before { top: 12%; }
+.console-shell::after { bottom: 10%; }
+
+.console-screen-rim {
+  top: 9px;
+  bottom: -24px;
+  left: calc(var(--app-left) - 13px);
+  right: calc(100vw - var(--app-right) - 13px);
+  border: 2px solid var(--con-edge);
+  border-radius: 25px 25px 0 0;
+  box-shadow:
+    0 0 0 1px var(--con-glint),
+    0 0 0 4px rgba(0, 0, 0, 0.16),
+    inset 0 0 20px rgba(0, 0, 0, 0.42);
+}
+
+.console-grip {
+  top: 13%;
+  bottom: 11%;
+  width: min(18vw, 300px);
+  opacity: 0.28;
+  background: repeating-linear-gradient(90deg, transparent 0 8px, rgba(0, 0, 0, 0.25) 8px 10px, var(--con-glint) 10px 11px);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 15%, #000 85%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 15%, #000 85%, transparent);
+}
+
+.console-grip--l { left: -7%; transform: skewY(-5deg); }
+.console-grip--r { right: -7%; transform: skewY(5deg); }
+
+.console-screw {
+  width: 15px;
+  height: 15px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  background:
+    linear-gradient(35deg, transparent 43%, rgba(0, 0, 0, 0.52) 44% 56%, transparent 57%),
+    radial-gradient(circle at 35% 30%, var(--con-glint), transparent 55%),
+    var(--con-body-lo);
+  box-shadow: 0 1px 0 var(--con-glint), inset 0 -2px 3px rgba(0, 0, 0, 0.35);
+}
+
+.console-screw--tl { top: 24px; left: 24px; }
+.console-screw--tr { top: 24px; right: 24px; transform: rotate(55deg); }
+.console-screw--bl { bottom: 24px; left: 24px; transform: rotate(105deg); }
+.console-screw--br { right: 24px; bottom: 24px; transform: rotate(150deg); }
+
+.console-side {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(calc(var(--strip) - 38px), 250px);
+  min-width: 0;
+  transform: translate(-50%, -50%);
+}
+
+.console-side--left { left: var(--cl); gap: 24px; }
+.console-side--right { left: var(--cr); gap: 20px; }
+
+.console-side button {
+  pointer-events: auto;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.console-side button:focus-visible {
+  outline: 3px solid var(--con-accent);
+  outline-offset: 4px;
+}
+
+.console-side button:disabled {
+  cursor: default;
+}
+
+.console-identity {
+  position: relative;
+  width: min(100%, 210px);
+  padding: 0 4px 13px;
+  border-bottom: 1px solid var(--con-line);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.22);
+}
+
+.console-player,
+.console-system,
+.console-power small,
+.console-game-label,
+.console-focus small,
+.console-party-head,
+.console-fallen,
+.console-action small,
+.console-system-keys small {
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.console-power {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+  color: var(--con-muted);
+}
+
+.console-power i {
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  background: var(--con-accent);
+  box-shadow: 0 0 10px var(--con-accent), inset 0 1px 1px rgba(255, 255, 255, 0.65);
+  animation: console-power 2.4s ease-in-out infinite;
+}
+
+.console-player,
+.console-system {
+  display: block;
+  color: var(--con-muted);
+}
+
+.console-identity strong {
+  display: block;
+  margin: 3px 0 5px;
+  color: var(--con-ink);
+  font-size: clamp(1.75rem, 2.5vw, 2.45rem);
+  font-weight: 950;
+  letter-spacing: -0.065em;
+  line-height: 0.95;
+}
+
+.console-system {
+  color: var(--con-accent);
+}
+
+.console-dpad {
+  --d: clamp(36px, calc((var(--strip) - 52px) / 3), 54px);
+  position: relative;
+  display: grid;
+  gap: 0;
+  grid-template: repeat(3, var(--d)) / repeat(3, var(--d));
+  filter: drop-shadow(0 7px 7px rgba(0, 0, 0, 0.28));
+}
+
+.console-dpad::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  clip-path: polygon(33.333% 0, 66.667% 0, 66.667% 33.333%, 100% 33.333%, 100% 66.667%, 66.667% 66.667%, 66.667% 100%, 33.333% 100%, 33.333% 66.667%, 0 66.667%, 0 33.333%, 33.333% 33.333%);
+  background: linear-gradient(180deg, var(--con-key-hi), var(--con-key) 48%, var(--con-key-lo));
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.12), inset -2px -2px 3px rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+}
+
+.console-dpad::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -14px;
+  border: 1px solid var(--con-line);
+  border-radius: 29px;
+  background: radial-gradient(circle, transparent 48%, var(--con-well));
+  box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.16), 0 1px 0 var(--con-glint);
+  pointer-events: none;
+}
+
+.console-dkey,
+.console-dcenter {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--d);
+  height: var(--d);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.console-dkey:disabled { opacity: 0.48; }
+.console-dkey:not(:disabled):hover { background: rgba(255, 255, 255, 0.055); }
+.console-dkey--up { grid-area: 1 / 2; border-radius: 7px 7px 0 0; }
+.console-dkey--left { grid-area: 2 / 1; border-radius: 7px 0 0 7px; }
+.console-dcenter { grid-area: 2 / 2; }
+.console-dkey--right { grid-area: 2 / 3; border-radius: 0 7px 7px 0; }
+.console-dkey--down { grid-area: 3 / 2; border-radius: 0 0 7px 7px; }
+
+.console-dcenter i {
+  width: 48%;
+  height: 48%;
+  border-radius: 50%;
+  background: var(--con-key-lo);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.console-dkey i {
+  width: 0;
+  height: 0;
+  border-right: calc(var(--d) * 0.13) solid transparent;
+  border-bottom: calc(var(--d) * 0.18) solid rgba(0, 0, 0, 0.5);
+  border-left: calc(var(--d) * 0.13) solid transparent;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.1));
+}
+
+.console-dkey--left i { transform: rotate(-90deg); }
+.console-dkey--right i { transform: rotate(90deg); }
+.console-dkey--down i { transform: rotate(180deg); }
+
+.console-focus {
+  position: relative;
+  width: min(100%, 210px);
+  overflow: hidden;
+  padding: 9px 12px 10px;
+  border: 2px solid var(--con-edge);
+  border-radius: 7px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    var(--con-lcd);
+  background-size: 5px 5px;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.38), 0 2px 0 var(--con-glint);
+  color: var(--con-lcd-ink);
+}
+
+.console-focus small,
+.console-focus strong {
+  position: relative;
+  z-index: 1;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console-focus small { opacity: 0.65; }
+.console-focus strong { margin-top: 5px; font-size: 0.78rem; font-weight: 950; letter-spacing: 0.055em; text-transform: uppercase; }
+.console-focus > i { position: absolute; top: 0; bottom: 0; width: 35%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent); animation: console-scan 4s linear infinite; }
+
+.console-game-card {
+  position: relative;
+  width: min(100%, 210px);
+  min-height: 82px;
+  box-sizing: border-box;
+  padding: 13px 15px 17px;
+  border: 2px solid var(--con-edge);
+  border-radius: 8px 8px 13px 13px;
+  background:
+    linear-gradient(135deg, var(--con-glint), transparent 32%),
+    linear-gradient(180deg, var(--con-body-hi), var(--con-body-lo));
+  box-shadow: inset 0 0 0 2px var(--con-line), 0 5px 10px rgba(0, 0, 0, 0.22);
+  text-align: left;
+}
+
+.console-game-card::before {
+  content: '';
+  position: absolute;
+  right: 22%;
+  left: 22%;
+  top: -9px;
+  height: 8px;
+  border: 2px solid var(--con-edge);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  background: var(--con-body-lo);
+}
+
+.console-game-label { display: block; color: var(--con-muted); }
+.console-game-name { display: -webkit-box; overflow: hidden; margin-top: 5px; color: var(--con-ink); font-size: 0.74rem; font-weight: 950; letter-spacing: 0.025em; line-height: 1.22; text-transform: uppercase; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.console-game-card > span { position: absolute; right: 13px; bottom: 5px; left: 13px; display: flex; gap: 4px; }
+.console-game-card > span i { flex: 1; height: 3px; border-radius: 1px; background: var(--con-second); opacity: 0.72; }
+.console-game-card.is-swapping { animation: console-card-in 0.52s cubic-bezier(0.2, 0.85, 0.25, 1.15); }
+
+.console-actions {
+  position: relative;
+  width: min(100%, 190px);
+  height: 112px;
+}
+
+.console-actions::before {
+  content: '';
+  position: absolute;
+  inset: -8px -13px;
+  border: 1px solid var(--con-line);
+  border-radius: 48% 52% 46% 54%;
+  background: radial-gradient(ellipse, transparent 42%, var(--con-well));
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.14), 0 1px 0 var(--con-glint);
+}
+
+.console-action {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  color: var(--con-muted);
+}
+
+.console-action--b { left: 14px; bottom: 6px; }
+.console-action--a { right: 14px; top: 6px; }
+
+.console-action button {
+  width: clamp(52px, calc(var(--strip) * 0.24), 68px);
+  height: clamp(52px, calc(var(--strip) * 0.24), 68px);
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  border-radius: 50%;
+  color: #fff7ed;
+  font-size: 1rem;
+  font-weight: 950;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+
+.console-action--a button {
+  background: radial-gradient(circle at 35% 28%, #ff8a85, var(--con-a) 40%, var(--con-a-lo) 100%);
+  box-shadow: inset 0 -4px 7px rgba(0, 0, 0, 0.2), inset 0 2px 2px rgba(255, 255, 255, 0.35), 0 5px 0 var(--con-a-lo), 0 9px 13px rgba(0, 0, 0, 0.22);
+}
+
+.console-action--b button {
+  background: radial-gradient(circle at 35% 28%, #8ab6ea, var(--con-b) 40%, var(--con-b-lo) 100%);
+  box-shadow: inset 0 -4px 7px rgba(0, 0, 0, 0.2), inset 0 2px 2px rgba(255, 255, 255, 0.3), 0 5px 0 var(--con-b-lo), 0 9px 13px rgba(0, 0, 0, 0.22);
+}
+
+.console-action button:disabled { filter: grayscale(0.8); opacity: 0.42; box-shadow: inset 0 -4px 7px rgba(0, 0, 0, 0.28), 0 4px 0 var(--con-key-lo); }
+
+.console-party {
+  width: min(100%, 210px);
+  padding: 10px 0 9px;
+  border-top: 1px solid var(--con-line);
+  border-bottom: 1px solid var(--con-line);
+}
+
+.console-party-head,
+.console-fallen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--con-muted);
+}
+
+.console-party-head strong,
+.console-fallen strong { color: var(--con-ink); font-size: 0.65rem; font-weight: 950; letter-spacing: 0.08em; }
+.console-fallen strong { color: var(--con-a); }
+
+.console-party-lights {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 11px 0 10px;
+}
+
+.console-party-lights button {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  padding: 0;
+  border: 2px solid var(--con-edge);
+  border-radius: 50%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.14) 0 43%, var(--con-edge) 43% 56%, rgba(255, 255, 255, 0.06) 56%);
+  box-shadow: inset 0 1px 2px var(--con-glint), 0 2px 3px rgba(0, 0, 0, 0.3);
+  opacity: 0.48;
+}
+
+.console-party-lights button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--con-edge);
+  border-radius: 50%;
+  background: var(--con-body);
+  transform: translate(-50%, -50%);
+}
+
+.console-party-lights button.is-filled {
+  background: linear-gradient(to bottom, var(--con-accent) 0 43%, var(--con-edge) 43% 56%, var(--con-second) 56%);
+  opacity: 1;
+}
+
+.console-party-lights button.is-focused {
+  box-shadow: 0 0 0 2px var(--con-body), 0 0 0 4px var(--con-accent), 0 0 11px var(--con-accent);
+  animation: console-slot 1.5s ease-in-out infinite;
+}
+
+.console-system-keys {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+.console-system-keys > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  color: var(--con-muted);
+}
+
+.console-system-keys button {
+  position: relative;
+  width: 52px;
+  height: 17px;
+  padding: 0;
+  border: 2px solid var(--con-edge);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--con-key-hi), var(--con-key-lo));
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.12), 0 3px 0 var(--con-key-lo), 0 6px 8px rgba(0, 0, 0, 0.2);
+}
+
+.console-system-keys button i { position: absolute; inset: 4px 10px auto; height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.13); }
+
+.console-speaker {
+  display: flex;
+  gap: 6px;
+  margin-top: 1px;
+}
+
+.console-speaker i {
+  width: 5px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: 1px 0 0 var(--con-glint);
+  transform: rotate(-12deg);
+}
+
+.console-side button.is-fired:not(:disabled) { animation: console-press 0.22s ease-out; }
+
+.solo-trail.is-compact .console-side { width: calc(var(--strip) - 24px); }
+.solo-trail.is-compact .console-side--left { gap: 16px; }
+.solo-trail.is-compact .console-side--right { gap: 11px; }
+.solo-trail.is-compact .console-identity strong { font-size: 1.55rem; }
+.solo-trail.is-compact .console-power small,
+.solo-trail.is-compact .console-system,
+.solo-trail.is-compact .console-focus-label,
+.solo-trail.is-compact .console-game-label,
+.solo-trail.is-compact .console-party-head span,
+.solo-trail.is-compact .console-fallen span,
+.solo-trail.is-compact .console-speaker { display: none; }
+.solo-trail.is-compact .console-game-card { min-height: 56px; padding: 13px 10px 11px; }
+.solo-trail.is-compact .console-game-card > span { display: none; }
+.solo-trail.is-compact .console-actions { height: 88px; }
+.solo-trail.is-compact .console-action button { width: 48px; height: 48px; }
+.solo-trail.is-compact .console-party-lights { gap: 4px; }
+.solo-trail.is-compact .console-party-lights button { width: 17px; height: 17px; flex-basis: 17px; }
+.solo-trail.is-compact .console-system-keys { gap: 8px; }
+.solo-trail.is-compact .console-system-keys button { width: 43px; }
+
+.solo-trail.is-bare .console-side,
+.solo-trail.is-bare .console-screw,
+.solo-trail.is-bare .console-grip { display: none; }
+
+@keyframes console-power { 50% { opacity: 0.45; box-shadow: 0 0 4px var(--con-accent); } }
+@keyframes console-scan { from { left: -40%; } to { left: 110%; } }
+@keyframes console-card-in { 0% { transform: translateY(-18px); opacity: 0.2; } 70% { transform: translateY(3px); } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes console-slot { 50% { filter: brightness(1.3); } }
+@keyframes console-press { 50% { transform: translateY(4px) scale(0.96); filter: brightness(1.25); } }
+
+@media (max-width: 1100px) {
+  .solo-trail { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .solo-trail,
+  .console-power i,
+  .console-focus > i,
+  .console-game-card.is-swapping,
+  .console-party-lights button.is-focused,
+  .console-side button.is-fired { animation: none; transition: none; }
+}
