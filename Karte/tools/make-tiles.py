@@ -10,7 +10,9 @@ Upload über die GitHub-Weboberfläche). Drei Detailstufen, z = Zoomstufe von Le
 Die Innenkarten (Höhlen, Gebäude …) landen gepackt in wenigen Atlas-Bildern (tiles/in/<n>.webp, 2048 px).
 
 Aufruf (Python 3 + Pillow):
-  python make-tiles.py <render-ordner> <ausgabe-ordner> [--interiors <ordner>] [--quality 82] [--preview vorschau.png]
+  python make-tiles.py <render-ordner> <ausgabe-ordner> [--interiors <ordner>] [--quality 82] [--lossless] [--preview vorschau.png]
+  --lossless: Pixelgrafik (GBA-Spiele) – volle Auflösung und Innenkarten verlustfrei (scharf und ~9× kleiner als
+              verlustbehaftet); die verkleinerten Stufen bleiben verlustbehaftet.
 
 Ausgabe: <ausgabe>/<z>/<x>_<y>.webp, <ausgabe>/sea.png (Wassermuster fürs offene Meer, zeichnet die Karte
          selbst), <ausgabe>/index.json (Blätter + Bodenhöhen, um Marker an die Schrägsicht anzupassen),
@@ -30,6 +32,7 @@ ap.add_argument('out')
 ap.add_argument('--interiors', help='Ordner mit interiors.json (Standard: der Render-Ordner)')
 ap.add_argument('--quality', type=int, default=82)
 ap.add_argument('--method', type=int, choices=range(0, 7), default=6)
+ap.add_argument('--lossless', action='store_true')
 ap.add_argument('--preview')
 args = ap.parse_args()
 
@@ -44,10 +47,17 @@ def chunk(r, c):
     return Image.open(p).convert('RGBA') if os.path.exists(p) else None
 
 
+def webp(img, path, sharp=False):
+    if sharp and args.lossless:
+        img.save(path, 'WEBP', lossless=True, quality=100, method=args.method)
+    else:
+        img.save(path, 'WEBP', quality=args.quality, method=args.method)
+
+
 def save(z, x, y, img):
     folder = os.path.join(args.out, str(z))
     os.makedirs(folder, exist_ok=True)
-    img.save(os.path.join(folder, f'{x}_{y}.webp'), 'WEBP', quality=args.quality, method=args.method)
+    webp(img, os.path.join(folder, f'{x}_{y}.webp'), sharp=z == 4)
 
 
 # Stufe 4: Blätter aus 4 × 4 Blöcken in voller Auflösung; nebenbei die ganze Karte auf Stufe 2 (1/4) sammeln
@@ -191,7 +201,7 @@ if os.path.exists(int_file):
         for k, x, y in a['items']:
             sheet.paste(Image.open(os.path.join(int_dir, imgs[k]['file'])).convert('RGBA'), (x, y))
             out_images[k] = {'a': n, 'x': x, 'y': y, 'w': imgs[k]['w'], 'h': imgs[k]['h'], 'ox': imgs[k]['ox'], 'oz': imgs[k]['oz']}
-        sheet.save(os.path.join(folder, f'{n}.webp'), 'WEBP', quality=args.quality, method=args.method)
+        webp(sheet, os.path.join(folder, f'{n}.webp'), sharp=True)
         sizes.append([aw, ah])
     int_ground = {}
     for k, v in imgs.items():

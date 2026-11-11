@@ -2,13 +2,32 @@ Kalos-Kartentiles (Pokémon X / Y)
 
 Grafikquelle:
 - Vom Benutzer bereitgestellte europäische Pokémon-X-ROM (Title ID 0004000000055D00).
-- Originale Gelände-Blöcke aus RomFS a/0/4/1, Kartenmatrizen aus a/0/4/2 und Gebietstexturen aus a/0/1/3.
+- Gelände-Blöcke aus RomFS a/0/4/1 (BCH-Modelle, je Block auch die Gebäude-Platzierungen),
+  Kartenmatrizen aus a/0/4/2, Gebäudemodelle aus a/0/2/4, Gebiets- und Gebäudetexturen aus a/0/1/3,
+  Zonen und Warps aus a/0/1/2.
 - Modelle und Texturen: GAME FREAK / Nintendo.
 
-Erzeugung:
-- Karte/tools/render-oras.js --xy liest GARC, LZ11, BCH, PICA200-Materialien und 3DS-Texturen direkt aus der ROM.
+Erzeugung (Karte/tools/render-xy.js, Bausteine aus render-oras.js):
+- Kalos ist im Spiel keine durchgehende Welt; Matrizen, die direkt aneinanderstoßen, liegen exakt zueinander,
+  die Gruppen liegen um Illumina City (an den Illumina-Toren exakt) – so dicht, dass die Türen verbundener Gruppen
+  (Tore, Höhlen) möglichst nah beieinander sind, ohne dass sich Flächen überlagern. Wo die Türen trotzdem
+  auseinanderliegen, zeichnet die Karte eine gestrichelte Verbindung (places.json „links").
+- Das Meer endet weich im Kartenmeer: der dunkle Meeresgrund und das Kulissenmeer jenseits der eigenen Fläche werden
+  nicht gezeichnet. Im Irrwald von Route 20 entfallen die schwarz auslaufenden Ränder.
+- Illumina City besteht aus vier Matrizen auf Schienenkoordinaten; zusammengesetzt über ihre Grundrisse.
+  Die Häuser sind dort nur Fassaden zur Straße: Rückseiten werden weggelassen, die Häuserblöcke bekommen
+  Zinkdächer (fill-xy.py). Den Prismaturm modelliert das Spiel nur bis zur Kamerahöhe.
+- Fläche einer Matrix: begehbare Kacheln (Teil 0 der Blöcke), Kulisse nur in einem schmalen Rand darum;
+  Lücken: Wald aus den Eichen des Nouvaria-Walds, offenes Meer als Wassermuster der Azurbucht (fill-xy.py).
 - Karte/tools/make-tiles.py erzeugt daraus die zoombaren WebP-Kartenblätter.
-- Die getrennten X/Y-Funddaten in Karte/kalos-xy.json stammen aus den unveränderten bereitgestellten X- und Y-ROMs (a/0/1/2); der Generator prüft dafür die Original-CRC.
+- Die getrennten X/Y-Funddaten in Karte/kalos-xy.json stammen aus den unveränderten bereitgestellten X- und Y-ROMs
+  (a/0/1/2); der Generator (Karte/tools/build-xy.js) prüft dafür die Original-CRC.
+
+Neu bauen:
+  node Karte/tools/render-xy.js <pokemon-x.3ds> <render> --places=Karte/tiles-kalos-xy/places.json
+  python Karte/tools/fill-xy.py <render> <gefüllt>
+  python Karte/tools/make-tiles.py <gefüllt> Karte/tiles-kalos-xy
+  node Karte/tools/build-xy.js <pokemon-x.3ds> <pokemon-y.3ds> Karte/tiles-kalos-xy/places.json
 
 Technische Referenz für die X/Y-Begegnungsstruktur: Universal Pokemon Randomizer ZX
 https://github.com/Ajarmar/universal-pokemon-randomizer-zx/blob/master/src/com/dabomstew/pkrandom/romhandlers/Gen6RomHandler.java

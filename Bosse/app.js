@@ -1,10 +1,12 @@
 /*
- * Boss-Planer (Platin sowie Omega Rubin / Alpha Saphir): jeder Kampf mit dem kompletten Gegner-Team – und wie das
- * eigene Team dagegen abschneidet. Welches Spiel, sagt das Hub-Spiel (Chip „Spiel wählen“); ohne bzw. bei anderen
+ * Boss-Planer (Platin, Omega Rubin / Alpha Saphir, Rot / Blau): jeder Kampf mit dem kompletten Gegner-Team – und wie
+ * das eigene Team dagegen abschneidet. Welches Spiel, sagt das Hub-Spiel (Chip „Spiel wählen“); ohne bzw. bei anderen
  * Spielen Platin.
  *
  * Daten:  bosses.json (tools/build-bosses.js) – Teams so, wie das Spiel sie erzeugt (Attacken, DVs, Wesen, Fähigkeit)
  *         bosses-oras.json (tools/build-bosses-oras.js) – dasselbe für Omega Rubin / Alpha Saphir, aus der ROM
+ *         bosses-rb.json (tools/build-bosses-rb.js) – Rot / Blau aus pret/pokered, mit den Gen-1-Werten aller
+ *                                                    Pokémon und Attacken (personal, moveInfo ersetzen die aus Platin)
  *         ../SaveViewer/data-oras.js, oras-save.js, hub-save.js – Spieldaten und Spielstände von OR/AS
  *         ../SaveViewer/data-pt.js (PT_DATA) – Basiswerte, Typen, Attacken, alle Namen
  *         ../SaveViewer/pt-save.js (PtSave) – liest den Spielstand. Die Spielstände teilt sich der Planer mit dem
@@ -36,6 +38,10 @@ const TEXT = {
     saveOtherGame: g => `Das ist ein Spielstand von ${g} – wähle oben unter „Spiel wählen“ dieses Spiel, dann ist er hier.`,
     footNoteOras: 'Teams, Attacken, DVs und Fähigkeiten aus der ROM von Omega Rubin / Alpha Saphir oder aus deiner randomisierten, Mega-Entwicklung wie im Kampf. Wie Gen 6 die Wesen der Gegner würfelt, ist nicht bekannt – gerechnet wird neutral. Schaden nach der Gen-6-Formel des Schadens-Rechners – ohne Statusänderungen im Kampf.',
     natureUnknown: 'unbekannt (neutral gerechnet)',
+    footNoteRb: 'Teams, Level, Attacken (mit den Sonderattacken der Arenaleiter, Top Vier und des Champs) und DVs aus dem Spielcode von Rot / Blau (pret/pokered). Schaden nach der Gen-1-Formel des Schadens-Rechners mit Orden-Bonus, Volltreffer nach Basis-Initiative – ohne Statusänderungen im Kampf. Spielstände von Rot / Blau kann der Hub noch nicht lesen: Stell dein Team unter „Eigenes Team“ zusammen.',
+    special: 'Spez.', itemsPerMon: 'Items je Pokémon', badgeBoost: list => `Orden-Bonus (×1,125): ${list}`,
+    manualNoteOld: 'Ohne Spielstand: DVs wie bei den Trainern (Angriff 9, sonst 8), keine Statuspunkte. Antippen zum Bearbeiten.',
+    noTeamTextOld: 'Stell dein Team von Hand zusammen oder übernimm es aus Solo oder Duo (oben unter „Eigenes Team“).',
     version: 'Edition', versionOr: 'Omega Rubin', versionAs: 'Alpha Saphir',
     rivalMay: 'Rivalin Maike', rivalBrendan: 'Rivale Brix',
     noSaveTitle: 'Kein Spielstand geladen',
@@ -81,6 +87,7 @@ const TEXT = {
       brine: 'doppelt, wenn das Ziel unter halben KP ist', rollout: 'wird jede Runde stärker', return: 'nach Freundschaft',
       returnFoe: 'Freundschaft des Gegners angenommen (70)', hiddenPower: 'Kraftreserve', firstTurn: 'nur in der ersten Runde',
       variable: 'Stärke hängt von der Situation ab', reckless: 'Rückstoß',
+      rechargeGen1: 'danach eine Runde Pause – außer er besiegt das Ziel', ohkoGen1: 'trifft nur, wenn schneller',
     },
   },
   en: {
@@ -102,6 +109,10 @@ const TEXT = {
     saveOtherGame: g => `This is a ${g} save – choose that game above under “Choose game” and it shows up here.`,
     footNoteOras: 'Teams, moves, IVs and abilities from the Omega Ruby / Alpha Sapphire ROM or your randomized one, Mega Evolution like in battle. How Gen 6 rolls enemy natures is unknown – they are treated as neutral. Damage uses the Gen 6 formula of the Damage Calculator – without stat changes during battle.',
     natureUnknown: 'unknown (treated as neutral)',
+    footNoteRb: 'Teams, levels, moves (with the special moves of the Gym Leaders, Elite Four and Champion) and DVs from the Red / Blue game code (pret/pokered). Damage uses the Gen 1 formula of the Damage Calculator with badge boosts, critical hits based on base Speed – without stat changes during battle. The hub cannot read Red / Blue save files yet: build your team under “Own team”.',
+    special: 'Spc', itemsPerMon: 'Items per Pokémon', badgeBoost: list => `Badge boost (×1.125): ${list}`,
+    manualNoteOld: 'Without a save: DVs like the trainers (Attack 9, others 8), no stat experience. Tap to edit.',
+    noTeamTextOld: 'Build your team by hand or take it over from Solo or Duo (above under “Own team”).',
     version: 'Version', versionOr: 'Omega Ruby', versionAs: 'Alpha Sapphire',
     rivalMay: 'rival May', rivalBrendan: 'rival Brendan',
     noSaveTitle: 'No save file loaded',
@@ -147,6 +158,7 @@ const TEXT = {
       brine: 'doubled if the target is below half HP', rollout: 'gets stronger every turn', return: 'based on friendship',
       returnFoe: 'enemy friendship assumed (70)', hiddenPower: 'Hidden Power', firstTurn: 'first turn only',
       variable: 'power depends on the situation', reckless: 'recoil',
+      rechargeGen1: 'must recharge afterwards – unless it knocks out the target', ohkoGen1: 'only hits if the user is faster',
     },
   },
 };
@@ -157,14 +169,21 @@ const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').re
 const pct = x => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10).toLocaleString(isEn() ? 'en-US' : 'de-DE');
 
 // ── Spiel und Spieldaten ──────────────────────────────────────────────────────
-// Platin oder Omega Rubin / Alpha Saphir, wie das Hub-Spiel. PT = Spieldaten des Spiels (data-pt.js / data-oras.js).
+// Wie das Hub-Spiel. PT = Spieldaten des Spiels (data-pt.js / data-oras.js; Rot / Blau: Namen aus data-pt.js, Werte
+// aus bosses-rb.json). saves/rom/weather: false = gibt es für das Spiel (noch) nicht. trainerDir: Ordner der Sprites.
 const GAMES = {
   pt: { key: 'pt', data: () => window.PT_DATA, file: 'bosses.json', gen: 4, vg: 'platinum', maxSpecies: 493,
     sprites: 'generation-iv/platinum/', starters: ['turtwig', 'chimchar', 'piplup'], starterBase: 387, starterKey: 'bosse-starter', manualKey: 'bosse-manual-team' },
   oras: { key: 'oras', data: () => window.ORAS_DATA, file: 'bosses-oras.json', gen: 6, vg: 'omega-ruby-alpha-sapphire', maxSpecies: 721,
-    sprites: 'generation-vi/omega-ruby-alpha-sapphire/', starters: ['treecko', 'torchic', 'mudkip'], starterBase: 252, starterKey: 'bosse-starter-oras', manualKey: 'bosse-manual-team-oras' },
+    sprites: 'generation-vi/omega-ruby-alpha-sapphire/', starters: ['treecko', 'torchic', 'mudkip'], starterBase: 252, starterKey: 'bosse-starter-oras', manualKey: 'bosse-manual-team-oras',
+    foot: 'footNoteOras' },
+  rb: { key: 'rb', data: () => window.PT_DATA, file: 'bosses-rb.json', gen: 1, vg: 'red-blue', maxSpecies: 151,
+    sprites: 'generation-i/red-blue/transparent/', starters: ['bulbasaur', 'charmander', 'squirtle'], starterBase: 1, starterKey: 'bosse-starter-rb', manualKey: 'bosse-manual-team-rb',
+    trainerDir: 'rb/', saves: false, rom: false, weather: false, name: { de: 'Rot / Blau', en: 'Red / Blue' }, foot: 'footNoteRb' },
 };
-const gameOf = () => (window.PokeHubGame && window.PokeHubGame.get() === 'omega-rot-alpha-saphir' ? 'oras' : 'pt');
+const HUB_GAMES = { 'omega-rot-alpha-saphir': 'oras', 'rot-blau': 'rb' };
+const gameOf = () => HUB_GAMES[window.PokeHubGame && window.PokeHubGame.get()] || 'pt';
+const trainerSprite = x => (x && x.c ? `sprites/${G.trainerDir || ''}${x.c.toLowerCase()}.png` : null);
 let G = GAMES[gameOf()];
 let PT = G.data();
 const T = () => PT.text[isEn() ? 'en' : 'de'];
@@ -245,6 +264,32 @@ const starterSpecies = key => {
   return state.rando && state.rando.starters ? state.rando.starters[i] : G.starterBase + i * 3;
 };
 
+// Statuswerte wie im Spiel; Gen 1/2: DVs 0–15 (DMG rechnet mit DV × 2) und Statuspunkte statt FP, ohne Wesen
+function statsOf(base, ivs, evs, level, nature, sp) {
+  if (G.gen > 2) return PtSave.calcStats(base, ivs, evs, level, nature, sp);
+  return base.map((b, i) => (i === 0 ? DMG.calcHP(G.gen, b, ivs[0] * 2, evs[0], level) : DMG.calcStat(G.gen, b, ivs[i] * 2, evs[i], level, 0)));
+}
+// Gen 1: Orden-Bonus für deine Pokémon (ApplyBadgeStatBoosts) – Felsorden Angriff, Donnerorden Verteidigung,
+// Seelenorden Initiative, Vulkanorden Spezial, je + ⅛ (höchstens 999). Volltreffer rechnen ohne (raw).
+const BADGE_BOOST = [[0, [1]], [2, [2]], [4, [3]], [6, [4, 5]]];
+// Orden vor einem Kampf: aus dem Spielstand, sonst die Arenaleiter, die in der Story vor diesem Kampf kommen
+// (Kämpfe außerhalb der Story: vor dem ersten Story-Kampf mit mindestens gleichem Level-Cap)
+function badgesFor(id) {
+  const sv = currentSave();
+  if (sv && sv.data.trainer.badges) return sv.data.trainer.badges.map(Boolean);
+  const story = storyList(), tt = trainerOf(id);
+  let si = story.findIndex(g => Object.values(g.ids).includes(id));
+  if (si < 0 && tt) si = story.findIndex(g => capOf(trainerOf(groupId(g))) >= capOf(tt));
+  if (si < 0) si = story.length;
+  return badgeLeaders().map(key => { const i = story.findIndex(g => g.key === key); return i >= 0 && i < si; });
+}
+function boosted(m, badges) {
+  if (G.gen !== 1) return m;
+  const stats = [...m.stats];
+  BADGE_BOOST.forEach(([b, idx]) => { if (badges[b]) idx.forEach(i => { stats[i] = Math.min(999, stats[i] + Math.floor(stats[i] / 8)); }); });
+  return { ...m, stats, raw: m.stats };
+}
+
 // Gemeinsame Form für Gegner und eigene Pokémon
 // Mega-Stein der eigenen Art (OR/AS, Index 8): im Kampf Mega-Form mit deren Werten, Typen und Fähigkeit
 function megaName(sp, mega) {
@@ -261,9 +306,9 @@ function foeMon(p) {
   const base = per.slice(0, 6);
   const ivs = Array.isArray(iv) ? iv : [iv, iv, iv, iv, iv, iv]; // Liste = vom Spiel gewürfelte DVs
   return {
-    side: 'foe', species: sp, form, level, item, moves, nature, ability, ivs, friendship: 70,
+    side: 'foe', species: sp, form, level, item, moves, nature, ability, ivs, friendship: 70, base,
     types: per[6] === per[7] ? [per[6]] : [per[6], per[7]],
-    stats: PtSave.calcStats(base, ivs, [0, 0, 0, 0, 0, 0], level, nature, sp),
+    stats: statsOf(base, ivs, [0, 0, 0, 0, 0, 0], level, nature, sp),
     name: megaName(sp, mega), mega: !!mega,
   };
 }
@@ -353,6 +398,10 @@ function calcMove(att, def, mid) {
     const rolls = Array.from({ length: 16 }, (_, i) => Math.max(1, Math.floor(att.level * (50 + Math.round(i * 100 / 15)) / 100)));
     return out({ kind: 'dmg', type, rolls, critRolls: null, fixed: true });
   }
+  if (eff === 'ONE_HIT_KO' && G.gen === 1) {   // Gen 1: trifft nur, wer schneller ist (Level egal)
+    notes.push(t.n.ohkoGen1);
+    return speedOf(att) < speedOf(def) ? out({ kind: 'fail', type }) : out({ kind: 'ohko', type, chance: acc });
+  }
   if (eff === 'ONE_HIT_KO') {
     if (def.level > att.level || dAb === 'sturdy') return out({ kind: 'fail', type });
     return out({ kind: 'ohko', type, chance: Math.min(100, acc + att.level - def.level) });
@@ -378,7 +427,7 @@ function calcMove(att, def, mid) {
   if (eff === 'PSYWAVE') { power = 71; notes.push(t.n.magnitude); } // Intensität (heißt in den Daten so)
   if (eff === 'DOUBLE_POWER_EACH_TURN' || eff === 'DOUBLE_POWER_EACH_TURN_LOCK_INTO') notes.push(t.n.rollout);
   if (eff.startsWith('CHARGE_TURN') || eff === 'FLY' || eff === 'DIG' || eff === 'DIVE' || eff === 'BOUNCE' || eff === 'SHADOW_FORCE') notes.push(t.n.charge);
-  if (eff === 'RECHARGE_AFTER') notes.push(t.n.recharge);
+  if (eff === 'RECHARGE_AFTER') notes.push(G.gen === 1 ? t.n.rechargeGen1 : t.n.recharge);
   if (eff === 'ALWAYS_FLINCH_FIRST_TURN_ONLY') notes.push(t.n.firstTurn);
   if (eff === 'RANDOM_POWER_BASED_ON_IVS') notes.push(`${t.n.hiddenPower} ${T().types[type]} ${power}`);
   // Gen 5/6: Stärke aus dem Gewichts- bzw. Tempo-Verhältnis, Akrobatik ohne Item, Abschlag gegen Items
@@ -457,8 +506,10 @@ function calcMove(att, def, mid) {
     if (dAb === 'multiscale') x = Math.floor(x / 2);   // bei vollen KP – also beim ersten Treffer
     return Math.max(1, x);
   });
+  // Gen 1: Volltreffer nehmen die Werte ohne Orden-Bonus (raw)
+  const crit = G.gen === 1 ? { atk: Math.max(1, (att.raw || att.stats)[phys ? 1 : 4]), def: Math.max(1, (def.raw || def.stats)[phys ? 2 : 5]) } : {};
   let rolls = finish(DMG.damageRolls({ ...params, crit: false }));
-  let critRolls = finish(DMG.damageRolls({ ...params, crit: true }));
+  let critRolls = finish(DMG.damageRolls({ ...params, ...crit, crit: true }));
   if (aAb === 'sniper') critRolls = critRolls.map(x => Math.floor(x * 1.5));
   // Resistenz-Beeren halbieren den ersten passenden Treffer
   const berry = RESIST_BERRIES[dIt];
@@ -481,7 +532,9 @@ function calcMove(att, def, mid) {
   if (aIt === 'scopelens' || aIt === 'razorclaw') stage++;
   if ((aIt === 'stick' && att.species === 83) || (aIt === 'luckypunch' && att.species === 113)) stage += 2;
   const chances = G.gen >= 6 ? [1 / 16, 1 / 8, 1 / 2, 1, 1] : [1 / 16, 1 / 8, 1 / 4, 1 / 3, 1 / 2];
-  const critChance = dAb === 'battlearmor' || dAb === 'shellarmor' ? 0 : eff === 'ALWAYS_CRIT' ? 1 : chances[Math.min(stage, 4)];
+  // Gen 1 (CriticalHitTest): halbe Basis-Initiative von 256, Karateschlag & Co. das Achtfache (höchstens 255)
+  const critChance = G.gen === 1 ? Math.min(255, Math.floor((att.base || personalOf(att.species, att.form))[3] / 2) * (eff === 'HIGH_CRITICAL' ? 8 : 1)) / 256
+    : dAb === 'battlearmor' || dAb === 'shellarmor' ? 0 : eff === 'ALWAYS_CRIT' ? 1 : chances[Math.min(stage, 4)];
   if (critChance === 1) rolls = critRolls;   // Eisesodem & Co.: jeder Treffer ist ein Volltreffer
   return out({ kind: 'dmg', type, rolls, critRolls, hits, critChance, mult, power: bp });
 }
@@ -679,6 +732,7 @@ const allOwn = sv => [...sv.data.party, ...sv.data.boxes.flatMap(b => b.slots)].
 const MANUAL = -1;
 const manualKey = () => G.manualKey;   // je Spiel ein eigenes Team
 const MANUAL_IV = 15;
+const MANUAL_DV_OLD = [8, 9, 8, 8, 8, 8];   // Gen 1/2: wie die Trainer (KP-DV aus den anderen: 8)
 const isManual = () => state.save === MANUAL || !state.saves.length;
 function loadManual() {
   try {
@@ -689,12 +743,12 @@ function loadManual() {
 const saveManual = list => store(manualKey(), JSON.stringify(list.slice(0, 6)));
 function manualMon(e, i) {
   const per = personalOf(e.species, 0);
-  const ivs = new Array(6).fill(MANUAL_IV);
+  const ivs = G.gen <= 2 ? [...MANUAL_DV_OLD] : new Array(6).fill(MANUAL_IV);
   return {
     side: 'me', species: e.species, form: 0, level: e.level, item: 0, moves: (e.moves || []).filter(Boolean),
-    nature: e.nature || 0, ability: e.ability || per[10] || 0, ivs, friendship: 70,
+    nature: e.nature || 0, ability: e.ability || per[10] || 0, ivs, friendship: 70, base: per.slice(0, 6),
     types: per[6] === per[7] ? [per[6]] : [per[6], per[7]],
-    stats: PtSave.calcStats(per.slice(0, 6), ivs, [0, 0, 0, 0, 0, 0], e.level, e.nature || 0, e.species),
+    stats: statsOf(per.slice(0, 6), ivs, [0, 0, 0, 0, 0, 0], e.level, e.nature || 0, e.species),
     name: T().species[e.species] || `#${e.species}`, key: `manual-${i}`, manual: true,
   };
 }
@@ -796,7 +850,7 @@ function renderEditor() {
   const per = personalOf(e.species, 0);
   const abilities = [...new Set([per[10], per[11]].filter(Boolean))];
   const learn = editorLearn && editorLearn.species === e.species ? editorLearn.all : null;
-  const moves = T().moves.map((n, id) => [id, n]).filter(([id, n]) => id > 0 && id <= 467 && n)
+  const moves = T().moves.map((n, id) => [id, n]).filter(([id, n]) => id > 0 && id < PT.moveInfo.length && n)
     .sort((a, b) => a[1].localeCompare(b[1], window.LANG));
   const opt = ([id, n], cur) => `<option value="${id}"${id === cur ? ' selected' : ''}>${esc(n)}</option>`;
   const moveSelect = slot => {
@@ -813,8 +867,8 @@ function renderEditor() {
       <button type="button" class="chip-btn" id="editor-change">${esc(t.changeMon)}</button></div>
     <div class="editor-row">
       <label class="editor-field">${esc(t.levelLabel)}<input type="number" id="editor-level" min="1" max="100" inputmode="numeric" value="${e.level}"></label>
-      <label class="editor-field">${esc(t.natureLabel)}<select id="editor-nature">${T().natures.map((n, k) => `<option value="${k}"${k === (e.nature || 0) ? ' selected' : ''}>${esc(natureText(k))}</option>`).join('')}</select></label>
-      <label class="editor-field">${esc(t.abilityLabel)}<select id="editor-ability">${abilities.map(a => `<option value="${a}"${a === e.ability ? ' selected' : ''}>${esc(T().abilities[a])}</option>`).join('')}</select></label>
+      ${G.gen >= 3 ? `<label class="editor-field">${esc(t.natureLabel)}<select id="editor-nature">${T().natures.map((n, k) => `<option value="${k}"${k === (e.nature || 0) ? ' selected' : ''}>${esc(natureText(k))}</option>`).join('')}</select></label>
+      <label class="editor-field">${esc(t.abilityLabel)}<select id="editor-ability">${abilities.map(a => `<option value="${a}"${a === e.ability ? ' selected' : ''}>${esc(T().abilities[a])}</option>`).join('')}</select></label>` : ''}
     </div>
     <div class="editor-field">${esc(t.movesLabel)}<div class="editor-moves">${[0, 1, 2, 3].map(moveSelect).join('')}</div></div>
     ${state.rando ? `<p class="editor-hint">${esc(t.randoMoves)}</p>` : ''}
@@ -829,8 +883,8 @@ function renderEditor() {
     ev.target.value = lv;
     updateManual(i, x => { x.level = lv; });
   });
-  $('editor-nature').addEventListener('change', ev => updateManual(i, x => { x.nature = +ev.target.value; }));
-  $('editor-ability').addEventListener('change', ev => updateManual(i, x => { x.ability = +ev.target.value; }));
+  $('editor-nature')?.addEventListener('change', ev => updateManual(i, x => { x.nature = +ev.target.value; }));
+  $('editor-ability')?.addEventListener('change', ev => updateManual(i, x => { x.ability = +ev.target.value; }));
   $('editor-body').querySelectorAll('[data-move-slot]').forEach(sel => sel.addEventListener('change', () => {
     const picked = [...$('editor-body').querySelectorAll('[data-move-slot]')].map(s => +s.value).filter(Boolean);
     updateManual(i, x => { x.moves = [...new Set(picked)]; });
@@ -976,6 +1030,11 @@ function renderTeamBar() {
   sel.value = state.starter;
   $('version-opt').hidden = G.key !== 'oras';
   $('version-select').value = state.version;
+  // Was es im Spiel nicht gibt bzw. der Hub dafür nicht lesen kann: ausblenden
+  $('load-save').hidden = G.saves === false;
+  $('load-rom').hidden = G.rom === false;
+  $('weather-select').closest('label').hidden = G.weather === false;
+  document.querySelector('.list-tab[data-list="post"]').hidden = !B || !B.post.length;
   // Randomizer-ROM: Name anzeigen, entfernen
   const rd = state.rando;
   $('rando-chip').hidden = !rd;
@@ -993,7 +1052,7 @@ function manualStrip() {
   const imports = teamSources().map(([k, label]) => `<button type="button" class="chip-btn" data-import="${k}">${esc(label)}</button>`).join('');
   const note = state.manualHint
     ? `<p class="manual-note is-warn">${esc(state.manualHint)}</p>`
-    : (state.team.length ? `<p class="manual-note">${esc(t.manualNote)}</p>` : '');
+    : (state.team.length ? `<p class="manual-note">${esc(G.gen <= 2 ? t.manualNoteOld : t.manualNote)}</p>` : '');
   return chips + add + toCap + imports + note;
 }
 
@@ -1037,7 +1096,7 @@ function listEntries() {
     const q = state.search.toLowerCase();
     return Object.keys(B.trainers)
       .map(id => ({ id: +id, t: trainerOf(+id) }))
-      .filter(({ t }) => !q || `${fightTitle(t)} ${locText(t)} ${t.n} ${t.p.map(p => T().species[p[0]]).join(' ')}`.toLowerCase().includes(q))
+      .filter(({ t }) => !q || `${fightTitle(t)} ${locText(t)} ${t.n || ''} ${t.p.map(p => T().species[p[0]]).join(' ')}`.toLowerCase().includes(q))
       .sort((a, b) => capOf(a.t) - capOf(b.t) || a.id - b.id);
   }
   return (state.list === 'story' ? storyList() : postList()).map((g, i) => ({ id: groupId(g), t: trainerOf(groupId(g)), i }));
@@ -1087,16 +1146,21 @@ function renderFight() {
   const cap = capOf(tt);
   const story = storyList().findIndex(g => Object.values(g.ids).includes(id));
   const foes = tt.p.map(foeMon);
-  const me = state.team;
+  // Gen 1: deine Werte mit dem Orden-Bonus der Orden, die du vor diesem Kampf hast
+  const badges = G.gen === 1 ? badgesFor(id) : null;
+  const me = badges ? state.team.map(m => boosted(m, badges)) : state.team;
   const duels = foes.map(f => me.map(m => duel(m, f)));
   const link = mapLink(tt);
   const tag = tt.tag != null && trainerOf(tt.tag) ? `<button type="button" class="tag-link" data-fight="${tt.tag}">${esc(t.tagWith(fightTitle(trainerOf(tt.tag))))}</button>` : '';
-  const heals = tt.it.length ? `<span class="pill">${esc(t.heals)}: ${countItems(tt.it)}</span>` : '';
-  const isRival = G.key === 'pt' ? tt.c === 'RIVAL' && /_(TURTWIG|CHIMCHAR|PIPLUP)$/.test(tt.k) : /^RIVAL_/.test(tt.k);
+  // Gen 1: die Trainer-KI hat ihre Items je Pokémon (nicht je Kampf)
+  const heals = tt.it.length ? `<span class="pill">${esc(G.gen === 1 ? t.itemsPerMon : t.heals)}: ${countItems(tt.it)}</span>` : '';
+  const boostNames = badges ? BADGE_BOOST.filter(([b]) => badges[b]).map(([, idx]) => (G.gen === 1 && idx[0] === 4 ? t.special : t.stat[idx[0]])) : [];
+  const boost = boostNames.length && me.length ? `<span class="pill">${esc(t.badgeBoost(boostNames.join(', ')))}</span>` : '';
+  const isRival = tt.r || (G.key === 'pt' ? tt.c === 'RIVAL' && /_(TURTWIG|CHIMCHAR|PIPLUP)$/.test(tt.k) : /^RIVAL_/.test(tt.k));
   const rival = isRival ? `<span class="pill">${esc(t.rivalBy(T().species[starterSpecies(state.starter)]))}</span>` : '';
-  // Trainer-Sprite(s) aus dem Spiel (tools/build-sprites.py), bei Doppelkämpfen mit Partner beide
-  const sprites = [tt, tt.tag != null ? trainerOf(tt.tag) : null].filter(x => x && x.c)   // Sprites gibt es nur für Platin
-    .map((x, i) => `<img class="fight-sprite${i ? ' is-partner' : ''}" src="sprites/${x.c.toLowerCase()}.png" alt="" width="80" height="80">`).join('');
+  // Trainer-Sprite(s) aus dem Spiel (tools/build-sprites.py, Rot / Blau: build-badges-rb.py), bei Doppelkämpfen beide
+  const sprites = [tt, tt.tag != null ? trainerOf(tt.tag) : null].filter(x => x && x.c)   // ORAS hat keine
+    .map((x, i) => `<img class="fight-sprite${i ? ' is-partner' : ''}" src="${trainerSprite(x)}" alt="" width="80" height="80">`).join('');
 
   // Hinweise: Level-Cap und Treffer, die eins deiner Pokémon sofort besiegen
   // (alle zu hohen Pokémon in einer Zeile – sonst stand am Handy jedes einzeln untereinander)
@@ -1122,13 +1186,13 @@ function renderFight() {
       </div>
       <div class="cap-box"><span>${esc(t.levelCap)}</span><b>${cap}</b></div>
     </div>
-    <div class="fight-tags">${state.rando ? `<span class="pill pill-rando" title="${esc(state.rando.name)}">${esc(t.randoTag)}</span>` : ''}${tt.d ? `<span class="pill">${esc(t.double)}</span>` : ''}${tag}${heals}${rival}</div>
+    <div class="fight-tags">${state.rando ? `<span class="pill pill-rando" title="${esc(state.rando.name)}">${esc(t.randoTag)}</span>` : ''}${tt.d ? `<span class="pill">${esc(t.double)}</span>` : ''}${tag}${heals}${rival}${boost}</div>
     ${me.length ? `<div class="alerts">
         ${warnings.map(w => `<p class="alert is-cap">${esc(w)}</p>`).join('')}
         ${threats.length ? threats.map(w => `<p class="alert is-danger">${esc(w)}</p>`).join('') : `<p class="alert is-ok">✓ ${esc(t.noThreats)}</p>`}
       </div>`
-      : `<div class="no-save"><b>${esc(isManual() ? t.noTeamTitle : t.noSaveTitle)}</b><p>${esc(isManual() ? t.noTeamText : t.noSaveText)}</p>
-          <button type="button" class="btn-ghost" data-load>${esc(t.loadSave)}</button>
+      : `<div class="no-save"><b>${esc(isManual() ? t.noTeamTitle : t.noSaveTitle)}</b><p>${esc(G.saves === false ? t.noTeamTextOld : isManual() ? t.noTeamText : t.noSaveText)}</p>
+          ${G.saves === false ? '' : `<button type="button" class="btn-ghost" data-load>${esc(t.loadSave)}</button>`}
           ${isManual() ? `<button type="button" class="btn-ghost" data-add-manual>${esc(t.addMon)}</button>` : ''}</div>`}
     <div class="foe-grid">${foes.map((f, fi) => foeCard(f, tt.p[fi], duels[fi], fi)).join('')}</div>`;
 
@@ -1154,15 +1218,16 @@ function updateScene() {
     title: tt ? fightTitle(tt) : '',
     place: tt ? locText(tt) : '',
     cap: tt ? capOf(tt) : null,
-    sprite: tt && tt.c ? `sprites/${tt.c.toLowerCase()}.png` : null,
+    sprite: trainerSprite(tt),
     party: foes.length,
     ace: ace && { species: ace.species, form: ace.form, name: ace.name, type: ace.types[0] },
     game: G.key, spriteDir: bigDir(), spriteFallback: G.key === 'oras' ? gameSpr() : null, formSprites: PT.formSprites || null,
     leaders: badgeLeaders().map((key, i) => {
       const g = storyList().find(x => x.key === key), lid = g ? groupId(g) : null, lt = lid != null ? trainerOf(lid) : null;
       const name = !lt ? '' : lt.nd ? (isEn() ? lt.ne : lt.nd) : TrainerClasses.trainerName(lt.n, isEn());
-      return { id: lid, name, sprite: lt && lt.c ? `sprites/${lt.c.toLowerCase()}.png` : null, earned: badges ? !!badges[i] : null };
+      return { id: lid, name, sprite: trainerSprite(lt), earned: badges ? !!badges[i] : null };
     }),
+    canSave: G.saves !== false,
     next: ni >= 0 && storyList()[ni] ? groupId(storyList()[ni]) : null,
     pick: fid => selectFight(fid),
   });
@@ -1176,7 +1241,10 @@ function countItems(ids) {
 function foeCard(f, raw, row, fi) {
   const t = tr();
   const s = f.stats;
-  const order = [0, 1, 2, 4, 5, 3]; // KP, Ang, Vert, SpAng, SpVert, Init
+  // KP, Ang, Vert, SpAng, SpVert, Init – Gen 1 hat einen Spezial-Wert; vor Gen 3 keine Fähigkeit und kein Wesen
+  const old = G.gen <= 2;
+  const order = G.gen === 1 ? [0, 1, 2, 4, 3] : [0, 1, 2, 4, 5, 3];
+  const statLabel = i => (G.gen === 1 && i === 4 ? t.special : t.stat[i]);
   // Beste Antwort: gewinnt das Duell und steckt am wenigsten ein
   const rank = { win: 0, trade: 1, lose: 2 };
   const best = row.length ? row.reduce((a, b) => (rank[b.verdict] < rank[a.verdict]
@@ -1191,12 +1259,12 @@ function foeCard(f, raw, row, fi) {
         </div>
       </div>
       <dl class="foe-info">
-        <dt>${esc(t.ability)}</dt><dd>${esc(T().abilities[f.ability] || '—')}</dd>
-        <dt>${esc(t.item)}</dt><dd>${f.item ? `${itemImg(f.item)}${esc(T().items[f.item])}` : esc(t.noItem)}</dd>
-        <dt>${esc(t.nature)}</dt><dd>${esc(natureText(f.nature))}</dd>
+        ${old ? '' : `<dt>${esc(t.ability)}</dt><dd>${esc(T().abilities[f.ability] || '—')}</dd>`}
+        ${G.gen === 1 ? '' : `<dt>${esc(t.item)}</dt><dd>${f.item ? `${itemImg(f.item)}${esc(T().items[f.item])}` : esc(t.noItem)}</dd>`}
+        ${old ? '' : `<dt>${esc(t.nature)}</dt><dd>${esc(natureText(f.nature))}</dd>`}
         <dt>${esc(t.ivs)}</dt><dd>${f.ivs.every(v => v === f.ivs[0]) ? f.ivs[0] : order.map(i => f.ivs[i]).join(' / ')}</dd>
       </dl>
-      <div class="stat-grid">${order.map(i => `<span><small>${esc(t.stat[i])}</small><b>${s[i]}</b></span>`).join('')}</div>
+      <div class="stat-grid${order.length === 5 ? ' is-5' : ''}">${order.map(i => `<span><small>${esc(statLabel(i))}</small><b>${s[i]}</b></span>`).join('')}</div>
       <ul class="move-list">${f.moves.map(mid => moveRow(mid)).join('')}</ul>
       ${row.length ? `<div class="vs">
         <div class="vs-title">${esc(t.vsTeam)}</div>
@@ -1238,7 +1306,7 @@ function duelDetails(d) {
       <span class="type mini" style="--c:${TYPE_HEX[r.type]}">${esc(T().types[r.type])}</span>
       <span class="mv-name">${esc(moveName(r.mid))}${r.hits ? ` <small>${esc(t.hits(Math.min(...Object.keys(r.hits).map(Number)), Math.max(...Object.keys(r.hits).map(Number))))}</small>` : ''}</span>
       <span class="mv-res"><b>${rangeText(r)}</b> ${verdictText(r)}</span>
-      ${r.kind === 'dmg' && r.critRolls ? `<span class="mv-crit">${esc(t.crit(`${pct(Math.min(100, r.critRolls[0] / def.stats[0] * 100))}–${pct(Math.min(100, r.critRolls[15] / def.stats[0] * 100))} %`))}${(() => { const c = koCurve(r, def.stats[0], true)[0]; return c > r.curve[0] + 0.005 ? ` · ${esc(t.critKo(pct(c * 100)))}` : ''; })()}</span>` : ''}
+      ${r.kind === 'dmg' && r.critRolls ? `<span class="mv-crit">${esc(t.crit(`${pct(Math.min(100, r.critRolls[0] / def.stats[0] * 100))}–${pct(Math.min(100, r.critRolls[r.critRolls.length - 1] / def.stats[0] * 100))} %`))}${(() => { const c = koCurve(r, def.stats[0], true)[0]; return c > r.curve[0] + 0.005 ? ` · ${esc(t.critKo(pct(c * 100)))}` : ''; })()}</span>` : ''}
       ${r.notes.length ? `<span class="mv-notes">${r.notes.map(esc).join(' · ')}</span>` : ''}
     </li>`).join('');
   return `<div class="duel-details">
@@ -1305,9 +1373,9 @@ function applyLang() {
   $('lang-toggle').textContent = window.LANG.toUpperCase();
   // Spiel im Titel, Fußnote je Spiel
   const badge = document.querySelector('.game-badge');
-  if (badge) badge.textContent = HubSave.get(G.key).name[isEn() ? 'en' : 'de'];
+  if (badge) badge.textContent = (G.name || HubSave.get(G.key).name)[isEn() ? 'en' : 'de'];
   const foot = document.querySelector('[data-i18n="footNote"]');
-  if (foot && G.key === 'oras') foot.textContent = t.footNoteOras;
+  if (foot && G.foot) foot.textContent = t[G.foot];
   // Team neu benennen (Artnamen hängen an der Sprache)
   const sv = isManual() ? null : currentSave();
   if (sv) {
@@ -1325,6 +1393,8 @@ async function init() {
     const r = await fetch(G.file);
     if (!r.ok) throw new Error(r.status);
     B = await r.json();
+    // Rot / Blau: Gen-1-Werte der Pokémon und Attacken aus bosses-rb.json, Namen aus dem Spiel davor
+    PT = B.personal ? { ...G.data(), personal: B.personal, moveInfo: B.moveInfo } : G.data();
   } catch (e) {
     $('fight').innerHTML = `<p class="alert is-danger">${esc(tr().loadError)}</p>`;
     return;
@@ -1340,6 +1410,7 @@ async function switchGame() {
   PT = G.data();
   B = null;
   Object.assign(state, { fight: null, list: 'story', team: [], saves: [], save: 0, starter: localStorage.getItem(G.starterKey) || G.starters[0], rando: loadRando() });
+  if (G.weather === false) { state.weather = ''; $('weather-select').value = ''; }
   history.replaceState(null, '', location.pathname + location.search);
   await init();
 }

@@ -29,7 +29,8 @@ function contentFiles() {
   try {
     return execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
       cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
-    }).split('\0').filter(Boolean).filter(file => !SKIP.test(file)).sort();
+    }).split('\0').filter(Boolean).filter(file => !SKIP.test(file))
+      .filter(file => fs.existsSync(path.join(ROOT, file))).sort();   // gelöscht, aber noch nicht committet: nicht mitzählen
   } catch (_error) {
     return walk(ROOT).sort();
   }

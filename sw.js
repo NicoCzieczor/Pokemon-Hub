@@ -18,9 +18,9 @@
  * und zählt dabei VERSION hoch (tests/sw-version.test.cjs prüft das). Die vorderen Stellen von VERSION dürfen
  * von Hand angehoben werden. Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = '0.1.64';            // steht unten auf der Startseite
-const CONTENT = 'dc6d61e912';       // ändert sich mit jeder Datei → neue Version für alle Geräte
-const TILE_VERSION = 't17';
+const VERSION = '0.1.81';            // steht unten auf der Startseite
+const CONTENT = '44c185f218';       // ändert sich mit jeder Datei → neue Version für alle Geräte
+const TILE_VERSION = 't21';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
 const API_CACHE = `${PREFIX}api`;
@@ -171,6 +171,7 @@ const PRECACHE = [
   './Bosse/oras-rom.js',
   './Randomizer/cxi-build.js',
   './Bosse/bosses-oras.json',
+  './Bosse/bosses-rb.json',
   './Karte/tiles/index.json',
   './Karte/tiles/interiors.json',
   './Karte/tiles/sea.png',
@@ -205,8 +206,10 @@ const PRECACHE = [
   './Karte/tiles-unova-b2w2/index.json',
   './Karte/tiles-unova-b2w2/0/0_0.webp',
   './Karte/tiles-frlg/index.json',
+  './Karte/tiles-frlg/interiors.json',
   './Karte/tiles-frlg/0/0_0.webp',
   './Karte/tiles-kalos-xy/index.json',
+  './Karte/tiles-kalos-xy/sea.png',
   './Karte/tiles-kalos-xy/0/0_0.webp',
   './Karte/tiles-alola-sm/index.json',
   './Karte/tiles-alola-sm/0/0_0.webp',
@@ -236,10 +239,10 @@ const PRECACHE = [
   './Randomizer/app.js',
   './Randomizer/slots.css',
   './Randomizer/slots.js',
+  './Randomizer/slot-sound.js',
   './Randomizer/rnqs.js',
   './Randomizer/options.js',
   './Randomizer/editor.js',
-  './Randomizer/settings.rnqs',
 ];
 
 // Kleine Bilder der Startseiten (PC und Handy): Item-Sprites der Knöpfe, zufällige Bälle und Typ-Etiketten,

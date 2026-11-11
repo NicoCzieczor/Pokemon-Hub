@@ -134,11 +134,6 @@
 .rs-group h3 { margin: 0 0 4px; font-size: 0.92rem; font-weight: 800; color: rgb(var(--t-white)); }
 .rs-hint { color: var(--color-muted); font-size: 0.8rem; margin-bottom: 4px; }
 .rs-item { position: relative; }
-/* Punkt am Rand: weicht vom Standard ab */
-.rs-item.is-changed::before {
-  content: ''; position: absolute; left: -10px; top: 13px;
-  width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent-strong);
-}
 .rs-radios { display: grid; }
 .rs-opt { display: flex; align-items: flex-start; gap: 10px; padding: 6px 4px; border-radius: 10px; cursor: pointer; }
 .rs-opt:hover { background: rgba(var(--t-ink), 0.04); }

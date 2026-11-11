@@ -12,6 +12,14 @@
  * Xeneroville passt nicht in den Krater (Route 126 zeigt ihn von außen, wie im Spiel), von der Liga nur das Plateau.
  * Große, rein schwarz gefärbte Flächen (Rückseiten, Abdeckungen) fallen weg; Schattenkarten liegen über ihr Alpha.
  *
+ * Das offene Meer (chip_sea…): Das Spiel färbt es über die Vertexfarben – hell auf der befahrbaren Route, dunkel zur
+ * Ferne. Deckend gezeichnet stünden dunkle Kästen und Zacken im Kartenmeer. Hier wird die Helligkeit zur Deckkraft:
+ * dunkles und Kulissen-Meer bleibt durchsichtig (die Karte zeigt dort ihr Meermuster), dazu je Block eine Maske
+ * sea_<Zeile>_<Spalte>.png (Rot = Meer einer Route, Grün = Kulissenmeer), mit der fill-oras.py die Deckkraft glättet.
+ * Meeresboden knapp unter dem Wasserspiegel verdeckt das Wasser immer (auch wenn es dort nur als Kulisse zählt).
+ * Orte ohne Fläche und ohne direkte Tür: Eingang über bis zu drei Innengebiete (Schlotberg, Safari-Zone) oder von Hand
+ * (Xeneroville im Krater, Tauchstellen). Zum Prüfen: --only=Zeile:Spalte,… und --probe=x,y;… (siehe unten).
+ *
  * Formate (nach Ohana3DS / SPICA / pk3DS): GARC, LZ11, BCH (Relokation, Modelle, Materialien, Texturen, PICA200-
  * Befehle für Vertex- und Indexpuffer), Texturen in 8×8-Kacheln (Z-Reihenfolge, ETC1/ETC1A4 und die übrigen PICA-
  * Formate), Zonen (a/0/1/3: Kopf 0x38 Byte, Objekte mit Warps), Matrizen (Blocknummern, Zonenraster 4 × 4 je Block).
@@ -33,14 +41,16 @@ const path = require('path');
 const zlib = require('zlib');
 const OrasRom = require('../../Bosse/oras-rom.js');
 
-const argv = process.argv.slice(2);
+// Als Programm: rendert; mit require(): nur die Bausteine (BCH, Texturen, Rasterizer, RomFS) – genutzt von render-xy.js
+const MAIN = require.main === module;
+const argv = MAIN ? process.argv.slice(2) : [];
 const opts = Object.fromEntries(argv.filter(a => a.startsWith('--')).map(a => { const [k, v] = a.slice(2).split('='); return [k, v ?? '1']; }));
 const [ROM, outArg] = argv.filter(a => !a.startsWith('--'));
-if (!ROM || !outArg) { console.error('Aufruf: node render-oras.js <rom.3ds|.cxi> <render-ordner> [--xy] [--places=<datei>]'); process.exit(1); }
-const IS_XY = !!opts.xy;
-const OUT = path.resolve(outArg);
-const PLACES = path.resolve(opts.places || path.join(__dirname, '..', IS_XY ? 'tiles-kalos-xy' : 'tiles-oras', 'places.json'));
-fs.mkdirSync(OUT, { recursive: true });
+if (MAIN && (!ROM || !outArg)) { console.error('Aufruf: node render-oras.js <rom.3ds|.cxi> <render-ordner> [--xy] [--places=<datei>]'); process.exit(1); }
+let IS_XY = !!opts.xy;
+const OUT = MAIN ? path.resolve(outArg) : null;
+const PLACES = MAIN ? path.resolve(opts.places || path.join(__dirname, '..', IS_XY ? 'tiles-kalos-xy' : 'tiles-oras', 'places.json')) : null;
+if (MAIN) fs.mkdirSync(OUT, { recursive: true });
 
 const PX = 16, TILE = 18, BLOCK = 32, REG = 4, SS = 2;      // Pixel je Kachel, Welteinheiten je Kachel, Blockgröße, Regionen, Supersampling
 const SHEAR = 0.6, PITCH = Math.atan2(1, SHEAR);            // wie bei Platin
@@ -249,7 +259,8 @@ function meshes(B, M) {
 }
 
 /* ── Rasterizer: bis zu drei Texturen (Basis, Maske + zweite, Schattentextur), Vorrang, Z-Puffer ── */
-function makeTarget(w, h) { return { w, h, px: new Float32Array(w * h * 4), z: new Float32Array(w * h).fill(-Infinity), pr: new Int8Array(w * h).fill(-1) }; }
+function makeTarget(w, h) { return { w, h, px: new Float32Array(w * h * 4), z: new Float32Array(w * h).fill(-Infinity), pr: new Int8Array(w * h).fill(-1),
+    wz: new Float32Array(w * h).fill(-Infinity), sea: new Uint8Array(w * h) }; }   // wz: höchster Wasserspiegel, sea: Pixel zeigt offenes Meer
 const wrapC = (i, n, mode) => mode === 2 ? ((i % n) + n) % n : mode === 3 ? (m => m < n ? m : 2 * n - 1 - m)(((i % (2 * n)) + 2 * n) % (2 * n)) : i < 0 ? 0 : i >= n ? n - 1 : i;
 function sample(T, u, v, lod, ws, wt, out) {
   const L = T.lv[Math.max(0, Math.min(T.lv.length - 1, lod | 0))];
@@ -263,6 +274,7 @@ function lodOf(T, UV, area) {
   return Math.max(0, 0.5 * Math.log2(Math.abs(du1 * dv2 - dv1 * du2) / Math.abs(area) || 1));
 }
 const S0 = [0, 0, 0, 0], S1 = [0, 0, 0, 0], S2 = [0, 0, 0, 0];
+const SEA_Y = -27;                 // Meeresspiegel in den Kartenblöcken von Hoenn
 const DEEP = [0.19, 0.44, 0.71];   // Ton des offenen Meeres (fill-oras.py färbt sea.png genauso)
 // P: Bildpunkte (x, y, Tiefe), L: Ebenen { tex, uv, ws, wt, op }, C: Farben. opt: { blend, mul, opaque, alphaTest, prio, zBias }
 function drawTri(tg, P, L, C, opt) {
@@ -272,7 +284,8 @@ function drawTri(tg, P, L, C, opt) {
   const minX = Math.max(0, Math.floor(Math.min(ax, bx, cx))), maxX = Math.min(tg.w - 1, Math.ceil(Math.max(ax, bx, cx)));
   const minY = Math.max(0, Math.floor(Math.min(ay, by, cy))), maxY = Math.min(tg.h - 1, Math.ceil(Math.max(ay, by, cy)));
   if (minX > maxX || minY > maxY) return;
-  const inv = 1 / area, { px, z, pr, w } = tg, prio = opt.prio | 0;
+  const inv = 1 / area, { px, z, pr, w } = tg, PP = opt.prioPix, Wd = opt.W;
+  let prio = opt.prio | 0;
   const pick = op => { const l = L.find(q => q.op === op && q.tex); return l ? { l, lod: lodOf(l.tex, l.uv, area) } : null; };
   const base = pick('base'), mask = pick('mask'), over = pick('over'), mul = pick('mul');
   const uvAt = (l, w0, w1, w2) => [w0 * l.uv[0][0] + w1 * l.uv[1][0] + w2 * l.uv[2][0], w0 * l.uv[0][1] + w1 * l.uv[1][1] + w2 * l.uv[2][1]];
@@ -283,9 +296,22 @@ function drawTri(tg, P, L, C, opt) {
       const w0 = ((bx - pxx) * (cy - py) - (by - py) * (cx - pxx)) * inv, w1 = ((cx - pxx) * (ay - py) - (cy - py) * (ax - pxx)) * inv, w2 = 1 - w0 - w1;
       if (w0 < -1e-6 || w1 < -1e-6 || w2 < -1e-6) continue;
       const i = y * w + x;
-      if (prio < pr[i]) continue;
+      // Rang je Bildpunkt (Hoenn): große Dreiecke reichen über Gebietsgrenzen – je Dreieck entschieden gäbe das Zacken
+      if (PP) { prio = PP(w0 * Wd[0][0] + w1 * Wd[1][0] + w2 * Wd[2][0], w0 * Wd[0][1] + w1 * Wd[1][1] + w2 * Wd[2][1]); if (prio < 0 || (prio === 0 && opt.cut0)) continue; }
       const depth = w0 * az + w1 * bz + w2 * cz;
-      if (prio === pr[i] && depth < z[i] - opt.zBias) continue;
+      if (opt.seaFade && !opt.pix) {
+        // Hoenn (nur ohne Rang je Bildpunkt – dort zeichnet je Stelle ohnehin nur ein Gebiet; Wasser einer höher liegenden
+        // Nachbar-Matrix fraß sonst Hänge an, etwa am Pyroberg): Meeresboden (Sand, Unterwasserfels) liegt knapp unter dem Wasserspiegel. Zählt sein Wasser dort nur als
+        // Kulisse (großes Dreieck, Schwerpunkt außerhalb der eigenen Fläche), stünde der Boden als Keil im Meer – was
+        // knapp unter Wasser liegt, verdeckt das Wasser unabhängig vom Rang
+        if (opt.opaque) { if (depth > tg.wz[i]) tg.wz[i] = depth; }
+        else if (!opt.blend && tg.wz[i] > depth + 0.5 && tg.wz[i] < depth + 20) continue;
+      }
+      if (prio < pr[i]) { if (opt.pix || !(opt.seaFade && opt.opaque && !tg.sea[i] && depth > z[i] + 0.5 && depth < z[i] + 20)) continue; }
+      else if (prio === pr[i] && depth < z[i] - opt.zBias) continue;
+      const vr = w0 * C[0][0] + w1 * C[1][0] + w2 * C[2][0], vb = w0 * C[0][2] + w1 * C[1][2] + w2 * C[2][2];
+      // Irrwald (X/Y Route 20): Boden und Bäume laufen über die Vertexfarbe ins Schwarze aus – dort nichts zeichnen
+      if (opt.darkCut && (vr + vb) * 0.5 < opt.darkCut) continue;
       let r = w0 * C[0][0] + w1 * C[1][0] + w2 * C[2][0], g = w0 * C[0][1] + w1 * C[1][1] + w2 * C[2][1];
       let bl = w0 * C[0][2] + w1 * C[1][2] + w2 * C[2][2], a = w0 * C[0][3] + w1 * C[1][3] + w2 * C[2][3];
       const va = a;
@@ -315,27 +341,82 @@ function drawTri(tg, P, L, C, opt) {
           sample(S.T, u - Math.floor(u), v - Math.floor(v), S.lod, 2, 2, S2);
           sr = S2[0] * S.k[0]; sg = S2[1] * S.k[1]; sb = S2[2] * S.k[2];
         }
+        if (opt.seaFade && opt.seaMat) {
+          // Offenes Meer: Die Textur ist fast weiß, die Farbe steckt in den Vertexfarben – hell (Blau ≥ 0,83) auf der
+          // befahrbaren Route, zur Ferne hin dunkel (Blau ≤ 0,63). Als deckende Fläche gäbe das dunkle Kästen und Zacken
+          // im Kartenmeer. Deshalb: Kulisse gar nicht (durchsichtig, die Karte zeigt ihr Meermuster), eigenes Meer mit
+          // Deckkraft nach der Vertexfarbe; fill-oras.py glättet die Deckkraft (Maske tg.sea). Rein weiße Vertexfarben
+          // (ein Stück neben Metarost) sind kein Meer, sondern ein Versehen im Modell
+          let f = prio === 0 || vr > 0.6 ? 0 : Math.max(0, Math.min(1, (vb - 0.65) / 0.17));
+          f = f * f * (3 - 2 * f);
+          if (va < 0.999) {
+            const k = Math.max(0, va);
+            // flaches Wasser über dem Boden (Sand scheint durch): Boden zählt als deckend
+            if (pr[i] >= 0 && px[o + 3] > 0.5 && !tg.sea[i]) { r = px[o] * (1 - k) + r * k; g = px[o + 1] * (1 - k) + g * k; bl = px[o + 2] * (1 - k) + bl * k; f = 1 - k * (1 - f); }
+            else f *= k;
+          }
+          if (f <= 0.004) f = 0;   // Farbe bleibt die des Wassers: fill-oras.py hebt die Deckkraft beim Glätten wieder an
+          px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = f; z[i] = depth; pr[i] = prio; tg.sea[i] = prio === 0 ? 1 : 2;   // 1 = Kulissenmeer, 2 = eigenes Meer
+          continue;
+        }
         if (prio === 0 && S) { r = sr; g = sg; bl = sb; }
         else if (va < 0.999) {
           const k = Math.max(0, va), under = pr[i] >= 0;
           r = (under ? px[o] : sr) * (1 - k) + r * k; g = (under ? px[o + 1] : sg) * (1 - k) + g * k; bl = (under ? px[o + 2] : sb) * (1 - k) + bl * k;
         }
-        px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = 1; z[i] = depth; pr[i] = prio;
+        px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = 1; z[i] = depth; pr[i] = prio; tg.sea[i] = 0;
         continue;
       }
       if (opt.alphaTest != null && a < opt.alphaTest) continue;
       if (opt.blend) {
         if (a <= 0.004) continue;
         a = Math.min(1, a);
+        // Schatten nur auf Gezeichnetem – über nichts bliebe ein dunkler, halb durchsichtiger Fleck
+        if (opt.shadow && px[o + 3] < 0.5) continue;
+        // X/Y, über nichts: halb Durchsichtiges (Nebel, Bodenplatten, dunkle Uferränder), Glitzern und Wellenlinien ohne ihr Wasser
+        // weglassen, Deckendes (Laubränder) in seiner eigenen Farbe – gemischt mit dem leeren Schwarz würde es dunkel
+        // X/Y-Meer ohne Grund darunter (der dunkle Meeresgrund wird nicht gezeichnet): mit seiner eigenen Deckkraft
+        // (vormultipliziert, wie die Kantenpixel) – es läuft so zum Rand hin ins Kartenmeer aus, statt dunkel zu enden
+        if (opt.seaXY && (px[o + 3] < 0.5 || tg.sea[i])) {
+          // nur das Meer der eigenen Fläche; zur Ferne hin dunkelt das Spiel es über die Vertexfarbe ab – dort ausblenden
+          if (prio < 1) continue;
+          const f = Math.max(0, Math.min(1, (vb - 0.55) / 0.28));
+          a *= f * f * (3 - 2 * f);
+          if (a <= 0.004) continue;
+          const A = tg.sea[i] ? px[o + 3] : 0;
+          if (!tg.sea[i]) { px[o] = px[o + 1] = px[o + 2] = 0; tg.sea[i] = 3; }
+          px[o] = px[o] * (1 - a) + r * a; px[o + 1] = px[o + 1] * (1 - a) + g * a; px[o + 2] = px[o + 2] * (1 - a) + bl * a;
+          px[o + 3] = A + a * (1 - A);
+          continue;
+        }
+        if (opt.overNothing && px[o + 3] < 0.5) {
+          if (a < 0.9 || opt.glint) continue;
+          px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = a;
+          continue;
+        }
         if (opt.mul) { px[o] *= 1 - a + a * r; px[o + 1] *= 1 - a + a * g; px[o + 2] *= 1 - a + a * bl; continue; }   // Schatten ohne Alpha
         px[o] = px[o] * (1 - a) + r * a; px[o + 1] = px[o + 1] * (1 - a) + g * a; px[o + 2] = px[o + 2] * (1 - a) + bl * a;
         px[o + 3] = Math.max(px[o + 3], a);
-      } else { px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = 1; z[i] = depth; pr[i] = prio; }
+      } else { px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = 1; z[i] = depth; pr[i] = prio; tg.sea[i] = 0; }
     }
   }
 }
-function toRGBA8(tg, ss) {
+// straight: Farbe nach Deckkraft gewichtet mitteln (sonst mischt sich an Rändern das leere Schwarz hinein → dunkle Säume)
+function toRGBA8(tg, ss, straight) {
   const w = tg.w / ss | 0, h = tg.h / ss | 0, out = new Uint8Array(w * h * 4);
+  if (straight) {
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let a = 0, r = 0, g = 0, b = 0;
+      for (let j = 0; j < ss; j++) for (let i = 0; i < ss; i++) { const o = ((y * ss + j) * tg.w + x * ss + i) * 4, q = Math.max(0, Math.min(1, tg.px[o + 3])); a += q; r += tg.px[o] * q; g += tg.px[o + 1] * q; b += tg.px[o + 2] * q; }
+      const o = (y * w + x) * 4, c = v => Math.round(Math.max(0, Math.min(1, v / a)) * 255);
+      if (a <= 0) {   // ganz durchsichtig: Farbe trotzdem mitgeben (durchsichtiges Meer wird beim Glätten wieder sichtbar)
+        for (let k = 0; k < 3; k++) { let v = 0; for (let j = 0; j < ss; j++) for (let i = 0; i < ss; i++) v += tg.px[((y * ss + j) * tg.w + x * ss + i) * 4 + k]; out[o + k] = Math.round(Math.max(0, Math.min(1, v / (ss * ss))) * 255); }
+        continue;
+      }
+      out[o] = c(r); out[o + 1] = c(g); out[o + 2] = c(b); out[o + 3] = Math.round(a / (ss * ss) * 255);
+    }
+    return { w, h, px: out };
+  }
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) {
     let s = 0;
     for (let j = 0; j < ss; j++) for (let i = 0; i < ss; i++) s += tg.px[((y * ss + j) * tg.w + x * ss + i) * 4 + c];
@@ -357,10 +438,15 @@ function png(w, h, rgba) {
 
 /* ── Materialien → Ebenen; Kulissen weglassen, Wasser deckend ──────────────────────────────── */
 // Fernsicht, Himmel, Rauch, Nebel, Wind, Lichtschein, Spiegelungen: für die Spielkamera gemacht, von oben störend
+// forest_shadow: schwarze Schattenflächen der Irrwälder von Kalos (Route 20) – von oben schwarze Zacken
 // r112_mountain / t104gym_a02: der Schlotberg als Fernsicht von Route 112 (bis 1000 Einheiten hoch) – würde über Route 111 liegen
-const SKIP = /enkei|sora|kemuri|fog|fargake|farwood|farhouse|chip_wind|kaze|hikari|lightglow|light_eff|lightef|hi_light|hilight|skyref|r108_white|r112_mountain|t104gym_a02/i;
+// komore (Komorebi): Lichtflecken unter Bäumen – von oben dunkle, zerrissene Flecken (Route 104 am Blütenburgwald)
+const SKIP = /enkei|sora|kemuri|fog|fargake|farwood|farhouse|chip_wind|kaze|hikari|lightglow|light_eff|lightef|hi_light|hilight|skyref|r108_white|r112_mountain|t104gym_a02|forest_shadow|komore/i;
 const MASK = /_al\d*$|_al0|alpha|tunagi|tsunagi/i;           // „tsunagi“ (Übergang): Basis / Maske / zweite Textur
 const WATER = /water|river|mizu|pool|chip_sea|enkei_sea|umi_/i;
+const SEA_MAT = /chip_sea/i;
+// Hoenn, nur als Kulisse weglassen: die kahle Hochfläche über Route 114 (ein sandfarbenes Rechteck neben der Route)
+const SCENE_SKIP = /^r114_gake_top$/;   // das offene Meer (chip_sea_b, r124_chip_sea_b1, f_chip_sea_b …)
 function matLayers(B, mat, uvs) {
   const unit = (k, set) => {
     const prm = mat.texReg.get([0x83, 0x93, 0x9b][k]) || 0x2220, c = mat.params + 0xc + k * 0x18;
@@ -372,45 +458,140 @@ function matLayers(B, mat, uvs) {
   if (ks.length >= 2 && /shadow|kage/i.test(mat.tex[ks[1]])) return [{ ...unit(ks[0], 0), op: 'base' }, { ...unit(ks[1], 1), op: 'mul' }];
   return [{ ...unit(ks[0], 0), op: 'base' }];
 }
-// view: { S, x0, z0 }; o: { ox, oy, oz (Weltlage des Blockmittelpunkts), prioAt(xWelt, zWelt), strict, only }
+// view: { S, x0, z0 }; o: { ox, oy, oz (Weltlage des Blockmittelpunkts), prioAt(xWelt, zWelt), strict, only, skip, sceneSkip }
 // Einzelne Ausreißer je Matrix: Metarost (4) – eine Treppen-Ebene des Hafens liegt 1300 Einheiten draußen im Meer;
 // Routen 132–134 (12) – die fast weiße Grundfläche unter den Strömungen (die Schlieren liegen dann über dem Meer)
-const SKIP_IN = { 4: /^chip_steps01a1$/, 12: /^r_Comb2$/ };
+// Moosbach (10) – lambert1: dunkelblaue, halb durchsichtige Platten über dem Meer nördlich der Stadt
+const CULL_IN = {};
+const SKIP_IN = { 4: /^chip_steps01a1$/, 12: /^r_Comb2$/, 10: /^lambert1$/ };
+// Zusammenhängende Teile eines Netzes (Bäume, Häuser, Felsen, Schilder …): Eckpunkte an gleicher Stelle gelten als einer.
+// Je Dreieck die Nummer seines Teils; je Teil die Mitte seiner Grundfläche und ob er klein und aufragend ist (höchstens
+// 8 × 8 Kacheln, mindestens eine halbe Kachel hoch) – solche Teile zeichnet Hoenn ganz oder gar nicht (Rang nach ihrer
+// Mitte), statt sie an einer Gebietsgrenze zu zerschneiden (halbe Bäume am Waldrand).
+const partCache = new WeakMap();
+function meshParts(model, mi, m) {
+  let list = partCache.get(model); if (!list) partCache.set(model, list = []);
+  if (list[mi]) return list[mi];
+  const nv = m.pos.length / 3, par = new Int32Array(nv), seen = new Map();
+  for (let v = 0; v < nv; v++) {
+    const k = Math.round(m.pos[v * 3] * 2) + ',' + Math.round(m.pos[v * 3 + 1] * 2) + ',' + Math.round(m.pos[v * 3 + 2] * 2);
+    const w = seen.get(k); if (w === undefined) { seen.set(k, v); par[v] = v; } else par[v] = w;
+  }
+  const find = v => { while (par[v] !== v) { par[v] = par[par[v]]; v = par[v]; } return v; };
+  let nt = 0;
+  for (const f of m.faces) for (let i = 0; i + 2 < f.idx.length; i += 3) { nt++; const a = find(f.idx[i]), b = find(f.idx[i + 1]); if (b !== a) par[b] = a; const c = find(f.idx[i + 2]); if (c !== a) par[c] = a; }
+  const of = new Int32Array(nt), id = new Map(), box = [];
+  let t = 0;
+  for (const f of m.faces) for (let i = 0; i + 2 < f.idx.length; i += 3) {
+    const r = find(f.idx[i]); let k = id.get(r);
+    if (k === undefined) { id.set(r, k = box.length); box.push([Infinity, -Infinity, Infinity, -Infinity, Infinity, -Infinity]); }
+    const bx = box[k];
+    for (let j = 0; j < 3; j++) { const v = f.idx[i + j] * 3, x = m.pos[v], y = m.pos[v + 1], z = m.pos[v + 2]; if (x < bx[0]) bx[0] = x; if (x > bx[1]) bx[1] = x; if (y < bx[2]) bx[2] = y; if (y > bx[3]) bx[3] = y; if (z < bx[4]) bx[4] = z; if (z > bx[5]) bx[5] = z; }
+    of[t++] = k;
+  }
+  // Teile, die sich berühren (ein Baum besteht aus mehreren Schalen und Hälften), gehören zusammen – solange das Ganze
+  // klein bleibt (höchstens 6 × 6 Kacheln; im dichten Wald entstehen so Grüppchen aus ein, zwei Bäumen)
+  const LIM = 6 * TILE, grp = box.map((_, i) => i), gbox = box.map(b => b.slice()), cells = new Map();
+  const root = i => { while (grp[i] !== i) { grp[i] = grp[grp[i]]; i = grp[i]; } return i; };
+  const small = b => b[1] - b[0] <= LIM && b[5] - b[4] <= LIM;
+  box.forEach((b, i) => {
+    if (!small(b)) return;
+    for (let cz = Math.floor(b[4] / TILE); cz <= Math.floor(b[5] / TILE); cz++) for (let cx = Math.floor(b[0] / TILE); cx <= Math.floor(b[1] / TILE); cx++) {
+      const k = cx + ',' + cz, l = cells.get(k);
+      if (!l) { cells.set(k, [i]); continue; }
+      for (const j of l) {
+        const a = root(i), c = root(j); if (a === c) continue;
+        const p = box[i], q = box[j];
+        if (p[0] > q[1] + 1 || q[0] > p[1] + 1 || p[2] > q[3] + 1 || q[2] > p[3] + 1 || p[4] > q[5] + 1 || q[4] > p[5] + 1) continue;
+        const A = gbox[a], C = gbox[c], m2 = [Math.min(A[0], C[0]), Math.max(A[1], C[1]), Math.min(A[2], C[2]), Math.max(A[3], C[3]), Math.min(A[4], C[4]), Math.max(A[5], C[5])];
+        if (!small(m2)) continue;
+        grp[c] = a; gbox[a] = m2;
+      }
+      l.push(i);
+    }
+  });
+  for (let k = 0; k < of.length; k++) of[k] = root(of[k]);
+  const whole = gbox.map((b, i) => grp[i] === i && small(b) && b[3] - b[2] >= TILE / 2);
+  return list[mi] = { of, whole, mid: gbox.map(b => [(b[0] + b[1]) / 2, b[2], (b[4] + b[5]) / 2]) };
+}
 function renderModel(tg, B, model, tex, view, o = {}) {
   const items = [];
+  let meshNo = -1;
   for (const m of meshes(B, model)) {
+    meshNo++;
     if (SKIP.test(m.mat.name) || m.mat.tex.some(n => n && SKIP.test(n))) continue;
     if (o.matrix != null && SKIP_IN[o.matrix] && SKIP_IN[o.matrix].test(m.mat.name)) continue;
+    // Hoenn: „lambert1“ ohne Textur ist Mayas Standardmaterial – weiße Platten in Türen und Höhleneingängen (Pyroberg).
+    // Schwarz färben: kleine bleiben als dunkle Öffnung, große fallen als schwarze Abdeckung weg (siehe unten)
+    if (o.prioPix && m.mat.name === 'lambert1' && !m.mat.tex.some(n => n && n !== 'projection_dummy')) for (let i = 0; i < m.col.length; i += 4) m.col[i] = m.col[i + 1] = m.col[i + 2] = 0.02;
     if (o.only && !o.only.test(m.mat.name)) continue;
+    if (o.skip && o.skip.test(m.mat.name)) continue;
     const layers = matLayers(B, m.mat, m.uvs).map(l => ({ ...l, tex: tex[l.name] || null }));
     const bt = layers[0] && layers[0].tex;
     const water = WATER.test(m.mat.name) || m.mat.tex.some(n => n && WATER.test(n));
     const blend = !water && (/shadow|kage/i.test(m.mat.name) || !!(bt && bt.alpha && !layers.some(l => l.op === 'mask')));
     // Vertexfarben durchweg fast schwarz (z. B. hohes Gras: dort steckt etwas anderes darin als Farbe) → nur die Textur
-    if (!/shadow|kage/i.test(m.mat.name)) {
+    if (!/shadow|kage/i.test(m.mat.name) && !(o.prioPix && m.mat.name === 'lambert1')) {
       let s = 0; for (let i = 0; i < m.col.length; i += 4) s += m.col[i] + m.col[i + 1] + m.col[i + 2];
       if (s / (m.col.length / 4) < 0.15) for (let i = 0; i < m.col.length; i += 4) { m.col[i] = m.col[i + 1] = m.col[i + 2] = 1; }
     }
-    items.push({ m, layers, blend, water, mul: blend && !!(bt && !bt.alpha) });
+    items.push({ m, layers, blend, water, mul: blend && !!(bt && !bt.alpha), parts: o.prioPix && !water ? meshParts(model, meshNo, m) : null });
   }
   items.sort((a, b) => (a.blend - b.blend) || (a.m.obj.prio - b.m.obj.prio));
   const ox = o.ox || 0, oy = o.oy || 0, oz = o.oz || 0, sinP = Math.sin(PITCH), cosP = Math.cos(PITCH);
-  for (const { m, layers, blend, water, mul } of items) {
-    const P = [[], [], []], C = [[], [], []], L = layers.map(l => ({ ...l, uv: [[0, 0], [0, 0], [0, 0]] }));
-    const opt = { blend, mul, opaque: water, sea: view.sea, zBias: blend ? 3 : 0, alphaTest: blend || water ? null : (layers[0] && layers[0].tex && layers[0].tex.alpha ? 0.5 : null), prio: 0 };
+  for (const { m, layers, blend, water, mul, parts } of items) {
+    const partPrio = parts ? new Int8Array(parts.whole.length).fill(-9) : null;
+    let triNo = -1;
+    const P = [[], [], []], C = [[], [], []], Y = [0, 0, 0], Wd = [[0, 0], [0, 0], [0, 0]], L = layers.map(l => ({ ...l, uv: [[0, 0], [0, 0], [0, 0]] }));
+    const opt = { pix: !!o.prioPix, overNothing: !!o.overNothing, glint: /light|_sea\d|wave/i.test(m.mat.name), blend, mul, shadow: blend && /shadow|kage/i.test(m.mat.name + ' ' + m.mat.tex.join(' ')), opaque: water, sea: view.sea, seaFade: !!o.seaFade, seaMat: SEA_MAT.test(m.mat.name), seaXY: IS_XY && /^bm_w_sea\d/.test(m.mat.name), darkCut: o.darkCut || 0, zBias: blend ? 3 : 0, alphaTest: blend || water ? null : (layers[0] && layers[0].tex && layers[0].tex.alpha ? 0.5 : null), prio: 0 };
     for (const f of m.faces) for (let i = 0; i + 2 < f.idx.length; i += 3) {
+      triNo++;
       let sx = 0, sz = 0, pmin = 99;
       for (let k = 0; k < 3; k++) {
-        const v = f.idx[i + k], x = m.pos[v * 3] + ox, y = m.pos[v * 3 + 1] + oy, z = m.pos[v * 3 + 2] + oz;
-        sx += x; sz += z;
+        const v = f.idx[i + k];
+        let x = m.pos[v * 3], y = m.pos[v * 3 + 1], z = m.pos[v * 3 + 2];
+        if (o.xf) [x, y, z] = o.xf(x, y, z);     // platzierte Modelle (X/Y-Gebäude): Skalierung, Drehung
+        Y[k] = y;
+        x += ox; y += oy; z += oz;
+        sx += x; sz += z; Wd[k][0] = x; Wd[k][1] = z;
         if (o.strict && o.prioAt) pmin = Math.min(pmin, o.prioAt(x, z));
         P[k] = [(x - view.x0) * view.S, (z - view.z0 - y * SHEAR) * view.S, y * sinP + z * cosP];
         for (const l of L) { const a = m.uvs[l.set] || m.uvs[0]; l.uv[k] = [a[v * 2] * l.su + l.tu, a[v * 2 + 1] * l.sv + l.tv]; }
         C[k] = [m.col[v * 4], m.col[v * 4 + 1], m.col[v * 4 + 2], m.col[v * 4 + 3]];
       }
-      opt.prio = o.prioAt ? o.prioAt(sx / 3, sz / 3) : 0;
-      if (o.strict) opt.prio = Math.min(opt.prio, pmin);    // nur Dreiecke, die ganz in der Maske liegen
-      if (opt.prio < 0) continue;
+      // Rückseiten weglassen (X/Y Illumina City: Fassaden sind nur von vorn gebaut) – zur Kamera zeigende Flächen
+      // haben im Bild negative Fläche (gemessen: Böden und Südwände immer negativ, Nordwände immer positiv)
+      if (o.cull && (o.cull === true || o.cull.test(m.mat.name)) && (P[1][0] - P[0][0]) * (P[2][1] - P[0][1]) - (P[1][1] - P[0][1]) * (P[2][0] - P[0][0]) > 0) continue;
+      // als Kulisse weglassen: sceneSkip-Materialien; Hoenn: Meeresboden (ganz unter dem Meeresspiegel) – ohne das Wasser
+      // darüber stünde er im Meer
+      opt.cut0 = !!(o.sceneSkip && o.sceneSkip.test(m.mat.name)) || (!!o.seaFade && !water && Y[0] <= SEA_Y && Y[1] <= SEA_Y && Y[2] <= SEA_Y);
+      opt.prioPix = null;
+      const part = parts ? parts.of[triNo] : -1;
+      if (part >= 0 && parts.whole[part]) {
+        // kleines, aufragendes Teil: ganz oder gar nicht, nach dem Rang an seiner Mitte
+        if (partPrio[part] === -9) {
+          let [x, y, z] = parts.mid[part];
+          if (o.xf) [x, y, z] = o.xf(x, y, z);
+          partPrio[part] = o.prioPix(x + ox, z + oz);
+        }
+        opt.prio = partPrio[part];
+      } else if (o.prioPix) {
+        // Hoenn: Rang nach der Weltkachel jedes Bildpunkts. Dreiecke innerhalb einer Kachel: einmal je Dreieck
+        const xa = Math.min(Wd[0][0], Wd[1][0], Wd[2][0]) + 0.02, xb = Math.max(Wd[0][0], Wd[1][0], Wd[2][0]) - 0.02;
+        const za = Math.min(Wd[0][1], Wd[1][1], Wd[2][1]) + 0.02, zb = Math.max(Wd[0][1], Wd[1][1], Wd[2][1]) - 0.02;
+        if (Math.floor(xa / TILE) >= Math.floor(xb / TILE) && Math.floor(za / TILE) >= Math.floor(zb / TILE)) opt.prio = o.prioPix(sx / 3, sz / 3);
+        else { opt.prio = 0; opt.prioPix = o.prioPix; opt.W = Wd; }
+      } else {
+        opt.prio = o.prioAt ? o.prioAt(sx / 3, sz / 3) : 0;
+        if (o.strict) opt.prio = Math.min(opt.prio, pmin);    // nur Dreiecke, die ganz in der Maske liegen
+      }
+      if (!opt.prioPix) {
+        if (opt.prio < 0) continue;
+        if (opt.prio === 0 && opt.cut0) continue;
+      }
+      // X/Y: Meeresgrund (bm_w_seacliff und der tiefe Teil des Strands, dunkelblau gefärbt) – das Meer darüber ist halb durchsichtig und stünde als
+      // dunkler, gezackter Saum vor dem Kartenmeer; ohne den Grund entfällt es dort (über nichts wird es nicht gezeichnet)
+      if (IS_XY && /seacliff|bm_w_beach/i.test(m.mat.name) && C.every(c => c[0] < 0.3 && c[2] >= c[0])) continue;
       // große, rein schwarz gefärbte Flächen (Rückseiten, Abdeckungen für die Spielkamera) weglassen – kleine wie Türen bleiben
       const blackBack = C.every(c => c[0] + c[1] + c[2] < 0.09);
       const whiteBack = IS_XY && !layers.some(l => l.tex) && C.every(c => c[0] + c[1] + c[2] > 2.91);
@@ -418,6 +599,16 @@ function renderModel(tg, B, model, tex, view, o = {}) {
         const v0 = f.idx[i] * 3, v1 = f.idx[i + 1] * 3, v2 = f.idx[i + 2] * 3, p = m.pos;
         const ax = p[v1] - p[v0], ay = p[v1 + 1] - p[v0 + 1], az = p[v1 + 2] - p[v0 + 2], bx = p[v2] - p[v0], by = p[v2 + 1] - p[v0 + 1], bz = p[v2 + 2] - p[v0 + 2];
         if (Math.hypot(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx) / 2 > 4 * TILE * TILE) continue;
+      }
+      if (o.probe) for (const q of o.probe) {   // --probe: welche Dreiecke liegen über diesem Bildpunkt?
+        const d = (P[1][0] - P[0][0]) * (P[2][1] - P[0][1]) - (P[1][1] - P[0][1]) * (P[2][0] - P[0][0]);
+        if (Math.abs(d) < 1e-9) continue;
+        const w0 = ((P[1][0] - q.x) * (P[2][1] - q.y) - (P[1][1] - q.y) * (P[2][0] - q.x)) / d, w1 = ((P[2][0] - q.x) * (P[0][1] - q.y) - (P[2][1] - q.y) * (P[0][0] - q.x)) / d, w2 = 1 - w0 - w1;
+        if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+        const pq = opt.prioPix ? opt.prioPix(w0 * Wd[0][0] + w1 * Wd[1][0] + w2 * Wd[2][0], w0 * Wd[0][1] + w1 * Wd[1][1] + w2 * Wd[2][1]) : opt.prio;
+        if (pq < 0 || (pq === 0 && opt.cut0)) continue;
+        q.hits.push({ matrix: o.matrix, mat: (o.prop != null ? 'Aufbau ' + o.prop + ': ' : '') + m.mat.name, tex: m.mat.tex.filter(Boolean).join('+'), prio: pq, water, blend, depth: +(w0 * P[0][2] + w1 * P[1][2] + w2 * P[2][2]).toFixed(1),
+          col: [0, 1, 2, 3].map(k => +(w0 * C[0][k] + w1 * C[1][k] + w2 * C[2][k]).toFixed(2)).join(','), y: +(m.pos[f.idx[i] * 3 + 1] + oy).toFixed(0) });
       }
       drawTri(tg, P, L, C, opt);
     }
@@ -475,7 +666,7 @@ function amxBytes(raw) {
   return Buffer.from(out.buffer);
 }
 
-(async () => {
+if (MAIN) (async () => {
   const t0 = Date.now();
   const rom = openRomfs(ROM), file = rom.file;
   const G = OrasRom._internal.garc, lz11 = OrasRom._internal.lz11;
@@ -535,8 +726,14 @@ function amxBytes(raw) {
     const n = ids.length, A = Array.from({ length: n }, () => new Float64Array(n)), r = new Float64Array(n);
     for (const e of eqs) {
       const i = ix[e.a], j = ix[e.b], d = e.d[ax];
-      if (j !== undefined) { A[j][j] += e.w; r[j] += e.w * d; if (i !== undefined) A[j][i] -= e.w; }
-      if (i !== undefined) { A[i][i] += e.w; r[i] -= e.w * d; if (j !== undefined) A[i][j] -= e.w; }
+      // Höhen: Die Runde Route 118 → 119 → Baumhausen → 120 → 121 → 122 → 123 → 118 steigt im Spiel um 234 Einheiten und
+      // kommt nie wieder herunter (Route 119 klettert 300 Einheiten, der Rückweg bleibt eben). Gleichmäßig verteilt lägen
+      // alle sechs Gebiete an ihren Übergängen 39 Einheiten auseinander und Route 118 über 100 Einheiten unter dem Meer von
+      // Route 110 – in der Schrägsicht verschoben sich die Flächen gegeneinander (Treppenmuster aus Land und Meer). Der
+      // ganze Widerspruch liegt deshalb am Übergang Baumhausen ↔ Route 119, mitten im Wald; alle anderen stimmen genau.
+      const w = !IS_XY && ax === 2 && ((e.a === 15 && e.b === 24) || (e.a === 24 && e.b === 15)) ? e.w * 1e-4 : e.w;
+      if (j !== undefined) { A[j][j] += w; r[j] += w * d; if (i !== undefined) A[j][i] -= w; }
+      if (i !== undefined) { A[i][i] += w; r[i] -= w * d; if (j !== undefined) A[i][j] -= w; }
     }
     for (let c = 0; c < n; c++) {
       let p = c; for (let k = c + 1; k < n; k++) if (Math.abs(A[k][c]) > Math.abs(A[p][c])) p = k;
@@ -546,6 +743,7 @@ function amxBytes(raw) {
     }
     ids.forEach((m, i) => { if (Math.abs(A[i][i]) > 1e-12) (LAYOUT[m] = LAYOUT[m] || [0, 0, 0])[ax] = r[i] / A[i][i]; });
   }
+  if (opts.eqs) for (const e of eqs) console.log(`  Gl. M${e.a}→M${e.b} w ${e.w} d ${e.d.map(v => v.toFixed(1)).join(',')}  Rest ${[0, 1, 2].map(k => ((LAYOUT[e.a] || [0, 0, 0])[k] - (LAYOUT[e.b] || [0, 0, 0])[k] - e.d[k]).toFixed(1)).join(',')}`);
   // Per Hand: Malvenfroh (Innenhof 14 als Mittel der Wege durch die Stadt, Dach 349 darum), Liga 19 über die Siegesstraße
   if (IS_XY) Object.assign(LAYOUT, {
     0: [150, 950, 0], 1: [150, 750, 0], 2: [-190, 250, 0], 3: [-390, 410, 0],
@@ -559,55 +757,143 @@ function amxBytes(raw) {
     216: [1100, 1000, 0], 217: [900, 1070, 0], 218: [800, 1010, 0], 223: [1200, 1300, 0]
   });
   else Object.assign(LAYOUT, { 14: [208, -102, 0], 19: [977, -180, -27], 349: [168.5, -150, 250] });
+  // Route 110 gibt es zweimal mit derselben Geometrie: Matrix 22 (zu Fuß) und 21 (auf dem Radweg, ohne hohes Gras). Die
+  // Ausgleichsrechnung kennt 21 nur über die Torhäuser des Radwegs und legt sie um deren Breite (6 Kacheln) daneben –
+  // beide durchdrangen sich zu Zacken. 21 liegt genau auf 22 und wird nicht gezeichnet (ihre Trainer und Items bleiben).
+  const NO_DRAW = new Set(IS_XY ? [] : [21]);
+  if (!IS_XY && LAYOUT[22]) LAYOUT[21] = LAYOUT[22].slice();
   // Wälder wie der Blütenburgwald sind innen dunkel mit Lichtstrahlen – von oben fremd; ihre Lücke füllt fill-oras.py mit Wald
   // Masken: Dach nur das Gebäude, Liga nur das Plateau (box: Kacheln der Matrix); Innenhof immer obenauf
   const SPECIAL = IS_XY ? {} : { 14: { prio: 2 }, 349: { box: [24, 40, 96, 100] }, 19: { box: [-1, -1, 81, 80] } };
+  // Zum Ausprobieren: --place=Matrix:x,z,y;… legt weitere Matrizen obenauf (Lage in Weltkacheln wie LAYOUT)
+  if (opts.place) for (const e of opts.place.split(';')) { const [m, v] = e.split(':'); LAYOUT[+m] = v.split(',').map(Number); SPECIAL[+m] = SPECIAL[+m] || { prio: 2 }; }
   const MATS = (IS_XY ? XY_OUTDOORS : Object.keys(LAYOUT).map(Number).filter(m => m !== 17))
     .filter(m => LAYOUT[m] && LAYOUT[m].every(Number.isFinite));
   console.log('Lage berechnet:', MATS.length, 'Matrizen');
 
   // ── Blöcke, eigene Zellen, Weltrahmen ──
   const chunks = [], owned = {}, mats = {};
-  for (const m of MATS) { const M = mats[m] = matrix(m), o = LAYOUT[m]; owned[m] = { o, ...M }; for (const c of M.cells) chunks.push({ m, gr: c.gr, x: o[0] + c.x * 40, z: o[1] + c.y * 40, y: o[2] }); }
+  for (const m of MATS) { const M = mats[m] = matrix(m), o = LAYOUT[m]; owned[m] = { o, ...M }; if (!NO_DRAW.has(m)) for (const c of M.cells) chunks.push({ m, gr: c.gr, x: o[0] + c.x * 40, z: o[1] + c.y * 40, y: o[2] }); }
   const minX = Math.min(...chunks.map(c => c.x)), minZ = Math.min(...chunks.map(c => c.z));
   const maxX = Math.max(...chunks.map(c => c.x + 40)), maxZ = Math.max(...chunks.map(c => c.z + 40));
   const GX0 = Math.floor(minX / BLOCK) * BLOCK, GZ0 = Math.floor((minZ - 24) / BLOCK) * BLOCK;
   const COLS = Math.ceil((maxX - GX0) / BLOCK), ROWS = Math.ceil((maxZ - GZ0) / BLOCK);
-  // Eigentümer je Weltkachel: Wo sich eigene Zellen zweier Gebiete überlagern (beide enthalten den Rand am Übergang,
-  // leicht versetzt – sonst durchdringen sich Felswände zu Zacken), zeichnet das Gebiet, in dessen eigener Fläche die
-  // Kachel am tiefsten liegt (Abstand in Zellen zum Rand der eigenen Fläche); das andere zählt dort als Kulisse.
-  const GW = COLS * BLOCK, GH = ROWS * BLOCK, owner = new Int16Array(GW * GH).fill(-1), depthAt = new Float32Array(GW * GH);
-  for (const m of MATS) {
-    if (SPECIAL[m]) continue;
-    const w = owned[m], dist = Array.from({ length: w.H }, () => new Float32Array(w.W).fill(Infinity)), q = [];
-    for (let cz = 0; cz < w.H; cz++) for (let cx = 0; cx < w.W; cx++) if (w.g[cz][cx] === 0xffff) { dist[cz][cx] = 0; q.push([cx, cz]); }
-    for (let cz = -1; cz <= w.H; cz++) for (let cx = -1; cx <= w.W; cx++) if (cz < 0 || cx < 0 || cz >= w.H || cx >= w.W) q.push([cx, cz]);
-    for (let h = 0; h < q.length; h++) {
-      const [cx, cz] = q[h], d = cx < 0 || cz < 0 || cx >= w.W || cz >= w.H ? 0 : dist[cz][cx];
-      for (const [nx, nz] of [[cx + 1, cz], [cx - 1, cz], [cx, cz + 1], [cx, cz - 1]]) {
-        if (nx < 0 || nz < 0 || nx >= w.W || nz >= w.H || dist[nz][nx] <= d + 1) continue;
-        dist[nz][nx] = d + 1; q.push([nx, nz]);
+  // Modelle (vor der Eigentümer-Rechnung: sie liest die Netze für „Land oder Meer“)
+  // Aufbauten, die nicht im Blockmodell stecken (Altes Grabmal auf Route 120, Türme, Schilder …): Teil 3 des Blocks,
+  // je 0x2C Byte (Modell u16 → a/0/2/3, Skalierung, Drehung in Grad um Y, Position in Einheiten der Matrix) – wie in X/Y
+  const BM = IS_XY ? [] : G(file('a/0/2/3'), false), bmCache = new Map();
+  const bmModel = id => {
+    if (bmCache.has(id)) return bmCache.get(id);
+    let v = null;
+    try {
+      const parts = id < BM.length ? pack(un(BM[id])) : [];
+      if (isBCH(parts[0])) {
+        const B = parseBCH(parts[0]), own = {};
+        for (const t of B.textures) { const d = decodeTexture(B.b, t.addr, t.w, t.h, t.fmt); if (d) own[t.name] = mipTexture({ ...d, name: t.name }); }
+        v = { B, own };
+      }
+    } catch (e) { v = null; }
+    bmCache.set(id, v);
+    return v;
+  };
+  const placements = g => {
+    const p3 = grParts(g)[3], out = [];
+    if (!p3 || p3.length < 4) return out;
+    const n = u32(p3, 0), b = Buffer.from(p3.buffer, p3.byteOffset, p3.length);
+    if (4 + n * 0x2C > p3.length) return out;
+    for (let i = 0; i < n; i++) {
+      const o = 4 + i * 0x2C;
+      out.push({ id: b.readUInt16LE(o), s: [b.readFloatLE(o + 4), b.readFloatLE(o + 8), b.readFloatLE(o + 12)], r: b.readFloatLE(o + 20), p: [b.readFloatLE(o + 28), b.readFloatLE(o + 32), b.readFloatLE(o + 36)] });
+    }
+    return out;
+  };
+  const cache = new Map();
+  const chunkModel = g => {
+    if (cache.has(g)) { const v = cache.get(g); cache.delete(g); cache.set(g, v); return v; }
+    const B = parseBCH(grParts(g)[1]);
+    cache.set(g, B); if (cache.size > 40) cache.delete(cache.keys().next().value);
+    return B;
+  };
+  // Eigentümer je Weltkachel. Jedes Gebiet zeigt außer seiner eigenen Fläche (Zellen mit Zone) auch seine Umgebung als
+  // Kulisse, und die Gebiete liegen nie ganz deckungsgleich aneinander – zwei Fassungen derselben Stelle durchdringen
+  // sich zu Zacken und Splittern. Deshalb zeichnet an jeder Stelle genau ein Gebiet:
+  //  · eigene Fläche: das Gebiet, in dessen eigener Fläche die Kachel am tiefsten liegt (Abstand in Kacheln zu deren
+  //    Rand); Land zählt dabei 12 Kacheln mehr als Meer (sonst läge etwa das Meer von Route 134 über dem Leuchtturm-Kai
+  //    von Graphitport). Die anderen zählen dort als Kulisse (Rang 0, nur in Löchern sichtbar).
+  //  · Kulisse: nur das Gebiet, dessen eigene Fläche am nächsten liegt; die übrigen zeichnen dort nichts (Rang -1).
+  // Entschieden wird je Bildpunkt (prioPix in renderModel/drawTri), nicht je Dreieck.
+  const GW = COLS * BLOCK, GH = ROWS * BLOCK, owner = new Int16Array(GW * GH).fill(-1), bestKey = new Float32Array(GW * GH).fill(-Infinity);
+  const bd = new Int16Array(GW * GH).fill(-1), bdBest = new Float32Array(GW * GH).fill(Infinity);
+  const LAND_BONUS = 12;
+  // Abstand (Schachbrett-Metrik, in Kacheln) zu den Quellen; border: der Rand außerhalb zählt als Quelle
+  const spread = (lw, lh, src, border) => {
+    const d = new Int32Array(lw * lh).fill(-1), q = new Int32Array(lw * lh); let qh = 0, qt = 0;
+    for (let i = 0; i < lw * lh; i++) if (src[i]) { d[i] = 0; q[qt++] = i; }
+    if (border) for (let y = 0; y < lh; y++) for (let x = 0; x < lw; x++) if ((x === 0 || y === 0 || x === lw - 1 || y === lh - 1) && d[y * lw + x] < 0) { d[y * lw + x] = 1; q[qt++] = y * lw + x; }
+    while (qh < qt) {
+      const i = q[qh++], x = i % lw, y = (i - x) / lw;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= lw || ny >= lh) continue;
+        const j = ny * lw + nx; if (d[j] < 0) { d[j] = d[i] + 1; q[qt++] = j; }
+      }
+    }
+    return d;
+  };
+  if (!opts['places-only']) for (const m of MATS) {
+    if (SPECIAL[m] || NO_DRAW.has(m)) continue;
+    const w = owned[m], lw = w.W * 10, lh = w.H * 10, ownT = new Uint8Array(lw * lh), notOwn = new Uint8Array(lw * lh), has = new Uint8Array(lw * lh);
+    for (let z = 0; z < lh; z++) for (let x = 0; x < lw; x++) { const own = w.g[Math.floor(z / 10)][Math.floor(x / 10)] !== 0xffff; ownT[z * lw + x] = own ? 1 : 0; notOwn[z * lw + x] = own ? 0 : 1; }
+    for (const c of w.cells) for (let z = c.y * 40; z < c.y * 40 + 40; z++) for (let x = c.x * 40; x < c.x * 40 + 40; x++) has[z * lw + x] = 1;
+    if (!ownT.some(v => v)) continue;
+    const din = spread(lw, lh, notOwn, true), dout = spread(lw, lh, ownT, false);
+    // Land oder Meer: höchstes Wasser und höchstes Übrige je Kachel
+    const wy = new Float32Array(lw * lh).fill(-Infinity), ly = new Float32Array(lw * lh).fill(-Infinity);
+    for (const c of w.cells) {
+      const B = chunkModel(c.gr);
+      for (const md of B.models) for (const me of meshes(B, md)) {
+        const n = me.mat.name;
+        if (SKIP.test(n) || me.mat.tex.some(t => t && SKIP.test(t)) || /shadow|kage/i.test(n) || (SKIP_IN[m] && SKIP_IN[m].test(n)) || SCENE_SKIP.test(n)) continue;
+        const arr = WATER.test(n) || me.mat.tex.some(t => t && WATER.test(t)) ? wy : ly;
+        for (const f of me.faces) for (let i = 0; i + 2 < f.idx.length; i += 3) {
+          const a = f.idx[i] * 3, b = f.idx[i + 1] * 3, cc = f.idx[i + 2] * 3, p = me.pos;
+          const ax = p[a] / TILE + 20 + c.x * 40, az = p[a + 2] / TILE + 20 + c.y * 40, bx = p[b] / TILE + 20 + c.x * 40, bz = p[b + 2] / TILE + 20 + c.y * 40, cx = p[cc] / TILE + 20 + c.x * 40, cz = p[cc + 2] / TILE + 20 + c.y * 40;
+          const y = Math.max(p[a + 1], p[b + 1], p[cc + 1]);
+          const mark = (tx, tz) => { if (tx >= 0 && tz >= 0 && tx < lw && tz < lh && y > arr[tz * lw + tx]) arr[tz * lw + tx] = y; };
+          mark(Math.floor((ax + bx + cx) / 3), Math.floor((az + bz + cz) / 3));
+          const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx))), x1 = Math.min(lw - 1, Math.floor(Math.max(ax, bx, cx))), z0 = Math.max(0, Math.floor(Math.min(az, bz, cz))), z1 = Math.min(lh - 1, Math.floor(Math.max(az, bz, cz)));
+          if (x1 - x0 < 1 && z1 - z0 < 1) continue;
+          const ar = (bx - ax) * (cz - az) - (bz - az) * (cx - ax); if (Math.abs(ar) < 1e-9) continue;
+          for (let tz = z0; tz <= z1; tz++) for (let tx = x0; tx <= x1; tx++) {
+            const qx = tx + 0.5, qz = tz + 0.5, w0 = ((bx - qx) * (cz - qz) - (bz - qz) * (cx - qx)) / ar, w1 = ((cx - qx) * (az - qz) - (cz - qz) * (ax - qx)) / ar;
+            if (w0 >= 0 && w1 >= 0 && w0 + w1 <= 1) mark(tx, tz);
+          }
+        }
       }
     }
     const x0 = Math.max(0, Math.floor(w.o[0] - GX0)), z0 = Math.max(0, Math.floor(w.o[1] - GZ0));
-    for (let gz = z0; gz < Math.min(GH, z0 + w.H * 10 + 1); gz++) for (let gx = x0; gx < Math.min(GW, x0 + w.W * 10 + 1); gx++) {
-      const lx = gx + 0.5 + GX0 - w.o[0], lz = gz + 0.5 + GZ0 - w.o[1], cx = Math.floor(lx / 10), cz = Math.floor(lz / 10);
-      if (cx < 0 || cz < 0 || cx >= w.W || cz >= w.H || w.g[cz][cx] === 0xffff) continue;
-      // Tiefe: Zellenabstand + Lage in der Zelle (näher an der Mitte = tiefer)
-      const d = dist[cz][cx] - Math.max(Math.abs(lx / 10 - cx - 0.5), Math.abs(lz / 10 - cz - 0.5)), i = gz * GW + gx;
-      if (owner[i] < 0 || d > depthAt[i]) { owner[i] = m; depthAt[i] = d; }
+    for (let gz = z0; gz < Math.min(GH, z0 + lh + 1); gz++) for (let gx = x0; gx < Math.min(GW, x0 + lw + 1); gx++) {
+      const lx = Math.floor(gx + 0.5 + GX0 - w.o[0]), lz = Math.floor(gz + 0.5 + GZ0 - w.o[1]);
+      if (lx < 0 || lz < 0 || lx >= lw || lz >= lh) continue;
+      const li = lz * lw + lx, i = gz * GW + gx;
+      if (ownT[li]) { const k = din[li] + (ly[li] > -Infinity && ly[li] > wy[li] + 1 ? LAND_BONUS : 0); if (k > bestKey[i]) { bestKey[i] = k; owner[i] = m; } }
+      else if (has[li] && dout[li] >= 0 && dout[li] < bdBest[i]) { bdBest[i] = dout[li]; bd[i] = m; }
     }
   }
+  for (let i = 0; i < GW * GH; i++) if (owner[i] >= 0) bd[i] = owner[i];
   const prioFor = m => {
     const w = owned[m], sp = SPECIAL[m] || {};
     return (xw, zw) => {
-      const tx = xw / TILE - w.o[0], tz = zw / TILE - w.o[1];
+      const fx = xw / TILE, fz = zw / TILE, tx = fx - w.o[0], tz = fz - w.o[1];
       if (sp.box) return tx >= sp.box[0] && tz >= sp.box[1] && tx < sp.box[2] && tz < sp.box[3] ? 1 : -1;
       if (sp.prio != null) return sp.prio;
       const cx = Math.floor(tx / 10), cz = Math.floor(tz / 10);
-      if (cx < 0 || cz < 0 || cx >= w.W || cz >= w.H || w.g[cz][cx] === 0xffff) return 0;
-      const gx = Math.floor(xw / TILE - GX0), gz = Math.floor(zw / TILE - GZ0);
-      if (gx < 0 || gz < 0 || gx >= GW || gz >= GH) return 1;
+      const gx = Math.floor(fx - GX0), gz = Math.floor(fz - GZ0), inGrid = gx >= 0 && gz >= 0 && gx < GW && gz < GH;
+      if (cx < 0 || cz < 0 || cx >= w.W || cz >= w.H || w.g[cz][cx] === 0xffff) {
+        if (!inGrid) return 0;
+        const b = bd[gz * GW + gx];
+        return b < 0 || b === m ? 0 : -1;
+      }
+      if (!inGrid) return 1;
       const ow = owner[gz * GW + gx];
       return ow < 0 || ow === m ? 1 : 0;
     };
@@ -625,13 +911,6 @@ function amxBytes(raw) {
     texCache.set(area, dict);
     return dict;
   };
-  const cache = new Map();
-  const chunkModel = g => {
-    if (cache.has(g)) { const v = cache.get(g); cache.delete(g); cache.set(g, v); return v; }
-    const B = parseBCH(grParts(g)[1]);
-    cache.set(g, B); if (cache.size > 40) cache.delete(cache.keys().next().value);
-    return B;
-  };
 
   // Meermuster: chip_sea_b über 3 Kacheln, im Ton DEEP (wie sea.png aus fill-oras.py)
   const SEA = IS_XY ? null : (() => {
@@ -643,26 +922,57 @@ function amxBytes(raw) {
   // ── Rendern: Regionen à 4 × 4 Blöcke ──
   const info = { shear: SHEAR, size: BLOCK * PX, rows: ROWS, cols: COLS, origin: [GX0, GZ0], tile: TILE, chunks: {}, layout: Object.fromEntries(MATS.map(m => [m, LAYOUT[m]])) };
   console.log('Welt', COLS + ' × ' + ROWS, 'Blöcke,', chunks.length, 'Kartenblöcke des Spiels');
+  // Zum Testen: --only=Zeile:Spalte,… (Regionen à 4 × 4 Blöcke) · --probe=x,y;x,y (Kartenkoordinaten wie in places.json):
+  // nennt je Punkt die Dreiecke (Matrix, Material, Rang, Tiefe, Farbe), die dort liegen
+  const PROBES = opts.probe ? opts.probe.split(';').map(s => s.split(',').map(Number)) : null;
+  const ONLY = opts.only ? opts.only.split(',').map(s => s.split(':').map(Number)) : PROBES ? PROBES.map(([x, y]) => [Math.floor(y / (REG * BLOCK)), Math.floor(x / (REG * BLOCK))]) : null;
+  const MATS_ONLY = opts.mats ? new Set(opts.mats.split(',').map(Number)) : null;   // --mats=21,22: nur diese Matrizen zeichnen (mit --only)
+  const PARTIAL = !!ONLY;
   if (!opts['places-only']) for (let rr = 0; rr < Math.ceil(ROWS / REG); rr++) for (let rc = 0; rc < Math.ceil(COLS / REG); rc++) {
+    if (ONLY && !ONLY.some(([a, b]) => a === rr && b === rc)) continue;
     const tx0 = GX0 + rc * REG * BLOCK, tz0 = GZ0 + rr * REG * BLOCK, tsz = REG * BLOCK;
-    const list = chunks.filter(c => c.x < tx0 + tsz + 2 && c.x + 40 > tx0 - 2 && c.z < tz0 + tsz + MARGIN_UP && c.z + 40 > tz0 - 4);
+    const probe = PROBES ? PROBES.map(([x, y]) => ({ at: [x, y], x: (x - (tx0 - GX0)) * PX * SS, y: (y - (tz0 - GZ0)) * PX * SS, hits: [] })).filter(q => q.x >= 0 && q.y >= 0 && q.x < tsz * PX * SS && q.y < tsz * PX * SS) : null;
+    const list = chunks.filter(c => c.x < tx0 + tsz + 2 && c.x + 40 > tx0 - 2 && c.z < tz0 + tsz + MARGIN_UP && c.z + 40 > tz0 - 4 && (!MATS_ONLY || MATS_ONLY.has(c.m)));
     if (!list.length) continue;
     const view = { S: PX / TILE * SS, x0: tx0 * TILE, z0: tz0 * TILE,
       sea: SEA ? { ...SEA, gx: tx0 - GX0, gz: tz0 - GZ0 } : null };
     const tg = makeTarget(tsz * PX * SS, tsz * PX * SS);
     for (const c of list) {
       const B = chunkModel(c.gr), tex = areaTextures(areaOf(c.m));
-      for (const md of B.models) renderModel(tg, B, md, tex, view, { matrix: c.m, ox: c.x * TILE + 360, oy: c.y, oz: c.z * TILE + 360, prioAt: prioFor(c.m), strict: !!(SPECIAL[c.m] && SPECIAL[c.m].box) });
+      for (const md of B.models) renderModel(tg, B, md, tex, view, { matrix: c.m, ox: c.x * TILE + 360, oy: c.y, oz: c.z * TILE + 360, ...(IS_XY ? { prioAt: prioFor(c.m) } : { prioPix: prioFor(c.m) }), probe, seaFade: !IS_XY, sceneSkip: IS_XY ? null : SCENE_SKIP, cull: IS_XY ? null : CULL_IN[c.m] || (opts.cull && +opts.cull === c.m ? true : null) });
+      if (!IS_XY && !opts.noprops) for (const pl of placements(c.gr)) {
+        const bm = bmModel(pl.id);
+        if (!bm) continue;
+        const a = pl.r * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), o = LAYOUT[c.m];
+        const xf = (x, y, z) => { x *= pl.s[0]; y *= pl.s[1]; z *= pl.s[2]; return [x * ca + z * sa + pl.p[0], y + pl.p[1], -x * sa + z * ca + pl.p[2]]; };
+        for (const md of bm.B.models) renderModel(tg, bm.B, md, { ...tex, ...bm.own }, view, { matrix: c.m, prop: pl.id, ox: o[0] * TILE, oy: c.y, oz: o[1] * TILE, xf, prioPix: prioFor(c.m), probe, seaFade: true, sceneSkip: SCENE_SKIP });
+      }
     }
-    const img = toRGBA8(tg, SS), bp = BLOCK * PX;
+    if (probe) for (const q of probe) {
+      console.log(`\nPunkt ${q.at.join(',')}:`);
+      const seen = new Map();
+      for (const h of q.hits) { const k = [h.matrix, h.mat, h.prio, h.water, h.blend].join('|'); if (!seen.has(k)) seen.set(k, h); }
+      for (const h of [...seen.values()].sort((a, b) => b.prio - a.prio || b.depth - a.depth)) console.log(`   M${h.matrix} ${h.mat} [${h.tex}] Rang ${h.prio}${h.water ? ' Wasser' : ''}${h.blend ? ' gemischt' : ''} Tiefe ${h.depth} Höhe ${h.y} Farbe ${h.col}`);
+    }
+    const img = toRGBA8(tg, SS, !IS_XY), bp = BLOCK * PX;
     for (let br = 0; br < REG; br++) for (let bc = 0; bc < REG; bc++) {
       const r = rr * REG + br, cc = rc * REG + bc;
       if (r >= ROWS || cc >= COLS) continue;
       const out = new Uint8Array(bp * bp * 4);
       for (let y = 0; y < bp; y++) { const s = ((br * bp + y) * img.w + bc * bp) * 4; out.set(img.px.subarray(s, s + bp * 4), y * bp * 4); }
-      let any = false; for (let i = 3; i < out.length; i += 4) if (out[i]) { any = true; break; }
+      // Meer-Maske (offenes Meer, auch wo es durchsichtig ist) für fill-oras.py: Rot = eigenes Meer einer Route (zählt
+      // als Wasser), Grün = Kulissenmeer (zählt als Lücke – zwischen Land darf dort Wald wachsen); beides zusammen
+      // glättet dort die Deckkraft
+      const seaM = new Uint8Array(bp * bp * 4); let anySea = false;
+      for (let y = 0; y < bp; y++) for (let x = 0; x < bp; x++) {
+        let own = 0, bg = 0;
+        for (let j = 0; j < SS; j++) for (let i = 0; i < SS; i++) { const v = tg.sea[((br * bp + y) * SS + j) * tg.w + (bc * bp + x) * SS + i]; if (v === 2) own++; else if (v === 1) bg++; }
+        if (own || bg) { const q = (y * bp + x) * 4; seaM[q] = Math.round(own / (SS * SS) * 255); seaM[q + 1] = Math.round(bg / (SS * SS) * 255); seaM[q + 3] = 255; anySea = true; }
+      }
+      let any = anySea; for (let i = 3; i < out.length && !any; i += 4) if (out[i]) any = true;
       if (!any) continue;
       fs.writeFileSync(path.join(OUT, `chunk_${r}_${cc}.png`), png(bp, bp, out));
+      if (anySea) fs.writeFileSync(path.join(OUT, `sea_${r}_${cc}.png`), png(bp, bp, seaM));
       // je Kachel: nur Kulisse (keine Pixel eines eigenen Gebiets)? → fill-oras.py darf dort Wald pflanzen
       const bits = Buffer.alloc(128), tp = PX * SS;
       for (let ty = 0; ty < BLOCK; ty++) for (let tx = 0; tx < BLOCK; tx++) {
@@ -674,6 +984,7 @@ function amxBytes(raw) {
     }
     process.stdout.write(`\rRegion ${rr}:${rc} – ${((Date.now() - t0) / 1000).toFixed(0)} s   `);
   }
+  if (PARTIAL) { console.log('\nTeil-Render fertig'); return; }
   if (!opts['places-only']) {
     fs.writeFileSync(path.join(OUT, 'render.json'), JSON.stringify(info));
     console.log('\nBlöcke geschrieben:', Object.keys(info.chunks).length);
@@ -695,6 +1006,7 @@ function amxBytes(raw) {
   // ── Orte: Flächen (Zellen zu Rechtecken, mit Bodenhöhe), Namensposition, Eingänge zu Höhlen & Orten ──
   const cells = [];
   for (const m of MATS) {
+    if (NO_DRAW.has(m)) continue;
     const { W: CW, H: CH, g } = mats[m], own = zonesOf[m] || [], sp = SPECIAL[m] || {};
     for (let cz = 0; cz < CH; cz++) for (let cx = 0; cx < CW; cx++) {
       let z = g[cz][cx];
@@ -747,13 +1059,55 @@ function amxBytes(raw) {
     for (const r of rects) { const px = Math.max(r[0] + 5, Math.min(r[2] - 5, cx)), pz = Math.max(r[1] + 5, Math.min(r[3] - 5, cz)), d = Math.hypot(px - cx, pz - cz); if (d < bd) { bd = d; best = [+px.toFixed(1), +pz.toFixed(1), r[4]]; } }
     labels[loc] = best;
   }
-  const outdoor = new Set(Object.keys(areas).map(Number)), entrances = {};
+  const outdoor = new Set(Object.keys(areas).map(Number)), entrances = {}, onMapM = new Set(MATS);
   for (const m of MATS) for (const z of zonesOf[m] || []) for (const w of W[z]) {
     const dl = w[2] < NZ ? zloc(w[2]) : -1;
     if (dl < 0 || dl === zloc(z) || outdoor.has(dl)) continue;
     const o = LAYOUT[m], x = +(o[0] + w[6] / TILE - GX0).toFixed(1), zz = +(o[1] + w[8] / TILE - GZ0).toFixed(1), lift = +(SHEAR * (sh16(w[7]) + o[2]) / TILE).toFixed(2);
     const list = entrances[dl] = entrances[dl] || [];
     if (!list.some(e => Math.hypot(e[0] - x, e[1] - zz) < 4)) list.push([x, zz, lift]);
+  }
+  // Orte ohne Fläche und ohne direkten Eingang (Schlotberg hinter der Seilbahn, Safari-Zone hinter ihrem Tor …): der
+  // Außen-Eingang, von dem aus man sie über höchstens drei Innengebiete erreicht
+  if (!IS_XY) {
+    const onMapZone = z => onMapM.has(zm(z));
+    const found = {};
+    for (const m of MATS) for (const z of zonesOf[m] || []) for (const w of W[z]) {
+      if (w[2] >= NZ || onMapZone(w[2])) continue;
+      const o = LAYOUT[m], at = [+(o[0] + w[6] / TILE - GX0).toFixed(1), +(o[1] + w[8] / TILE - GZ0).toFixed(1), +(SHEAR * (sh16(w[7]) + o[2]) / TILE).toFixed(2)];
+      const seen = new Set([w[2]]); let ring = [w[2]];
+      for (let d = 1; d <= 3 && ring.length; d++) {
+        const next = [];
+        for (const zi of ring) {
+          const loc = zloc(zi);
+          if (!outdoor.has(loc) && !entrances[loc] && loc !== zloc(z)) { const f = found[loc] = found[loc] || { d, list: [] }; if (d < f.d) { f.d = d; f.list = []; } if (d === f.d && !f.list.some(e => Math.hypot(e[0] - at[0], e[1] - at[1]) < 4)) f.list.push(at); }
+          for (const v of W[zi] || []) if (v[2] < NZ && !onMapZone(v[2]) && !seen.has(v[2])) { seen.add(v[2]); next.push(v[2]); }
+        }
+        ring = next;
+      }
+    }
+    for (const [loc, f] of Object.entries(found)) { entrances[loc] = f.list; if (opts.verbose) console.log('  über Innengebiete erreicht:', loc, f.d, JSON.stringify(f.list)); }
+  }
+  // Von Hand (Bildkoordinaten relativ zur Namensposition einer Route, damit sie mit der Lage mitwandern): Orte, die man
+  // tauchend oder gar nicht über eine Tür erreicht. Xeneroville liegt im Krater auf Route 126 (die Stadt selbst passt
+  // maßstäblich nicht hinein) und bekommt dort auch ihren Namen.
+  if (!IS_XY) {
+    const byName = n => +Object.keys(labels).find(k => de[k] === n), de = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'oras.json'), 'utf8')).locations.map(l => [l.id, l.de]));   // deutsche Ortsnamen aus oras.json (build-oras.js)
+    const HAND = [
+      ['Xeneroville', 'Route 126', [1.3, 10.3], true],      // Mitte des Kraters
+      ['Urzeithöhle', 'Route 126', [1.3, 1.5]],             // im Norden der Stadt
+      ['Tiefseehöhle', 'Route 128', [-32.4, -4.7]],         // Tauchstelle (Ring) auf Route 128
+      ['Siegelkammer', 'Route 134', null, false, [490, 542]],   // Tauchstelle zwischen den sechs Felsen
+      ['Küstenhöhle', 'Route 125', [0.4, -4]],              // Höhleneingang auf der Felseninsel
+    ];
+    for (const [name, rel, d, label, abs] of HAND) {
+      const loc = +Object.keys(de).find(k => de[k] === name), ref = labels[byName(rel)];
+      if (!(loc >= 0) || !ref || areas[loc] || entrances[loc]) { if (opts.verbose) console.log('  von Hand übersprungen:', name, loc, !!ref); continue; }
+      const at = abs ? [abs[0], abs[1], 0] : [+(ref[0] + d[0]).toFixed(1), +(ref[1] - ref[2] + d[1]).toFixed(1), 0];
+      entrances[loc] = [at];
+      if (label) labels[loc] = at;
+      if (opts.verbose) console.log('  von Hand:', name, loc, at.join(','));
+    }
   }
   // ── Items und Trainer: Personen der Zonen (Teil 1 der Zonendatei, je 0x30 Byte: Modell u16@6, Skript u16@14,
   // Kachel x/z u16@44/46). Skript 7000 + n = Item-Ball n (Tabelle in Skript 39 von a/0/2/9 ab 0xB64, je 12 Byte:
@@ -806,3 +1160,8 @@ function amxBytes(raw) {
   console.log('Orte:', Object.keys(areas).length, 'mit Fläche,', Object.keys(entrances).length, 'mit Eingang · Items', count(items), '(' + placed(items) + ' draußen) · Trainer', count(trainers), '(' + placed(trainers) + ' draußen) →', PLACES);
   console.log('fertig in', ((Date.now() - t0) / 1000).toFixed(0), 's');
 })().catch(e => { console.error(e); process.exit(1); });
+
+module.exports = {
+  PX, TILE, BLOCK, SHEAR, PITCH, u16, u32, sh16, pack, isBCH, parseBCH, decodeTexture, mipTexture, meshes, makeTarget, drawTri, toRGBA8,
+  png, matLayers, renderModel, openRomfs, amxBytes, SKIP, MASK, WATER, setXY: v => { IS_XY = !!v; },
+};

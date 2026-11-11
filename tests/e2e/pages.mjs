@@ -1,5 +1,5 @@
 // Alle Seiten starten fehlerfrei; Laden mit Platzhaltern (F03), Backup (F07/F08/Z4), verspätete Antworten (F15),
-// Sicherungen im Save-Editor (F04), Speicherhinweis (F10), ROM im Worker (F09), ziehbarer Slot-Hebel (F11)
+// Sicherungen im Save-Editor (F04), Speicherhinweis (F10), ROM im Worker (F09), ziehbarer Slot-Hebel (F11), Töne des Automaten
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -243,6 +243,75 @@ await run('F11 slot lever', async () => {
   const keyboard = await page.evaluate(() => ({ rolls: window.__slotRolls, focus: document.activeElement === document.querySelector('.sl-lever'), label: document.querySelector('.sl-lever').getAttribute('aria-label') }));
   check('F11 Hebel funktioniert per Tastatur', keyboard.rolls === 2 && keyboard.focus && /Hebel/.test(keyboard.label), JSON.stringify(keyboard));
   check('F11 keine JavaScript-Fehler', errors.length === 0, errors.join(' | '));
+  await page.close();
+});
+
+// ── Töne des Spielautomaten: nur wenn am Hebel gezogen wird, nicht beim Knopf auf der Seite; abschaltbar ──
+await run('slot sound', async () => {
+  const { page, errors } = await openPage(browser, `${BASE}/Randomizer/index.html`, { storage: {} });
+  await page.setViewport({ width: 1920, height: 1080 });
+  await waitFor(page, () => document.getElementById('sl')?.classList.contains('is-full'));
+  const scene = extra => page.evaluate(x => {
+    window.__slot = Object.assign({ rom: true, busy: false, phase: '', secs: '', error: false, result: null, pick: () => {},
+      // wie app.js: Würfeln beginnt sofort nach dem Zug
+      roll: () => { window.__slotRolls = (window.__slotRolls || 0) + 1; window.SlotScene.update(Object.assign({}, window.__slot, { busy: true, phase: 'würfelt' })); } }, x);
+    window.SlotScene.update(window.__slot);
+  }, extra || {});
+  const info = () => page.evaluate(() => Object.assign(window.SlotSound.info(), { state: document.getElementById('sl').dataset.state }));
+  const done = { result: { url: 'blob:x', fileName: 'Test.nds', size: '100 MB', boss: true, starters: [25, 133, 143] } };
+
+  await scene();
+  await sleep(80);
+  const start = await page.evaluate(() => ({ btn: !!document.querySelector('.sl-sound'), pressed: document.querySelector('.sl-sound').getAttribute('aria-pressed'), info: window.SlotSound.info() }));
+  check('Ton: Knopf am Automaten, anfangs an, noch nichts gespielt', start.btn && start.pressed === 'true' && start.info.on && start.info.played === 0, JSON.stringify(start));
+
+  // Knopf „Neues Spiel würfeln“ auf der Seite: Walzen drehen, aber still
+  await scene({ busy: true, phase: 'würfelt' });
+  await sleep(80);
+  let i = await info();
+  check('Ton: Würfeln per Knopf bleibt still', i.state === 'spin' && !i.spinning && i.played === 0, JSON.stringify(i));
+  await scene(done);
+  await sleep(1700);
+  i = await info();
+  check('Ton: auch das Ergebnis nach dem Knopf bleibt still', i.state === 'win' && i.played === 0, JSON.stringify(i));
+
+  // Hebel (Tastatur): Zug, Einrasten, Walzen-Schleife
+  await scene();
+  await sleep(80);
+  await page.focus('.sl-lever');
+  await page.keyboard.press('Space');
+  await sleep(450);
+  i = await info();
+  check('Ton: Hebel startet die Walzen-Schleife', i.state === 'spin' && i.spinning && i.played >= 3, JSON.stringify(i));
+  const before = i.played;
+  await scene(done);
+  await sleep(1700);
+  i = await info();
+  check('Ton: Walzen halten mit Tönen, Gewinn klimpert, Schleife ist aus', !i.spinning && i.played >= before + 5, JSON.stringify(i));
+
+  // Hebel ziehen (Maus): ratscht
+  await scene();
+  await sleep(700);
+  const box = await page.$eval('.sl-lever', e => { const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + 36 }; });
+  const b2 = (await info()).played;
+  await page.mouse.move(box.x, box.y);
+  await page.mouse.down();
+  await page.mouse.move(box.x, box.y + 34, { steps: 6 });
+  await page.mouse.up();
+  await sleep(600);
+  i = await info();
+  check('Ton: kurzer Zug ratscht, würfelt aber nicht', i.played > b2 && i.state === 'ready' && !i.spinning, JSON.stringify(i));
+
+  // Ton aus: merkt sich das Gerät, danach bleibt auch der Hebel still
+  await page.click('.sl-sound');
+  const off = await page.evaluate(() => ({ stored: localStorage.getItem('randomizer-sound'), cls: document.querySelector('.sl-sound').classList.contains('is-off'), pressed: document.querySelector('.sl-sound').getAttribute('aria-pressed'), played: window.SlotSound.info().played }));
+  check('Ton aus: gespeichert und am Knopf zu sehen', off.stored === 'off' && off.cls && off.pressed === 'false', JSON.stringify(off));
+  await page.focus('.sl-lever');
+  await page.keyboard.press('Space');
+  await sleep(450);
+  i = await info();
+  check('Ton aus: Hebel würfelt weiter, aber still', i.state === 'spin' && !i.spinning && i.played === off.played, JSON.stringify(i));
+  check('Ton: keine JavaScript-Fehler', errors.length === 0, errors.join(' | '));
   await page.close();
 });
 

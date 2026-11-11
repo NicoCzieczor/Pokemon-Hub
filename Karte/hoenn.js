@@ -27,6 +27,7 @@
       subtitle: 'Wilde Pokémon jedes Ortes – mit Raten, Horden, DexNav und Angeln – und die Bosse dort. Ort auf der Karte antippen oder suchen.',
       search: 'Ort oder Pokémon suchen…', note: 'Karte aus den 3D-Modellen und Texturen von Omega Rubin gerendert. Wilde Pokémon aus der ROM von Omega Rubin; Alpha Saphir mit seinen Editions-Pokémon (Unterschiede aus PKHeX).',
       or: 'Omega Rubin', as: 'Alpha Saphir', all: 'Alle Orte', hint: 'Tippe auf die Karte oder wähle einen Ort.', back: 'Alle Orte',
+      noSpot: 'Ohne feste Stelle auf der Karte.',
       towns: 'Städte', routes: 'Routen', places: 'Höhlen, Inseln & Orte', mirage: 'Wunder-Orte & Sonstiges',
       town: 'Stadt', city: 'Stadt', route: 'Route', place: 'Ort', tabWild: 'Wilde Pokémon', tabBoss: 'Bosse',
       area: function (n) { return 'Bereich ' + n; }, level: 'Lv.', noWild: 'Hier gibt es keine wilden Pokémon.', noBoss: 'Hier gibt es keine Bosse.',
@@ -47,6 +48,7 @@
       subtitle: 'The wild Pokémon of every place – with rates, hordes, DexNav and fishing – and the bosses there. Tap a place on the map or search.',
       search: 'Search a place or Pokémon…', note: 'Map rendered from the 3D models and textures of Omega Ruby. Wild Pokémon from the Omega Ruby ROM; Alpha Sapphire with its version exclusives (differences from PKHeX).',
       or: 'Omega Ruby', as: 'Alpha Sapphire', all: 'All places', hint: 'Tap the map or choose a place.', back: 'All places',
+      noSpot: 'No fixed spot on the map.',
       towns: 'Towns & cities', routes: 'Routes', places: 'Caves, islands & places', mirage: 'Mirage spots & more',
       town: 'Town', city: 'City', route: 'Route', place: 'Place', tabWild: 'Wild Pokémon', tabBoss: 'Bosses',
       area: function (n) { return 'Area ' + n; }, level: 'Lv.', noWild: 'There are no wild Pokémon here.', noBoss: 'There are no bosses here.',
@@ -72,6 +74,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var lang = function () { return window.LANG === 'en' ? 'en' : 'de'; };
   var tx = function () { return TEXT[lang()]; };
+  // Orte, die es nur in einer Edition gibt: Team Aquas Versteck (Alpha Saphir) und Team Magmas Versteck (Omega Rubin)
+  // liegen am selben Eingang in Seegrasulb City
+  var ONLY = { 292: 'as', 314: 'or' };
+  var locOk = function (l) { return !ONLY[l.id] || ONLY[l.id] === version(); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var locName = function (l) { return lang() === 'en' ? l.en : l.de; };
   var monName = function (id) { return (N && N.text[lang()].species[id]) || '#' + id; };
@@ -207,6 +213,14 @@
     });
     return best;
   }
+  // Eingänge: nur die der gewählten Edition (Team-Verstecke)
+  function syncSpots() {
+    if (!map) return;
+    spots.forEach(function (m) {
+      var on = !m.only || m.only === version();
+      if (on && !map.hasLayer(m)) m.addTo(map); else if (!on && map.hasLayer(m)) map.removeLayer(m);
+    });
+  }
   function onZoom() {
     var z = map.getZoom(), el = map.getContainer();
     el.classList.toggle('z-vfar', z < -1.25);
@@ -230,16 +244,21 @@
     D.locations.forEach(function (l, li) { areasOf(li).forEach(function (r) { pts.push(ll(r[0], r[1] - r[4]), ll(r[2], r[3] - r[4])); }); });
     var land = L.latLngBounds(pts);
     map.fitBounds(land, { padding: [10, 10] });
+    // Ohne Direktlink beginnt die Karte in Wurzelheim (mit etwas Umgebung) – nicht in ganz Hoenn
+    var start = D.locations.findIndex(function (l) { return l.slug === 'littleroot-town'; }), sp = [];
+    if (start >= 0) areasOf(start).forEach(function (r) { sp.push(ll(r[0], r[1] - r[4]), ll(r[2], r[3] - r[4])); });
+    if (sp.length) map.fitBounds(L.latLngBounds(sp).pad(1.5), { maxZoom: 3, animate: false });
     map.setMaxBounds(land.pad(0.3));
     setupSheets();
     // Namen der Städte und Routen
     labelLayer = L.layerGroup().addTo(map);
+    var labelPane = L.labelPane(map);
     D.locations.forEach(function (l, li) {
       var at = P.labels[l.id];
       if (!at) return;
       var m = L.marker(ll(at[0], at[1] - at[2]), {
         icon: L.divIcon({ className: 'loc-label loc-label--' + l.type, html: '<span>' + esc(locName(l)) + '</span>', iconSize: null }),
-        interactive: false, keyboard: false
+        interactive: false, keyboard: false, pane: labelPane
       });
       m.locIndex = li;
       labelLayer.addLayer(m);
@@ -249,12 +268,14 @@
     D.locations.forEach(function (l, li) {
       if (areasOf(li).length) return;
       entrancesOf(li).forEach(function (e) {
+        var only = ONLY[l.id];
         spots.push(L.circleMarker(ll(e[0], e[1] - e[2]), { renderer: renderer, radius: 6, color: '#3b2a00', weight: 1.5, fillColor: l.wild.length ? '#ffd23f' : '#e9e2c8', fillOpacity: 1, bubblingMouseEvents: false })
           .bindTooltip(function () { return esc(locName(l)); }, { direction: 'top', offset: [0, -6], className: 'map-tip' })
-          .on('click', function () { tab = 'wild'; select(li); })
-          .addTo(map));
+          .on('click', function () { tab = 'wild'; select(li, { fromMap: true }); }));
+        spots[spots.length - 1].only = only;
       });
     });
+    syncSpots();
     // Items, TMs, Trainer: erst sichtbar, wenn ihr Filter an ist
     KINDS.forEach(function (k) { layers[k] = L.layerGroup(); });
     D.locations.forEach(function (l, li) {
@@ -323,6 +344,7 @@
     var ref = focusRing = L.marker(ll(x, z), { icon: L.divIcon({ className: 'focus-ring', html: '<span></span>', iconSize: [36, 36] }), interactive: false, keyboard: false }).addTo(map);
     setTimeout(function () { if (focusRing === ref) { map.removeLayer(ref); focusRing = null; } }, 2600);
   }
+  var hasSpot = function (li) { return areasOf(li).length > 0 || entrancesOf(li).length > 0; };
   function flyToPoint(x, z) { if (!map) return; map.flyTo(ll(x, z), Math.max(map.getZoom(), 3), { duration: 0.6 }); pulseAt(x, z); }
   // Zum Ort fliegen (Fläche bzw. Eingänge)
   function flyTo(li) {
@@ -343,9 +365,11 @@
     history.replaceState(null, '', location.pathname + location.search);
     var t = tx(), g = { towns: [], routes: [], places: [], mirage: [] };
     D.locations.forEach(function (l, li) {
+      if (!locOk(l)) return;
       if (l.type === 'route') g.routes.push(li);
       else if (l.type === 'town' || l.type === 'city') g.towns.push(li);
-      else if (l.at) g.places.push(li);
+      // Orte: alles mit Stelle auf der Karte oder Inhalt (Items, Trainer, Bosse) – nicht nur, was wilde Pokémon hat
+      else if (l.at || hasSpot(li) || itemsOf(li).length || trainersOf(li).length || bossesAt(l).length) g.places.push(li);
       else if (l.wild.length) g.mirage.push(li);
     });
     var group = function (title, list) {
@@ -424,6 +448,10 @@
     renderLocation(opts && opts.focus);
     drawSelection();
     if (!(opts && opts.fromMap)) flyTo(li);
+    // Handy: Die Details stehen unter der Karte – nach einer Wahl über Suche oder Verzeichnis dorthin rollen
+    if (!(opts && (opts.fromMap || opts.quiet)) && matchMedia('(max-width: 900px)').matches) {
+      $('side').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    }
   }
   var posBtn = function (x, z, lift) {
     if (x == null) return '<span class="area">' + esc(tx().inside) + '</span>';
@@ -467,7 +495,8 @@
     var sub = [l.en !== l.de ? (lang() === 'en' ? l.de : l.en) : null, typeLabel(l)].filter(Boolean).join(' · ');
     var tabBtn = function (k, label, n, off) { return '<button type="button" class="tab' + (tab === k ? ' is-active' : '') + '" data-tab="' + k + '"' + (off ? ' disabled' : '') + '>' + esc(label) + (n != null ? ' <small>' + n + '</small>' : '') + '</button>'; };
     $('side-content').innerHTML = '<div class="side-head"><div class="back-row"><button type="button" class="back-btn" id="hm-back">← ' + esc(t.back) + '</button></div>' +
-      '<h2>' + esc(locName(l)) + '</h2><p class="loc-sub">' + esc(sub) + '</p></div>' +
+      '<h2>' + esc(locName(l)) + '</h2><p class="loc-sub">' + esc(sub) + '</p>' +
+      (P && !hasSpot(selected) ? '<p class="loc-sub loc-nospot">' + esc(t.noSpot) + '</p>' : '') + '</div>' +
       '<div class="tabs">' + tabBtn('wild', t.tabWild, null, false) + tabBtn('items', t.tabItems, its.length, !its.length) + tabBtn('trainers', t.tabTrainers, trs.length, !trs.length) +
       tabBtn('boss', t.tabBoss, bosses.length, !bosses.length) + '</div>' +
       '<div class="tab-body">' + (tab === 'boss' ? bossHtml(l) : tab === 'items' ? itemsHtml(selected) : tab === 'trainers' ? trainersHtml(selected) : wildHtml(l)) + '</div>';
@@ -550,7 +579,7 @@
     var hits = [];
     D.locations.forEach(function (l, li) {
       var k = [norm(l.de), norm(l.en)];
-      if (k.some(function (x) { return x.indexOf(key) >= 0; })) hits.push({ type: 'loc', li: li, s: k.some(function (x) { return x.indexOf(key) === 0; }) ? 2.5 : 1.5 });
+      if (locOk(l) && k.some(function (x) { return x.indexOf(key) >= 0; })) hits.push({ type: 'loc', li: li, s: k.some(function (x) { return x.indexOf(key) === 0; }) ? 2.5 : 1.5 });
     });
     for (var id = 1; id <= 721; id++) {
       var k = [norm(N.text.de.species[id]), norm(N.text.en.species[id])];
@@ -602,6 +631,12 @@
     document.querySelector('.map-note').textContent = t.note;
     document.title = t.title + ' (' + t.badge + ') – Pokémon Hub';
     $('map-search').placeholder = t.search;
+    // Ortsnamen auf der Karte in der gewählten Sprache
+    if (labelLayer && D) labelLayer.eachLayer(function (m) {
+      var el = m.getElement && m.getElement(), span = el && el.querySelector('span');
+      if (span && D.locations[m.locIndex]) span.textContent = locName(D.locations[m.locIndex]);
+    });
+    syncSpots();
     var v = version();
     var count = function (k) { var n = 0; if (P) D.locations.forEach(function (l, li) { if (k === 'trainer') n += trainersOf(li).filter(function (r) { return r[1] != null; }).length; else n += itemsOf(li).filter(function (r) { return r[3] != null && !!r[2] === (k === 'tm'); }).length; }); return n; };
     $('filter-chips').innerHTML = '<span class="hm-version" role="group">' + ['or', 'as'].map(function (k) {
@@ -635,7 +670,7 @@
     var m = /^pokemon-(\d+)$/.exec(h);
     if (m) { renderMon(+m[1]); return true; }
     var li = D.locations.findIndex(function (l) { return l.slug === h.split('~')[0]; });
-    if (li >= 0) { select(li); return true; }
+    if (li >= 0) { select(li, { quiet: true }); return true; }
     return false;
   }
 

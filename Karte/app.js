@@ -4,6 +4,8 @@
  * tools/make-tiles.py) – beides aus pret/pokeplatinum, das Kartenbild aus den 3D-Modellen des Spiels.
  * HG/SS: hgss.json (tools/build-hgss.js) und tiles-hgss/ (tools/render-hgss.js) im selben Format, wilde Pokémon
  * je Edition ({ heartgold: […], soulsilver: […] }) und mit den HG/SS-eigenen Arten (Zertrümmerer, Kopfnuss, Radio …).
+ * FR/LG: frlg.json (tools/build-frlg.js) und tiles-frlg/ (tools/render-frlg.js) – Pixelgrafik aus der GBA-ROM; die Orte
+ * der Oberwelt sind Rechtecke (locations[i].rects) statt 32er-Blöcke, Gras ohne Tageszeit (wild[…].grass).
  * Koordinaten sind Spiel-Kacheln: x nach rechts, z nach unten. Leaflet (CRS.Simple) bekommt [−z, x].
  * Das Bild zeigt die Welt aus dem Blickwinkel der Spielkamera: höher gelegene Stellen erscheinen weiter oben.
  */
@@ -11,14 +13,19 @@ window.LANG = localStorage.getItem('hub-lang') || 'de';
 document.documentElement.lang = window.LANG;
 
 // Welches Spiel: der Spiel-Chip des Hubs entscheidet (Platin ist die Grundeinstellung)
-const IS_HGSS = !!(window.PokeHubGame && window.PokeHubGame.get() === 'heartgold-soulsilver');
+const HUB_GAME = window.PokeHubGame && window.PokeHubGame.get();
+const IS_HGSS = HUB_GAME === 'heartgold-soulsilver';
+const IS_FRLG = HUB_GAME === 'feuerrot-blattgruen';
 const GAME = IS_HGSS
   ? { key: 'hgss', data: 'hgss.json', tiles: 'tiles-hgss/', body: 'is-hgss', versions: ['heartgold', 'soulsilver'], storage: 'karte-hgss-version',
-      starters: [152, 153, 154, 155, 156, 157, 158, 159, 160], planner: false, rando: false, scene: false }
+      starters: [152, 153, 154, 155, 156, 157, 158, 159, 160], planner: false, rando: false, scene: false, maxDex: 493, start: 'new-bark-town' }
+  : IS_FRLG
+  ? { key: 'frlg', data: 'frlg.json', tiles: 'tiles-frlg/', body: 'is-frlg', versions: ['firered', 'leafgreen'], storage: 'karte-frlg-version',
+      starters: [1, 2, 3, 4, 5, 6, 7, 8, 9], planner: false, rando: false, scene: false, maxDex: 386, pixel: true, labelShift: 1, start: 'pallet-town' }
   : { key: 'platin', data: 'platin.json', tiles: 'tiles/', body: '', versions: null,
-      starters: [387, 388, 389, 390, 391, 392, 393, 394, 395], planner: true, rando: true, scene: true };
+      starters: [387, 388, 389, 390, 391, 392, 393, 394, 395], planner: true, rando: true, scene: true, maxDex: 493, start: 'twinleaf-town' };
 if (GAME.body && !window.KARTE_HOENN && !window.KARTE_RETRO) document.body.classList.add(GAME.body);
-// Edition (nur HG/SS): HeartGold oder SoulSilver – bestimmt die wilden Pokémon und einige feste Begegnungen
+// Edition (HG/SS, FR/LG): bestimmt die wilden Pokémon und einige feste Begegnungen
 const edition = () => {
   if (!GAME.versions) return null;
   try { const v = localStorage.getItem(GAME.storage); return GAME.versions.includes(v) ? v : GAME.versions[0]; } catch (e) { return GAME.versions[0]; }
@@ -131,6 +138,7 @@ const EXTRA = {
     swarmHint: 'Nur wenn das Radio (Pokémon-Talk) hier einen Schwarm meldet – dann statt 40 % der Begegnungen.',
     radioHint: 'Mit dem Hoenn- bzw. Sinnoh-Klang im Radio statt der Plätze mit 10 %.',
     johto: 'Johto', kanto: 'Kanto', heartgold: 'HeartGold', soulsilver: 'SoulSilver', editionLabel: 'Edition',
+    sevii: 'Sieben Inseln', firered: 'Feuerrot', leafgreen: 'Blattgrün',
   },
   en: {
     rockSmash: 'Rock Smash', headbutt: 'Headbutt', headbuttRare: 'Headbutt (rare trees)', headbuttSecret: 'Headbutt (special trees)',
@@ -139,6 +147,7 @@ const EXTRA = {
     swarmHint: 'Only while the radio (Pokémon Talk) reports a swarm here – then instead of 40 % of the encounters.',
     radioHint: 'With the Hoenn or Sinnoh Sound on the radio instead of the 10 % slots.',
     johto: 'Johto', kanto: 'Kanto', heartgold: 'HeartGold', soulsilver: 'SoulSilver', editionLabel: 'Version',
+    sevii: 'Sevii Islands', firered: 'FireRed', leafgreen: 'LeafGreen',
   },
 };
 const HGSS_TEXT = {
@@ -161,9 +170,31 @@ const HGSS_TEXT = {
     monNotInGameText: '{p} only exists from Gen {g} – not in HG/SS.',
   },
 };
+const FRLG_TEXT = {
+  de: {
+    title: 'Karte von Kanto & den Sieben Inseln', gameBadge: 'Feuerrot / Blattgrün',
+    subtitle: 'Items, versteckte Items, TMs, Trainer und wilde Pokémon – mit allen Höhlen und Gebäuden, an ihrer echten Stelle im Spiel.',
+    note: 'Karte aus den Kartenblöcken, Tilesets und Paletten der deutschen Feuerrot-ROM gerendert, Positionen und Inhalte aus dem Spielcode (pret/pokefirered), deutsche Namen aus der ROM. Zwischen den Karten zeigt sie – wie das Spiel am Kartenrand – die Randblöcke der nächsten Karte.',
+    backToMap: 'Kanto', groupTowns: 'Städte', groupRoutes: 'Routen', groupPlaces: 'Höhlen, Gebäude & Orte',
+    hiddenHint: 'Mit dem Detektor oder durch Absuchen der Stelle zu finden.',
+    monNotInGame: 'gibt es in FR/BG nicht',
+    monNoWildText: '{p} steht auf der Karte nicht als wildes Pokémon. Vielleicht bekommst du es in Feuerrot/Blattgrün auf anderem Weg: Geschenk, Ei, Tausch, Spielhalle oder eine besondere Begegnung – oder nur in der anderen Edition.',
+    monNotInGameText: '{p} gibt es erst ab Gen {g} – in Feuerrot/Blattgrün nicht.',
+  },
+  en: {
+    title: 'Map of Kanto & the Sevii Islands', gameBadge: 'FireRed / LeafGreen',
+    subtitle: 'Items, hidden items, TMs, trainers and wild Pokémon – with every cave and building, at their real spot in the game.',
+    note: 'Map rendered from the map blocks, tilesets and palettes of the German FireRed ROM; positions and contents from the game code (pret/pokefirered), German names from the ROM. Between the maps it shows – like the game at a map edge – the border blocks of the nearest map.',
+    backToMap: 'Kanto', groupTowns: 'Towns & cities', groupRoutes: 'Routes', groupPlaces: 'Caves, buildings & places',
+    hiddenHint: 'Find them with the Itemfinder or by checking the spot.',
+    monNotInGame: 'not in FR/LG',
+    monNoWildText: '{p} is not listed as a wild Pokémon on the map. You may get it another way in FireRed/LeafGreen: gift, egg, trade, Game Corner or a special encounter – or only in the other version.',
+    monNotInGameText: '{p} only exists from Gen {g} – not in FireRed/LeafGreen.',
+  },
+};
 const tr = () => {
   const lang = TRANSLATIONS[window.LANG] ? window.LANG : 'de';
-  return { ...TRANSLATIONS[lang], ...EXTRA[lang], ...(IS_HGSS ? HGSS_TEXT[lang] : {}) };
+  return { ...TRANSLATIONS[lang], ...EXTRA[lang], ...(IS_HGSS ? HGSS_TEXT[lang] : IS_FRLG ? FRLG_TEXT[lang] : {}) };
 };
 const t = (key, vars) => {
   let s = tr()[key] ?? TRANSLATIONS.de[key] ?? key;
@@ -369,7 +400,17 @@ async function init() {
   else if (fromHash.li >= 0) {
     selectLocation(fromHash.li, { fly: !fromHash.map });
     if (fromHash.map) openInterior(fromHash.map);
-  } else renderDirectory();
+  } else {
+    renderDirectory();
+    showStart();
+  }
+}
+
+// Ohne Direktlink beginnt die Karte im Startort des Spiels (mit etwas Umgebung) – nicht in der ganzen Region
+function showStart() {
+  const li = D.locations.findIndex(l => slug(l.en) === GAME.start);
+  const b = li >= 0 && locationBounds(li);
+  if (b) map.fitBounds(b.pad(1.5), { maxZoom: 3, animate: false });
 }
 
 function setupMap() {
@@ -384,13 +425,16 @@ function setupMap() {
   if (TILES.sea) seaLayer = new SeaLayer({ pattern: TILES.sea, nativeZoom: NATIVE_ZOOM, minZoom: -2, maxZoom: MAX_ZOOM, tileSize: 512, updateWhenZooming: false, keepBuffer: 1 }).addTo(map);
   map.createPane('interior').style.zIndex = 230;
 
-  // Ausschnitt: alle Blöcke, die zu einem Ort gehören
+  // Ausschnitt: alle Blöcke bzw. Rechtecke, die zu einem Ort gehören
   let minR = 99, maxR = 0, minC = 99, maxC = 0;
   D.chunks.forEach((row, r) => row.forEach((li, c) => {
     if (li < 0) return;
     minR = Math.min(minR, r); maxR = Math.max(maxR, r); minC = Math.min(minC, c); maxC = Math.max(maxC, c);
   }));
-  const land = L.latLngBounds(ll(minC * CH, (maxR + 1) * CH), ll((maxC + 1) * CH, minR * CH));
+  const rects = D.locations.flatMap(l => l.rects || []);
+  const land = rects.length
+    ? L.latLngBounds(ll(Math.min(...rects.map(r => r[0])), Math.max(...rects.map(r => r[3]))), ll(Math.max(...rects.map(r => r[2])), Math.min(...rects.map(r => r[1]))))
+    : L.latLngBounds(ll(minC * CH, (maxR + 1) * CH), ll((maxC + 1) * CH, minR * CH));
   landBounds = land.pad(0.35);
   map.fitBounds(land, { padding: [10, 10] });
   map.setMaxBounds(landBounds);
@@ -398,11 +442,12 @@ function setupMap() {
 
   // Ortsnamen
   labelLayer = L.layerGroup().addTo(map);
+  const labelPane = L.labelPane(map);
   D.locations.forEach((l, li) => {
     if (!l.label || !l.chunks) return;
     const m = L.marker(llg(l.label[0], l.label[1]), {
       icon: L.divIcon({ className: `loc-label loc-label--${l.type}`, html: `<span>${esc(locName(l))}</span>`, iconSize: null }),
-      interactive: false, keyboard: false,
+      interactive: false, keyboard: false, pane: labelPane,
     });
     m.locIndex = li;
     labelLayer.addLayer(m);
@@ -411,13 +456,12 @@ function setupMap() {
   selLayer = L.layerGroup().addTo(map);
   map.on('zoomend', onZoom);
   onZoom();
-  let busyTimer = 0;
-  map.on('movestart zoomstart', () => { clearTimeout(busyTimer); document.body.classList.add('map-busy'); });
-  map.on('moveend zoomend', () => { clearTimeout(busyTimer); busyTimer = setTimeout(() => document.body.classList.remove('map-busy'), 250); });
 
   // Ort unter dem Mauszeiger bzw. Finger
+  const RECTS = D.locations.flatMap((l, li) => (l.rects || []).map(r => [...r, li]));
   const chunkAt = latlng => {
     const { x, z } = tileAt(latlng);
+    if (RECTS.length) return RECTS.find(r => x >= r[0] && x < r[2] && z >= r[1] && z < r[3])?.[4] ?? -1;
     return D.chunks[Math.floor(z / CH)]?.[Math.floor(x / CH)] ?? -1;
   };
   const coarse = matchMedia('(pointer: coarse)');
@@ -445,11 +489,13 @@ function setupMap() {
 function onZoom() {
   const z = map.getZoom();
   const el = map.getContainer();
-  el.classList.toggle('z-far', z < 0);
-  el.classList.toggle('z-mid', z >= 0 && z < 1.5);
-  el.classList.toggle('z-near', z >= 1.5);
-  // Über der Auflösung der Kacheln: Pixel scharf vergrößern statt verschwimmen lassen
-  el.classList.toggle('z-pixel', z >= NATIVE_ZOOM + 0.75);
+  // Namen je nach Zoom: die GBA-Welt ist kleiner (gleiche Pixel je Kachel, aber weniger Kacheln) – eine Stufe später
+  const zl = z - (GAME.labelShift || 0);
+  el.classList.toggle('z-far', zl < 0);
+  el.classList.toggle('z-mid', zl >= 0 && zl < 1.5);
+  el.classList.toggle('z-near', zl >= 1.5);
+  // Über der Auflösung der Kacheln: Pixel scharf vergrößern statt verschwimmen lassen (Pixelgrafik sofort)
+  el.classList.toggle('z-pixel', z >= NATIVE_ZOOM + (GAME.pixel ? 0 : 0.75));
   const scale = z >= 4.5 ? 2.1 : z >= 2.5 ? 1.6 : z >= 1.5 ? 1.3 : z >= 0.5 ? 1 : 0.75;
   if (scale === onZoom.scale && !onZoom.dirty) return;
   onZoom.scale = scale;
@@ -630,12 +676,15 @@ async function openInterior(key, opts = {}) {
   onZoom.dirty = true;
   onZoom();
 
-  map.setMaxBounds(bounds.pad(0.6));
+  // Grenzen erst setzen, wenn die Ansicht steht: setMaxBounds verschiebt sonst animiert in die neuen Grenzen,
+  // und diese Verschiebung liefe nach dem Sprung noch weiter (Innenkarte landete schief im Bild)
+  map.setMaxBounds(null);
   if (opts.focus) {
     const [x, z, y] = opts.focus;
     map.setView(llg(x + 0.5, z + 0.5, y), Math.max(map.getZoom(), 3), { animate: false });
     pulseAt(x, z, y);
-  } else map.fitBounds(bounds, { padding: [24, 24], maxZoom: 3.5, animate: false });
+  } else map.fitBounds(bounds, { padding: [24, 24], maxZoom: GAME.pixel ? NATIVE_ZOOM : 3.5, animate: false });
+  map.setMaxBounds(bounds.pad(0.6));
   renderInteriorBar();
   if (selected === m.l) renderLocation(selected, opts.ref);
   history.replaceState(null, '', `#${slug(D.locations[m.l].en)}~${key.toLowerCase()}`);
@@ -653,7 +702,7 @@ function closeInterior(opts = {}) {
   labelLayer.addTo(map);
   selLayer.addTo(map);
   map.getContainer().classList.remove('is-interior');
-  map.setMaxBounds(landBounds);
+  map.setMaxBounds(null);
   syncKinds();
   onZoom();
   renderInteriorBar();
@@ -665,6 +714,7 @@ function closeInterior(opts = {}) {
     const b = locationBounds(l.chunks || l.entrances ? li : l.via);
     if (b) map.fitBounds(b, { padding: [40, 40], maxZoom: 2, animate: false });
   }
+  map.setMaxBounds(landBounds);
   map.fire('overworld');
   if (selected >= 0) {
     renderLocation(selected);
@@ -705,6 +755,11 @@ function drawSelection(sel) {
 }
 function drawArea(li) {
   const CH = D.chunk;
+  // FR/LG: Rechtecke der Außenkarten
+  for (const [x0, z0, x1, z1] of D.locations[li].rects || []) {
+    selLayer.addLayer(L.rectangle(L.latLngBounds(ll(x0, z1), ll(x1, z0)),
+      { color: '#57d2ff', weight: 2, opacity: 0.95, fillColor: '#57d2ff', fillOpacity: 0.12, interactive: false }));
+  }
   const own = (r, c) => D.chunks[r]?.[c] === li;
   const segments = [];
   D.chunks.forEach((row, r) => row.forEach((v, c) => {
@@ -728,7 +783,7 @@ function drawArea(li) {
 
 function locationBounds(li) {
   const l = D.locations[li], CH = D.chunk;
-  const pts = [];
+  const pts = (l.rects || []).flatMap(([x0, z0, x1, z1]) => [ll(x0, z0), ll(x1, z1)]);
   D.chunks.forEach((row, r) => row.forEach((v, c) => {
     if (v === li) { const up = chunkLift(r, c); pts.push(ll(c * CH, r * CH - up), ll((c + 1) * CH, (r + 1) * CH - up)); }
   }));
@@ -1012,6 +1067,7 @@ function wildHTML(l) {
       <table class="wild-table"><tbody>${list.map(s => `<tr data-mon="${s.id}"><td>${monCell(s)}</td><td class="lv">${t('level')} ${lv(s)}</td><td class="pct">${s.p} %</td></tr>`).join('')}</tbody></table>
     </div>` : '');
   const grass = w => {
+    if (w.grass?.length) return simple(t('grass'), w.grass);
     if (!w.morning?.length) return '';
     const ids = [...new Set([...w.morning, ...w.day, ...w.night].map(s => s.id))];
     const get = (list, id) => list.find(s => s.id === id);
@@ -1066,7 +1122,7 @@ function updateScene() {
     picked: seaLi >= 0,
     how: ROD_KEYS.filter(has).map(k => t(k)),
     surf: all('surf'),
-    land: ['morning', 'day', 'night'].flatMap(all),
+    land: ['grass', 'morning', 'day', 'night'].flatMap(all),
     rod: rod ? {
       name: t(rod),
       areas: wild.filter(w => w[rod]?.length).map(w => ({ area: wild.length > 1 && w.area ? areaName(w.area) : '', list: entries(w[rod]) })),
@@ -1088,7 +1144,7 @@ const genOfId = id => [151, 251, 386, 493, 649, 721, 809, 905].findIndex(n => id
 
 function methodText(e) {
   const lv = e.min == null ? '' : ` · ${t('level')} ${e.min === e.max ? e.min : `${e.min}–${e.max}`}`;
-  if (e.key === 'grass') {
+  if (e.key === 'grass' && e.p == null) {
     const times = ['morning', 'day', 'night'];
     const pct = times.every(k => e[k] === e.morning) ? `${e.morning} %` : times.filter(k => e[k]).map(k => `${t(k)} ${e[k]} %`).join(' · ');
     return `${t('grass')} ${pct}${lv}`;
@@ -1111,7 +1167,7 @@ function renderMon(id, opts = {}) {
   if (!m) {
     drawSelection(-1);
     $('side-content').innerHTML = `<div class="side-head">${head}
-        <p>${esc(t(id > 493 ? 'monNotInGameText' : 'monNoWildText', { p: name, g: genOfId(id) }))}</p>${dex}</div>`;
+        <p>${esc(t(id > GAME.maxDex ? 'monNotInGameText' : 'monNoWildText', { p: name, g: genOfId(id) }))}</p>${dex}</div>`;
     $('back-btn').addEventListener('click', renderDirectory);
     return;
   }
@@ -1170,6 +1226,7 @@ function buildMonIndex() {
       grass.set(s.id, g);
     }));
     grass.forEach(g => add(g.s, li, g.e));
+    (w.grass || []).forEach(s => add(s, li, { key: 'grass', p: s.p, min: s.min, max: s.max, area }));
     TABLE_KEYS.forEach(key => (w[key] || []).forEach(s => add(s, li, { key, p: s.p, min: s.min, max: s.max, area })));
     SPECIAL_KEYS.forEach(key => (w[key] || []).forEach(s => add(s, li, { key, area })));
   }));
@@ -1177,7 +1234,7 @@ function buildMonIndex() {
   D.locations.forEach((l, li) => specialsOf(l).forEach(s =>
     add(s, li, { key: s.kind === 'static' ? 'static' : s.kind === 'egg' ? 'egg' : 'giftMon', area: s.area || '', ...(s.kind === 'egg' ? {} : { min: s.lv, max: s.lv }) })));
 }
-const bestChance = list => Math.max(0, ...list.map(e => (e.key === 'grass' ? Math.max(e.morning, e.day, e.night) : e.p || 0)));
+const bestChance = list => Math.max(0, ...list.map(e => (e.key === 'grass' && e.p == null ? Math.max(e.morning, e.day, e.night) : e.p || 0)));
 // Name eines Pokémon, das auf der Karte nicht wild vorkommt (pokemon-names.js)
 const speciesName = id => (window.pokemonName && window.pokemonName(id, null)) || `#${id}`;
 
@@ -1214,7 +1271,7 @@ function runSearch(q) {
   box.innerHTML = top.map(({ e }, n) => {
     if (e.type === 'mon' || e.type === 'nomon') {
       const m = MONS.get(e.id), np = m ? m.places.size : 0;
-      const sub = m ? `${t('kMon')} · ${np === 1 ? t('monPlace1') : t('monPlaces', { n: np })}` : t(e.id > 493 ? 'monNotInGame' : 'monNoWild');
+      const sub = m ? `${t('kMon')} · ${np === 1 ? t('monPlace1') : t('monPlaces', { n: np })}` : t(e.id > GAME.maxDex ? 'monNotInGame' : 'monNoWild');
       return `<button type="button" class="sr${m ? '' : ' sr--off'}" data-n="${n}"><img class="sr-ico" src="${monSprite(e.id)}" alt="" onerror="this.style.visibility='hidden'"><span class="sr-main">${esc(m ? nm(m) : speciesName(e.id))}</span><small>${esc(sub)}</small></button>`;
     }
     const l = D.locations[e.li];
@@ -1293,9 +1350,10 @@ if (!window.KARTE_HOENN && !window.KARTE_RETRO) $('lang-toggle').addEventListene
 
 // Randomizer-Stand: Chip „Randomizer: Name ×“ bzw. „Randomizer-ROM laden“ im Kopf
 if (window.PokeHubRando && GAME.rando && !window.KARTE_RETRO && !window.KARTE_HOENN) window.PokeHubRando.chip($('map-rando'));
-// Zwischen Platin und HG/SS (beide über diese Seite) beim Wechsel des Spiel-Chips neu laden
+// Zwischen Platin, HG/SS und FR/LG (alle über diese Seite) beim Wechsel des Spiel-Chips neu laden
 document.addEventListener('hubgamechange', () => {
   if (window.KARTE_HOENN || window.KARTE_RETRO) return;
-  if ((window.PokeHubGame && window.PokeHubGame.get() === 'heartgold-soulsilver') !== IS_HGSS) location.reload();
+  const next = window.PokeHubGame && window.PokeHubGame.get();
+  if ((next === 'heartgold-soulsilver') !== IS_HGSS || (next === 'feuerrot-blattgruen') !== IS_FRLG) location.reload();
 });
 if (!window.KARTE_HOENN && !window.KARTE_RETRO) init();

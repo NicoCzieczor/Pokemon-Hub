@@ -444,7 +444,3 @@
   .km-foam { animation: none; }
   .km-wave { animation: none; opacity: 0; }
 }
-
-/* Solange die Karte geschoben oder gezoomt wird (app.js setzt map-busy), stehen die Daueranimationen still –
-   Brandung und Schaum (stroke-dashoffset) und Kielwasser (background-position) kosten sonst in jedem Bild Hauptthread-Zeit */
-.map-busy .km *, .map-busy .km *::before, .map-busy .km *::after { animation-play-state: paused !important; }

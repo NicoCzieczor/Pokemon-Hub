@@ -1,5 +1,6 @@
 /*
- * Baut Karte/kalos-xy.json direkt aus den eigenen Pokemon-X/Y-ROMs und places.json von render-oras.js --xy.
+ * Baut Karte/kalos-xy.json direkt aus den eigenen Pokemon-X/Y-ROMs und places.json von render-xy.js
+ * (Flächen je Ort als Rechtecke, Namensposition, Eingänge zu Höhlen und Gebäuden).
  *
  * Aufruf:
  *   node build-xy.js <pokemon-x.cxi> <pokemon-y.cxi> <places.json>
@@ -32,9 +33,6 @@ const CLEAN_WILD_CRC = {
   x: new Set(['F0617248', '52071B78']),
   y: new Set(['C4BF77F6', '82D947B5'])
 };
-// The station is linked from a separate interior matrix which is not part of
-// the outdoor atlas. Anchor its selector on the rendered Lumiose scene.
-const POSITION_OVERRIDES = { 162: [790, 580] };
 
 const CRC_TABLE = new Uint32Array(256);
 for (let n = 0; n < 256; n++) {
@@ -153,25 +151,30 @@ function bounds(rects, entrances) {
   const locations = [...ids].sort((a, b) => a - b).map(id => {
     const nameEn = en[id], nameDe = de[id];
     if (!nameEn || !nameDe || nameEn === '----------' || nameEn === '???') return null;
-    const anchor = POSITION_OVERRIDES[id];
-    const area = anchor ? [anchor[0] - 8, anchor[1] - 8, anchor[0] + 8, anchor[1] + 8] : bounds(places.areas[id], places.entrances[id]);
+    const area = bounds(places.areas[id], places.entrances[id]);
     if (!area) return null;
-    const label = anchor || places.labels[id] || (places.entrances[id] && places.entrances[id][0]) ||
+    const label = places.labels[id] || (places.entrances[id] && places.entrances[id][0]) ||
       [(area[0] + area[2]) / 2, (area[1] + area[3]) / 2];
-    return {
-      id, slug: slug(nameEn), de: nameDe, en: nameEn, type: locationType(nameEn), region: 'kalos',
-      area, label: [label[0], label[1]], showLabel: false, items: [], trainers: [],
+    const type = locationType(nameEn), rects = (places.areas[id] || []).map(r => r.slice(0, 4));
+    const out = {
+      id, slug: slug(nameEn), de: nameDe, en: nameEn, type, region: 'kalos',
+      area, label: [label[0], label[1]], showLabel: rects.length > 0, items: [], trainers: [],
       wild: { x: mergeLocationTables(x.wildByLocation[id]), y: mergeLocationTables(y.wildByLocation[id]) }
     };
+    if (rects.length) out.rects = rects;
+    else if (places.entrances[id]) out.entrances = places.entrances[id].map(e => [e[0], e[1]]);
+    return out;
   }).filter(Boolean);
 
   const versionDiffs = locations.filter(l => JSON.stringify(l.wild.x) !== JSON.stringify(l.wild.y)).length;
   const data = {
     version: 1,
     source: 'User-provided Pokemon X and Pokemon Y ROMs (Europe); encounter layout documented by Universal Pokemon Randomizer ZX',
-    mapSource: 'Pokemon X ROM archives a/0/4/1, a/0/4/2 and a/0/1/3',
+    mapSource: 'Pokemon X ROM archives a/0/4/1 (terrain, building placements), a/0/4/2 (matrices), a/0/2/4 (buildings), a/0/1/3 (textures)',
     mapAuthor: 'GAME FREAK / Nintendo',
-    width: places.width, height: places.height, locations
+    width: places.width, height: places.height, locations,
+    // Tore und Höhlen, deren Türen auf der Karte auseinanderliegen (Kalos ist keine durchgehende Welt): gestrichelte Linien
+    links: (places.links || []).map(l => ({ de: de[l.loc], en: en[l.loc], pts: l.pts }))
   };
   fs.writeFileSync(OUT, JSON.stringify(data));
   console.log(path.basename(OUT), Math.round(fs.statSync(OUT).size / 1024) + ' KB', '·', locations.length,

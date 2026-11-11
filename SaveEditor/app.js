@@ -34,7 +34,7 @@
       s1Text: 'Speichere ganz normal im Spiel (Menü → Bericht). Schließe danach den Emulator komplett – am Handy auch aus der App-Übersicht wegwischen. Sonst überschreibt er deine Datei gleich wieder.',
       s2Title: 'Spielstand auswählen',
       dropTitle: 'Spielstand hier reinziehen oder antippen',
-      dropSub: 'Platin: Datei endet auf .sav oder .dsv. Omega Rubin / Alpha Saphir: Datei „main“ von Citra. Sie bleibt auf deinem Gerät und wird nirgendwo hochgeladen.',
+      dropSub: 'Platin: Datei endet auf .sav oder .dsv. Omega Rubin / Alpha Saphir: Datei „main“ von Citra oder Azahar. Sie bleibt auf deinem Gerät und wird nirgendwo hochgeladen.',
       dropOther: 'Anderen Spielstand wählen',
       whereTitle: 'Wo liegt mein Spielstand?',
       whereDesmume: 'Im Ordner <code>Battery</code> neben DeSmuME. Die Datei heißt wie dein Spiel und endet auf <code>.dsv</code>.',
@@ -42,7 +42,10 @@
       whereDrastic: 'Ordner <code>DraStic/backup</code>, endet auf <code>.dsv</code>.',
       whereDelta: 'Spiel lange drücken → Spielstand exportieren. Danach dort wieder importieren.',
       whereCitra: 'Am PC: Rechtsklick aufs Spiel → <i>Speicherdatenordner öffnen</i>. Am Handy (Citra/Azahar): im Ordner, den du beim ersten Start gewählt hast, unter <code>sdmc/Nintendo 3DS/…/title/00040000/0011c400/data/00000001</code> (Alpha Saphir: <code>0011c500</code>). Die Datei heißt <code>main</code> (ohne Endung); beim Speichern bekommst du eine neue zum Zurücklegen.',
-      pickHint: 'Spielstand aus Citra? Chrome erlaubt im Ordner „AppData“ keinen direkten Zugriff. Öffne ihn ohne Direktspeichern – beim Speichern bekommst du dann eine neue „main“ zum Zurücklegen.',
+      pickHint: 'Spielstand aus Citra oder Azahar? Chrome erlaubt im Ordner „AppData“ keinen direkten Zugriff. Öffne ihn ohne Direktspeichern – beim Speichern bekommst du dann eine neue „main“ zum Zurücklegen.',
+      recentTitle: 'Zuletzt geöffnet:', recentOpen: 'Neu laden',
+      recentHint: 'Liest die Datei frisch von der Festplatte – Speichern schreibt wieder genau dorthin.',
+      recentGone: function (n) { return '„' + n + '“ ist nicht mehr da (verschoben oder gelöscht) – bitte neu auswählen.'; },
       pickPlain: 'Ohne Direktspeichern öffnen',
       whereNote: 'Wichtig: Nimm den normalen Spielstand – keinen Savestate („Schnellspeichern“ im Emulator).',
       s3Title: 'Ändern, was du willst',
@@ -202,7 +205,7 @@
       s1Text: 'Save normally in the game (menu → Save). Then close the emulator completely – on a phone, also swipe it away from the recent apps. Otherwise it will overwrite your file again.',
       s2Title: 'Choose your save file',
       dropTitle: 'Drop your save file here or tap',
-      dropSub: 'Platinum: the file ends with .sav or .dsv. Omega Ruby / Alpha Sapphire: the file “main” from Citra. It stays on your device and is never uploaded.',
+      dropSub: 'Platinum: the file ends with .sav or .dsv. Omega Ruby / Alpha Sapphire: the file “main” from Citra or Azahar. It stays on your device and is never uploaded.',
       dropOther: 'Choose another save file',
       whereTitle: 'Where is my save file?',
       whereDesmume: 'In the <code>Battery</code> folder next to DeSmuME. Named like your game, ends with <code>.dsv</code>.',
@@ -210,7 +213,10 @@
       whereDrastic: 'Folder <code>DraStic/backup</code>, ends with <code>.dsv</code>.',
       whereDelta: 'Long-press the game → export save file. Import it there again afterwards.',
       whereCitra: 'On PC: right-click the game → <i>Open Save Data Location</i>. On a phone (Citra/Azahar): in the folder you chose on first start, under <code>sdmc/Nintendo 3DS/…/title/00040000/0011c400/data/00000001</code> (Alpha Sapphire: <code>0011c500</code>). The file is called <code>main</code> (no extension); when saving you get a new one to put back.',
-      pickHint: 'A save from Citra? Chrome does not allow direct access in the “AppData” folder. Open it without direct saving – when saving you then get a new “main” to put back.',
+      pickHint: 'A save from Citra or Azahar? Chrome does not allow direct access in the “AppData” folder. Open it without direct saving – when saving you then get a new “main” to put back.',
+      recentTitle: 'Last opened:', recentOpen: 'Reload',
+      recentHint: 'Reads the file fresh from disk – saving writes right back to it.',
+      recentGone: function (n) { return '“' + n + '” is gone (moved or deleted) – please choose it again.'; },
       pickPlain: 'Open without direct saving',
       whereNote: 'Important: use the normal save file – not a save state (the emulator\'s quick save).',
       s3Title: 'Change whatever you want',
@@ -363,7 +369,8 @@
   // save: { name, handle, orig (Datei wie gespeichert), work (Arbeitskopie), base/data (gelesen), before (für Rückgängig) }
   // shift = Platz des Pokémon, das gerade verschoben wird (wKey); shiftNote = warum es nicht ging;
   // add = Formular für ein neues Pokémon (placing: jetzt einen freien Platz antippen)
-  var state = { save: null, tab: 'mons', mon: null, box: 0, pocket: 0, picker: null, busy: false, result: null, error: '', backups: [], shift: null, shiftNote: '', add: null };
+  // recent = zuletzt geöffnete Datei mit Datei-Griff (Recent)
+  var state = { save: null, tab: 'mons', mon: null, box: 0, pocket: 0, picker: null, busy: false, result: null, error: '', backups: [], shift: null, shiftNote: '', add: null, recent: null };
 
   var $ = function (id) { return document.getElementById(id); };
   function narrow() { return !!(window.matchMedia && matchMedia('(max-width: 860px)').matches); }
@@ -445,29 +452,34 @@
 
   /* ── Sicherungen: bisherige Fassung vor jedem Speichern (IndexedDB, je Dateiname die letzten 5) ── */
   // „Rückgängig“ gilt nur, solange die Seite offen ist – die Sicherungen bleiben auch nach Schließen oder Absturz.
+  // Die Datenbank hat auch „recent“ (zuletzt geöffnete Datei, s. Recent – nutzt runDb von hier)
   var Backups = (function () {
     var KEEP = 5, dbp = null;
     function db() {
       if (!dbp) {
         dbp = new Promise(function (res, rej) {
           if (!window.indexedDB) { rej(new Error('no idb')); return; }
-          var r = indexedDB.open('pokehub-saveeditor', 1);
-          r.onupgradeneeded = function () { r.result.createObjectStore('backups', { keyPath: 'id', autoIncrement: true }); };
+          var r = indexedDB.open('pokehub-saveeditor', 2);
+          r.onupgradeneeded = function () {
+            if (!r.result.objectStoreNames.contains('backups')) r.result.createObjectStore('backups', { keyPath: 'id', autoIncrement: true });
+            if (!r.result.objectStoreNames.contains('recent')) r.result.createObjectStore('recent', { keyPath: 'key' });
+          };
           r.onsuccess = function () { res(r.result); };
           r.onerror = function () { rej(r.error); };
         });
       }
       return dbp;
     }
-    function run(mode, fn) {
+    function runDb(store, mode, fn) {
       return db().then(function (d) {
         return new Promise(function (res, rej) {
-          var t = d.transaction('backups', mode), req = fn(t.objectStore('backups'));
+          var t = d.transaction(store, mode), req = fn(t.objectStore(store));
           t.oncomplete = function () { res(req && req.result); };
           t.onerror = t.onabort = function () { rej(t.error); };
         });
       });
     }
+    function run(mode, fn) { return runDb('backups', mode, fn); }
     // Neueste zuerst
     function list(name) {
       return run('readonly', function (s) { return s.getAll(); }).then(function (all) {
@@ -484,8 +496,41 @@
         });
       }).catch(function (e) { console.error('Sicherung fehlgeschlagen:', e); });
     }
-    return { list: list, add: add };
+    return { list: list, add: add, runDb: runDb };
   })();
+  var runDb = Backups.runDb;
+
+  // Zuletzt geöffnete Datei (am PC mit Datei-Zugriff): der Datei-Griff selbst, damit „Neu laden“ immer den
+  // aktuellen Stand von der Festplatte liest und „Speichern“ wieder genau dorthin schreibt. Dazu Name, Spiel und
+  // Trainer für die Anzeige. Der Browser fragt beim ersten Zugriff nach einem Neustart einmal nach der Erlaubnis.
+  var Recent = {
+    get: function () { return runDb('recent', 'readonly', function (s) { return s.get('last'); }).catch(function () { return null; }); },
+    set: function (rec) { return runDb('recent', 'readwrite', function (s) { s.put(Object.assign({ key: 'last' }, rec)); }).catch(function () {}); },
+    clear: function () { return runDb('recent', 'readwrite', function (s) { s.delete('last'); }).catch(function () {}); }
+  };
+  function rememberFile(handle, data) {
+    if (!handle || !handle.getFile) return;
+    var rec = { handle: handle, name: handle.name, kind: data.kind, trainer: data.trainer && data.trainer.name, openedAt: Date.now() };
+    state.recent = rec;
+    Recent.set(rec);
+  }
+  // „Neu laden“: Erlaubnis zum Lesen und Schreiben holen (muss aus einem Klick kommen), dann frisch lesen
+  function openRecent() {
+    var rec = state.recent;
+    if (!rec || !rec.handle || state.busy) return;
+    var opts = { mode: 'readwrite' };
+    Promise.resolve(rec.handle.queryPermission ? rec.handle.queryPermission(opts) : 'granted').then(function (p) {
+      return p === 'granted' ? p : rec.handle.requestPermission(opts);
+    }).then(function (p) {
+      if (p !== 'granted') return;
+      return rec.handle.getFile().then(function (f) { return load(f, rec.handle); });
+    }).catch(function (err) {
+      // Datei verschoben oder gelöscht: vergessen
+      if (err && err.name === 'NotFoundError') { state.recent = null; Recent.clear(); state.error = L().recentGone(rec.name); render(); return; }
+      state.error = L().errRead + (err && err.message);
+      render();
+    });
+  }
 
   function refreshBackups() {
     var sv = state.save;
@@ -521,6 +566,7 @@
       if (!data.checksums.general) { state.error = L().errBroken; state.save = null; return; }
       useGame(HubSave.get(data.kind));
       state.save = { name: file.name, handle: handle || null, orig: bytes, work: bytes, base: data, data: data, before: null };
+      rememberFile(handle, data);
       var first = data.party[0];
       state.mon = first ? first.where : null;
       state.backups = [];
@@ -545,8 +591,10 @@
   // Am PC (Chrome/Edge) mit Datei-Zugriff öffnen, damit später direkt gespeichert werden kann
   function pickFile() {
     if (!window.showOpenFilePicker || PHONE) { $('file-input').click(); return; }
-    // Ohne Dateityp-Filter: der Spielstand von Citra heißt „main“ und hat keine Endung
-    window.showOpenFilePicker({ id: 'pokehub-save', multiple: false }).then(function (handles) {
+    // Ohne Dateityp-Filter: der Spielstand von Citra/Azahar heißt „main“ und hat keine Endung. Startordner: der der
+    // zuletzt geöffneten Datei (sonst merkt sich Chrome den Ordner unter der id)
+    var rec = state.recent && state.recent.handle;
+    window.showOpenFilePicker(rec ? { startIn: rec, multiple: false } : { id: 'pokehub-save', multiple: false }).then(function (handles) {
       return handles[0].getFile().then(function (file) {
         if (window.OrasSave && file.size === OrasSave.SIZE) noHandle(false);   // Direktzugriff klappt hier
         return load(file, handles[0]);
@@ -1239,6 +1287,14 @@
     $('file-error').textContent = state.error;
     $('pick-hint').hidden = !state.pickHint || !!sv;
     if (state.pickHint && !sv) $('pick-hint').innerHTML = esc(l.pickHint) + ' <button type="button" class="small-btn" id="pick-plain">' + esc(l.pickPlain) + '</button>';
+    // Zuletzt geöffnet: ein Klick lädt genau diese Datei frisch
+    var rec = state.recent;
+    $('recent').hidden = !rec || !!sv;
+    if (rec && !sv) {
+      var game = HubSave.GAMES.indexOf(rec.kind) >= 0 ? HubSave.get(rec.kind).name[lang] : '';
+      $('recent').innerHTML = '<span>' + esc(l.recentTitle) + ' <b>' + esc(rec.name) + '</b>' + [game, rec.trainer].filter(Boolean).map(function (x) { return ' · ' + esc(x); }).join('') +
+        '</span><button type="button" class="small-btn" id="recent-open" title="' + esc(l.recentHint) + '"' + (state.busy ? ' disabled' : '') + '>' + esc(l.recentOpen) + '</button>';
+    }
 
     // Schritt 3: ändern
     var dirty = !!sv && !sameBytes(sv.orig, sv.work);
@@ -1292,6 +1348,11 @@
   if (PHONE) $('file-input').removeAttribute('accept');
   $('drop').addEventListener('click', function () { if (!state.busy) pickFile(); });
   $('pick-hint').addEventListener('click', function (e) { if (e.target.closest('#pick-plain')) $('file-input').click(); });
+  $('recent').addEventListener('click', function (e) { if (e.target.closest('#recent-open')) openRecent(); });
+  // Zuletzt geöffnete Datei (nur mit Datei-Zugriff, also am PC in Chrome/Edge)
+  if (window.showOpenFilePicker && !PHONE) {
+    Recent.get().then(function (rec) { if (rec && rec.handle && !state.recent) { state.recent = rec; render(); } });
+  }
   $('file-input').addEventListener('change', function (e) {
     var f = e.target.files[0];
     if (f) load(f, null);

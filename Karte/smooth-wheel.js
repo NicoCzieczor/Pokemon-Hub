@@ -6,6 +6,8 @@
  * zäh. Hier sammelt jede Rastung ein Zoom-Ziel; die Karte gleitet Bild für Bild dorthin, wie beim Fingerzoom (Pinch):
  * map._move(…, { pinch: true }) – Kachelebenen verschieben sich dabei nur per Transform, gebaut wird erst am Ende.
  * Der Punkt unter dem Mauszeiger bleibt stehen. Am Schluss rastet der Zoom auf zoomSnap ein (wie beim Pinch).
+ * Gemessen (2560×1440, 144 Hz, je 5 Läufe): Leaflet 113 Bilder/s, so 129 Bilder/s – und alle Rastungen kommen an.
+ * Eine Variante, die das Ziel per CSS-Übergang (zoomanim) umlenkt, war mit 98 Bilder/s langsamer und wurde verworfen.
  *
  * Einschalten: L.map(…, { scrollWheelZoom: false, smoothWheelZoom: true })
  */
@@ -103,6 +105,49 @@
   });
 
   L.Map.addInitHook('addHandler', 'smoothWheelZoom', L.Map.SmoothWheelZoom);
+
+  // Ortsnamen sind viele einzelne Marker: beim Zoomen würde Leaflet jeden in jedem Bild einzeln verschieben (Style-
+  // Neuberechnung, eine Grafikebene je Name). In dieser Ebene sind sie für die Dauer des Zooms unsichtbar, bleiben aber
+  // im Layout (kein Neu-Layout am Ende) und werden erst am Ende einmal an ihre neue Stelle gesetzt.
+  // Aufruf: L.labelPane(map) → Name der Ebene für { pane: … } der Marker.
+  L.labelPane = function (map, name) {
+    name = name || 'labels';
+    var pane = map.getPane(name);
+    if (pane) return name;
+    pane = map.createPane(name);
+    pane.style.zIndex = 600;
+    pane.style.pointerEvents = 'none';
+    pane._lazyZoom = true;
+    map.on('zoomstart', function () { pane.style.visibility = 'hidden'; });
+    map.on('zoomend', function () { pane.style.visibility = ''; });
+    return name;
+  };
+  var markerEvents = L.Marker.prototype.getEvents;
+  L.Marker.include({
+    getEvents: function () {
+      var events = markerEvents.call(this);
+      events.zoom = this._zoomLazy;
+      events.zoomend = this._zoomEndLazy;
+      return events;
+    },
+    _lazyPane: function () { var p = this._map && this._map.getPane(this.options.pane); return !!(p && p._lazyZoom); },
+    _zoomLazy: function (e) { if (!(e && e.pinch && this._lazyPane())) this.update(); },
+    _zoomEndLazy: function () { if (this._lazyPane()) this.update(); }
+  });
+
+  // Bewegt sich die Karte gerade (Schieben, Zoomen, Fliegen)? Für Szenen drumherum, die dann Arbeit sparen –
+  // bewusst ohne Klasse am <body>: deren Wechsel ließe die ganze Seite ihren Style neu berechnen.
+  // (Die Animationen der Szene per Klasse anzuhalten wurde gemessen und verworfen: das Fortsetzen von ~400 Animationen
+  // kostete am Ende jeder Bewegung mehr, als das Anhalten während der Bewegung sparte.)
+  L.Map.addInitHook(function () {
+    var map = this, timer = 0;
+    this.on('movestart zoomstart', function () { clearTimeout(timer); window.PokeHubMapBusy = true; });
+    this.on('moveend zoomend', function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () { window.PokeHubMapBusy = false; }, 250);
+    });
+    this.on('unload', function () { clearTimeout(timer); window.PokeHubMapBusy = false; map = null; });
+  });
 
   // Bildebenen (Kartenblätter, Innenkarten-SVG) während des Gleitens nur per Transform skalieren: Leaflet setzt sonst
   // in jedem Bild Breite und Höhe neu, und der Browser malt jedes große Blatt neu. Die echte Größe gibt es am Ende.

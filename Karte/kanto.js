@@ -1,6 +1,6 @@
 /*
  * Interaktive Kanto-Karte für Pokémon Rot / Blau – und die einfachen Karten der anderen Spiele.
- * (HeartGold/SoulSilver läuft über app.js mit allen Funktionen der Platin-Karte.)
+ * (HeartGold/SoulSilver und Feuerrot/Blattgrün laufen über app.js mit allen Funktionen der Platin-Karte.)
  *
  * Die Kartenblätter und kanto.json werden mit tools/build-kanto.py aus pret/pokered erzeugt.
  * Ein Kartenkoordinatenpunkt entspricht einem Schritt im Spiel (16 × 16 Game-Boy-Pixel).
@@ -9,63 +9,69 @@
   'use strict';
 
   var GAME = window.PokeHubGame && window.PokeHubGame.get();
-  var isRetroGame = function (game) { return game === 'rot-blau' || game === 'gelb' || game === 'gold-silber' || game === 'kristall' || game === 'rubin-saphir' || game === 'smaragd' || game === 'diamant-perl' || game === 'schwarz-weiss' || game === 'schwarz2-weiss2' || game === 'feuerrot-blattgruen' || game === 'x-y' || game === 'sonne-mond'; };
+  var isRetroGame = function (game) { return game === 'rot-blau' || game === 'gelb' || game === 'gold-silber' || game === 'kristall' || game === 'rubin-saphir' || game === 'smaragd' || game === 'diamant-perl' || game === 'schwarz-weiss' || game === 'schwarz2-weiss2' || game === 'x-y' || game === 'sonne-mond'; };
   var CFGS = {
     'rot-blau': {
+      start: 'pallet-town',
       base: 'tiles-kanto/', data: 'kanto.json', storage: 'karte-rb-version', versions: ['red', 'blue'], fallback: 'red',
       sprite: 'generation-i/red-blue', maxDex: 151, body: 'is-kanto'
     },
     'gelb': {
+      start: 'pallet-town',
       base: 'tiles-yellow/', data: 'yellow.json', storage: 'karte-yellow-version', versions: ['yellow'], fallback: 'yellow',
       sprite: 'generation-i/yellow', maxDex: 151, body: 'is-yellow', maxZoom: 6,
       attribution: 'tiles-yellow/SOURCE.txt'
     },
     'gold-silber': {
+      start: 'new-bark-town',
       base: 'tiles-gold-silver/', data: 'gold-silver.json', storage: 'karte-gs-version', versions: ['gold', 'silver'], fallback: 'gold',
       sprite: 'generation-ii/gold', maxDex: 251, body: 'is-gs', markers: false, maxZoom: 6,
       attribution: 'tiles-gold-silver/SOURCE.txt'
     },
     'kristall': {
+      start: 'new-bark-town',
       base: 'tiles-crystal/', data: 'crystal.json', storage: 'karte-crystal-version', versions: ['crystal'], fallback: 'crystal',
       sprite: 'generation-ii/crystal', maxDex: 251, body: 'is-crystal', markers: false, maxZoom: 6,
       attribution: 'tiles-crystal/SOURCE.txt'
     },
     'rubin-saphir': {
+      start: 'littleroot-town',
       base: 'tiles-ruby-sapphire/', data: 'ruby-sapphire.json', storage: 'karte-rs-version', versions: ['ruby', 'sapphire'], fallback: 'ruby',
       sprite: 'generation-iii/ruby-sapphire', maxDex: 386, body: 'is-rs', markers: false, maxZoom: 6,
       attribution: 'tiles-ruby-sapphire/SOURCE.txt'
     },
     'smaragd': {
+      start: 'littleroot-town',
       base: 'tiles-emerald/', data: 'emerald.json', storage: 'karte-emerald-version', versions: ['emerald'], fallback: 'emerald',
       sprite: 'generation-iii/emerald', maxDex: 386, body: 'is-emerald', markers: false, maxZoom: 6,
       attribution: 'tiles-emerald/SOURCE.txt'
     },
     'diamant-perl': {
+      start: 'twinleaf-town',
       base: 'tiles-diamond-pearl/', data: 'diamond-pearl.json', storage: 'karte-dp-version', versions: ['diamond', 'pearl'], fallback: 'diamond',
       sprite: 'generation-iv/diamond-pearl', maxDex: 493, body: 'is-dp', markers: false, maxZoom: 6,
       attribution: 'tiles-diamond-pearl/SOURCE.txt'
     },
     'schwarz-weiss': {
+      start: 'nuvema-town',
       base: 'tiles-unova/', data: 'unova.json', storage: 'karte-bw-version', versions: ['black', 'white'], fallback: 'white',
       sprite: 'generation-v/black-white', maxDex: 649, body: 'is-unova', markers: false, maxZoom: 6, versionedTiles: true,
       attribution: 'tiles-unova/SOURCE.txt'
     },
     'schwarz2-weiss2': {
+      start: 'aspertia-city',
       base: 'tiles-unova-b2w2/', data: 'unova-b2w2.json', storage: 'karte-b2w2-version', versions: ['black-2', 'white-2'], fallback: 'white-2',
       sprite: 'generation-v/black-white', maxDex: 649, body: 'is-unova-b2w2', markers: false, maxZoom: 6,
       attribution: 'tiles-unova-b2w2/SOURCE.txt'
     },
-    'feuerrot-blattgruen': {
-      base: 'tiles-frlg/', data: 'frlg.json', storage: 'karte-frlg-version', versions: ['firered', 'leafgreen'], fallback: 'firered',
-      sprite: 'generation-iii/firered-leafgreen', maxDex: 386, body: 'is-frlg', markers: false, maxZoom: 6,
-      attribution: 'tiles-frlg/SOURCE.txt'
-    },
     'x-y': {
+      start: 'vaniville-town',
       base: 'tiles-kalos-xy/', data: 'kalos-xy.json', storage: 'karte-xy-version', versions: ['x', 'y'], fallback: 'x',
-      sprite: 'generation-vi/x-y', maxDex: 721, body: 'is-xy', markers: false, labels: false, maxZoom: 6,
+      sprite: 'generation-vi/x-y', maxDex: 721, body: 'is-xy', markers: false, labelZoom: true, maxZoom: 6,
       attribution: 'tiles-kalos-xy/SOURCE.txt'
     },
     'sonne-mond': {
+      start: 'route-1', startRegion: true,   // Atlas: ganze Insel Mele-Mele statt nur Route 1
       base: 'tiles-alola-sm/', data: 'alola-sm.json', storage: 'karte-sm-version', versions: ['sun', 'moon'], fallback: 'sun',
       sprite: 'generation-vii/icons', maxDex: 802, body: 'is-sm', markers: false, labels: false, svgAreas: true, maxZoom: 6,
       attribution: 'tiles-alola-sm/SOURCE.txt'
@@ -90,7 +96,6 @@
   window.KARTE_DP = GAME === 'diamant-perl';
   window.KARTE_UNOVA = GAME === 'schwarz-weiss';
   window.KARTE_B2W2 = GAME === 'schwarz2-weiss2';
-  window.KARTE_FRLG = GAME === 'feuerrot-blattgruen';
   window.KARTE_XY = GAME === 'x-y';
   window.KARTE_SM = GAME === 'sonne-mond';
 
@@ -339,22 +344,6 @@
       loadError: 'The Sun/Moon map could not be loaded.', sun: 'Sun', moon: 'Moon'
     }
   };
-  var FRLG_TEXT = {
-    de: {
-      title: 'Karte von Kanto & den Sevii-Eilanden', badge: 'Feuerrot / Blattgrün',
-      subtitle: 'Orte und wilde Pokémon aus Feuerrot und Blattgrün – mit editionsspezifischen Fundorten.',
-      note: 'Die Karte wurde direkt aus den Tiles und Paletten der bereitgestellten deutschen Feuerrot-ROM gerendert. Blattgrün nutzt dieselbe Oberwelt; die Funddaten stammen editionsspezifisch aus der PokeAPI.',
-      search: 'Ort oder Pokémon suchen…', loading: 'Feuerrot/Blattgrün-Karte wird geladen…',
-      loadError: 'Die Feuerrot/Blattgrün-Karte konnte nicht geladen werden.', firered: 'Feuerrot', leafgreen: 'Blattgrün'
-    },
-    en: {
-      title: 'Map of Kanto & the Sevii Islands', badge: 'FireRed / LeafGreen',
-      subtitle: 'Places and wild Pokémon from FireRed and LeafGreen – with version-specific encounters.',
-      note: 'The map is rendered directly from the supplied German FireRed ROM’s tiles and palettes. LeafGreen shares the same overworld; version-specific encounters come from PokeAPI.',
-      search: 'Search place or Pokémon…', loading: 'Loading FireRed/LeafGreen map…',
-      loadError: 'The FireRed/LeafGreen map could not be loaded.', firered: 'FireRed', leafgreen: 'LeafGreen'
-    }
-  };
   var tx = function () {
     if (GAME === 'gelb') return Object.assign({}, TEXT[lang()], YELLOW_TEXT[lang()]);
     if (GAME === 'gold-silber') return Object.assign({}, TEXT[lang()], GS_TEXT[lang()]);
@@ -364,7 +353,6 @@
     if (GAME === 'diamant-perl') return Object.assign({}, TEXT[lang()], DP_TEXT[lang()]);
     if (GAME === 'schwarz-weiss') return Object.assign({}, TEXT[lang()], UNOVA_TEXT[lang()]);
     if (GAME === 'schwarz2-weiss2') return Object.assign({}, TEXT[lang()], B2W2_TEXT[lang()]);
-    if (GAME === 'feuerrot-blattgruen') return Object.assign({}, TEXT[lang()], FRLG_TEXT[lang()]);
     if (GAME === 'x-y') return Object.assign({}, TEXT[lang()], XY_TEXT[lang()]);
     if (GAME === 'sonne-mond') return Object.assign({}, TEXT[lang()], SM_TEXT[lang()]);
     return TEXT[lang()];
@@ -609,11 +597,19 @@
       // getBoundsZoom klemmt auf den bisherigen Mindest-Zoom – daher selbst rechnen
       var size = map.getSize(), fit = Math.min(Math.log2((size.x - 24) / D.width), Math.log2((size.y - 24) / D.height));
       if (isFinite(fit)) map.setMinZoom(Math.min(-2, Math.floor(fit * 4) / 4));
-      if (refit) map.fitBounds(world, { padding: [12, 12] });
+      if (refit) startView();
+    };
+    // Ohne Direktlink beginnt die Karte im Startort des Spiels (mit etwas Umgebung) – nicht in der ganzen Region
+    var startView = function () {
+      var l = D.locations.find(function (x) { return x.slug === CFG.start; }), b = l && boundsOf(l);
+      if (b && CFG.startRegion) D.locations.forEach(function (x) { var xb = x.region === l.region && boundsOf(x); if (xb) b.extend(xb); });
+      // Atlas: oben Platz für den Titel der Insel
+      if (b) map.fitBounds(CFG.startRegion ? b : b.pad(1.5), { paddingTopLeft: [12, CFG.startRegion ? 64 : 12], paddingBottomRight: [12, 12], maxZoom: 3, animate: false });
+      else map.fitBounds(world, { padding: [12, 12] });
     };
     fitWorld(false);
     map.setMaxBounds(world.pad(0.18));
-    map.fitBounds(world, { padding: [12, 12] });
+    startView();
     setTimeout(function () { fitWorld(selected < 0 && monView == null); }, 250);
     ground = decodeGround(TILES);
     if (CFG.labelZoom) {
@@ -629,6 +625,17 @@
     if (TILES.sea) new SeaLayer({ pattern: TILES.sea, nativeZoom: TILES.nativeZoom || 4, minZoom: -3, maxZoom: (CFG.maxZoom || 6) + 1 }).addTo(map);
     setupSheets();
 
+    // Verbindungen (X/Y): Tore und Höhlen, deren Türen auf der Karte auseinanderliegen – gestrichelt, mit einem Punkt je Tür
+    if (D.links && D.links.length) {
+      var linkLayer = L.layerGroup().addTo(map);
+      D.links.forEach(function (k) {
+        var a = ll(k.pts[0][0], k.pts[0][1]), b = ll(k.pts[1][0], k.pts[1][1]);
+        L.polyline([a, b], { interactive: false, className: 'kanto-link', color: '#fff3c4', weight: 2, opacity: 0.8, dashArray: '2 7', lineCap: 'round' }).addTo(linkLayer);
+        [a, b].forEach(function (p) {
+          L.circleMarker(p, { interactive: false, className: 'kanto-link-end', radius: 3, color: '#3b2f12', weight: 1, fillColor: '#fff3c4', fillOpacity: 1 }).addTo(linkLayer);
+        });
+      });
+    }
     areaLayer = L.layerGroup().addTo(map);
     labelLayer = L.layerGroup().addTo(map);
     // Flächen: Städte und Routen zuerst, Orte mit eigenem Eingang (Höhlen, Türme …) liegen obenauf
@@ -642,6 +649,25 @@
     buildMarkers();
   }
 
+  // Hover: eine Fläche und ein Umriss je Ort – nicht jedes seiner Rechtecke einzeln (sonst ein Gitter bei Orten aus
+  // vielen Rechtecken wie Illumina City oder Route 22). Die Rechtecke selbst bleiben unsichtbare Klickflächen.
+  var hoverLayer = null, hoverLi = -1;
+  function showHover(li) {
+    if (li === hoverLi) return;
+    hoverLi = li;
+    if (hoverLayer) { map.removeLayer(hoverLayer); hoverLayer = null; }
+    var l = D.locations[li];
+    if (!l) return;
+    var rects = rectsOf(l);
+    hoverLayer = L.layerGroup().addTo(map);
+    L.polygon(rects.map(function (r) { return [ll(r[0], r[1]), ll(r[2], r[1]), ll(r[2], r[3]), ll(r[0], r[3])]; }), {
+      interactive: false, stroke: false, fillColor: '#8ce8b0', fillOpacity: 0.1
+    }).addTo(hoverLayer);
+    L.polyline(outline(rects).map(function (s) { return [ll(s[0], s[1]), ll(s[2], s[3])]; }), {
+      interactive: false, color: '#8ce8b0', weight: 1, opacity: 0.75
+    }).addTo(hoverLayer);
+  }
+
   function addArea(l, li, rect) {
     var area = L.rectangle(rectBounds(rect), {
       className: 'kanto-area kanto-area--' + l.type,
@@ -649,13 +675,13 @@
     }).addTo(areaLayer);
     area.locIndex = li;
     area.on('mouseover', function () {
-      areaLayer.eachLayer(function (a) { if (a.locIndex === li) a.setStyle({ opacity: 0.75, fillOpacity: 0.1 }); });
+      showHover(li);
       $('hover-name').textContent = locName(l);
       $('hover-name').hidden = false;
     });
     area.on('mouseout', function () {
       // Die Auswahl hat eine eigene gelbe Ebene; die grüne Hover-Fläche kann daher immer verschwinden.
-      areaLayer.eachLayer(function (a) { if (a.locIndex === li) a.setStyle({ opacity: 0, fillOpacity: 0 }); });
+      showHover(-1);
       $('hover-name').hidden = true;
     });
     if (CFG.svgAreas && area.getElement()) {
@@ -685,7 +711,7 @@
     var at = l.label ? [l.label[0] - 0.5, l.label[1] - 0.5] : l.entrances && l.entrances.length ? [l.entrances[0][0], l.entrances[0][1] - 1.5] : null;
     if (CFG.labels !== false && l.showLabel !== false && at && !labelLayer.getLayers().some(function (m) { return m.locIndex === li; })) {
       var label = L.marker(llg(at), {
-        interactive: false,
+        interactive: false, pane: L.labelPane(map),
         icon: L.divIcon({
           className: 'kanto-label-wrap',
           html: '<span class="kanto-label kanto-label--' + l.type + '">' + esc(locName(l)) + '</span>',
@@ -758,17 +784,45 @@
     list.forEach(function (li) {
       var l = D.locations[li];
       if (!l) return;
-      (l.rects || (l.entrances ? [] : rectsOf(l))).forEach(function (r) {
-        L.rectangle(rectBounds(r), {
-          interactive: false, color: '#ffda08', weight: 2.5, opacity: 0.95,
-          fillColor: '#ffda08', fillOpacity: 0.08, className: 'kanto-selection'
-        }).addTo(selectionLayer);
-      });
+      var rects = l.rects || (l.entrances ? [] : rectsOf(l));
+      // alle Rechtecke als eine Fläche (ein SVG-Pfad – keine hellen Fugen zwischen Nachbarn)
+      if (rects.length) L.polygon(rects.map(function (r) { return [ll(r[0], r[1]), ll(r[2], r[1]), ll(r[2], r[3]), ll(r[0], r[3])]; }), {
+        interactive: false, stroke: false, fillColor: '#ffda08', fillOpacity: 0.08, className: 'kanto-selection'
+      }).addTo(selectionLayer);
+      // Umriss der Vereinigung statt jedes Rechteck einzeln (Illumina City besteht aus vielen Rechtecken)
+      var segs = outline(rects);
+      if (segs.length) L.polyline(segs.map(function (s) { return [ll(s[0], s[1]), ll(s[2], s[3])]; }), {
+        interactive: false, color: '#ffda08', weight: 2.5, opacity: 0.95, className: 'kanto-selection'
+      }).addTo(selectionLayer);
       // Orte ohne eigene Fläche (Höhlen, Türme): ihre Eingänge hervorheben statt Rechtecken
       if (!l.rects && l.entrances) l.entrances.forEach(function (e) {
         L.circleMarker(llg(e), { interactive: false, radius: 11, color: '#ffda08', weight: 3, fillColor: '#ffda08', fillOpacity: 0.25, className: 'kanto-selection' }).addTo(selectionLayer);
       });
     });
+  }
+  // Umriss mehrerer Rechtecke [x0, z0, x1, z1]: Kanten zwischen bedeckten und freien Feldern eines Rasters aus allen
+  // vorkommenden Koordinaten, gerade Stücke zusammengefasst → [[x0, z0, x1, z1], …]
+  function outline(rects) {
+    if (rects.length < 2) return rects.map(function (r) { return [[r[0], r[1], r[2], r[1]], [r[2], r[1], r[2], r[3]], [r[2], r[3], r[0], r[3]], [r[0], r[3], r[0], r[1]]]; })[0] || [];
+    var uniq = function (a) { return a.filter(function (v, i) { return a.indexOf(v) === i; }).sort(function (p, q) { return p - q; }); };
+    var xs = uniq([].concat.apply([], rects.map(function (r) { return [r[0], r[2]]; })));
+    var zs = uniq([].concat.apply([], rects.map(function (r) { return [r[1], r[3]]; })));
+    var cov = zs.map(function () { return new Uint8Array(xs.length); });
+    rects.forEach(function (r) {
+      for (var j = zs.indexOf(r[1]); j < zs.indexOf(r[3]); j++) for (var i = xs.indexOf(r[0]); i < xs.indexOf(r[2]); i++) cov[j][i] = 1;
+    });
+    var at = function (j, i) { return j >= 0 && i >= 0 && j < zs.length - 1 && i < xs.length - 1 && cov[j][i]; };
+    var out = [], run = null;
+    // waagrechte Kanten (Zeilengrenze j), dann senkrechte (Spaltengrenze i); gleiche Kante fortsetzen
+    for (var j = 0; j < zs.length; j++) { run = null; for (var i = 0; i < xs.length - 1; i++) {
+      var e = !!at(j - 1, i) !== !!at(j, i);
+      if (e && run && run[2] === xs[i]) run[2] = xs[i + 1]; else if (e) out.push(run = [xs[i], zs[j], xs[i + 1], zs[j]]); else run = null;
+    } }
+    for (var i2 = 0; i2 < xs.length; i2++) { run = null; for (var j2 = 0; j2 < zs.length - 1; j2++) {
+      var e2 = !!at(j2, i2 - 1) !== !!at(j2, i2);
+      if (e2 && run && run[3] === zs[j2]) run[3] = zs[j2 + 1]; else if (e2) out.push(run = [xs[i2], zs[j2], xs[i2], zs[j2 + 1]]); else run = null;
+    } }
+    return out;
   }
   // Fläche eines Ortes; bei Höhlen und Türmen die Umgebung ihrer Eingänge
   function boundsOf(l) {
@@ -1230,7 +1284,7 @@
       applyLang();
       if (!fromHash()) renderDirectory();
     }).catch(function (err) {
-      console.error(GAME === 'gelb' ? 'Yellow map:' : GAME === 'gold-silber' ? 'Gold/Silver map:' : GAME === 'kristall' ? 'Crystal map:' : GAME === 'rubin-saphir' ? 'Ruby/Sapphire map:' : GAME === 'smaragd' ? 'Emerald map:' : GAME === 'diamant-perl' ? 'Diamond/Pearl map:' : GAME === 'schwarz-weiss' ? 'Unova map:' : GAME === 'schwarz2-weiss2' ? 'Black 2/White 2 map:' : GAME === 'feuerrot-blattgruen' ? 'FR/LG map:' : GAME === 'x-y' ? 'X/Y map:' : GAME === 'sonne-mond' ? 'Sun/Moon map:' : 'Kanto map:', err);
+      console.error(GAME === 'gelb' ? 'Yellow map:' : GAME === 'gold-silber' ? 'Gold/Silver map:' : GAME === 'kristall' ? 'Crystal map:' : GAME === 'rubin-saphir' ? 'Ruby/Sapphire map:' : GAME === 'smaragd' ? 'Emerald map:' : GAME === 'diamant-perl' ? 'Diamond/Pearl map:' : GAME === 'schwarz-weiss' ? 'Unova map:' : GAME === 'schwarz2-weiss2' ? 'Black 2/White 2 map:' : GAME === 'x-y' ? 'X/Y map:' : GAME === 'sonne-mond' ? 'Sun/Moon map:' : 'Kanto map:', err);
       $('map-loading').hidden = false;
       $('map-loading').textContent = tx().loadError;
     });

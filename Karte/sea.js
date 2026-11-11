@@ -217,7 +217,7 @@ window.SeaScene = (function () {
   (function foamTick() {
     var foam = el.surf.querySelectorAll('.km-foam'), t0 = performance.now();
     setInterval(function () {
-      if (document.hidden || reduce.matches || document.body.classList.contains('map-busy')) return;
+      if (document.hidden || reduce.matches || window.PokeHubMapBusy) return;
       var t = (performance.now() - t0) / 1000;
       foam[0].style.strokeDashoffset = -(Math.floor(t / 26 * 80) % 80) * 6;
       foam[1].style.strokeDashoffset = -(79 - Math.floor(t / 40 * 80) % 80) * 6;

@@ -12,6 +12,8 @@
 
   const VERSION = 322;
   const LEN = 51;
+  // Prüfsumme der Namensliste (customnames.rncn des Randomizers) – steht am Ende jeder Datei
+  const NAMES_SUM = [0xE3, 0xC3, 0x38, 0x8A];
 
   let table = null;
   function crc32(bytes, end) {
@@ -60,6 +62,14 @@
     return file;
   }
 
+  // Einstellungs-Bytes mit dem ROM-Namen (und der Namenslisten-Prüfsumme) von „from“; die Einstellungen bleiben
+  function rename(data, from) {
+    const d = new Uint8Array(from.length);
+    d.set(from);
+    d.set(data.subarray(0, LEN));
+    return d;
+  }
+
   /*
    * Feldarten:
    *   bit  { b, i }               ein Häkchen: Bit i in Byte b
@@ -101,5 +111,5 @@
     }
   }
 
-  window.Rnqs = { VERSION: VERSION, parse: parse, build: build, get: get, set: set, bit: bit, one: one, num: num, u16: u16 };
+  window.Rnqs = { VERSION: VERSION, LEN: LEN, NAMES_SUM: NAMES_SUM, parse: parse, build: build, rename: rename, get: get, set: set, bit: bit, one: one, num: num, u16: u16 };
 })();

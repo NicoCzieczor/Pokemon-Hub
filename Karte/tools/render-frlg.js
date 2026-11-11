@@ -1,14 +1,21 @@
 #!/usr/bin/env node
 /*
- * Rendert die Feuerrot/Blattgrün-Oberwelt direkt aus einer GBA-ROM.
+ * Rendert Feuerrot/Blattgrün direkt aus einer GBA-ROM.
  *
- * Der Parser sucht die Kartengruppentabelle anhand ihrer Struktur und benötigt
- * deshalb keine sprach- oder revisionsabhängigen ROM-Adressen. Ausgelesen werden
- * MapHeader, MapLayout, Verbindungen, LZ77-Tiles, Metatiles und BGR555-Paletten.
+ * Oberwelt: die Außenkarten (Gruppe 3) über ihre Kartenverbindungen zusammengesetzt – Kanto am Stück, darunter die
+ * Sieben Inseln. Zwischen den Karten zeigt das Spiel die Randblöcke („border") der Karte, auf der man steht:
+ * Bäume, Felsen oder Wasser. Genauso werden hier die Lücken gefüllt, je Stelle mit dem Rand der nächsten Karte.
+ * Innenkarten (Höhlen, Gebäude, Etagen): jede Kartengestalt (Layout) einzeln, nur die, die frlg.json braucht.
+ *
+ * Der Parser sucht die Kartengruppentabelle anhand ihrer Struktur und benötigt deshalb keine sprach- oder
+ * revisionsabhängigen ROM-Adressen. Ausgelesen werden MapHeader, MapLayout, Verbindungen, LZ77-Tiles, Metatiles und
+ * BGR555-Paletten. Die Kartennamen (Gruppe/Nummer → Name, Name → Layout) kommen aus pret/pokefirered.
  * Die ROM wird nur gelesen und niemals in das Projekt kopiert.
  *
  * Aufruf:
- *   node Karte/tools/render-frlg.js <firered-or-leafgreen.gba> <ausgabe>
+ *   node render-frlg.js <feuerrot.gba> <ausgabe> --decomp=<pokefirered> [--no-interiors]
+ *   node render-frlg.js <feuerrot.gba> <ausgabe> --decomp=<pokefirered> --interiors-only [--data=../frlg.json]
+ * Reihenfolge: Oberwelt rendern → build-frlg.js → Innenkarten rendern → make-tiles.py
  */
 'use strict';
 
@@ -16,8 +23,13 @@ const fs = require('fs');
 const path = require('path');
 const { writePNG } = require('./render-platin.js');
 
-const ROM_PATH = path.resolve(process.argv[2] || 'firered.gba');
-const OUT = path.resolve(process.argv[3] || 'render-frlg');
+const opts = {}, args = [];
+for (const a of process.argv.slice(2)) {
+  const m = /^--([\w-]+)(?:=(.*))?$/.exec(a);
+  if (m) opts[m[1]] = m[2] ?? true; else args.push(a);
+}
+const ROM_PATH = path.resolve(args[0] || 'firered.gba');
+const OUT = path.resolve(args[1] || 'render-frlg');
 const ROM_BASE = 0x08000000;
 const CHUNK = 512;
 const METATILE_PX = 16;
@@ -26,27 +38,8 @@ const TOTAL_METATILES = 1024;
 const PRIMARY_TILES = 640;
 const TOTAL_TILES = 1024;
 const PRIMARY_PALETTES = 7;
-
-// Gruppe 3 der Originalspiele. Die Namen sind nur Bezeichner; Tabellen,
-// Strukturen und sämtliche Bilddaten kommen aus der geöffneten ROM.
-const OUTDOOR_NAMES = [
-  'PalletTown', 'ViridianCity', 'PewterCity', 'CeruleanCity', 'LavenderTown',
-  'VermilionCity', 'CeladonCity', 'FuchsiaCity', 'CinnabarIsland',
-  'IndigoPlateau_Exterior', 'SaffronCity', 'SaffronCity_Connection', 'OneIsland',
-  'TwoIsland', 'ThreeIsland', 'FourIsland', 'FiveIsland', 'SevenIsland', 'SixIsland',
-  'Route1', 'Route2', 'Route3', 'Route4', 'Route5', 'Route6', 'Route7', 'Route8',
-  'Route9', 'Route10', 'Route11', 'Route12', 'Route13', 'Route14', 'Route15',
-  'Route16', 'Route17', 'Route18', 'Route19', 'Route20', 'Route21_North',
-  'Route21_South', 'Route22', 'Route23', 'Route24', 'Route25',
-  'OneIsland_KindleRoad', 'OneIsland_TreasureBeach', 'TwoIsland_CapeBrink',
-  'ThreeIsland_BondBridge', 'ThreeIsland_Port', 'Prototype_SeviiIsle_6',
-  'Prototype_SeviiIsle_7', 'Prototype_SeviiIsle_8', 'Prototype_SeviiIsle_9',
-  'FiveIsland_ResortGorgeous', 'FiveIsland_WaterLabyrinth', 'FiveIsland_Meadow',
-  'FiveIsland_MemorialPillar', 'SixIsland_OutcastIsland', 'SixIsland_GreenPath',
-  'SixIsland_WaterPath', 'SixIsland_RuinValley', 'SevenIsland_TrainerTower',
-  'SevenIsland_SevaultCanyon_Entrance', 'SevenIsland_SevaultCanyon',
-  'SevenIsland_TanobyRuins'
-];
+const FILL_MARGIN = 3;   // so viele Kacheln Rand bekommt jede Inselgruppe rundherum
+const FILL_REACH = +(opts.reach || 8); // so weit (Kacheln) reicht der Rand einer Karte – etwa so weit wie im Spiel auf dem Bildschirm
 
 const u8 = (rom, o) => o >= 0 && o < rom.length ? rom[o] : 0;
 const u16 = (rom, o) => o >= 0 && o + 2 <= rom.length ? rom.readUInt16LE(o) : 0;
@@ -204,57 +197,66 @@ function color555(value) {
   return [channel(0), channel(5), channel(10)];
 }
 
-function renderMap(rom, reader, map, stats) {
-  const l = map.layout, width = l.width * METATILE_PX, height = l.height * METATILE_PX;
-  const rgba = new Uint8ClampedArray(width * height * 4);
+// Metatiles eines Tileset-Paars als fertige 16×16-Bilder (RGBA), zwischengespeichert
+const metatileSets = new Map();
+function metatiles(rom, reader, l, stats) {
+  const key = `${l.primary}:${l.secondary}`;
+  if (metatileSets.has(key)) return metatileSets.get(key);
   const primary = reader.tileset(l.primary), secondary = reader.tileset(l.secondary);
   const primaryTiles = reader.tiles(primary, true), secondaryTiles = reader.tiles(secondary, false);
   const palettes = Array.from({ length: 16 }, (_, p) => {
     const owner = p < PRIMARY_PALETTES ? primary : secondary;
     return Array.from({ length: 16 }, (_, c) => color555(u16(rom, owner.palettes + (p * 16 + c) * 2)));
   });
-  const metatileCounts = new Map([
+  const counts = new Map([
     [primary.offset, Math.min(PRIMARY_METATILES, Math.max(0, Math.floor((primary.attributes - primary.metatiles) / 16)))],
     [secondary.offset, Math.min(TOTAL_METATILES - PRIMARY_METATILES, Math.max(0, Math.floor((secondary.attributes - secondary.metatiles) / 16)))]
   ]);
-  const entriesCache = new Map();
-
-  function entries(id) {
-    if (entriesCache.has(id)) return entriesCache.get(id);
+  const cache = new Map();
+  function draw(id) {
+    if (cache.has(id)) return cache.get(id);
     const own = id < PRIMARY_METATILES ? primary : secondary;
     const local = id < PRIMARY_METATILES ? id : id - PRIMARY_METATILES;
-    if (local >= (metatileCounts.get(own.offset) || 0)) return null;
-    const value = Array.from({ length: 8 }, (_, i) => u16(rom, own.metatiles + local * 16 + i * 2));
-    entriesCache.set(id, value);
-    return value;
-  }
-
-  function drawTile(entry, dx, dy) {
-    const tile = entry & 0x3ff, hflip = !!(entry & 0x400), vflip = !!(entry & 0x800), palette = entry >>> 12;
-    const data = tile < PRIMARY_TILES ? primaryTiles : secondaryTiles;
-    const local = tile < PRIMARY_TILES ? tile : tile - PRIMARY_TILES;
-    const start = local * 32;
-    if (start + 32 > data.length || !palettes[palette]) { stats.missingTiles.add(`${map.name}:${tile}`); return; }
-    for (let py = 0; py < 8; py++) for (let px = 0; px < 8; px++) {
-      const sx = hflip ? 7 - px : px, sy = vflip ? 7 - py : py;
-      const packed = data[start + sy * 4 + (sx >> 1)];
-      const colorIndex = sx & 1 ? packed >>> 4 : packed & 15;
-      if (!colorIndex) continue;
-      const color = palettes[palette][colorIndex], q = ((dy + py) * width + dx + px) * 4;
-      rgba[q] = color[0]; rgba[q + 1] = color[1]; rgba[q + 2] = color[2]; rgba[q + 3] = 255;
+    let img = null;
+    if (local < (counts.get(own.offset) || 0)) {
+      img = new Uint8ClampedArray(16 * 16 * 4);
+      const backdrop = palettes[0][0];
+      for (let q = 0; q < 256; q++) { img[q * 4] = backdrop[0]; img[q * 4 + 1] = backdrop[1]; img[q * 4 + 2] = backdrop[2]; img[q * 4 + 3] = 255; }
+      // Untere, dann obere Ebene (je 2 × 2 Tiles à 8 × 8); Farbe 0 ist durchsichtig
+      for (let i = 0; i < 8; i++) {
+        const entry = u16(rom, own.metatiles + local * 16 + i * 2);
+        const tile = entry & 0x3ff, hflip = !!(entry & 0x400), vflip = !!(entry & 0x800), palette = entry >>> 12;
+        const data = tile < PRIMARY_TILES ? primaryTiles : secondaryTiles;
+        const start = (tile < PRIMARY_TILES ? tile : tile - PRIMARY_TILES) * 32;
+        if (start + 32 > data.length || !palettes[palette]) { stats.missingTiles.add(`${key}:${tile}`); continue; }
+        const dx = i % 2 * 8, dy = Math.floor(i % 4 / 2) * 8;
+        for (let py = 0; py < 8; py++) for (let px = 0; px < 8; px++) {
+          const sx = hflip ? 7 - px : px, sy = vflip ? 7 - py : py;
+          const packed = data[start + sy * 4 + (sx >> 1)];
+          const colorIndex = sx & 1 ? packed >>> 4 : packed & 15;
+          if (!colorIndex) continue;
+          const color = palettes[palette][colorIndex], q = ((dy + py) * 16 + dx + px) * 4;
+          img[q] = color[0]; img[q + 1] = color[1]; img[q + 2] = color[2];
+        }
+      }
     }
+    cache.set(id, img);
+    return img;
   }
+  metatileSets.set(key, draw);
+  return draw;
+}
 
+// Eine Karte als Bild (Breite·16 × Höhe·16)
+function renderMap(rom, reader, map, stats) {
+  const l = map.layout, width = l.width * METATILE_PX, height = l.height * METATILE_PX;
+  const rgba = new Uint8ClampedArray(width * height * 4);
+  const draw = metatiles(rom, reader, l, stats);
   for (let my = 0; my < l.height; my++) for (let mx = 0; mx < l.width; mx++) {
     const id = u16(rom, l.blocks + (my * l.width + mx) * 2) & 0x3ff;
-    const e = entries(id), ox = mx * 16, oy = my * 16;
-    if (!e) { stats.missingMetatiles.add(`${map.name}:${id}`); continue; }
-    const backdrop = palettes[0][0];
-    for (let py = 0; py < 16; py++) for (let px = 0; px < 16; px++) {
-      const q = ((oy + py) * width + ox + px) * 4;
-      rgba[q] = backdrop[0]; rgba[q + 1] = backdrop[1]; rgba[q + 2] = backdrop[2]; rgba[q + 3] = 255;
-    }
-    for (let i = 0; i < 8; i++) drawTile(e[i], ox + i % 2 * 8, oy + Math.floor(i % 4 / 2) * 8);
+    const img = draw(id);
+    if (!img) { stats.missingMetatiles.add(`${map.name}:${id}`); continue; }
+    for (let py = 0; py < 16; py++) rgba.set(img.subarray(py * 64, py * 64 + 64), ((my * 16 + py) * width + mx * 16) * 4);
   }
   return { width, height, rgba };
 }
@@ -270,6 +272,7 @@ function connections(rom, map) {
   });
 }
 
+// Außenkarten über ihre Verbindungen anordnen: Kanto, darunter die Inselgruppen in einer Reihe
 function arrange(rom, maps) {
   const byId = new Map(maps.map(m => [`${m.group}.${m.num}`, m]));
   const positions = new Map(), components = [], conflicts = [];
@@ -343,66 +346,174 @@ function arrange(rom, maps) {
   return { components, conflicts, width: Math.ceil(maxX / 32) * 32, height: Math.ceil(maxZ / 32) * 32 };
 }
 
-function pasteIntoChunks(chunks, image, worldX, worldZ) {
-  const baseX = worldX * METATILE_PX, baseY = worldZ * METATILE_PX;
-  for (let sy = 0; sy < image.height; sy++) {
-    let sx = 0;
-    while (sx < image.width) {
-      const gx = baseX + sx, gy = baseY + sy, col = Math.floor(gx / CHUNK), row = Math.floor(gy / CHUNK);
-      const lx = gx % CHUNK, ly = gy % CHUNK, count = Math.min(image.width - sx, CHUNK - lx);
-      const key = `${row}:${col}`;
-      if (!chunks.has(key)) chunks.set(key, new Uint8ClampedArray(CHUNK * CHUNK * 4));
-      const target = chunks.get(key), from = (sy * image.width + sx) * 4, to = (ly * CHUNK + lx) * 4;
-      target.set(image.rgba.subarray(from, from + count * 4), to);
-      sx += count;
+// Weltbild in Blöcken à 512 × 512 Pixel (32 × 32 Kacheln)
+function makeWorld() {
+  const chunks = new Map();
+  const target = (gx, gy) => {
+    const key = `${Math.floor(gy / CHUNK)}:${Math.floor(gx / CHUNK)}`;
+    if (!chunks.has(key)) chunks.set(key, new Uint8ClampedArray(CHUNK * CHUNK * 4));
+    return chunks.get(key);
+  };
+  // Eine 16×16-Metatile an Weltkachel (x, z)
+  function putTile(x, z, img) {
+    const gx = x * METATILE_PX, gy = z * METATILE_PX, t = target(gx, gy), lx = gx % CHUNK, ly = gy % CHUNK;
+    for (let py = 0; py < 16; py++) t.set(img.subarray(py * 64, py * 64 + 64), ((ly + py) * CHUNK + lx) * 4);
+  }
+  function paste(image, worldX, worldZ) {
+    const baseX = worldX * METATILE_PX, baseY = worldZ * METATILE_PX;
+    for (let sy = 0; sy < image.height; sy++) {
+      let sx = 0;
+      while (sx < image.width) {
+        const gx = baseX + sx, gy = baseY + sy, lx = gx % CHUNK, ly = gy % CHUNK, count = Math.min(image.width - sx, CHUNK - lx);
+        const from = (sy * image.width + sx) * 4;
+        target(gx, gy).set(image.rgba.subarray(from, from + count * 4), (ly * CHUNK + lx) * 4);
+        sx += count;
+      }
     }
   }
+  return { chunks, putTile, paste };
 }
 
-function main() {
+// Lücken einer Komponente mit den Randblöcken der jeweils nächsten Karte füllen (wie das Spiel jenseits des Kartenrands)
+function fillGaps(rom, reader, component, world, stats) {
+  const maps = component.maps;
+  const x0 = Math.min(...maps.map(m => m.worldX)) - FILL_MARGIN, z0 = Math.min(...maps.map(m => m.worldZ)) - FILL_MARGIN;
+  const x1 = Math.max(...maps.map(m => m.worldX + m.layout.width)) + FILL_MARGIN;
+  const z1 = Math.max(...maps.map(m => m.worldZ + m.layout.height)) + FILL_MARGIN;
+  const W = x1 - x0, H = z1 - z0, owner = new Int16Array(W * H).fill(-1), covered = new Uint8Array(W * H);
+  let queue = [];
+  maps.forEach((m, i) => {
+    for (let z = m.worldZ; z < m.worldZ + m.layout.height; z++) for (let x = m.worldX; x < m.worldX + m.layout.width; x++) {
+      const q = (z - z0) * W + (x - x0);
+      owner[q] = i; covered[q] = 1; queue.push(q);
+    }
+  });
+  // Breitensuche mit 8 Nachbarn: jede freie Stelle gehört zur nächsten Karte
+  for (let d = 0; queue.length && d < FILL_REACH; d++) {
+    const next = [];
+    for (const q of queue) {
+      const x = q % W, z = (q - x) / W;
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, nz = z + dz;
+        if (nx < 0 || nz < 0 || nx >= W || nz >= H) continue;
+        const n = nz * W + nx;
+        if (owner[n] >= 0) continue;
+        owner[n] = owner[q]; next.push(n);
+      }
+    }
+    queue = next;
+  }
+  let filled = 0;
+  for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
+    const q = z * W + x;
+    if (covered[q] || owner[q] < 0) continue;
+    const m = maps[owner[q]], l = m.layout;
+    const lx = x + x0 - m.worldX, lz = z + z0 - m.worldZ;
+    const bx = ((lx % l.borderWidth) + l.borderWidth) % l.borderWidth, bz = ((lz % l.borderHeight) + l.borderHeight) % l.borderHeight;
+    const id = u16(rom, l.border + (bz * l.borderWidth + bx) * 2) & 0x3ff;
+    const img = metatiles(rom, reader, l, stats)(id);
+    if (img) { world.putTile(x + x0, z + z0, img); filled++; }
+  }
+  return filled;
+}
+
+// Gleiche Gegend, andere Karte (Saffronia City): Versatz, bei dem die meisten Blöcke übereinstimmen
+function blockOffset(rom, big, small) {
+  const a = big.layout, b = small.layout;
+  let best = { dx: 0, dz: 0, score: -1 };
+  for (let dz = 0; dz <= a.height - b.height; dz++) for (let dx = 0; dx <= a.width - b.width; dx++) {
+    let score = 0;
+    for (let z = 0; z < b.height; z += 2) for (let x = 0; x < b.width; x += 2) {
+      if ((u16(rom, a.blocks + ((z + dz) * a.width + x + dx) * 2) & 0x3ff) === (u16(rom, b.blocks + (z * b.width + x) * 2) & 0x3ff)) score++;
+    }
+    if (score > best.score) best = { dx, dz, score };
+  }
+  return best;
+}
+
+function openRom() {
   const rom = fs.readFileSync(ROM_PATH);
   const title = rom.subarray(0xa0, 0xac).toString('ascii').replace(/\0.*$/, '');
   const gameCode = rom.subarray(0xac, 0xb0).toString('ascii');
   if (!/^BP[RG]/.test(gameCode)) throw new Error(`Keine Feuerrot/Blattgrün-ROM (${gameCode || 'ohne Kennung'}).`);
   const reader = makeReader(rom), groups = reader.findGroups();
-  if (!groups || groups.count < 300 || !groups.groups[3] || groups.groups[3].headers.length !== OUTDOOR_NAMES.length) {
-    throw new Error('Die FR/BG-Kartengruppen konnten nicht zuverlässig gefunden werden.');
+  if (!opts.decomp) throw new Error('--decomp=<pokefirered> fehlt (Kartennamen).');
+  const mg = JSON.parse(fs.readFileSync(path.join(opts.decomp, 'data/maps/map_groups.json'), 'utf8'));
+  const names = mg.group_order.map(k => mg[k]);
+  if (!groups || groups.groups.length !== names.length || groups.groups.some((g, i) => g.headers.length !== names[i].length)) {
+    throw new Error('Die Kartengruppen der ROM passen nicht zu pret/pokefirered.');
   }
   console.log(`${title} (${gameCode}), Kartengruppen bei 0x${groups.table.toString(16)}: ${groups.count} Karten in ${groups.groups.length} Gruppen`);
-  const maps = groups.groups[3].headers.map((offset, num) => {
-    const h = reader.header(offset);
-    return { ...h, group: 3, num, name: OUTDOOR_NAMES[num] };
-  });
+  const maps = [];
+  groups.groups.forEach((g, gi) => g.headers.forEach((offset, num) => maps.push({ ...reader.header(offset), group: gi, num, name: names[gi][num] })));
+  return { rom, reader, groups, gameCode, maps };
+}
+
+function renderOverworld() {
+  const { rom, reader, groups, gameCode, maps: all } = openRom();
+  const maps = all.filter(m => m.group === 3);
   const arranged = arrange(rom, maps);
   fs.mkdirSync(OUT, { recursive: true });
-  const chunks = new Map(), stats = { missingTiles: new Set(), missingMetatiles: new Set() };
+  const world = makeWorld(), stats = { missingTiles: new Set(), missingMetatiles: new Set() };
+  let filled = 0;
+  for (const component of arranged.components) filled += fillGaps(rom, reader, component, world, stats);
   const rendered = arranged.components.flatMap(c => c.maps);
-  for (let i = 0; i < rendered.length; i++) {
-    const map = rendered[i], image = renderMap(rom, reader, map, stats);
-    pasteIntoChunks(chunks, image, map.worldX, map.worldZ);
-    if ((i + 1) % 10 === 0 || i + 1 === rendered.length) console.log(`  ${i + 1}/${rendered.length} ${map.name}`);
-  }
-  const chunkInfo = {};
-  for (const [key, rgba] of chunks) {
+  for (const map of rendered) world.paste(renderMap(rom, reader, map, stats), map.worldX, map.worldZ);
+  for (const [key, rgba] of world.chunks) {
     const [row, col] = key.split(':').map(Number);
     writePNG(path.join(OUT, `chunk_${row}_${col}.png`), CHUNK, CHUNK, rgba);
-    chunkInfo[key] = { ground: 0 };
   }
+  // Saffronia City: Oberwelt zeigt die kompakte Verbindungskarte, Personen und Türen stehen in der großen Karte
+  const saffron = all.find(m => m.group === 3 && m.name === 'SaffronCity'), conn = all.find(m => m.group === 3 && m.name === 'SaffronCity_Connection');
+  const off = blockOffset(rom, saffron, conn);
   const info = {
-    version: 1, source: 'FireRed/LeafGreen GBA ROM', gameCode, groupTable: groups.table,
+    version: 2, source: 'FireRed/LeafGreen GBA ROM', gameCode, groupTable: groups.table,
     rows: arranged.height / 32, cols: arranged.width / 32, size: CHUNK, shear: 0, origin: [0, 0],
-    chunks: chunkInfo,
+    chunks: {},
     maps: rendered.map(m => ({ id: `${m.group}.${m.num}`, name: m.name, x: m.worldX, z: m.worldZ, width: m.layout.width, height: m.layout.height })),
+    aliases: { SaffronCity: { as: 'SaffronCity_Connection', dx: -off.dx, dz: -off.dz } },
     components: arranged.components.map(c => c.maps.map(m => m.name)),
     conflicts: arranged.conflicts
   };
   fs.writeFileSync(path.join(OUT, 'render.json'), JSON.stringify(info));
-  console.log(`Fertig: ${rendered.length} Oberweltkarten, ${chunks.size} Blöcke, ${arranged.width}×${arranged.height} Weltkacheln.`);
-  console.log(`Fehlende Tiles: ${stats.missingTiles.size}; fehlende Metatiles: ${stats.missingMetatiles.size}; Verbindungskonflikte: ${arranged.conflicts.length}`);
+  console.log(`Oberwelt: ${rendered.length} Karten, ${world.chunks.size} Blöcke, ${arranged.width}×${arranged.height} Kacheln, ${filled} Randkacheln ergänzt.`);
+  console.log(`Saffronia City liegt in der großen Karte bei ${off.dx}/${off.dz} (${off.score} gleiche Proben).`);
+  console.log(`Fehlende Tiles: ${stats.missingTiles.size}; fehlende Metatiles: ${stats.missingMetatiles.size}; Verbindungskonflikte: ${arranged.conflicts.join('; ') || 0}`);
+}
+
+// Innenkarten: je Layout ein Bild, nur die, die frlg.json (maps[…].matrix) braucht
+function renderInteriors() {
+  const dataFile = path.resolve(opts.data || path.join(__dirname, '..', 'frlg.json'));
+  if (!fs.existsSync(dataFile)) { console.log('Keine frlg.json für die Innenkarten gefunden:', dataFile); return; }
+  const data = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+  const wanted = new Set(Object.values(data.maps || {}).map(m => m.matrix));
+  const { rom, reader, maps } = openRom();
+  const layoutOf = new Map();
+  for (const m of maps) {
+    const file = path.join(opts.decomp, 'data/maps', m.name, 'map.json');
+    if (!fs.existsSync(file)) continue;
+    const layout = JSON.parse(fs.readFileSync(file, 'utf8')).layout;
+    if (wanted.has(layout) && !layoutOf.has(layout)) layoutOf.set(layout, m);
+  }
+  fs.mkdirSync(OUT, { recursive: true });
+  const stats = { missingTiles: new Set(), missingMetatiles: new Set() }, images = {};
+  for (const layout of wanted) {
+    const m = layoutOf.get(layout);
+    if (!m) { console.log('  Layout nicht gefunden:', layout); continue; }
+    const img = renderMap(rom, reader, m, stats);
+    const key = `${layout}__0`, file = `interior_${key}.png`;
+    writePNG(path.join(OUT, file), img.width, img.height, img.rgba);
+    images[key] = { file, w: img.width, h: img.height, ox: 0, oz: 0, ground: {} };
+  }
+  fs.writeFileSync(path.join(OUT, 'interiors.json'), JSON.stringify({ shear: 0, images }));
+  console.log(`Innenkarten: ${Object.keys(images).length} Bilder; fehlende Tiles ${stats.missingTiles.size}, Metatiles ${stats.missingMetatiles.size}`);
 }
 
 if (require.main === module) {
-  try { main(); } catch (error) { console.error(error.stack || error); process.exit(1); }
+  try {
+    if (!opts['interiors-only']) renderOverworld();
+    if (opts['interiors-only'] || (!opts['no-interiors'] && fs.existsSync(path.resolve(opts.data || path.join(__dirname, '..', 'frlg.json'))) && opts.data)) renderInteriors();
+  } catch (error) { console.error(error.stack || error); process.exit(1); }
 }
 
-module.exports = { makeReader, renderMap, arrange, lz77, OUTDOOR_NAMES };
+module.exports = { makeReader, renderMap, arrange, lz77, ptr, u8, u16, u32 };

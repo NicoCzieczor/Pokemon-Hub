@@ -1,11 +1,20 @@
 /*
- * Alle Randomizer-Einstellungen, die es für Platin gibt – aufgeteilt in dieselben Reiter wie im
- * Universal Pokémon Randomizer ZX 4.6.1, aber mit einfachen Texten.
+ * Alle Randomizer-Einstellungen, die es für Platin und für Omega Rubin / Alpha Saphir gibt – aufgeteilt in
+ * dieselben Reiter wie im Universal Pokémon Randomizer ZX 4.6.1, aber mit einfachen Texten.
  *
  * Jede Option kennt ihren Platz in der .rnqs-Datei (Feldarten aus rnqs.js; Bytes/Bits laut
  * Settings.java). Die Schlüssel heißen wie die Felder in Settings.java.
  * „on“ sagt, wann eine Option bedienbar ist – nachgebaut aus NewRandomizerGUI.enableOrDisableSubControls.
  * Wird sie unbedienbar, wird sie wie dort abgewählt (außer bei „keep“).
+ *
+ * Was es je Spiel gibt (NewRandomizerGUI.romLoaded, miscTweaksAvailable der Gen-4- bzw. Gen-6-ROM):
+ *   games: ['pt'] / ['oras']   Option (oder Radio-Auswahl) nur in diesem Spiel – im anderen wird sie abgewählt
+ *   show(ctx)                  nur ausblenden, z. B. Kniffe nur für bestimmte Sprachfassungen (der Randomizer
+ *                              lässt sie dort ohnehin weg)
+ *   l / h / opts               dürfen Funktionen von ctx sein (Texte und Auswahllisten je Spiel)
+ * ctx = { game: 'pt' | 'oras', english, code, romName } – kommt aus der geladenen ROM (app.js).
+ *
+ * Ausgangspunkt ist immer blank(): nichts gewählt, alles „Unverändert“.
  */
 (function () {
   'use strict';
@@ -23,7 +32,19 @@
   const metro = s => s.movesetsMod === 'METRONOME_ONLY';
   const movesRandom = s => s.movesetsMod === 'RANDOM_PREFER_SAME_TYPE' || s.movesetsMod === 'COMPLETELY_RANDOM';
   const trainers = s => s.trainersMod !== 'UNCHANGED';
-  const english = ctx => ctx.english;   // manche Kniffe gibt es nur für die englische ROM
+  const english = ctx => ctx.english;   // manche Kniffe gibt es bei Platin nur für die englische ROM
+  const PT = ['pt'], ORAS = ['oras'];
+  const oras = ctx => ctx.game === 'oras';
+  // Texte je Spiel
+  const G = (pt, or) => ctx => (oras(ctx) ? or : pt);
+
+  // Je Spiel: Pokémon in der Starter-Liste, Original-Starter, erste Generation der „neuere Spiele“-Listen,
+  // Name der ROM im Randomizer (steht in der .rnqs-Datei)
+  const GAMES = {
+    pt: { species: 493, starters: [387, 390, 393], statsGen: 6, movesGen: 5, romName: 'Pokemon Platinum (G)' },
+    oras: { species: 721, starters: [252, 255, 258], statsGen: 7, movesGen: 7, romName: 'Pokemon Omega Ruby' }
+  };
+  const game = ctx => GAMES[ctx && ctx.game] || GAMES.pt;
 
   const UNCHANGED = T('Unverändert', 'Unchanged');
   const RANDOM = T('Zufällig', 'Random');
@@ -37,6 +58,26 @@
   const levelSub = (k, f) => ({ k: k, f: f, type: 'range', min: -50, max: 50, step: 5, reset: 0, fmt: pct });
   const percentSub = (k, f) => ({ k: k, f: f, type: 'range', min: 0, max: 100, step: 5, reset: 0, fmt: v => v + ' %' });
   const genOpts = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => ({ v: from + i, l: T('Gen ' + (from + i), 'Gen ' + (from + i)) }));
+  const ALT_FORMES = T('Auch besondere Formen (z. B. Wasch-Rotom, Deoxys-Formen)', 'Allow alternate formes (e.g. Wash Rotom, Deoxys formes)');
+  const ALT_FORMES_H = T('Ihre Werte werden getrennt von der Grundform gewürfelt.', 'Their traits are randomized separately from their base forme.');
+
+  // „Mega-Tausch“ bei Trainern geht nur, wenn noch Mega-Entwicklungen im Spiel sind (GenRestrictions.java, OR/AS)
+  const MEGA_TYPES = {
+    1: ['GRASS', 'POISON', 'FIRE', 'FLYING', 'WATER', 'PSYCHIC', 'GHOST', 'NORMAL', 'BUG', 'ROCK'],
+    2: ['ELECTRIC', 'BUG', 'STEEL', 'FIGHTING', 'DARK', 'FIRE', 'ROCK', 'GROUND'],
+    3: ['FIRE', 'FIGHTING', 'PSYCHIC', 'FAIRY', 'STEEL', 'ROCK', 'ELECTRIC', 'GHOST', 'DARK', 'DRAGON', 'GRASS', 'WATER', 'GROUND', 'FLYING', 'ICE'],
+    4: ['DRAGON', 'GROUND', 'FIGHTING', 'STEEL', 'GRASS', 'ICE', 'NORMAL', 'PSYCHIC'],
+    5: ['NORMAL'],
+    6: ['ROCK', 'FAIRY']
+  };
+  function megasInPool(s) {
+    const gens = [1, 2, 3, 4, 5, 6].filter(g => s['gen.' + g]);
+    if (!s.limitPokemon || !gens.length) return true;          // keine Beschränkung
+    if (s.trainersMod !== 'TYPE_THEMED') return true;          // irgendeine Generation mit Megas ist dabei
+    const types = new Set();
+    gens.forEach(g => MEGA_TYPES[g].forEach(t => types.add(t)));
+    return types.size === 18;
+  }
 
   const TABS = [
     {
@@ -53,11 +94,14 @@
             { k: 'baseStatsFollowEvolutions', type: 'check', f: bit(1, 0), on: s => s.baseStatisticsMod !== 'UNCHANGED' && !evl(s),
               l: T('Entwicklungen erben die Verteilung', 'Follow evolutions'),
               h: T('Ein entwickeltes Pokémon verteilt seine Werte wie seine Vorstufe.', 'Evolutions keep the stat spread of their pre-evolution.') },
-            { k: 'assignEvoStatsRandomly', type: 'check', f: bit(1, 7), on: s => s.baseStatisticsMod === 'RANDOM' && s.baseStatsFollowEvolutions,
+            { k: 'baseStatsFollowMegaEvolutions', type: 'check', f: bit(1, 6), games: ORAS, on: s => s.baseStatisticsMod !== 'UNCHANGED',
+              l: T('Mega-Entwicklungen erben die Verteilung', 'Follow Mega Evolutions'),
+              h: T('Eine Mega-Entwicklung verteilt ihre Werte wie ihre Grundform.', 'Mega Evolutions keep the stat spread of their base forme.') },
+            { k: 'assignEvoStatsRandomly', type: 'check', f: bit(1, 7), on: s => s.baseStatisticsMod === 'RANDOM' && (s.baseStatsFollowEvolutions || s.baseStatsFollowMegaEvolutions),
               l: T('Zuwachs bei Entwicklung zufällig verteilen', 'Randomize added stats on evolution') },
             { k: 'updateBaseStats', type: 'check', f: bit(1, 5),
               l: T('Werte wie in neueren Spielen', 'Update base stats to a newer generation'),
-              subs: [{ k: 'updateBaseStatsToGeneration', f: num(44, 0xFF), type: 'select', opts: genOpts(6, 9) }] },
+              subs: [{ k: 'updateBaseStatsToGeneration', f: num(44, 0xFF), type: 'select', opts: ctx => genOpts(game(ctx).statsGen, 9) }] },
             { k: 'standardizeEXPCurves', type: 'check', f: bit(1, 4),
               l: T('Alle Pokémon gleich schnell leveln', 'Standardize EXP curves'),
               h: T('Jedes Pokémon braucht gleich viele EP pro Level.', 'Every Pokémon needs the same EXP per level.'),
@@ -83,6 +127,9 @@
               { v: 'RANDOM_FOLLOW_EVOLUTIONS', l: T('Zufällig – Entwicklungen behalten den Typ', 'Random (follow evolutions)'), on: s => !evl(s), alt: 'COMPLETELY_RANDOM' },
               { v: 'COMPLETELY_RANDOM', l: COMPLETELY }
             ] },
+            { k: 'typesFollowMegaEvolutions', type: 'check', f: bit(2, 6), games: ORAS, on: s => s.typesMod !== 'UNCHANGED',
+              l: T('Mega-Entwicklungen übernehmen die Typen', 'Follow Mega Evolutions'),
+              h: T('Eine Mega-Entwicklung bekommt die neuen Typen ihrer Grundform (manchmal einen dazu).', 'A Mega Evolution gets the new types of its base forme (sometimes one more).') },
             { k: 'dualTypeOnly', type: 'check', f: bit(2, 7), on: s => s.typesMod !== 'UNCHANGED', l: T('Immer zwei Typen', 'Force dual types') }
           ]
         },
@@ -96,6 +143,9 @@
               l: T('Wunderwache erlauben', 'Allow Wonder Guard'), h: T('Kann Pokémon fast unbesiegbar machen.', 'Can make Pokémon nearly unbeatable.') },
             { k: 'abilitiesFollowEvolutions', type: 'check', f: bit(3, 3), on: s => s.abilitiesMod === 'RANDOMIZE' && !evl(s),
               l: T('Entwicklungen behalten die Fähigkeit', 'Follow evolutions') },
+            { k: 'abilitiesFollowMegaEvolutions', type: 'check', f: bit(3, 7), games: ORAS, on: s => s.abilitiesMod === 'RANDOMIZE',
+              l: T('Mega-Entwicklungen behalten die Fähigkeit', 'Follow Mega Evolutions'),
+              h: T('Gilt für Pokémon mit nur einer Mega-Entwicklung.', 'Applies to Pokémon with a single Mega Evolution.') },
             { k: 'banTrappingAbilities', type: 'check', f: bit(3, 4), on: s => s.abilitiesMod === 'RANDOMIZE',
               l: T('Keine Fang-Fähigkeiten', 'Ban trapping abilities'), h: T('Ausweglos, Wegsperre, Magnetfalle', 'Arena Trap, Shadow Tag, Magnet Pull') },
             { k: 'banNegativeAbilities', type: 'check', f: bit(3, 5), on: s => s.abilitiesMod === 'RANDOMIZE',
@@ -146,19 +196,21 @@
           t: T('Starter', 'Starters'),
           items: [
             { k: 'startersMod', type: 'radio', f: one(['UNCHANGED', 'CUSTOM', 'COMPLETELY_RANDOM', 'RANDOM_WITH_TWO_EVOLUTIONS'], [[4, 2], [4, 0], [4, 1], [4, 3]]), opts: [
-              { v: 'UNCHANGED', l: T('Unverändert (Chelast, Panflam, Plinfa)', 'Unchanged (Turtwig, Chimchar, Piplup)') },
+              { v: 'UNCHANGED', l: G(T('Unverändert (Chelast, Panflam, Plinfa)', 'Unchanged (Turtwig, Chimchar, Piplup)'), T('Unverändert (Geckarbor, Flemmli, Hydropi)', 'Unchanged (Treecko, Torchic, Mudkip)')) },
               { v: 'CUSTOM', l: T('Selbst aussuchen', 'Custom') },
               { v: 'COMPLETELY_RANDOM', l: COMPLETELY },
               { v: 'RANDOM_WITH_TWO_EVOLUTIONS', l: T('Zufällig mit zwei Entwicklungen', 'Random (with two evolutions)'), h: T('Wie echte Starter: drei Stufen.', 'Like real starters: three stages.'), on: s => !evl(s), alt: 'COMPLETELY_RANDOM' }
             ] },
             { k: 'customStarters', type: 'starters', fs: [u16(5), u16(7), u16(9)], on: s => s.startersMod === 'CUSTOM' },
+            { k: 'allowStarterAltFormes', type: 'check', f: bit(4, 6), games: ORAS, on: s => s.startersMod !== 'UNCHANGED', l: ALT_FORMES, h: ALT_FORMES_H },
             { k: 'randomizeStartersHeldItems', type: 'check', f: bit(4, 4), l: T('Starter tragen ein zufälliges Item', 'Randomize starter held items') },
             { k: 'banBadRandomStarterHeldItems', type: 'check', f: bit(4, 5), on: s => s.randomizeStartersHeldItems, l: BAN_BAD }
           ]
         },
         {
           t: T('Legendäre & Geschenk-Pokémon', 'Static Pokémon'),
-          h: T('Feste Begegnungen wie Giratina oder Geschenke wie Evoli.', 'Fixed encounters like Giratina or gifts like Eevee.'),
+          h: G(T('Feste Begegnungen wie Giratina oder Geschenke wie Evoli.', 'Fixed encounters like Giratina or gifts like Eevee.'),
+            T('Feste Begegnungen wie Groudon, Kyogre und Rayquaza oder Geschenke wie Formeo.', 'Fixed encounters like Groudon, Kyogre and Rayquaza or gifts like Castform.')),
           items: [
             { k: 'staticPokemonMod', type: 'radio', f: one(['UNCHANGED', 'RANDOM_MATCHING', 'COMPLETELY_RANDOM', 'SIMILAR_STRENGTH'], [[17, 0], [17, 1], [17, 2], [17, 3]]), opts: [
               { v: 'UNCHANGED', l: UNCHANGED },
@@ -170,7 +222,11 @@
               l: T('Legendäre der Geschichte nicht zu stark', 'Limit main game legendaries') },
             { k: 'limit600', type: 'check', f: bit(17, 5), on: s => s.staticPokemonMod !== 'UNCHANGED',
               l: T('Pokémon mit 600+ Basiswerten komplett zufällig', 'Random 600+ BST') },
-            { k: 'correctStaticMusic', type: 'check', f: bit(25, 5), on: s => s.staticPokemonMod !== 'UNCHANGED', show: english,
+            { k: 'allowStaticAltFormes', type: 'check', f: bit(17, 6), games: ORAS, on: s => s.staticPokemonMod !== 'UNCHANGED', l: ALT_FORMES, h: ALT_FORMES_H },
+            { k: 'swapStaticMegaEvos', type: 'check', f: bit(17, 7), games: ORAS, on: s => s.staticPokemonMod !== 'UNCHANGED',
+              l: T('Mega-fähige gegen Mega-fähige tauschen', 'Swap Mega Evolvables'),
+              h: T('Latios/Latias werden durch ein anderes Pokémon mit Mega-Entwicklung ersetzt.', 'Latios/Latias are replaced by another Pokémon that can Mega Evolve.') },
+            { k: 'correctStaticMusic', type: 'check', f: bit(25, 5), games: PT, on: s => s.staticPokemonMod !== 'UNCHANGED', show: english,
               l: T('Passende Kampfmusik', 'Fix music') },
             { k: 'staticLevelModified', type: 'check', f: bit(47, 7), l: CHANGE_LEVELS, subs: [levelSub('staticLevelModifier', level(47))] }
           ]
@@ -225,7 +281,7 @@
             { k: 'updateMoves', type: 'check', f: bit(0, 1),
               l: T('Werte wie in neueren Spielen', 'Update moves to a newer generation'),
               h: T('Stärke, Genauigkeit usw. aus der gewählten Generation.', 'Power, accuracy etc. from the chosen generation.'),
-              subs: [{ k: 'updateMovesToGeneration', f: num(45, 0xFF), type: 'select', opts: genOpts(5, 9) }] }
+              subs: [{ k: 'updateMovesToGeneration', f: num(45, 0xFF), type: 'select', opts: ctx => genOpts(game(ctx).movesGen, 9) }] }
           ]
         }
       ]
@@ -236,7 +292,8 @@
         {
           t: T('Pokémon der Trainer', 'Trainer Pokémon'),
           items: [
-            { k: 'trainersMod', type: 'radio', f: one(['UNCHANGED', 'RANDOM', 'DISTRIBUTED', 'MAINPLAYTHROUGH', 'TYPE_THEMED', 'TYPE_THEMED_ELITE4_GYMS'], [[13, 0], [13, 1], [13, 2], [13, 3], [13, 4], [13, 5]]), opts: [
+            // MAINPLAYTHROUGH gibt es nur in Gen 5 – der Randomizer macht daraus RANDOM
+            { k: 'trainersMod', type: 'radio', f: one(['UNCHANGED', 'RANDOM', 'DISTRIBUTED', 'MAINPLAYTHROUGH', 'TYPE_THEMED', 'TYPE_THEMED_ELITE4_GYMS'], [[13, 0], [13, 1], [13, 2], [13, 3], [13, 4], [13, 5]]), other: 'RANDOM', opts: [
               { v: 'UNCHANGED', l: UNCHANGED },
               { v: 'RANDOM', l: RANDOM },
               { v: 'DISTRIBUTED', l: T('Zufällig, gleichmäßig verteilt', 'Random (even distribution)'), h: T('Damit nicht dieselben Pokémon ständig vorkommen.', 'So the same Pokémon don\'t show up all the time.') },
@@ -251,6 +308,9 @@
             { k: 'trainersBlockLegendaries', type: 'check', f: bit(27, 3), on: trainers, l: T('Keine legendären Pokémon', 'Don\'t use legendaries') },
             { k: 'trainersBlockEarlyWonderGuard', type: 'check', f: bit(27, 4), on: trainers, l: T('Keine Wunderwache vor Level 20', 'No early Wonder Guard') },
             { k: 'allowTrainerAlternateFormes', type: 'check', f: bit(39, 6), on: trainers, l: T('Formen erlauben (z. B. Wasch-Rotom)', 'Allow alternate formes (e.g. Wash Rotom)') },
+            { k: 'swapTrainerMegaEvos', type: 'check', f: bit(27, 5), games: ORAS, on: s => trainers(s) && megasInPool(s),
+              l: T('Mega-fähige gegen Mega-fähige tauschen', 'Swap Mega Evolvables'),
+              h: T('Trainer-Pokémon mit Mega-Stein werden durch ein anderes Pokémon mit Mega-Entwicklung ersetzt.', 'Trainer Pokémon holding a Mega Stone are replaced by another Pokémon that can Mega Evolve.') },
             { k: 'doubleBattleMode', type: 'check', f: bit(40, 0), on: trainers, l: T('Alle Kämpfe als Doppelkampf', 'Double battle mode') },
             { k: 'eliteFourUniquePokemonNumber', type: 'count', f: num(50, 0x07), max: 2, on: trainers,
               l: T('Top Vier mit eigenen Pokémon', 'Elite Four have unique Pokémon'),
@@ -327,6 +387,7 @@
           t: T('Mehr', 'More'),
           items: [
             { k: 'blockWildLegendaries', type: 'check', f: bit(16, 1), on: s => s.wildPokemonMod !== 'UNCHANGED', l: T('Keine legendären Pokémon', 'Don\'t use legendaries') },
+            { k: 'allowWildAltFormes', type: 'check', f: bit(39, 7), games: ORAS, on: s => s.wildPokemonMod !== 'UNCHANGED', l: ALT_FORMES, h: ALT_FORMES_H },
             { k: 'useMinimumCatchRate', type: 'check', f: bit(16, 0), l: T('Leichter fangen', 'Minimum catch rate'),
               h: T('Stufe 4: etwa jeder dritte Ball trifft. Stufe 5: jedes Pokémon wird sicher gefangen.', 'Level 4: about every third ball works. Level 5: every Pokémon is caught for sure.'),
               subs: [{ k: 'minimumCatchRateLevel', f: num(50, 0x38, 3, 1), type: 'select', reset: 1, opts: [1, 2, 3, 4, 5].map(v => ({ v: v, l: T('Stufe ' + v, 'Level ' + v) })) }] },
@@ -406,20 +467,23 @@
         {
           t: T('Komfort', 'Quality of life'),
           items: [
-            { k: 'tweak.fastestText', type: 'check', f: tweak(3), show: english, l: T('Schnellster Text', 'Fastest text') },
-            { k: 'tweak.runWithoutRunningShoes', type: 'check', f: tweak(18), l: T('Rennen schon vor den Turnschuhen', 'Run without running shoes') },
-            { k: 'tweak.fasterHpAndExpBars', type: 'check', f: tweak(19), l: T('Schnellere KP- und EP-Balken', 'Faster HP and EXP bars') },
-            { k: 'tweak.fastDistortionWorld', type: 'check', f: tweak(20), l: T('Zerrwelt abkürzen', 'Fast Distortion World'), h: T('Bringt dich direkt zum Kampf gegen Zyrus.', 'Takes you straight to the fight against Cyrus.') },
-            { k: 'tweak.nationalDex', type: 'check', f: tweak(7), l: T('Nationaler Pokédex von Anfang an', 'National Dex at start') },
-            { k: 'tweak.lowerCaseNames', type: 'check', f: tweak(10), l: T('Pokémon-Namen nicht in GROSSBUCHSTABEN', 'Lower case Pokémon names') }
+            // Platin: nur die englische ROM hat den Schnelltext-Patch, die japanische keinen für den Nationaldex
+            { k: 'tweak.fastestText', type: 'check', f: tweak(3), show: ctx => oras(ctx) || ctx.english, l: T('Schnellster Text', 'Fastest text') },
+            { k: 'tweak.runWithoutRunningShoes', type: 'check', f: tweak(18), games: PT, l: T('Rennen schon vor den Turnschuhen', 'Run without running shoes') },
+            { k: 'tweak.fasterHpAndExpBars', type: 'check', f: tweak(19), games: PT, l: T('Schnellere KP- und EP-Balken', 'Faster HP and EXP bars') },
+            { k: 'tweak.fastDistortionWorld', type: 'check', f: tweak(20), games: PT, l: T('Zerrwelt abkürzen', 'Fast Distortion World'), h: T('Bringt dich direkt zum Kampf gegen Zyrus.', 'Takes you straight to the fight against Cyrus.') },
+            { k: 'tweak.nationalDex', type: 'check', f: tweak(7), show: ctx => oras(ctx) || ctx.code !== 'CPUJ', l: T('Nationaler Pokédex von Anfang an', 'National Dex at start') },
+            { k: 'tweak.lowerCaseNames', type: 'check', f: tweak(10), games: PT, l: T('Pokémon-Namen nicht in GROSSBUCHSTABEN', 'Lower case Pokémon names') },
+            { k: 'tweak.retainAltFormes', type: 'check', f: tweak(17), games: ORAS, l: T('Formen bleiben nach dem Neustart erhalten', 'Don\'t revert temporary alt formes'),
+              h: T('Sonst fallen z. B. Mega-Entwicklungen und Protomorphosen im Team beim Neustart des Spiels auf die Grundform zurück.', 'Otherwise e.g. Mega Evolutions and Primal Reversions in your party revert to their base forme when the game is reset.') }
           ]
         },
         {
           t: T('Spiel-Änderungen', 'Game changes'),
           items: [
-            { k: 'tweak.updateRotomFormeTyping', type: 'check', f: tweak(21), l: T('Rotom-Formen mit neuen Typen', 'Update Rotom appliance typings'), h: T('z. B. wird Wasch-Rotom Elektro/Wasser.', 'e.g. Wash Rotom becomes Electric/Water.') },
-            { k: 'tweak.typeEffectiveness', type: 'check', f: tweak(8), l: T('Typen-Tabelle wie in neueren Spielen', 'Update type effectiveness'), h: T('z. B. ist Stahl nicht mehr resistent gegen Geist und Unlicht.', 'e.g. Steel no longer resists Ghost and Dark.') },
-            { k: 'tweak.catchingTutorial', type: 'check', f: tweak(11), l: T('Fang-Vorführung mit zufälligem Pokémon', 'Randomize catching tutorial') },
+            { k: 'tweak.updateRotomFormeTyping', type: 'check', f: tweak(21), games: PT, l: T('Rotom-Formen mit neuen Typen', 'Update Rotom appliance typings'), h: T('z. B. wird Wasch-Rotom Elektro/Wasser.', 'e.g. Wash Rotom becomes Electric/Water.') },
+            { k: 'tweak.typeEffectiveness', type: 'check', f: tweak(8), games: PT, l: T('Typen-Tabelle wie in neueren Spielen', 'Update type effectiveness'), h: T('z. B. ist Stahl nicht mehr resistent gegen Geist und Unlicht.', 'e.g. Steel no longer resists Ghost and Dark.') },
+            { k: 'tweak.catchingTutorial', type: 'check', f: tweak(11), games: PT, l: T('Fang-Vorführung mit zufälligem Pokémon', 'Randomize catching tutorial') },
             { k: 'tweak.luckyEgg', type: 'check', f: tweak(12), l: T('Kein Glücks-Ei als zufälliges Item', 'Ban Lucky Egg') }
           ]
         },
@@ -427,12 +491,14 @@
           t: T('Nur bestimmte Pokémon', 'Limit Pokémon'),
           items: [
             { k: 'limitPokemon', type: 'check', f: bit(2, 5), l: T('Nur Pokémon aus bestimmten Generationen', 'Only Pokémon from certain generations'),
-              warn: s => s.limitPokemon && !['gen.1', 'gen.2', 'gen.3', 'gen.4'].some(k => s[k]),
+              warn: s => s.limitPokemon && ![1, 2, 3, 4, 5, 6].some(g => s['gen.' + g]),
               warnL: T('Wähle mindestens eine Generation – sonst sind alle erlaubt.', 'Pick at least one generation – otherwise all are allowed.') },
             { k: 'gen.1', type: 'check', f: gen(0), on: s => s.limitPokemon, keep: true, l: T('1. Generation (Kanto)', 'Generation 1 (Kanto)') },
             { k: 'gen.2', type: 'check', f: gen(1), on: s => s.limitPokemon, keep: true, l: T('2. Generation (Johto)', 'Generation 2 (Johto)') },
             { k: 'gen.3', type: 'check', f: gen(2), on: s => s.limitPokemon, keep: true, l: T('3. Generation (Hoenn)', 'Generation 3 (Hoenn)') },
             { k: 'gen.4', type: 'check', f: gen(3), on: s => s.limitPokemon, keep: true, l: T('4. Generation (Sinnoh)', 'Generation 4 (Sinnoh)') },
+            { k: 'gen.5', type: 'check', f: gen(4), games: ORAS, on: s => s.limitPokemon, keep: true, l: T('5. Generation (Einall)', 'Generation 5 (Unova)') },
+            { k: 'gen.6', type: 'check', f: gen(5), games: ORAS, on: s => s.limitPokemon, keep: true, l: T('6. Generation (Kalos)', 'Generation 6 (Kalos)') },
             { k: 'gen.relatives', type: 'check', f: gen(7), on: s => s.limitPokemon, keep: true,
               l: T('Auch Vor- und Weiterentwicklungen aus anderen Generationen', 'Allow evolutionary relatives') },
             { k: 'banIrregularAltFormes', type: 'check', f: bit(49, 3), l: T('Keine Formen, die es nur im Kampf gibt', 'No irregular alternate formes') }
@@ -485,11 +551,12 @@
     ITEMS.push(it);
     (it.subs || []).forEach(sub => { sub.tab = tab.id; sub.parent = it; });
   })));
-  const FIELDS = [];
+  const FIELDS = [], BY_KEY = {};
   ITEMS.forEach(it => {
-    if (it.type === 'starters') it.fs.forEach((f, i) => FIELDS.push({ k: it.k + '.' + i, f: f, tab: it.tab }));
-    else FIELDS.push({ k: it.k, f: it.f, tab: it.tab });
-    (it.subs || []).forEach(sub => FIELDS.push({ k: sub.k, f: sub.f, tab: sub.tab }));
+    BY_KEY[it.k] = it;
+    if (it.type === 'starters') it.fs.forEach((f, i) => FIELDS.push({ k: it.k + '.' + i, f: f, tab: it.tab, it: it }));
+    else FIELDS.push({ k: it.k, f: it.f, tab: it.tab, it: it });
+    (it.subs || []).forEach(sub => FIELDS.push({ k: sub.k, f: sub.f, tab: sub.tab, it: it }));
   });
 
   function values(d) {
@@ -497,39 +564,90 @@
     FIELDS.forEach(x => { s[x.k] = R.get(d, x.f); });
     return s;
   }
-  const visible = (it, ctx) => !it.show || it.show(ctx);
+  const inGame = (it, ctx) => !it.games || it.games.indexOf(ctx.game) >= 0;
+  const visible = (it, ctx) => inGame(it, ctx) && (!it.show || it.show(ctx));
   const enabled = (it, s) => !it.on || !!it.on(s);
+  // Auswahlliste einer Option für dieses Spiel
+  const opts = (it, ctx) => (typeof it.opts === 'function' ? it.opts(ctx) : it.opts).filter(o => inGame(o, ctx));
+
+  // Nichts gewählt: alles „Unverändert“, Zahlen so, wie sie das Original-Programm für eine frisch geladene ROM schreibt
+  function blank(ctx) {
+    const g = game(ctx), name = (ctx && ctx.romName) || g.romName;
+    const d = new Uint8Array(R.LEN + 1 + name.length + 8);
+    FIELDS.forEach(x => { if (x.f.t === 'one') R.set(d, x.f, x.f.values[0]); });
+    g.starters.forEach((sp, i) => R.set(d, BY_KEY.customStarters.fs[i], sp));
+    d[14] = 30;                                  // „voll entwickelt ab Level“: kleinster Wert
+    d[36] = d[38] = d[43] = d[47] = 50;          // Level-Regler: ±0 %
+    d[41] = 0x08; d[42] = 0x09;                  // Gen-7-Felder (Aura, Herrscher): unverändert
+    d[44] = g.statsGen; d[45] = g.movesGen;      // „wie in neueren Spielen“: erste Generation der Liste
+    d[R.LEN] = name.length;
+    for (let i = 0; i < name.length; i++) d[R.LEN + 1 + i] = name.charCodeAt(i) & 0x7F;
+    d.set(R.NAMES_SUM, d.length - 4);
+    return d;
+  }
+
+  // Einstellungen (z. B. aus einer Datei, auch von einem anderen Spiel) für dieses Spiel übernehmen: nur was es hier
+  // gibt, der Rest bleibt wie bei blank(). So steht in der Datei genau das, was angezeigt wird.
+  function adopt(d, ctx) {
+    const out = blank(ctx);
+    FIELDS.forEach(x => { if (inGame(x.it, ctx)) R.set(out, x.f, R.get(d, x.f)); });
+    normalize(out, ctx);
+    return out;
+  }
 
   // Nach einer Änderung: was nicht mehr bedienbar ist, abwählen (wie im Original-Programm)
   function normalize(d, ctx) {
+    const g = game(ctx);
     for (let pass = 0; pass < 4; pass++) {
       let changed = false;
       const put = (f, v) => { if (R.get(d, f) !== v) { R.set(d, f, v); changed = true; } };
       const s = values(d);
       ITEMS.forEach(it => {
+        if (!inGame(it, ctx)) {                  // gibt es in diesem Spiel nicht
+          if (it.type === 'radio') put(it.f, it.f.values[0]);
+          else if (it.type === 'check') { put(it.f, false); (it.subs || []).forEach(sub => { if (sub.reset !== undefined) put(sub.f, sub.reset); }); }
+          else if (it.type === 'count') put(it.f, 0);
+          return;
+        }
+        if (it.type === 'starters') {
+          // Nicht „Selbst aussuchen“ oder ein Pokémon, das es im Spiel nicht gibt → Original-Starter (wie im Original-Programm)
+          it.fs.forEach((f, i) => { if (!enabled(it, s) || R.get(d, f) > g.species) put(f, g.starters[i]); });
+          return;
+        }
         if (!visible(it, ctx)) return;
         const on = enabled(it, s);
         if (it.type === 'radio') {
           if (!on) { if (it.off !== undefined) put(it.f, it.off); return; }
-          const o = it.opts.find(x => x.v === s[it.k]);
-          if (o && o.on && !o.on(s)) put(it.f, o.alt);
+          const list = opts(it, ctx), o = list.find(x => x.v === s[it.k]);
+          if (!o) put(it.f, it.other !== undefined ? it.other : list[0].v);
+          else if (o.on && !o.on(s)) put(it.f, o.alt);
         } else if (it.type === 'check') {
           if (!on && !it.keep) put(it.f, false);
-          if (!R.get(d, it.f)) (it.subs || []).forEach(sub => { if (sub.reset !== undefined) put(sub.f, sub.reset); });
+          const checked = R.get(d, it.f);
+          (it.subs || []).forEach(sub => {
+            if (sub.reset !== undefined) { if (!checked) put(sub.f, sub.reset); return; }
+            // Auswahl, die es in diesem Spiel nicht gibt (z. B. „Gen 5“ bei OR/AS) → erster Eintrag
+            if (sub.type === 'select') {
+              const list = opts(sub, ctx);
+              if (!list.some(x => x.v === R.get(d, sub.f))) put(sub.f, list[0].v);
+            }
+          });
         } else if (it.type === 'count') {
           if (!on) put(it.f, 0);
+          else if (R.get(d, it.f) > it.max) put(it.f, it.max);
         }
       });
       if (!changed) break;
     }
   }
 
-  // Welche Felder weichen von den Standard-Einstellungen ab?
-  function changes(d, base) {
+  // Was ist gewählt? Optionen, die von blank() abweichen (nur was in diesem Spiel zu sehen ist) → Reiter
+  function changes(d, base, ctx) {
     const a = values(d), b = values(base), out = {};
-    FIELDS.forEach(x => { if (a[x.k] !== b[x.k]) out[x.k] = x.tab; });
+    FIELDS.forEach(x => { if (a[x.k] !== b[x.k] && visible(x.it, ctx)) out[x.it.k] = x.tab; });
     return out;
   }
 
-  window.RandoOptions = { TABS: TABS, ITEMS: ITEMS, FIELDS: FIELDS, values: values, visible: visible, enabled: enabled, normalize: normalize, changes: changes };
+  window.RandoOptions = { TABS: TABS, ITEMS: ITEMS, FIELDS: FIELDS, GAMES: GAMES, values: values, visible: visible, enabled: enabled, opts: opts,
+    blank: blank, adopt: adopt, normalize: normalize, changes: changes };
 })();

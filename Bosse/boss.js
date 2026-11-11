@@ -1,12 +1,13 @@
 /*
  * „Ordenkoffer & Herausforderer“ hinter dem Boss-Planer: Die Seite ist die Arena des gewählten Kampfes – Licht und
- * Boden in der Farbe des stärksten Pokémon des Gegners. Links liegt der Ordenkoffer aus Platin, wie im Spiel: die
+ * Boden in der Farbe des stärksten Pokémon des Gegners. Links liegt der Ordenkoffer des gewählten Spiels (Platin,
+ * Omega Rubin / Alpha Saphir, Trainerpass aus Rot / Blau), wie im Spiel: die
  * acht Orden in ihren Mulden (verdiente blank und ab und zu glitzernd, fehlende leer; ohne Spielstand angestaubt),
  * über einen Orden fahren = polieren, ein Klick wählt den Kampf; darunter der Arenaleiter dazu. Rechts tritt der
  * gewählte Gegner auf: „!“ wie im Spiel, wenn ein Trainer dich entdeckt, dahinter ragt sein stärkstes Pokémon auf,
  * darunter seine Bälle und das Level-Cap.
- * Farben und Aussehen: boss.css; Koffer, Orden und Glitzern: sprites/ (tools/build-badges.py). Platz neben der
- * Karte: scene.js (HubScene.beside).
+ * Farben und Aussehen: boss.css; Koffer, Orden und Glitzern: sprites/ (tools/build-badges.py, ORAS:
+ * tools/build-badges-oras.py). Platz neben der Karte: scene.js (HubScene.beside).
  *
  *   BossScene.update(data)  – nach jedem Zeichnen des Kampfes (app.js, updateScene):
  *     { fight, title, place, cap, sprite, party, ace: { species, name, type } | null,
@@ -22,8 +23,8 @@ window.BossScene = (function () {
   if (window.PokeHubLite || !root || !card || !window.HubScene) return { update: function () {} };
 
   var TR = {
-    de: { earned: '{n} / 8 Orden', noSave: 'Mit Spielstand glänzen deine Orden', cap: 'Level-Cap', next: 'Als Nächstes', pick: 'Kampf gegen {n} zeigen' },
-    en: { earned: '{n} / 8 badges', noSave: 'Load a save to make your badges shine', cap: 'Level cap', next: 'Up next', pick: 'Show the battle against {n}' }
+    de: { earned: '{n} / 8 Orden', noSave: 'Mit Spielstand glänzen deine Orden', faces: 'Über einem Gesicht erscheint sein Orden', cap: 'Level-Cap', next: 'Als Nächstes', pick: 'Kampf gegen {n} zeigen' },
+    en: { earned: '{n} / 8 badges', noSave: 'Load a save to make your badges shine', faces: 'Hover a face to see its badge', cap: 'Level cap', next: 'Up next', pick: 'Show the battle against {n}' }
   };
   var tr = function () { return TR[document.documentElement.lang] || TR.de; };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
@@ -32,36 +33,51 @@ window.BossScene = (function () {
   var TYPE_HEX = ['#bbbbaa', '#bb5544', '#96caff', '#9553cd', '#a67439', '#bbaa66', '#92c12a', '#6e4370', '#aaaabb',
     '#ff421c', '#2c9be3', '#62bc5a', '#ffdc00', '#ff6380', '#74cfc0', '#5670be', '#4e4545', '#ec8fe6'];
 
-  // Ordenkoffer (sprites/case.png, 256 × 181 Bildpunkte des DS): Lage der Orden [x, y, Breite, Höhe] und ihres
-  // Glitzerns [x, y] wie im Spiel (Werte aus tools/build-badges.py) – Kohle, Wald, Pflaster, Sumpf, Relikt, Mine, Firn, Leuchtfeuer.
-  // Omega Rubin / Alpha Saphir (tools/build-badges-oras.py, 38 × 38): dieselben Mulden – Stein, Knöchel, Dynamo, Hitze,
-  // Balance, Feder, Mental, Schauer.
-  var CASE_W = 256, CASE_H = 181;
+  // Ordenkoffer je Spiel – Bild (boss.css, .bs[data-set]), Größe in Bildpunkten des Bildschirms, Lage der Orden
+  // [x, y, Breite, Höhe] und (Pixelgrafik) ihres Glitzerns [x, y] wie im Spiel; max = größte ganzzahlige Vergrößerung:
+  //   Platin (sprites/case.png, DS, tools/build-badges.py): Kohle, Wald, Pflaster, Sumpf, Relikt, Mine, Firn, Leuchtfeuer.
+  //   Omega Rubin / Alpha Saphir (sprites/case-oras.png, 3DS, tools/build-badges-oras.py aus der ROM): Stein, Knöchel,
+  //   Dynamo, Hitze, Balance, Feder, Mental, Schauer.
+  //   Rot / Blau (sprites/case-rb.png, Orden-Teil des Trainerpasses, tools/build-badges-rb.py): Fels, Quell, Donner,
+  //   Farbe, Seele, Sumpf, Vulkan, Erde. faces: ohne Orden steht wie im Spiel das Gesicht des Arenaleiters im Feld.
   var SETS = {
-    pt: [
+    pt: { w: 256, h: 181, max: 2, badges: [
       { id: 'coal', at: [25, 30, 38, 38], sp: [24, 29] }, { id: 'forest', at: [80, 31, 40, 37], sp: [80, 29] },
       { id: 'cobble', at: [136, 29, 40, 40], sp: [136, 29] }, { id: 'fen', at: [193, 30, 38, 38], sp: [192, 29] },
       { id: 'relic', at: [24, 88, 40, 36], sp: [24, 85] }, { id: 'mine', at: [81, 86, 38, 38], sp: [80, 85] },
       { id: 'icicle', at: [137, 87, 38, 37], sp: [136, 85] }, { id: 'beacon', at: [194, 86, 36, 38], sp: [192, 85] }
-    ],
-    oras: [
-      { id: 'stone', at: [25, 30, 38, 38], sp: [24, 29] }, { id: 'knuckle', at: [81, 30, 38, 38], sp: [80, 29] },
-      { id: 'dynamo', at: [137, 30, 38, 38], sp: [136, 29] }, { id: 'heat', at: [193, 30, 38, 38], sp: [192, 29] },
-      { id: 'balance', at: [25, 87, 38, 38], sp: [24, 85] }, { id: 'feather', at: [81, 86, 38, 38], sp: [80, 85] },
-      { id: 'mind', at: [137, 86, 38, 38], sp: [136, 85] }, { id: 'rain', at: [193, 86, 38, 38], sp: [192, 85] }
-    ]
+    ] },
+    oras: { w: 420, h: 230, badges: [
+      { id: 'stone', at: [66.4, 41.4, 67.2, 67.2] }, { id: 'knuckle', at: [142, 47, 64, 58] },
+      { id: 'dynamo', at: [223, 44, 52, 64] }, { id: 'heat', at: [283, 45, 64, 64] },
+      { id: 'balance', at: [69.6, 128.6, 62.7, 62.7] }, { id: 'feather', at: [146.4, 130.6, 53.2, 60.8] },
+      { id: 'mind', at: [219.6, 134.6, 60.8, 60.8] }, { id: 'rain', at: [287, 127, 58, 64] }
+    ] },
+    rb: { w: 160, h: 72, max: 3, faces: true, badges: [
+      { id: 'boulder', at: [24, 24, 16, 16], sp: [16, 16] }, { id: 'cascade', at: [56, 24, 16, 16], sp: [48, 16] },
+      { id: 'thunder', at: [88, 24, 16, 16], sp: [80, 16] }, { id: 'rainbow', at: [120, 24, 16, 16], sp: [112, 16] },
+      { id: 'soul', at: [24, 48, 16, 16], sp: [16, 40] }, { id: 'marsh', at: [56, 48, 16, 16], sp: [48, 40] },
+      { id: 'volcano', at: [88, 48, 16, 16], sp: [80, 40] }, { id: 'earth', at: [120, 48, 16, 16], sp: [112, 40] }
+    ] }
   };
-  var set = 'pt', BADGES = SETS.pt;
-  // Glitzern: kleines (zwei Sterne, 32 px, 4 Bilder à 8 Ticks) taucht ab und zu auf einem blanken Orden auf, großes
-  // (vier Sterne, 64 px, 4 Bilder à 4 Ticks, 8 px weiter links) beim Polieren und auf dem gewählten Kampf
+  var set = 'pt', BADGES = SETS.pt.badges;
+  // Platin – Glitzern: kleines (zwei Sterne, 32 px, 4 Bilder à 8 Ticks) taucht ab und zu auf einem blanken Orden auf,
+  // großes (vier Sterne, 64 px, 4 Bilder à 4 Ticks, 8 px weiter links) beim Polieren und auf dem gewählten Kampf.
+  // ORAS (glatt gezeichnete 3D-Orden): statt der Pixelsterne läuft ein Glanzstreifen in der Form des Ordens darüber.
   var badgeHtml = function (b, i) {
-    var a = b.at, dx = b.sp[0] - a[0], dy = b.sp[1] - a[1];
-    return '<button type="button" tabindex="-1" class="bs-badge" data-i="' + i + '" style="--x:' + a[0] + ';--y:' + a[1] + ';--w:' + a[2] + ';--h:' + a[3] + '">' +
+    var a = b.at, style = '--x:' + a[0] + ';--y:' + a[1] + ';--w:' + a[2] + ';--h:' + a[3];
+    if (!b.sp) {
+      return '<button type="button" tabindex="-1" class="bs-badge" data-i="' + i + '" style="' + style + ';--m:url(sprites/badge-' + b.id + '.png)">' +
+        '<img class="bs-gem" alt=""><i class="bs-shine"></i></button>';
+    }
+    var dx = b.sp[0] - a[0], dy = b.sp[1] - a[1];
+    return '<button type="button" tabindex="-1" class="bs-badge" data-i="' + i + '" style="' + style + '">' +
       '<img class="bs-gem" alt="">' +
       '<i class="bs-spark bs-spark--2" style="--dx:' + dx + ';--dy:' + dy + '"><img alt="" src="sprites/sparkle2.png"></i>' +
       '<i class="bs-spark bs-spark--4" style="--dx:' + (dx - 8) + ';--dy:' + dy + '"><img alt="" src="sprites/sparkle4.png"></i></button>';
   };
 
+  root.dataset.set = set;
   root.innerHTML =
     '<div class="bs-arena" aria-hidden="true"><i class="bs-light"></i><i class="bs-floor"></i><i class="bs-ring"></i></div>' +
     '<div class="bs-case"><div class="bs-ds">' + BADGES.map(badgeHtml).join('') + '</div>' +
@@ -79,10 +95,16 @@ window.BossScene = (function () {
   el.ace.addEventListener('error', function () { if (el.ace.dataset.fb && el.ace.src !== el.ace.dataset.fb) el.ace.src = el.ace.dataset.fb; });
   var still = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-  // Koffer in ganzzahliger Vergrößerung (Pixel bleiben gleich groß) und auf ganzen Pixeln, sonst wird er unscharf
+  // Pixelgrafik (Platin, Rot / Blau): Koffer in ganzzahliger Vergrößerung (Pixel bleiben gleich groß) und auf ganzen
+  // Pixeln, sonst wird er unscharf. ORAS ist glatt gezeichnet (Bild in doppelter Auflösung): stufenlos so groß, wie
+  // Platz ist, höchstens 1,5.
   function layout() {
-    var side = HubScene.beside(card);
-    var s = side.strip >= CASE_W * 2 + 40 && window.innerHeight >= CASE_H * 2 + 220 ? 2 : 1;
+    var side = HubScene.beside(card), c = SETS[set];
+    var s = c.max
+      ? Math.max(1, Math.min(c.max, Math.floor((side.strip - 40) / c.w), Math.floor((window.innerHeight - 220) / c.h)))
+      : Math.max(0.4, Math.min(1.5, (side.strip - 40) / c.w, (window.innerHeight - 220) / c.h));
+    root.style.setProperty('--cw', c.w);
+    root.style.setProperty('--ch', c.h);
     root.classList.toggle('is-full', side.strip >= 200);
     root.classList.toggle('is-bare', side.strip < 200);
     root.style.setProperty('--cl', side.cl + 'px');
@@ -90,18 +112,19 @@ window.BossScene = (function () {
     root.style.setProperty('--strip', side.strip + 'px');
     root.style.setProperty('--k', side.strip >= 560 ? 3 : 2);
     root.style.setProperty('--s', s);
-    el.kase.style.left = Math.round(side.cl - CASE_W * s / 2) + 'px';
+    el.kase.style.left = Math.round(side.cl - c.w * s / 2) + 'px';
     el.kase.style.top = Math.round((window.innerHeight - el.kase.offsetHeight) / 2) + 'px';
   }
 
   function render() {
     var t = tr(), d = data;
     if (!d) return;
-    // Anderes Spiel: Orden dieses Spiels in die Mulden legen
+    // Anderes Spiel: dessen Koffer und Orden
     var want = SETS[d.game] ? d.game : 'pt';
     if (want !== set) {
       set = want;
-      BADGES = SETS[set];
+      BADGES = SETS[set].badges;
+      root.dataset.set = set;
       polished = {};
       root.querySelector('.bs-ds').innerHTML = BADGES.map(badgeHtml).join('');
       el.badges = root.querySelectorAll('.bs-badge');
@@ -109,9 +132,10 @@ window.BossScene = (function () {
     // Ordenkoffer: mit Spielstand blank oder leer, ohne angestaubt (polierte bleiben blank)
     var withSave = d.leaders.some(function (l) { return l.earned !== null; });
     var n = d.leaders.filter(function (l) { return l.earned; }).length;
+    var faces = SETS[set].faces;
     el.badges.forEach(function (b, i) {
       var l = d.leaders[i] || {}, clean = withSave ? !!l.earned : !!polished[i];
-      var src = 'sprites/badge-' + BADGES[i].id + (clean ? '' : '-dull') + '.png', img = b.querySelector('.bs-gem');
+      var src = 'sprites/badge-' + BADGES[i].id + (clean ? '' : faces ? '-face' : '-dull') + '.png', img = b.querySelector('.bs-gem');
       if (img.getAttribute('src') !== src) img.src = src;
       b.classList.toggle('is-empty', withSave && !l.earned);
       b.classList.toggle('is-clean', clean);
@@ -152,7 +176,8 @@ window.BossScene = (function () {
     var at = function (id) { for (var i = 0; i < ls.length; i++) if (ls[i].id != null && ls[i].id === id) return i; return -1; };
     var i = hover >= 0 ? hover : at(d.fight) >= 0 ? at(d.fight) : at(d.next);
     var l = ls[i] || null, withSave = ls.some(function (x) { return x.earned !== null; });
-    var count = withSave ? t.earned.replace('{n}', ls.filter(function (x) { return x.earned; }).length) : t.noSave;
+    var count = withSave ? t.earned.replace('{n}', ls.filter(function (x) { return x.earned; }).length)
+      : d.canSave === false && SETS[set].faces ? t.faces : t.noSave;
     el.lname.textContent = l ? l.name : '';
     el.sub.textContent = l && d.next != null && l.id === d.next ? t.next + ' · ' + count : count;
     if (l && l.sprite && el.leader.getAttribute('src') !== l.sprite) el.leader.src = l.sprite;

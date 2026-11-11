@@ -5,6 +5,9 @@
  * Fertig: die Walzen halten auf Pokébällen – erst wenn man die Starter auf der Seite aufklappt, drehen sie auf die
  * echten neuen Starter (sonst wäre die Überraschung weg). Rechts druckt der Automat ein Ticket fürs neue Spiel
  * (Klick = herunterladen), daneben tanzt Piepi, das Maskottchen der Spielhalle.
+ * Töne (slot-sound.js): der Hebel ratscht und rastet ein; die Walzen rattern beim Rollen, laufen nacheinander aus und
+ * schlagen an, der Gewinn klimpert – aber nur, wenn am Hebel gezogen wurde, nicht beim Knopf „Neues Spiel würfeln“ auf der Seite.
+ * Der Lautsprecher-Knopf am Automaten schaltet sie aus.
  * Farben und Aussehen: slots.css. Platz neben der Karte: scene.js (HubScene.beside).
  *
  *   SlotScene.update(data)  – nach jedem Zeichnen (app.js, updateScene):
@@ -28,12 +31,14 @@ window.SlotScene = (function () {
     de: {
       title: 'SPIELHALLE', insert: 'ROM einwerfen', ready: 'Hebel ziehen!', win: 'Neues Spiel!', reveal: 'Starter oben aufklappen',
       error: 'Kein Gewinn …', ticket: 'NEUES SPIEL', boss: 'Boss-Planer: Teams bereit', rolls: 'Gewürfelt: {n}',
-      lever: 'Hebel ziehen, um ein neues Spiel zu würfeln', pull: 'ZIEH!', coin: 'Original-Spiel auswählen', get: 'Herunterladen'
+      lever: 'Hebel ziehen, um ein neues Spiel zu würfeln', pull: 'ZIEH!', coin: 'Original-Spiel auswählen', get: 'Herunterladen',
+      soundOn: 'Ton des Automaten ausschalten', soundOff: 'Ton des Automaten einschalten'
     },
     en: {
       title: 'GAME CORNER', insert: 'Insert ROM', ready: 'Pull the lever!', win: 'New game!', reveal: 'Open the starters above',
       error: 'No win …', ticket: 'NEW GAME', boss: 'Boss Planner: teams ready', rolls: 'Rolled: {n}',
-      lever: 'Pull the lever to roll a new game', pull: 'PULL!', coin: 'Choose the original game', get: 'Download'
+      lever: 'Pull the lever to roll a new game', pull: 'PULL!', coin: 'Choose the original game', get: 'Download',
+      soundOn: 'Turn the machine\'s sound off', soundOff: 'Turn the machine\'s sound on'
     }
   };
   var tr = function () { return TR[document.documentElement.lang] || TR.de; };
@@ -61,6 +66,8 @@ window.SlotScene = (function () {
         '<div class="sl-window">' + [0, 1, 2].map(reelHtml).join('') + '<i class="sl-line"></i></div>' +
         '<div class="sl-led"><span class="sl-msg"></span><span class="sl-secs"></span></div>' +
         '<button type="button" class="sl-coin"><i aria-hidden="true"></i></button>' +
+        '<button type="button" class="sl-sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5Z" fill="currentColor"/><path class="sl-sound-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="sl-sound-off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>' +
       '</div>' +
       '<button type="button" class="sl-lever"><i class="sl-lever-plate" aria-hidden="true"></i><i class="sl-arm" aria-hidden="true"></i><i class="sl-knob" aria-hidden="true"></i><span class="sl-lever-label" aria-hidden="true"></span></button>' +
       '<div class="sl-tray" aria-hidden="true"></div>' +
@@ -73,13 +80,16 @@ window.SlotScene = (function () {
     '<div class="sl-coins" aria-hidden="true"></div>';
   var el = {
     title: root.querySelector('.sl-title'), reels: root.querySelectorAll('.sl-reel'), msg: root.querySelector('.sl-msg'), secs: root.querySelector('.sl-secs'),
-    coin: root.querySelector('.sl-coin'), lever: root.querySelector('.sl-lever'), leverLabel: root.querySelector('.sl-lever-label'), tray: root.querySelector('.sl-tray'),
+    coin: root.querySelector('.sl-coin'), sound: root.querySelector('.sl-sound'), lever: root.querySelector('.sl-lever'), leverLabel: root.querySelector('.sl-lever-label'), tray: root.querySelector('.sl-tray'),
     rolls: root.querySelector('.sl-rolls'), ticket: root.querySelector('.sl-ticket'), tHead: root.querySelector('.sl-t-head'),
     tName: root.querySelector('.sl-t-name'), tMeta: root.querySelector('.sl-t-meta'), tBoss: root.querySelector('.sl-t-boss'),
     coins: root.querySelector('.sl-coins')
   };
 
   var data = null, last = null, revealed = false, stopTimer = [], leverTimer = [];
+  // Töne: nur für Würfe, die am Hebel ausgelöst wurden (pulledAt = wann zuletzt gezogen, loud = dieser Wurf klingt)
+  var Snd = window.SlotSound || null, pulledAt = -1e9, loud = false;
+  var snd = function (name, arg) { if (Snd && Snd[name]) Snd[name](arg); };
   var PULL_MAX = 80, PULL_TRIGGER = 0.7;
   var drag = null, leverLocked = false, suppressClickUntil = 0;
   var KEY = 'randomizer-rolls';
@@ -96,11 +106,12 @@ window.SlotScene = (function () {
   }
 
   // Walzen anhalten: nacheinander, auf dem Pokéball (Starter verdeckt) oder den echten Startern
-  function stopReels(ids) {
+  function stopReels(ids, sound) {
     stopTimer.forEach(clearTimeout);
     stopTimer = [];
     el.reels.forEach(function (reel, i) {
       stopTimer.push(setTimeout(function () {
+        if (sound) snd('reelStop', i);
         var img = reel.querySelector('.sl-stop img'), id = ids && ids[i];
         img.className = id ? (id > 493 ? 'is-wide' : '') : 'is-ball';
         img.src = id ? monSrc(id) : BALL;
@@ -149,6 +160,7 @@ window.SlotScene = (function () {
   }
   function rollOnce() {
     if (!data || data.busy || typeof data.roll !== 'function') return;
+    pulledAt = performance.now();
     data.roll();
   }
   function finishLever(ms) {
@@ -164,8 +176,10 @@ window.SlotScene = (function () {
     clearLeverTimers();
     clearLeverState();
     el.lever.classList.add('is-pull');
+    snd('pull');
     leverTimer.push(setTimeout(function () {
       root.classList.add('is-lever-hit');
+      snd('clunk');
       rollOnce();
     }, 260));
     finishLever(660);
@@ -191,6 +205,7 @@ window.SlotScene = (function () {
       el.lever.classList.add('is-returning');
       root.classList.add('is-lever-hit');
       setPull(0, 0);
+      snd('clunk');
       rollOnce();
     }, 90));
     finishLever(620);
@@ -233,6 +248,12 @@ window.SlotScene = (function () {
     el.leverLabel.textContent = t.pull;
     el.coin.title = t.coin;
     el.coin.setAttribute('aria-label', t.coin);
+    var soundOn = !!Snd && Snd.isOn();
+    el.sound.hidden = !Snd;
+    el.sound.classList.toggle('is-off', !soundOn);
+    el.sound.title = soundOn ? t.soundOn : t.soundOff;
+    el.sound.setAttribute('aria-label', el.sound.title);
+    el.sound.setAttribute('aria-pressed', String(soundOn));
     el.lever.disabled = state === 'off' || state === 'spin';
     if (el.lever.disabled && drag) cancelDrag();
     el.rolls.textContent = rolls ? t.rolls.replace('{n}', rolls) : '';
@@ -251,17 +272,32 @@ window.SlotScene = (function () {
     // Übergänge: Würfeln beginnt → drehen; fertig → anhalten (+ Münzen); Fehler → auf grauen Bällen anhalten
     var prev = last;
     last = state;
-    if (state === 'spin' && prev !== 'spin') spinReels();
-    else if (state === 'win' && prev === 'spin') {
+    if (state === 'spin' && prev !== 'spin') {
+      // Am Hebel gezogen (gerade eben)? Dann klingt dieser Wurf – beim Knopf auf der Seite bleibt der Automat still
+      loud = performance.now() - pulledAt < 3000;
+      pulledAt = -1e9;
+      spinReels();
+      if (loud) snd('spinStart');
+    } else if (prev === 'spin') {
+      // Würfeln vorbei: die Walzen laufen nacheinander aus (Zeiten wie in stopReels), sonst sofort still
+      if (loud && (state === 'win' || state === 'lose')) snd('spinDown', [0.26, 0.68, 1.1]);
+      else snd('spinStop');
+    }
+    if (state === 'win' && prev === 'spin') {
       revealed = false;
       rolls++;
       try { localStorage.setItem(KEY, String(rolls)); } catch (e) { /* ohne Zähler */ }
       el.rolls.textContent = t.rolls.replace('{n}', rolls);
-      stopReels(null);
+      stopReels(null, loud);
+      if (loud) { setTimeout(function () { snd('win'); }, 1250); setTimeout(function () { snd('coins'); }, 1400); }
       setTimeout(coins, 1400);
+      loud = false;
     } else if (state === 'win' && prev !== 'win') stopReels(revealed && r.starters ? r.starters : null);
-    else if (state === 'lose' && prev !== 'lose') stopReels(null);
-    else if ((state === 'ready' || state === 'off') && prev !== state) idleReels();
+    else if (state === 'lose' && prev !== 'lose') {
+      stopReels(null, loud);
+      if (loud) setTimeout(function () { snd('lose'); }, 1300);
+      loud = false;
+    } else if ((state === 'ready' || state === 'off') && prev !== state) { idleReels(); loud = false; }
   }
 
   // Starter aufgeklappt (auf der Seite) → Walzen drehen auf die echten Starter
@@ -279,7 +315,7 @@ window.SlotScene = (function () {
     if (!canPull() || (e.button != null && e.button !== 0)) return;
     clearLeverTimers();
     clearLeverState();
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, progress: 0 };
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, progress: 0, tooth: 0 };
     el.lever.classList.add('is-dragging');
     el.lever.setPointerCapture(e.pointerId);
     el.lever.focus({ preventScroll: true });
@@ -291,6 +327,9 @@ window.SlotScene = (function () {
     var dx = (e.clientX - drag.x) * 0.12;
     drag.moved = drag.moved || dy > 3 || Math.abs(e.clientX - drag.x) > 4;
     drag.progress = setPull(dy, dx);
+    // Ratschen: ein Klick je Zahn, solange der Hebel sich bewegt
+    var tooth = Math.floor(Math.min(dy, PULL_MAX) / 10);
+    if (tooth !== drag.tooth) { drag.tooth = tooth; snd('ratchet'); }
     e.preventDefault();
   });
   el.lever.addEventListener('pointerup', function (e) { endDrag(e, false); });
@@ -301,7 +340,8 @@ window.SlotScene = (function () {
     if (performance.now() < suppressClickUntil) return;
     autoPull();
   });
-  el.coin.addEventListener('click', function () { if (data && data.pick && !data.busy) data.pick(); });
+  el.coin.addEventListener('click', function () { if (data && data.pick && !data.busy) { snd('coinIn'); data.pick(); } });
+  el.sound.addEventListener('click', function () { if (Snd) { Snd.setOn(!Snd.isOn()); render(); } });
 
   var raf = 0;
   function update(d) {

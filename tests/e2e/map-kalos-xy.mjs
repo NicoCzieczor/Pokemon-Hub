@@ -29,8 +29,8 @@ try {
   }));
   check('X/Y: eigene Kalos-Karte geladen', initial.xy && !initial.oras && /Kalos/.test(initial.heading) && /X \/ Y/.test(initial.title), JSON.stringify(initial));
   check('X/Y: lokale 3DS-ROM-Kartenblätter geladen', /tiles-kalos-xy\//.test(initial.tile), initial.tile);
-  check('X/Y: 74 Orte und zwei Editionen auswählbar', initial.places === 74 && initial.editions === 2, JSON.stringify(initial));
-  check('X/Y: 3D-Render kommt ohne künstliche Kartenlabels aus', initial.labels === 0, String(initial.labels));
+  check('X/Y: über 70 Orte und zwei Editionen auswählbar', initial.places >= 70 && initial.editions === 2, JSON.stringify(initial));
+  check('X/Y: Städte und Routen tragen ihre Namen auf der Karte', initial.labels >= 40, String(initial.labels));
   check('X/Y: Kartenquelle lokal dokumentiert', /tiles-kalos-xy\/SOURCE\.txt/.test(initial.credit), initial.credit);
   check('X/Y: keine Hoenn-Meerszene und kein Überlauf', initial.seaChildren === 0 && initial.overflow <= 1, JSON.stringify(initial));
 

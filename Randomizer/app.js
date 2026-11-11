@@ -5,8 +5,8 @@
  * (Java-Laufzeit als WebAssembly, wird beim ersten Würfeln von cjrtnc.leaningtech.com geladen).
  * Aufgerufen wird sein Kommandozeilen-Modus, genau wie am PC:
  *   cli -s settings.rnqs -i rom.nds -o out.nds -l
- * Die Einstellungen kommen aus editor.js: settings.rnqs (mit denen bisher gewürfelt wurde) oder die
- * angepasste Fassung davon.
+ * Die Einstellungen kommen aus editor.js: was man dort für das Spiel der ROM ausgewählt oder aus einer .rnqs-Datei
+ * geladen hat. Am Anfang ist nichts gewählt – dann lässt sich noch nicht würfeln.
  *
  * CheerpJ-Dateisystem: /app/… = Dateien vom Webserver (das Jar), /str/… = Daten aus JavaScript
  * (ROM, Einstellungen), /files/… = Browser-Speicher (Ausgabe; wird danach wieder gelöscht).
@@ -37,8 +37,8 @@
 
   const I18N = {
     de: {
-      title1: 'Rando', title2: 'mizer', gameBadge: 'Platin',
-      subtitle: 'Verloren? Würfel dir ein neues zufälliges Platin oder Omega Rubin / Alpha Saphir – direkt hier im Browser. Wie gewürfelt wird, kannst du vorher einstellen.',
+      title1: 'Rando', title2: 'mizer', gameBadge: 'Platin', gameOrasBoth: 'Omega Rubin / Alpha Saphir',
+      subtitle: 'Verloren? Würfel dir ein neues zufälliges Platin oder Omega Rubin / Alpha Saphir – direkt hier im Browser. Was gewürfelt wird, wählst du vorher selbst aus.',
       gameOras: { or: 'Omega Rubin', as: 'Alpha Saphir' },
       s1Title: 'Original-Spiel auswählen <small>(nur einmal)</small>',
       dropTitle: 'Original-ROM hier reinziehen oder antippen',
@@ -88,11 +88,12 @@
       runAgain: 'Nochmal würfeln',
       runBusy: 'Wird gewürfelt…',
       runHint: 'Beim ersten Mal wird der Randomizer geladen (braucht Internet, ca. 30 Sekunden). Danach dauert es nur ein paar Sekunden.',
+      runNeed: 'Noch ist nichts gewählt. Öffne oben „Einstellungen“ und wähle aus, was gewürfelt werden soll – oder lade dort eine Einstellungsdatei (.rnqs).',
       runMobile: 'Am Handy braucht das viel Arbeitsspeicher. Schließ vorher andere Apps und Tabs. Lädt die Seite mittendrin neu oder stürzt ab, reicht der Speicher nicht – dann am PC würfeln.',
       phase: { load: 'Randomizer wird geladen…', prepare: 'Spiel wird vorbereitet…', run: 'Pokémon, Trainer und Items werden gewürfelt…', finish: 'Fast fertig…' },
       errLoader: 'Der Randomizer konnte nicht geladen werden. Bist du mit dem Internet verbunden? Dann lade die Seite neu und versuch es nochmal.',
       errRun: function (code) { return 'Das Würfeln hat nicht geklappt (Code ' + code + '). Ist es wirklich die Original-ROM?'; },
-      errRunCustom: ' Du benutzt angepasste Einstellungen – vielleicht passt eine Kombination nicht. Probier es mit „Standard wiederherstellen“.',
+      errRunCustom: ' Vielleicht passt auch eine Kombination deiner Einstellungen nicht – probier es mit weniger Optionen.',
       errMemory: 'Dafür reicht der Speicher nicht. Schließ andere Tabs oder würfel am PC.',
       errOther: 'Das Würfeln hat nicht geklappt: ',
       details: 'Details',
@@ -121,8 +122,8 @@
       footNote: 'Gewürfelt wird mit dem <a href="https://github.com/Ajarmar/universal-pokemon-randomizer-zx" target="_blank" rel="noopener">Universal Pokémon Randomizer ZX</a> 4.6.1 (GPL-3.0, <a href="https://github.com/Ajarmar/universal-pokemon-randomizer-zx/tree/v4.6.1" target="_blank" rel="noopener">Quellcode</a>), im Browser ausgeführt mit <a href="https://cheerpj.com/" target="_blank" rel="noopener">CheerpJ</a>. Deine ROM verlässt dein Gerät nicht.'
     },
     en: {
-      title1: 'Rando', title2: 'mizer', gameBadge: 'Platinum',
-      subtitle: 'Lost? Roll yourself a new random Platinum or Omega Ruby / Alpha Sapphire – right here in the browser. You can choose how it gets randomized.',
+      title1: 'Rando', title2: 'mizer', gameBadge: 'Platinum', gameOrasBoth: 'Omega Ruby / Alpha Sapphire',
+      subtitle: 'Lost? Roll yourself a new random Platinum or Omega Ruby / Alpha Sapphire – right here in the browser. You pick what gets randomized first.',
       gameOras: { or: 'Omega Ruby', as: 'Alpha Sapphire' },
       s1Title: 'Choose the original game <small>(only once)</small>',
       dropTitle: 'Drop the original ROM here or tap',
@@ -171,11 +172,12 @@
       runAgain: 'Roll again',
       runBusy: 'Rolling…',
       runHint: 'The first time, the randomizer has to load (needs internet, about 30 seconds). After that it only takes a few seconds.',
+      runNeed: 'Nothing is chosen yet. Open "Settings" above and pick what should be randomized – or load a settings file (.rnqs) there.',
       runMobile: 'On a phone this needs a lot of memory. Close other apps and tabs first. If the page reloads or crashes halfway, there isn\'t enough memory – roll on a PC instead.',
       phase: { load: 'Loading the randomizer…', prepare: 'Preparing the game…', run: 'Randomizing Pokémon, trainers and items…', finish: 'Almost done…' },
       errLoader: 'The randomizer could not be loaded. Are you connected to the internet? Reload the page and try again.',
       errRun: function (code) { return 'Randomizing failed (code ' + code + '). Is it really the original ROM?'; },
-      errRunCustom: ' You are using customized settings – maybe a combination doesn\'t work. Try "Restore default".',
+      errRunCustom: ' Maybe a combination of your settings doesn\'t work either – try fewer options.',
       errMemory: 'There is not enough memory for this. Close other tabs or roll on a PC.',
       errOther: 'Randomizing failed: ',
       details: 'Details',
@@ -252,11 +254,33 @@
     };
   })();
 
-  // Einstellungen zum Anklicken (editor.js); manche Extras gibt es nur für die englische ROM
+  // Für welches Spiel gelten die Einstellungen? Das der geladenen ROM – ohne ROM das im Hub gewählte Spiel.
+  // romName = Name der ROM im Randomizer (steht in der .rnqs-Datei), label = Name zum Anzeigen
+  const PT_ROM_NAMES = { D: 'G', E: 'U', F: 'F', S: 'S', I: 'I', J: 'J', K: 'K' };
+  function gameCtx() {
+    const rom = state.rom, l = L();
+    if (rom && rom.kind === 'oras') {
+      return { game: 'oras', english: false, code: '', romName: rom.game === 'as' ? 'Pokemon Alpha Sapphire' : 'Pokemon Omega Ruby', label: l.gameOras[rom.game] || l.gameOras.or };
+    }
+    if (rom) {
+      const code = rom.code || '', region = PT_ROM_NAMES[code.charAt(3)];
+      return { game: 'pt', english: /^CPU[EP]$/.test(code), code: code, romName: region ? 'Pokemon Platinum (' + region + ')' : '', label: l.gameBadge };
+    }
+    const hub = window.PokeHubGame && window.PokeHubGame.get();
+    return hub === 'omega-rot-alpha-saphir' ? { game: 'oras', english: false, code: '', label: l.gameOrasBoth } : { game: 'pt', english: false, code: '', label: l.gameBadge };
+  }
+
+  // Einstellungen zum Anklicken (editor.js): je Spiel andere Optionen und eine eigene Auswahl
   const editor = RandoEditor.create({
     lang: () => lang,
-    ctx: () => ({ english: !!state.rom && /^CPU[EP]$/.test(state.rom.code || '') })
+    ctx: gameCtx,
+    onChange: () => render()
   });
+  // Einstellungen aufklappen und zeigen (wenn noch nichts gewählt ist)
+  function showSettings(scroll) {
+    $('rs').open = true;
+    if (scroll) $('rs').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   // Randomisieren läuft: pwa.js lädt eine neue Version dann noch nicht
   window.PokeHubBusy = () => !!state.phase;
@@ -310,6 +334,7 @@
     state.romVersion++;
     render();
     editor.render();
+    if (editor.isEmpty()) showSettings(false);
   }
 
   function isRandomized(rom) {
@@ -453,7 +478,7 @@
       secs: state.phase ? $('run-time').textContent : '',
       error: !!state.runError,
       result: r ? { url: r.url, fileName: r.fileName, size: mb(r.size), boss: r.boss, starters: r.starters } : null,
-      roll: () => $('run').click(),
+      roll: () => (state.rom && !state.phase && editor.isEmpty() ? showSettings(true) : $('run').click()),
       pick: () => $('rom-input').click(),
     });
   }
@@ -531,7 +556,7 @@
   }
 
   async function run() {
-    if (!state.rom || state.phase) return;
+    if (!state.rom || state.phase || editor.isEmpty()) return;
     if (state.rom.kind === 'oras') { runOras(); return; }
     state.runError = null;
     clearResult();
@@ -546,7 +571,7 @@
         window.cheerpOSAddStringFile(strRom, new Uint8Array(await state.rom.file.arrayBuffer()));
         strRomVersion = state.romVersion;
       }
-      const settings = await editor.file().catch(() => { throw new Error('loader'); });
+      const settings = await editor.file();
       const setPath = '/str/settings' + (++strCount) + '.rnqs';
       window.cheerpOSAddStringFile(setPath, settings);
       await deleteFiles([OUT, OUT + '.log']);
@@ -577,7 +602,7 @@
       const l = L(), msg = e && e.message;
       let text;
       if (msg === 'loader') text = l.errLoader;
-      else if (msg === 'run') text = l.errRun(e.code) + (editor.isCustom() ? l.errRunCustom : '');
+      else if (msg === 'run') text = l.errRun(e.code) + l.errRunCustom;
       else if (e instanceof RangeError || /memory|allocation/i.test(msg || '')) text = l.errMemory;
       else text = l.errOther + msg;
       state.runError = { text: text, details: lines.slice(-12).join('\n') };
@@ -612,7 +637,7 @@
         }
         input = strRom;
       }
-      const settings = await editor.file().catch(() => { throw new Error('loader'); });
+      const settings = await editor.file();
       const setPath = '/str/settings' + (++strCount) + '.rnqs';
       window.cheerpOSAddStringFile(setPath, settings);
       await deleteTree(ORAS_OUT);
@@ -646,7 +671,7 @@
       const l = L(), msg = e && e.message;
       let text;
       if (msg === 'loader') text = l.errLoader;
-      else if (msg === 'run') text = l.errRun(e.code) + (editor.isCustom() ? l.errRunCustom : '');
+      else if (msg === 'run') text = l.errRun(e.code) + l.errRunCustom;
       else if (e instanceof RangeError || /memory|allocation/i.test(msg || '')) text = inMemory ? l.errNoSw : l.errMemory;
       else text = l.errOther + msg;
       state.runError = { text: text, details: lines.slice(-12).join('\n') };
@@ -784,9 +809,9 @@
     $('rom-card').hidden = !rom;
     if (rom) $('rom-card').innerHTML = romCardHtml(rom);
     const warn = rom ? [isRandomized(rom) ? (rom.kind === 'oras' ? l.warnRandomizedOras : l.warnRandomized) : '', rom.stored ? '' : l.warnNotStored].filter(Boolean).join(' ') : '';
-    // Spiel im Titel: das der gewählten ROM
+    // Spiel im Titel: das der gewählten ROM (ohne ROM das im Hub gewählte)
     const badge = document.querySelector('.game-badge');
-    if (badge && rom) badge.textContent = rom.kind === 'oras' ? l.gameOras[rom.game] || l.gameOras.or : l.gameBadge;
+    if (badge) badge.textContent = gameCtx().label;
     $('run-hint').textContent = rom && rom.kind === 'oras' ? l.runHintOras : l.runHint;
     $('rom-warn').hidden = !warn;
     $('rom-warn').textContent = warn;
@@ -799,7 +824,9 @@
     $('step-run').classList.toggle('is-locked', !rom);
     $('step-run').classList.toggle('is-current', !!rom && !r);
     $('step-run').classList.toggle('is-done', !!r && !busy);
-    $('run').disabled = !rom || busy;
+    const empty = editor.isEmpty();                 // noch nichts gewählt: erst Einstellungen wählen
+    $('run').disabled = !rom || busy || empty;
+    $('run-need').hidden = !rom || busy || !empty;
     $('run').classList.toggle('is-busy', busy);
     $('run-label').textContent = busy ? l.runBusy : r ? l.runAgain : l.run;
     $('run-status').hidden = !busy;
@@ -867,9 +894,11 @@
     if (state.phase) { e.preventDefault(); e.returnValue = ''; }
   });
 
+  // Ohne ROM zeigen die Einstellungen das im Hub gewählte Spiel
+  document.addEventListener('hubgamechange', () => { if (!state.rom) { render(); editor.render(); } });
+
   render();
   editor.render();
-  editor.load().catch(() => { /* Hinweis steht im Einstellungs-Kasten */ });
   // Gespeicherte ROM vom letzten Mal
   Store.get('rom').then(rec => {
     if (rec && rec.file && !state.rom) {
@@ -877,6 +906,7 @@
       state.romVersion++;
       render();
       editor.render();
+      if (editor.isEmpty()) showSettings(false);
     }
   }).catch(() => {});
 })();

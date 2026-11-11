@@ -1,7 +1,7 @@
 /*
  * „Ordenkoffer & Herausforderer“ hinter dem Boss-Planer (boss.js): Arena in der Farbe des Gegners, links der
- * Ordenkoffer aus Platin mit den acht Orden und darunter dem Arenaleiter, rechts der Gegner mit „!“, seinem
- * stärksten Pokémon und den Bällen.
+ * Ordenkoffer des Spiels (Platin, ORAS, Trainerpass aus Rot / Blau) mit den acht Orden und darunter dem
+ * Arenaleiter, rechts der Gegner mit „!“, seinem stärksten Pokémon und den Bällen.
  * Klassik: dunkle Halle, Graphit: Kohle und Messing, Papier: helle Arena.
  */
 
@@ -25,6 +25,8 @@
 .bs {
   --k: 2;
   --s: 1;
+  --cw: 256;
+  --ch: 181;
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -71,18 +73,24 @@
   box-shadow: 0 0 40px color-mix(in srgb, var(--tc) 35%, transparent);
 }
 
-/* ── Ordenkoffer aus Platin (boss.js): Bild des Koffers in ganzzahliger Vergrößerung --s, Orden in ihren Mulden ── */
+/* ── Ordenkoffer (boss.js): Bild des Koffers (--cw × --ch Bildpunkte, vergrößert um --s), Orden in ihren Mulden.
+   Platin: DS-Pixelgrafik in ganzzahliger Vergrößerung; ORAS: 3DS-Koffer aus der ROM, glatt skaliert ── */
 .bs-case {
   position: absolute;
-  width: calc(256px * var(--s));
+  width: calc(var(--cw) * var(--s) * 1px);
   pointer-events: auto;
 }
 .bs-ds {
   position: relative;
-  height: calc(181px * var(--s));
+  height: calc(var(--ch) * var(--s) * 1px);
   background: url(sprites/case.png) 0 0 / 100% 100% no-repeat;
   image-rendering: pixelated;
 }
+.bs[data-set="oras"] .bs-ds { background-image: url(sprites/case-oras.png); image-rendering: auto; }
+.bs[data-set="oras"] .bs-gem { image-rendering: auto; }
+/* Rot / Blau: Orden-Teil des Trainerpasses; ohne Orden bleibt das Gesicht des Arenaleiters im Feld */
+.bs[data-set="rb"] .bs-ds { background-image: url(sprites/case-rb.png); }
+.bs[data-set="rb"] .bs-badge.is-empty .bs-gem { visibility: visible; opacity: 1; }
 /* Lage und Größe in Bildpunkten des DS (--x, --y, --w, --h) */
 .bs-badge {
   position: absolute;
@@ -127,6 +135,24 @@
   8.33% { translate: -75% 0; }
   11.1%, 100% { translate: -100% 0; }
 }
+/* ORAS: Glanzstreifen läuft von links nach rechts über den Orden, ausgeschnitten in seiner Form (--m = Bild des Ordens) */
+.bs-shine {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.8) 50%, transparent 58%) 100% 0 / 300% 100% no-repeat;
+  -webkit-mask: var(--m) 0 0 / 100% 100% no-repeat;
+  mask: var(--m) 0 0 / 100% 100% no-repeat;
+}
+.bs-badge.is-twinkle .bs-shine,
+.bs-badge.is-polish .bs-shine,
+.bs-badge.is-on:not(.is-empty) .bs-shine { visibility: visible; }
+.bs-badge.is-twinkle .bs-shine { animation: bs-shine 0.56s ease-in-out both; }
+.bs-badge.is-polish .bs-shine { animation: bs-shine 0.6s linear infinite; }
+.bs-badge.is-on:not(.is-polish):not(.is-twinkle) .bs-shine { animation: bs-shine-pause 2.4s ease-in-out infinite; }
+@keyframes bs-shine { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@keyframes bs-shine-pause { 0% { background-position: 100% 0; } 30%, 100% { background-position: 0 0; } }
 
 /* Arenaleiter darunter (Maus über einem Orden, sonst gewählter oder nächster Kampf) */
 .bs-info {
@@ -231,5 +257,5 @@
 .bs.is-bare .bs-case, .bs.is-bare .bs-foe { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .bs-light, .bs-ace, .bs-spark img, .bs-foe.is-in .bs-trainer, .bs-foe.is-in .bs-bang, .bs-foe.is-in .bs-plate { animation: none; }
+  .bs-light, .bs-ace, .bs-spark img, .bs-shine, .bs-foe.is-in .bs-trainer, .bs-foe.is-in .bs-bang, .bs-foe.is-in .bs-plate { animation: none; }
 }

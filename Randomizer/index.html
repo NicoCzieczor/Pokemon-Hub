@@ -45,7 +45,7 @@
 
 <header class="page-head">
   <h1><span data-i18n="title1">Rando</span><span class="accent" data-i18n="title2">mizer</span> <span class="game-badge" data-i18n="gameBadge">Platin</span></h1>
-  <p data-i18n="subtitle">Verloren? Würfel dir ein neues zufälliges Platin oder Omega Rubin / Alpha Saphir – direkt hier im Browser. Wie gewürfelt wird, kannst du vorher einstellen.</p>
+  <p data-i18n="subtitle">Verloren? Würfel dir ein neues zufälliges Platin oder Omega Rubin / Alpha Saphir – direkt hier im Browser. Was gewürfelt wird, wählst du vorher selbst aus.</p>
 </header>
 
 <input type="file" id="rom-input" accept=".nds,.3ds,.cxi,.cci" hidden>
@@ -91,17 +91,18 @@
           <span class="rs-open" data-i18n="setOpen">Anpassen</span>
         </summary>
         <div class="rs-body">
-          <div class="rs-tabs" id="rs-tabs" role="tablist"></div>
-          <div class="rs-panel" id="rs-panel" role="tabpanel"></div>
+          <!-- Datei laden/speichern steht oben: am Anfang ist nichts gewählt, eine Datei zu laden ist einer der zwei Wege -->
           <div class="rs-foot">
-            <p class="rs-note" id="rs-note"></p>
             <div class="btn-row">
-              <button type="button" class="small-btn" id="rs-reset"></button>
               <button type="button" class="small-btn" id="rs-load"></button>
               <button type="button" class="small-btn" id="rs-save"></button>
+              <button type="button" class="small-btn" id="rs-reset"></button>
             </div>
             <p class="rs-msg" id="rs-msg" hidden></p>
           </div>
+          <div class="rs-tabs" id="rs-tabs" role="tablist"></div>
+          <div class="rs-panel" id="rs-panel" role="tabpanel"></div>
+          <p class="rs-note" id="rs-note"></p>
         </div>
       </details>
       <button type="button" class="big-btn" id="run" disabled>
@@ -113,6 +114,7 @@
         <p class="run-text"><span id="run-text"></span> <span class="run-time" id="run-time"></span></p>
       </div>
       <p class="step-hint muted" id="run-hint" data-i18n="runHint">Beim ersten Mal wird der Randomizer geladen (braucht Internet, ca. 30 Sekunden). Danach dauert es nur ein paar Sekunden.</p>
+      <p class="msg msg-warn" id="run-need" data-i18n="runNeed" hidden>Noch ist nichts gewählt. Öffne oben „Einstellungen“ und wähle aus, was gewürfelt werden soll – oder lade dort eine Einstellungsdatei (.rnqs).</p>
       <p class="msg msg-warn" id="run-mobile" data-i18n="runMobile" hidden>Am Handy reicht der Speicher dafür oft nicht – am besten am PC würfeln.</p>
       <p class="msg msg-error" id="run-error" hidden></p>
     </div>
@@ -145,6 +147,7 @@
 <script src="options.js"></script>
 <script src="editor.js"></script>
 <script src="../scene.js"></script>
+<script src="slot-sound.js"></script>
 <script src="slots.js"></script>
 <script src="app.js"></script>
 </body>

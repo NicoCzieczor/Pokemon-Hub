@@ -743,7 +743,7 @@
     Karte: ['Karte Einall (Schwarz 2 / Weiß 2)', 'Unova Map (Black 2 / White 2)']
   };
   var PAGE_TITLES_FRLG = {
-    Karte: ['Karte Kanto & Sevii-Eilande (Feuerrot / Blattgrün)', 'Kanto & Sevii Islands Map (FireRed / LeafGreen)']
+    Karte: ['Karte Kanto & Sieben Inseln (Feuerrot / Blattgrün)', 'Kanto & Sevii Islands Map (FireRed / LeafGreen)']
   };
   var PAGE_TITLES_XY = {
     Karte: ['Karte Kalos (X / Y)', 'Kalos Map (X / Y)']

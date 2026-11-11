@@ -1,19 +1,29 @@
 Pokémon Feuerrot / Blattgrün – Kartenquellen
-=================================================
+=============================================
 
 Die Kartenbilder wurden lokal aus der vom Benutzer bereitgestellten deutschen
-Pokémon-Feuerrot-ROM (Game Code BPRD) gerendert. Die ROM selbst ist nicht Teil
-dieses Projekts und wurde nicht in den Projektordner kopiert.
+Pokémon-Feuerrot-ROM (Game Code BPRD) gerendert (Karte/tools/render-frlg.js).
+Die ROM selbst ist nicht Teil dieses Projekts und wurde nicht in den
+Projektordner kopiert.
 
-Der Renderer sucht die Kartenstrukturen anhand ihrer GBA-Datenformate und liest
-MapHeader, MapLayout, Tilesets, Metatiles, Paletten und Kartenverbindungen aus.
-425 Karten wurden erkannt; 61 zusammenhängende Außenkarten aus Kanto und den
-Sevii-Eilanden bilden die sichtbare Welt. Im finalen Render fehlen keine Tiles
-und keine Metatiles.
+Oberwelt: die 61 Außenkarten von Kanto und den Sieben Inseln, über ihre
+Kartenverbindungen zusammengesetzt. Zwischen den Karten stehen – wie im Spiel
+am Kartenrand – bis zu 8 Kacheln weit die Randblöcke der jeweils nächsten Karte
+(Bäume, Felsen, Wasser). Innenkarten: jede Höhle, jedes Gebäude und jede Etage
+mit Items, Trainern oder wilden Pokémon einzeln, gepackt in Atlanten (in/).
+Volle Auflösung und Innenkarten sind verlustfreies WebP (Pixelgrafik).
 
-Blattgrün verwendet für diese Oberwelt denselben Feuerrot-Render. Die wilden
-Pokémon werden dennoch editionsspezifisch aus der PokeAPI geladen. Eine
-Blattgrün-ROM kann später separat gerendert und verglichen werden.
+Inhalte (Orte, Items, versteckte Items, Trainer mit Team, wilde Pokémon je
+Edition, feste Begegnungen, Geschenke, Ein- und Ausgänge) stammen aus dem
+Spielcode (github.com/pret/pokefirered, Karte/tools/build-frlg.js), die
+deutschen Namen von Orten, Items, Attacken, Trainern und Trainerklassen aus
+der ROM.
+
+Neu bauen:
+  node Karte/tools/render-frlg.js <feuerrot.gba> <render> --decomp=<pokefirered> --no-interiors
+  node Karte/tools/build-frlg.js <pokefirered> <render>/render.json <feuerrot.gba>
+  node Karte/tools/render-frlg.js <feuerrot.gba> <render> --decomp=<pokefirered> --interiors-only --data=Karte/frlg.json
+  python Karte/tools/make-tiles.py <render> Karte/tiles-frlg --interiors <render> --lossless
 
 Pokémon, die Karten- und Grafikdaten sind Eigentum von GAME FREAK, Nintendo,
 Creatures Inc. und The Pokémon Company. Diese Dateien dienen nur der privaten,

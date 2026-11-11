@@ -150,6 +150,7 @@ body.is-unova-b2w2 .map-note a { color: rgb(var(--t-acc2)); }
    Der echte Weiß-Render ist unbeschriftet und erhält die übersetzten HTML-Labels. */
 body.is-unova[data-map-edition="black"] .kanto-label-wrap { display: none; }
 
+/* FR/LG (läuft über app.js wie Platin): Grund zwischen den Inselgruppen dunkel, Pixelgrafik ohne Glättung */
 body.is-frlg .map-card {
   background: linear-gradient(180deg, rgba(226, 74, 46, 0.09), transparent 190px), var(--color-surface);
 }
@@ -199,7 +200,10 @@ body.is-rs .map-note a { color: rgb(var(--t-acc2)); }
 body.is-xy .map-card {
   background: linear-gradient(150deg, rgba(65, 134, 255, 0.09), rgba(229, 54, 88, 0.055)), rgba(10, 18, 28, 0.92);
 }
-body.is-xy #map { background: #0d102b; }
+/* Kalos (render-xy.js): offenes Meer als Wassermuster der Azurbucht, Grundfarbe = sein Mittelwert */
+body.is-xy { --c-sea: #3070b5; }
+body.is-xy #map { background: #3070b5; }
+body.is-xy .sea-tile { background-image: url('tiles-kalos-xy/sea.png'); }
 body.is-xy .map-note a { color: rgb(var(--t-acc2)); }
 body.is-xy .leaflet-image-layer.kanto-sheet { image-rendering: auto; }
 
