@@ -10,7 +10,7 @@
  * Wilde Pokémon: wild[n] = Tabelle n aus pl_enc_data.narc (Format siehe rando.js readWild); welche Tabellen zu
  * welchem Ort gehören, steht in Karte/encounter-areas.js (PT_ENCOUNTER_AREAS, erzeugt von build-platin.js).
  * Omega Rubin / Alpha Saphir: wild[n] = Zone n (Format oras-rom.js wildTable), Orte in ORAS_ENCOUNTER_AREAS.
- * Die ROM kann eine .3ds/.cxi-Datei sein oder der Mod-Ordner von Citra (LayeredFS, Ausgabe des Randomizers).
+ * Die ROM ist eine .3ds/.cxi-Datei – etwa das gewürfelte Spiel, das der Randomizer speichert.
  */
 (function (root) {
   'use strict';
@@ -21,13 +21,11 @@
     de: { active: 'Randomizer:', remove: 'Randomizer-Stand entfernen – wieder das Original', load: 'Randomizer-ROM laden',
       reading: 'Lese ROM …', noWild: 'Dieser Stand ist älter und kennt die wilden Pokémon noch nicht – lade die ROM einmal neu.',
       hint: 'Für Randomizer-Runs: Lade deine randomisierte ROM – Platin (.nds) oder Omega Rubin / Alpha Saphir (.3ds/.cxi) – Karte, Boss-Planer und Run-Dashboard zeigen dann dein gewürfeltes Spiel. Die Datei bleibt auf deinem Gerät.',
-      folder: 'Mod-Ordner', folderHint: 'Omega Rubin / Alpha Saphir: den Mod-Ordner aus Citra wählen (darin liegt „romfs“) – so kommt der Randomizer ihn heraus.',
-      error: 'Das ist keine passende ROM: Platin (.nds) oder Omega Rubin / Alpha Saphir (.3ds/.cxi, entschlüsselt, oder der Mod-Ordner).', full: 'Der Speicher ist voll – der Stand gilt nur, bis die Seite geschlossen wird.' },
+      error: 'Das ist keine passende ROM: Platin (.nds) oder Omega Rubin / Alpha Saphir (.3ds/.cxi, entschlüsselt).', full: 'Der Speicher ist voll – der Stand gilt nur, bis die Seite geschlossen wird.' },
     en: { active: 'Randomizer:', remove: 'Remove the randomizer data – back to the original', load: 'Load randomizer ROM',
       reading: 'Reading ROM …', noWild: 'This data is older and does not know the wild Pokémon yet – load the ROM again once.',
       hint: 'For randomizer runs: load your randomized ROM – Platinum (.nds) or Omega Ruby / Alpha Sapphire (.3ds/.cxi) – the map, boss planner and run dashboard then show your randomized game. The file stays on your device.',
-      folder: 'Mod folder', folderHint: 'Omega Ruby / Alpha Sapphire: choose the mod folder from Citra (it contains “romfs”) – that is what the randomizer puts out.',
-      error: 'This is not a matching ROM: Platinum (.nds) or Omega Ruby / Alpha Sapphire (.3ds/.cxi, decrypted, or the mod folder).', full: 'Storage is full – the data only lasts until the page is closed.' }
+      error: 'This is not a matching ROM: Platinum (.nds) or Omega Ruby / Alpha Sapphire (.3ds/.cxi, decrypted).', full: 'Storage is full – the data only lasts until the page is closed.' }
   };
   var memory = null;   // falls localStorage voll ist: nur für diese Seite
   var lang = function () { try { return localStorage.getItem('hub-lang') === 'en' ? 'en' : 'de'; } catch (e) { return 'de'; } };
@@ -237,13 +235,6 @@
     input.type = 'file';
     input.accept = '.nds,.3ds,.cxi,.cci';
     input.hidden = true;
-    // Mod-Ordner von Citra (Omega Rubin / Alpha Saphir), wo der Browser Ordner wählen kann
-    var dir = document.createElement('input');
-    dir.type = 'file';
-    dir.hidden = true;
-    var canDir = 'webkitdirectory' in dir;
-    if (canDir) dir.webkitdirectory = true;
-    var orasGame = function () { return !!(root.PokeHubGame && root.PokeHubGame.get() === 'omega-rot-alpha-saphir'); };
     var report = onError || function (msg) { root.alert(msg); };
     function draw() {
       var t = text(), s = get();
@@ -261,18 +252,8 @@
         b.title = t.hint;
         b.addEventListener('click', function () { input.click(); });
         el.appendChild(b);
-        if (canDir && orasGame()) {
-          var d = document.createElement('button');
-          d.type = 'button';
-          d.className = 'hub-rando-load hub-rando-dir';
-          d.textContent = t.folder;
-          d.title = t.folderHint;
-          d.addEventListener('click', function () { dir.click(); });
-          el.appendChild(d);
-        }
       }
       el.appendChild(input);
-      el.appendChild(dir);
     }
     function pick(files) {
       if (!files || !files.length) return;
@@ -284,7 +265,6 @@
       });
     }
     input.addEventListener('change', function () { var f = Array.prototype.slice.call(input.files); input.value = ''; pick(f); });
-    dir.addEventListener('change', function () { var f = Array.prototype.slice.call(dir.files); dir.value = ''; pick(f); });
     document.addEventListener('hubrandochange', draw);
     document.addEventListener('hubgamechange', draw);
     document.addEventListener('langchange', draw);

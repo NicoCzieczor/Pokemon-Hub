@@ -4,13 +4,25 @@
  * Spielkamera (parallel, geschert: der Boden bleibt unverzerrt, 16 Pixel je Kachel, Höheres rutscht nach oben).
  *
  * Hoenn ist im Spiel keine durchgehende Welt, sondern viele Kartenmatrizen (a/0/4/0), die an ihren Rändern über
- * Übergänge (Warps 0x5xx) und durch Wälder, Tunnel, Tore verbunden sind. Ihre Lage hier: gewichtete kleinste Quadrate
- * über alle Warp-Paare (direkt 1, über genau ein Innengebiet ¼) – die kleinen Widersprüche des Spiels verteilen sich so
- * auf alle Kanten. Je Matrix gehören nur die Zellen ihrem Ort, die im Zonenraster eine Zone tragen; der Rest ist
+ * Übergänge (Warps 0x5xx) und durch Wälder, Tunnel, Tore verbunden sind – und sie schließt sich nicht (über Land liegt
+ * Seegrasulb 140 Kacheln nördlicher als über die Seerouten). Ihre Lage hier: Übergänge an Land und die vier Torhäuser
+ * von Malvenfroh stimmen genau; die Widersprüche nimmt das offene Meer auf (in Laufrichtung: dort liegt mehr Meer
+ * dazwischen), dazu eine Lücke zwischen Route 118 und 119 (fill-oras.py führt den Weg hindurch) und ein Versatz an der
+ * Ecke Route 108/109 (Matrix 5 ist dort geteilt); Innengebiete halten nur, was sonst nirgends hängt (siehe unten).
+ * Je Matrix gehören nur die Zellen ihrem Ort, die im Zonenraster eine Zone tragen; der Rest ist
  * Kulisse und zählt weniger, wo sich Matrizen überlagern. Kulissen für die Spielkamera (Fernsicht, Himmel, Rauch,
  * Nebel …) fallen weg, Wasser ist deckend. Sonderfälle: Malvenfroh ist überdacht (Dach + Innenhof obenauf),
- * Xeneroville passt nicht in den Krater (Route 126 zeigt ihn von außen, wie im Spiel), von der Liga nur das Plateau.
+ * Xeneroville passt nicht in den Krater (Route 126 zeigt ihn von außen, wie im Spiel). Die Liga sitzt als Plateau auf
+ * dem Berg von Prachtpolis City (durch ihn führt die Siegesstraße); ihr dritter Block (einzelne Absätze) entfällt.
  * Große, rein schwarz gefärbte Flächen (Rückseiten, Abdeckungen) fallen weg; Schattenkarten liegen über ihr Alpha.
+ *
+ * Genau ein Gebiet je Stelle: Jede Matrix zeigt auch ihre Umgebung als Kulisse, und nie ganz deckungsgleich mit dem
+ * Nachbarn – übereinander gezeichnet durchdringen sich beide zu Splittern. Je Weltkachel gibt es deshalb einen Eigentümer
+ * (eigene Fläche: am tiefsten im eigenen Gebiet, Städte vor Routen, Land vor Meer; Kulisse: das nächstgelegene Gebiet),
+ * entschieden je Bildpunkt; kleine aufragende Dinge (Bäume, Schilder, Felsen) ganz oder gar nicht nach ihrer Mitte
+ * (meshParts). Route 110 gibt es doppelt (Matrix 21 Radweg, 22 zu Fuß, deckungsgleich): nur 22 wird gezeichnet.
+ * Aufbauten, die nicht im Blockmodell stecken (Teil 3 des Blocks → a/0/2/3), werden mitgezeichnet. Laub und Kronen
+ * (gemischt gezeichnet) verdecken einander und den Boden des Nachbarblocks nach ihrer Tiefe.
  *
  * Das offene Meer (chip_sea…): Das Spiel färbt es über die Vertexfarben – hell auf der befahrbaren Route, dunkel zur
  * Ferne. Deckend gezeichnet stünden dunkle Kästen und Zacken im Kartenmeer. Hier wird die Helligkeit zur Deckkraft:
@@ -18,7 +30,9 @@
  * sea_<Zeile>_<Spalte>.png (Rot = Meer einer Route, Grün = Kulissenmeer), mit der fill-oras.py die Deckkraft glättet.
  * Meeresboden knapp unter dem Wasserspiegel verdeckt das Wasser immer (auch wenn es dort nur als Kulisse zählt).
  * Orte ohne Fläche und ohne direkte Tür: Eingang über bis zu drei Innengebiete (Schlotberg, Safari-Zone) oder von Hand
- * (Xeneroville im Krater, Tauchstellen). Zum Prüfen: --only=Zeile:Spalte,… und --probe=x,y;… (siehe unten).
+ * (Xeneroville im Krater, Tauchstellen). Zum Prüfen: --only=Zeile:Spalte,… und --probe=x,y;… (siehe unten), dazu
+ * --mats=21,22 (nur diese Matrizen), --place=Matrix:x,z,y (weitere Matrix obenauf), --cull=Matrix (Rückseiten weglassen),
+ * --eqs (Gleichungen der Lage mit Rest), --noprops (ohne Aufbauten), --solo (jede Matrix ganz, samt Kulisse – mit --mats).
  *
  * Formate (nach Ohana3DS / SPICA / pk3DS): GARC, LZ11, BCH (Relokation, Modelle, Materialien, Texturen, PICA200-
  * Befehle für Vertex- und Indexpuffer), Texturen in 8×8-Kacheln (Z-Reihenfolge, ETC1/ETC1A4 und die übrigen PICA-
@@ -260,7 +274,7 @@ function meshes(B, M) {
 
 /* ── Rasterizer: bis zu drei Texturen (Basis, Maske + zweite, Schattentextur), Vorrang, Z-Puffer ── */
 function makeTarget(w, h) { return { w, h, px: new Float32Array(w * h * 4), z: new Float32Array(w * h).fill(-Infinity), pr: new Int8Array(w * h).fill(-1),
-    wz: new Float32Array(w * h).fill(-Infinity), sea: new Uint8Array(w * h) }; }   // wz: höchster Wasserspiegel, sea: Pixel zeigt offenes Meer
+    wz: new Float32Array(w * h).fill(-Infinity), sea: new Uint8Array(w * h), zb: new Float32Array(w * h).fill(-Infinity), zbp: new Int8Array(w * h).fill(-1), bed: new Uint8Array(w * h) }; }   // zb/zbp: Tiefe und Rang von deckendem Gemischtem   // wz: höchster Wasserspiegel, sea: Pixel zeigt offenes Meer
 const wrapC = (i, n, mode) => mode === 2 ? ((i % n) + n) % n : mode === 3 ? (m => m < n ? m : 2 * n - 1 - m)(((i % (2 * n)) + 2 * n) % (2 * n)) : i < 0 ? 0 : i >= n ? n - 1 : i;
 function sample(T, u, v, lod, ws, wt, out) {
   const L = T.lv[Math.max(0, Math.min(T.lv.length - 1, lod | 0))];
@@ -309,6 +323,7 @@ function drawTri(tg, P, L, C, opt) {
       }
       if (prio < pr[i]) { if (opt.pix || !(opt.seaFade && opt.opaque && !tg.sea[i] && depth > z[i] + 0.5 && depth < z[i] + 20)) continue; }
       else if (prio === pr[i] && depth < z[i] - opt.zBias) continue;
+      if (opt.pix && !opt.blend && prio <= tg.zbp[i] && depth < tg.zb[i] - 0.5) continue;
       const vr = w0 * C[0][0] + w1 * C[1][0] + w2 * C[2][0], vb = w0 * C[0][2] + w1 * C[1][2] + w2 * C[2][2];
       // Irrwald (X/Y Route 20): Boden und Bäume laufen über die Vertexfarbe ins Schwarze aus – dort nichts zeichnen
       if (opt.darkCut && (vr + vb) * 0.5 < opt.darkCut) continue;
@@ -356,7 +371,10 @@ function drawTri(tg, P, L, C, opt) {
             else f *= k;
           }
           if (f <= 0.004) f = 0;   // Farbe bleibt die des Wassers: fill-oras.py hebt die Deckkraft beim Glätten wieder an
-          px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = f; z[i] = depth; pr[i] = prio; tg.sea[i] = prio === 0 ? 1 : 2;   // 1 = Kulissenmeer, 2 = eigenes Meer
+          // Liga: ihr (durchsichtiges) Meer liegt unter dem ganzen Plateau – es darf dem Gipfel von Prachtpolis City, der
+          // dort als Kulisse auffüllt, den Bildpunkt nicht nehmen
+          if (f === 0 && opt.seaYield) { if (pr[i] < 0 && !tg.sea[i]) tg.sea[i] = 2; continue; }
+          px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = f; z[i] = depth; pr[i] = prio; tg.sea[i] = prio === 0 ? 1 : 2; tg.bed[i] = 0;   // 1 = Kulissenmeer, 2 = eigenes Meer
           continue;
         }
         if (prio === 0 && S) { r = sr; g = sg; bl = sb; }
@@ -364,7 +382,7 @@ function drawTri(tg, P, L, C, opt) {
           const k = Math.max(0, va), under = pr[i] >= 0;
           r = (under ? px[o] : sr) * (1 - k) + r * k; g = (under ? px[o + 1] : sg) * (1 - k) + g * k; bl = (under ? px[o + 2] : sb) * (1 - k) + bl * k;
         }
-        px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = 1; z[i] = depth; pr[i] = prio; tg.sea[i] = 0;
+        px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = 1; z[i] = depth; pr[i] = prio; tg.sea[i] = 0; tg.bed[i] = 0;
         continue;
       }
       if (opt.alphaTest != null && a < opt.alphaTest) continue;
@@ -373,6 +391,11 @@ function drawTri(tg, P, L, C, opt) {
         a = Math.min(1, a);
         // Schatten nur auf Gezeichnetem – über nichts bliebe ein dunkler, halb durchsichtiger Fleck
         if (opt.shadow && px[o + 3] < 0.5) continue;
+        // Hoenn: Gemischtes (Laub, Kronen der Baumhäuser, Schatten) schreibt keine Tiefe – was später gezeichnet wurde, lag
+        // obenauf, auch wenn es tiefer steht (das Laub der Riesenbäume von Baumhausen schnitt die Kronen der Baumhäuser
+        // gerade ab). Deckendes Gemischtes merkt sich deshalb seine Tiefe (zb); was dahinter liegt, entfällt dort – auch
+        // der Boden des Nachbarblocks, der später gezeichnet wird (er schnitt überhängende Kronen an der Blockgrenze ab)
+        if (opt.pix) { if (prio <= tg.zbp[i] && depth < tg.zb[i] - 0.5) continue; if (a >= 0.8 && !opt.shadow && !opt.mul) { tg.zb[i] = depth; tg.zbp[i] = prio; } }
         // X/Y, über nichts: halb Durchsichtiges (Nebel, Bodenplatten, dunkle Uferränder), Glitzern und Wellenlinien ohne ihr Wasser
         // weglassen, Deckendes (Laubränder) in seiner eigenen Farbe – gemischt mit dem leeren Schwarz würde es dunkel
         // X/Y-Meer ohne Grund darunter (der dunkle Meeresgrund wird nicht gezeichnet): mit seiner eigenen Deckkraft
@@ -397,7 +420,7 @@ function drawTri(tg, P, L, C, opt) {
         if (opt.mul) { px[o] *= 1 - a + a * r; px[o + 1] *= 1 - a + a * g; px[o + 2] *= 1 - a + a * bl; continue; }   // Schatten ohne Alpha
         px[o] = px[o] * (1 - a) + r * a; px[o + 1] = px[o + 1] * (1 - a) + g * a; px[o + 2] = px[o + 2] * (1 - a) + bl * a;
         px[o + 3] = Math.max(px[o + 3], a);
-      } else { px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = 1; z[i] = depth; pr[i] = prio; tg.sea[i] = 0; }
+      } else { px[o] = r; px[o + 1] = g; px[o + 2] = bl; px[o + 3] = 1; z[i] = depth; pr[i] = prio; tg.sea[i] = 0; tg.bed[i] = opt.seabed ? 1 : 0; }
     }
   }
 }
@@ -443,10 +466,12 @@ function png(w, h, rgba) {
 // komore (Komorebi): Lichtflecken unter Bäumen – von oben dunkle, zerrissene Flecken (Route 104 am Blütenburgwald)
 const SKIP = /enkei|sora|kemuri|fog|fargake|farwood|farhouse|chip_wind|kaze|hikari|lightglow|light_eff|lightef|hi_light|hilight|skyref|r108_white|r112_mountain|t104gym_a02|forest_shadow|komore/i;
 const MASK = /_al\d*$|_al0|alpha|tunagi|tsunagi/i;           // „tsunagi“ (Übergang): Basis / Maske / zweite Textur
-const WATER = /water|river|mizu|pool|chip_sea|enkei_sea|umi_/i;
+const WATER = /water|river|mizu|pool|chip_sea|enkei_sea|(?:^|_)umi_/i;   // „umi_“ nur als Wort: kanazumi_shadow (Schatten aus Metarost/Kanazumi) ist kein Meer
 const SEA_MAT = /chip_sea/i;
+const SEABED = /sand|suna|sea_ground|gake_sea/i;
 // Hoenn, nur als Kulisse weglassen: die kahle Hochfläche über Route 114 (ein sandfarbenes Rechteck neben der Route)
-const SCENE_SKIP = /^r114_gake_top$/;   // das offene Meer (chip_sea_b, r124_chip_sea_b1, f_chip_sea_b …)
+// und Boden und Geländer hinter dem Liga-Gebäude (saiyu_yk, saiyu_tesuri01: graue Platten und zwei Balken nördlich des Dachs)
+const SCENE_SKIP = /^r114_gake_top$|^saiyu_yk$|^saiyu_tesuri01$/;   // das offene Meer (chip_sea_b, r124_chip_sea_b1, f_chip_sea_b …)
 function matLayers(B, mat, uvs) {
   const unit = (k, set) => {
     const prm = mat.texReg.get([0x83, 0x93, 0x9b][k]) || 0x2220, c = mat.params + 0xc + k * 0x18;
@@ -463,7 +488,8 @@ function matLayers(B, mat, uvs) {
 // Routen 132–134 (12) – die fast weiße Grundfläche unter den Strömungen (die Schlieren liegen dann über dem Meer)
 // Moosbach (10) – lambert1: dunkelblaue, halb durchsichtige Platten über dem Meer nördlich der Stadt
 const CULL_IN = {};
-const SKIP_IN = { 4: /^chip_steps01a1$/, 12: /^r_Comb2$/, 10: /^lambert1$/ };
+// Baumhausen (15) – kanazumi_shadow: eine Schattenplatte, die über der Krone der Arena schwebt (dunkles Rechteck)
+const SKIP_IN = { 4: /^chip_steps01a1$/, 12: /^r_Comb2$/, 10: /^lambert1$/, 15: /^kanazumi_shadow$/ };
 // Zusammenhängende Teile eines Netzes (Bäume, Häuser, Felsen, Schilder …): Eckpunkte an gleicher Stelle gelten als einer.
 // Je Dreieck die Nummer seines Teils; je Teil die Mitte seiner Grundfläche und ob er klein und aufragend ist (höchstens
 // 8 × 8 Kacheln, mindestens eine halbe Kachel hoch) – solche Teile zeichnet Hoenn ganz oder gar nicht (Rang nach ihrer
@@ -543,7 +569,7 @@ function renderModel(tg, B, model, tex, view, o = {}) {
     const partPrio = parts ? new Int8Array(parts.whole.length).fill(-9) : null;
     let triNo = -1;
     const P = [[], [], []], C = [[], [], []], Y = [0, 0, 0], Wd = [[0, 0], [0, 0], [0, 0]], L = layers.map(l => ({ ...l, uv: [[0, 0], [0, 0], [0, 0]] }));
-    const opt = { pix: !!o.prioPix, overNothing: !!o.overNothing, glint: /light|_sea\d|wave/i.test(m.mat.name), blend, mul, shadow: blend && /shadow|kage/i.test(m.mat.name + ' ' + m.mat.tex.join(' ')), opaque: water, sea: view.sea, seaFade: !!o.seaFade, seaMat: SEA_MAT.test(m.mat.name), seaXY: IS_XY && /^bm_w_sea\d/.test(m.mat.name), darkCut: o.darkCut || 0, zBias: blend ? 3 : 0, alphaTest: blend || water ? null : (layers[0] && layers[0].tex && layers[0].tex.alpha ? 0.5 : null), prio: 0 };
+    const opt = { pix: !!o.prioPix, overNothing: !!o.overNothing, glint: /light|_sea\d|wave/i.test(m.mat.name), blend, mul, shadow: blend && /shadow|kage/i.test(m.mat.name + ' ' + m.mat.tex.join(' ')), opaque: water, sea: view.sea, seaFade: !!o.seaFade, seaYield: !!o.seaYield, seaMat: SEA_MAT.test(m.mat.name), seaXY: IS_XY && /^bm_w_sea\d/.test(m.mat.name), darkCut: o.darkCut || 0, zBias: blend ? 3 : 0, alphaTest: blend || water ? null : (layers[0] && layers[0].tex && layers[0].tex.alpha ? 0.5 : null), prio: 0 };
     for (const f of m.faces) for (let i = 0; i + 2 < f.idx.length; i += 3) {
       triNo++;
       let sx = 0, sz = 0, pmin = 99;
@@ -565,6 +591,9 @@ function renderModel(tg, B, model, tex, view, o = {}) {
       // als Kulisse weglassen: sceneSkip-Materialien; Hoenn: Meeresboden (ganz unter dem Meeresspiegel) – ohne das Wasser
       // darüber stünde er im Meer
       opt.cut0 = !!(o.sceneSkip && o.sceneSkip.test(m.mat.name)) || (!!o.seaFade && !water && Y[0] <= SEA_Y && Y[1] <= SEA_Y && Y[2] <= SEA_Y);
+      // Hoenn: Meeresboden (Sand unter dem Meeresspiegel) der eigenen Fläche – wo am Ende kein Wasser über ihm liegt (am
+      // Rand des Modells, wo das Meer des Nachbarn nur als Kulisse zählt), wird er nach dem Zeichnen wieder entfernt (bed)
+      opt.seabed = !!o.prioPix && !water && Y[0] <= SEA_Y && Y[1] <= SEA_Y && Y[2] <= SEA_Y && SEABED.test(m.mat.name + ' ' + m.mat.tex.join(' '));
       opt.prioPix = null;
       const part = parts ? parts.of[triNo] : -1;
       if (part >= 0 && parts.whole[part]) {
@@ -681,13 +710,30 @@ if (MAIN) (async () => {
   console.log('ROM gelesen', ((Date.now() - t0) / 1000).toFixed(0), 's –', GR.length, 'Kartenblöcke,', MM.length, 'Matrizen,', NZ, 'Zonen');
 
   // Matrizen: Blocknummern (u16 je Zelle), dahinter das Zonenraster (4 × 4 je Block, je 10 × 10 Kacheln)
-  const matrix = mi => {
-    const m = pack(MM[mi])[0], w = u16(m, 4), h = u16(m, 6), cells = [], W = w * 4, H = h * 4, g = [], base = 8 + w * h * 2;
-    for (let k = 0; k < w * h; k++) { const v = u16(m, 8 + k * 2); if (v !== 0xffff) cells.push({ x: k % w, y: Math.floor(k / w), gr: v }); }
-    for (let y = 0; y < H; y++) { const r = []; for (let x = 0; x < W; x++) r.push(u16(m, base + (y * W + x) * 2)); g.push(r); }
+  // Geteilte Matrizen. Die Runde Blütenburg – Route 104 – 105 – 106 – Faustauhaven – 107 – 108 – 109 – Graphitport – 110 –
+  // 103 ist über das Meer 16 Kacheln breiter und 28 höher als über Land. Matrix 5 (Routen 107–109) wird deshalb an der
+  // Ecke geteilt, an der Route 108 von Westen in die Nord-Süd-Route 109 mündet: Blockspalten 0–6 (107, 108) hängen genau
+  // an Faustauhaven, Spalten ab 7 (109, Pseudo-Matrix 105 im selben Raster) genau am Strand von Graphitport. Route 108
+  // trifft Route 109 dadurch 28 Kacheln weiter oben und überlappt sie um 16 – mitten im offenen Meer, wo es nicht auffällt
+  // (vorher lag der Versatz am Hafen von Faustauhaven, samt einem zweiten Stück Insel südlich der Stadt).
+  const SPLIT = IS_XY ? {} : { 105: { of: 5, x0: 7 } };
+  const splitCut = mi => SPLIT[mi] ? SPLIT[mi].x0 : (Object.values(SPLIT).find(q => q.of === mi) || {}).x0;
+  const matrix = (mi, whole) => {
+    const cut = whole ? null : splitCut(mi), keep = x => cut == null || (SPLIT[mi] ? x >= cut : x < cut);
+    const m = pack(MM[SPLIT[mi] ? SPLIT[mi].of : mi])[0], w = u16(m, 4), h = u16(m, 6), cells = [], W = w * 4, H = h * 4, g = [], base = 8 + w * h * 2;
+    for (let k = 0; k < w * h; k++) { const v = u16(m, 8 + k * 2); if (v !== 0xffff && keep(k % w)) cells.push({ x: k % w, y: Math.floor(k / w), gr: v }); }
+    for (let y = 0; y < H; y++) { const r = []; for (let x = 0; x < W; x++) r.push(keep(x >> 2) ? u16(m, base + (y * W + x) * 2) : 0xffff); g.push(r); }
     return { cells, W, H, g };
   };
-  const zonesOf = {}; for (let z = 0; z < NZ; z++) (zonesOf[zm(z)] = zonesOf[zm(z)] || []).push(z);
+  // Zonen, die nur im abgeteilten Stück vorkommen, zählen zur Pseudo-Matrix (zmat statt zm)
+  const splitZone = {};
+  for (const [p, q] of Object.entries(SPLIT)) {
+    const M = matrix(q.of, true), inA = new Set(), inB = new Set();
+    M.g.forEach(r => r.forEach((z, x) => { if (z !== 0xffff) ((x >> 2) >= q.x0 ? inB : inA).add(z); }));
+    for (const z of inB) if (!inA.has(z)) splitZone[z] = +p;
+  }
+  const zmat = z => splitZone[z] != null ? splitZone[z] : zm(z);
+  const zonesOf = {}; for (let z = 0; z < NZ; z++) (zonesOf[zmat(z)] = zonesOf[zmat(z)] || []).push(z);
   const areaOf = mi => { const c = {}; (zonesOf[mi] || []).forEach(z => { c[za(z)] = (c[za(z)] || 0) + 1; }); return +Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]; };
   // Warps je Zone (Objekte, Teil 1 der Zonendatei: Möbel 0x14, Personen 0x30, Warps 0x18 als u16)
   const warps = z => {
@@ -703,48 +749,81 @@ if (MAIN) (async () => {
   // ── Lage der Außen-Matrizen 1–28 ──
   const XY_OUTDOORS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 27, 29, 30, 31, 32, 33, 59, 61, 74, 77, 78, 79, 80, 81,
     101, 128, 129, 130, 206, 210, 212, 214, 215, 216, 217, 218, 223];
-  const OUTM = new Set(IS_XY ? XY_OUTDOORS : Array.from({ length: 28 }, (_, i) => i + 1));
+  const OUTM = new Set(IS_XY ? XY_OUTDOORS : [...Array.from({ length: 28 }, (_, i) => i + 1), ...Object.keys(SPLIT).map(Number)]);
   const pairs = [];
   for (let z = 0; z < NZ; z++) W[z].forEach(w => {
     const d = W[w[2]] && W[w[2]][w[3]];
     if (!d || d[2] !== z) return;
-    pairs.push({ a: zm(z), b: zm(w[2]), d: [(w[6] - d[6]) / TILE, (w[8] - d[8]) / TILE, sh16(w[7]) - sh16(d[7])] });
+    pairs.push({ a: zmat(z), b: zmat(w[2]), d: [(w[6] - d[6]) / TILE, (w[8] - d[8]) / TILE, sh16(w[7]) - sh16(d[7])], dir: w[4] & 3,
+      pa: [w[6] / TILE, w[8] / TILE, sh16(w[7])], pb: [d[6] / TILE, d[8] / TILE, sh16(d[7])], n: [w[9], w[10]] });
   });
+  // Gleichungen „Lage b = Lage a + d“ mit Gewicht je Achse (x, z, Höhe). Hoenn schließt sich im Spiel nicht: Wer über
+  // Land von Graphitport nach Seegrasulb geht, kommt 140 Kacheln weiter nördlich an als über die Seerouten, die Runde
+  // 118–119–Baumhausen–120–121–122–123 klafft um 60 Kacheln und 234 Höheneinheiten, die um Faustauhaven um 16 × 28.
+  // Gleichmäßig verteilt (wie früher) saß jeder Übergang ein paar Kacheln daneben – Wege trafen sich nicht, Kulissen
+  // schnitten sich an. Deshalb:
+  //  · Übergänge an Land stimmen genau (Gewicht 1), ebenso die vier Torhäuser von Malvenfroh (siehe HUB).
+  //  · Das offene Meer nimmt die Widersprüche auf, und zwar nur in Laufrichtung des Übergangs (Nord-Süd-Übergang: z,
+  //    Ost-West-Übergang: x) – dort liegt dann einfach mehr Meer dazwischen; quer dazu bleiben die Routen bündig.
+  //  · Von Hand (HANDW): Route 118 ↔ 119 klafft in z und Höhe (die Kulissen beider Routen füllen die Lücke), die 6 Kacheln
+  //    in x verteilen sich auf die drei Ost-West-Übergänge um Baumhausen. Die Südwest-Runde (dort müsste das Meer kürzer
+  //    werden) ist an der Ecke Route 108/109 geteilt (SPLIT oben) – beide Hälften hängen genau an ihrem Land.
+  //  · Innengebiete (Höhlen, Wald, Tunnel) sind nicht maßstäblich: Sie halten nur fest, was sonst nirgends hängt
+  //    (Metarost mit Route 115/116 zwischen Blütenburgwald, Metaflurtunnel und Meteorfällen).
+  const SOFT = 1e-5, LOOSE = 1e-8, ekey = (a, b) => Math.min(a, b) + '-' + Math.max(a, b);
+  const SEA_EDGE = new Set(['3-5', '13-105', '12-13', '12-20', '11-20', '11-18', '10-11', '10-16', '10-28', '11-28']);
+  const HANDW = { '3-5': [1, 1, SOFT], '13-105': [1, 1, SOFT], '10-16': [1, 1, SOFT], '9-24': [1, LOOSE, LOOSE], '15-24': [SOFT, 1, 1], '15-25': [SOFT, 1, 1], '25-26': [SOFT, 1, 1] };
   const eqs = [], direct = new Set();
-  for (const p of pairs) if (OUTM.has(p.a) && OUTM.has(p.b) && p.a !== p.b) { eqs.push({ ...p, w: 1 }); direct.add(p.a + '>' + p.b); }
+  for (const p of pairs) if (OUTM.has(p.a) && OUTM.has(p.b) && p.a !== p.b) {
+    const k = ekey(p.a, p.b);
+    eqs.push({ ...p, w: IS_XY ? [1, 1, 1] : HANDW[k] || (SEA_EDGE.has(k) ? (p.dir < 2 ? [1, SOFT, SOFT] : [SOFT, 1, SOFT]) : [1, 1, 1]) });
+    direct.add(p.a + '>' + p.b);
+  }
   const nb = {};
   for (const p of pairs) if (OUTM.has(p.a) && !OUTM.has(p.b)) (nb[p.b] = nb[p.b] || new Set()).add(p.a);
   for (const [I, s] of Object.entries(nb)) {
     if (s.size !== 2) continue;
     const [a, b] = [...s];
     if (direct.has(a + '>' + b) || direct.has(b + '>' + a)) continue;
-    for (const x of pairs.filter(p => p.a === a && p.b === +I)) for (const y of pairs.filter(p => p.a === +I && p.b === b)) eqs.push({ a, b, d: [0, 1, 2].map(k => x.d[k] + y.d[k]), w: 0.25 });
+    if (!IS_XY && ekey(a, b) === '21-22') continue;      // Route 110 doppelt: siehe unten
+    for (const x of pairs.filter(p => p.a === a && p.b === +I)) for (const y of pairs.filter(p => p.a === +I && p.b === b)) {
+      const d = [0, 1, 2].map(k => x.d[k] + y.d[k]);
+      // Höhen durch Höhlen sagen nichts. Der Metaflurtunnel (36) ist in x maßstäblich (beide Türen von Route 116 ergeben
+      // denselben Abstand zu Wiesenflur) – er hält Metarost fester als Blütenburgwald und Meteorfälle
+      const wi = +I === 36 ? SOFT : LOOSE;
+      eqs.push({ a, b, d, w: IS_XY ? [0.25, 0.25, 0.25] : [wi, wi, Math.abs(d[2]) > 60 ? 0 : wi], via: +I });
+    }
   }
+  // Malvenfroh ist ein Gebäude mit vier Ausgängen (Innengebiet 347, nicht maßstäblich). Außen steht es als Dach
+  // (Matrix 349, 70 × 57 Kacheln) um den Innenhof (Matrix 14); die Routen 110, 117, 111 und 118 enden je an einem gläsernen
+  // Torhaus. Vermessen an den Modellen: Achse und Ende jedes Torhauses ↔ Mitte der zugehörigen Gebäudeseite, in Kacheln
+  // der Route minus Kacheln des Innenhofs (Dach = Innenhof + (-39,5 | -48), Wände x 24,4–94,7, z 41,4–98,7 im Dach).
+  const HUB = IS_XY ? [] : [[21, [9.5, -56, 0]], [6, [225.5, 81, 0]], [7, [209.5, 252, 0]], [9, [13.5, 77, 27]]];
+  for (const [m, d] of HUB) eqs.push({ a: m, b: 14, d, w: [1, 1, 1], via: 'Tor' });
   const ids = [...new Set(eqs.flatMap(e => [e.a, e.b]))].filter(m => m !== 1).sort((x, y) => x - y), ix = Object.fromEntries(ids.map((m, i) => [m, i]));
   const LAYOUT = { 1: [0, 0, 0] };
   for (let ax = 0; ax < 3; ax++) {
     const n = ids.length, A = Array.from({ length: n }, () => new Float64Array(n)), r = new Float64Array(n);
     for (const e of eqs) {
-      const i = ix[e.a], j = ix[e.b], d = e.d[ax];
-      // Höhen: Die Runde Route 118 → 119 → Baumhausen → 120 → 121 → 122 → 123 → 118 steigt im Spiel um 234 Einheiten und
-      // kommt nie wieder herunter (Route 119 klettert 300 Einheiten, der Rückweg bleibt eben). Gleichmäßig verteilt lägen
-      // alle sechs Gebiete an ihren Übergängen 39 Einheiten auseinander und Route 118 über 100 Einheiten unter dem Meer von
-      // Route 110 – in der Schrägsicht verschoben sich die Flächen gegeneinander (Treppenmuster aus Land und Meer). Der
-      // ganze Widerspruch liegt deshalb am Übergang Baumhausen ↔ Route 119, mitten im Wald; alle anderen stimmen genau.
-      const w = !IS_XY && ax === 2 && ((e.a === 15 && e.b === 24) || (e.a === 24 && e.b === 15)) ? e.w * 1e-4 : e.w;
+      const i = ix[e.a], j = ix[e.b], d = e.d[ax], w = e.w[ax];
+      if (!w) continue;
       if (j !== undefined) { A[j][j] += w; r[j] += w * d; if (i !== undefined) A[j][i] -= w; }
       if (i !== undefined) { A[i][i] += w; r[i] -= w * d; if (j !== undefined) A[i][j] -= w; }
     }
     for (let c = 0; c < n; c++) {
       let p = c; for (let k = c + 1; k < n; k++) if (Math.abs(A[k][c]) > Math.abs(A[p][c])) p = k;
       [A[c], A[p]] = [A[p], A[c]]; [r[c], r[p]] = [r[p], r[c]];
-      if (Math.abs(A[c][c]) < 1e-12) continue;
+      if (Math.abs(A[c][c]) < 1e-15) continue;
       for (let k = 0; k < n; k++) if (k !== c) { const f = A[k][c] / A[c][c]; if (!f) continue; for (let q = c; q < n; q++) A[k][q] -= f * A[c][q]; r[k] -= f * r[c]; }
     }
-    ids.forEach((m, i) => { if (Math.abs(A[i][i]) > 1e-12) (LAYOUT[m] = LAYOUT[m] || [0, 0, 0])[ax] = r[i] / A[i][i]; });
+    ids.forEach((m, i) => { if (Math.abs(A[i][i]) > 1e-15) (LAYOUT[m] = LAYOUT[m] || [0, 0, 0])[ax] = r[i] / A[i][i]; });
   }
-  if (opts.eqs) for (const e of eqs) console.log(`  Gl. M${e.a}→M${e.b} w ${e.w} d ${e.d.map(v => v.toFixed(1)).join(',')}  Rest ${[0, 1, 2].map(k => ((LAYOUT[e.a] || [0, 0, 0])[k] - (LAYOUT[e.b] || [0, 0, 0])[k] - e.d[k]).toFixed(1)).join(',')}`);
-  // Per Hand: Malvenfroh (Innenhof 14 als Mittel der Wege durch die Stadt, Dach 349 darum), Liga 19 über die Siegesstraße
+  // auf halbe Kacheln runden (die starren Kanten sind ganzzahlig; die weichen hinterlassen Reste von Tausendsteln)
+  if (!IS_XY) for (const m of Object.keys(LAYOUT)) LAYOUT[m] = [Math.round(LAYOUT[m][0] * 2) / 2, Math.round(LAYOUT[m][1] * 2) / 2, Math.round(LAYOUT[m][2] * 100) / 100];
+  if (opts.eqs) for (const e of eqs) {
+    const rest = [0, 1, 2].map(k => (LAYOUT[e.a] || [0, 0, 0])[k] - (LAYOUT[e.b] || [0, 0, 0])[k] + e.d[k]);
+    console.log(`  Gl. M${e.a}→M${e.b}${e.via != null ? ' (über ' + e.via + ')' : ''} w ${e.w.join('/')} d ${e.d.map(v => v.toFixed(1)).join(',')}  Rest ${rest.map(v => v.toFixed(1)).join(',')}  im Bild z ${(rest[1] - SHEAR * rest[2] / TILE).toFixed(1)}`);
+  }
   if (IS_XY) Object.assign(LAYOUT, {
     0: [150, 950, 0], 1: [150, 750, 0], 2: [-190, 250, 0], 3: [-390, 410, 0],
     4: [-420, -30, 0], 5: [160, -290, 0], 6: [460, -90, 0], 7: [570, 130, 0],
@@ -756,15 +835,30 @@ if (MAIN) (async () => {
     210: [760, 250, 0], 212: [760, 130, 0], 214: [1050, 450, 0], 215: [1100, 850, 0],
     216: [1100, 1000, 0], 217: [900, 1070, 0], 218: [800, 1010, 0], 223: [1200, 1300, 0]
   });
-  else Object.assign(LAYOUT, { 14: [208, -102, 0], 19: [977, -180, -27], 349: [168.5, -150, 250] });
-  // Route 110 gibt es zweimal mit derselben Geometrie: Matrix 22 (zu Fuß) und 21 (auf dem Radweg, ohne hohes Gras). Die
-  // Ausgleichsrechnung kennt 21 nur über die Torhäuser des Radwegs und legt sie um deren Breite (6 Kacheln) daneben –
-  // beide durchdrangen sich zu Zacken. 21 liegt genau auf 22 und wird nicht gezeichnet (ihre Trainer und Items bleiben).
+  else {
+    // Route 110 gibt es zweimal mit derselben Geometrie im selben Raster: Matrix 21 (Radweg; sie trägt die Übergänge zu
+    // Route 103, Graphitport und Malvenfroh) und 22 (zu Fuß, mit hohem Gras; nur über die Torhäuser des Radwegs mit 21
+    // verbunden – deren zwei Türen liegen 7 Kacheln auseinander, kein Versatz der Matrizen). 22 liegt genau auf 21;
+    // gezeichnet wird nur 22 (die Trainer und Items von 21 bleiben).
+    LAYOUT[22] = LAYOUT[21].slice();
+    // Dach von Malvenfroh um den Innenhof. Die Liga liegt im Raster von Prachtpolis City drei Blöcke nördlich, auf dem
+    // Berg, durch den die Siegesstraße führt (die braunen Hänge beider Gebiete setzen sich ineinander fort). Die Südwand
+    // ihres Plateaus (300 Einheiten hoch, in der Schrägsicht 10 Kacheln) ist nicht modelliert – die Hänge endeten als
+    // schräge Keile über dem Meer. Sie wird ergänzt (LIGA_WALL unten), und die Liga rückt 3 Kacheln nach Süden, bis der
+    // Fuß der Wand am Gipfel von Prachtpolis City anliegt
+    LAYOUT[349] = [LAYOUT[14][0] - 39.5, LAYOUT[14][1] - 48, LAYOUT[14][2] + 250];
+    LAYOUT[19] = [LAYOUT[18][0], LAYOUT[18][1] - 117, LAYOUT[18][2]];
+  }
   const NO_DRAW = new Set(IS_XY ? [] : [21]);
-  if (!IS_XY && LAYOUT[22]) LAYOUT[21] = LAYOUT[22].slice();
   // Wälder wie der Blütenburgwald sind innen dunkel mit Lichtstrahlen – von oben fremd; ihre Lücke füllt fill-oras.py mit Wald
-  // Masken: Dach nur das Gebäude, Liga nur das Plateau (box: Kacheln der Matrix); Innenhof immer obenauf
-  const SPECIAL = IS_XY ? {} : { 14: { prio: 2 }, 349: { box: [24, 40, 96, 100] }, 19: { box: [-1, -1, 81, 80] } };
+  // Masken: Dach nur das Gebäude (box: Kacheln der Matrix); Innenhof immer obenauf
+  const SPECIAL = IS_XY ? {} : { 14: { prio: 2 }, 349: { box: [24, 40, 96, 100] } };
+  // Liga (19): nur die oberen zwei Blöcke (das Plateau). Der dritte zeigt den Ausgang der Siegesstraße als einzelne,
+  // schwebende Absätze – dort liegt auf der Karte der Gipfel von Prachtpolis City
+  const CLIP_Z = IS_XY ? {} : { 19: 80 };
+  // Der Gipfel von Prachtpolis City (18, Kulisse) reicht unter das Plateau der Liga: dort als Kulisse zeichnen (sichtbar,
+  // wo die Liga nichts zeigt – unter ihrer Südkante), statt gar nicht
+  const BACKFILL = IS_XY ? {} : { 18: 19 };
   // Zum Ausprobieren: --place=Matrix:x,z,y;… legt weitere Matrizen obenauf (Lage in Weltkacheln wie LAYOUT)
   if (opts.place) for (const e of opts.place.split(';')) { const [m, v] = e.split(':'); LAYOUT[+m] = v.split(',').map(Number); SPECIAL[+m] = SPECIAL[+m] || { prio: 2 }; }
   const MATS = (IS_XY ? XY_OUTDOORS : Object.keys(LAYOUT).map(Number).filter(m => m !== 17))
@@ -825,6 +919,10 @@ if (MAIN) (async () => {
   const GW = COLS * BLOCK, GH = ROWS * BLOCK, owner = new Int16Array(GW * GH).fill(-1), bestKey = new Float32Array(GW * GH).fill(-Infinity);
   const bd = new Int16Array(GW * GH).fill(-1), bdBest = new Float32Array(GW * GH).fill(Infinity);
   const LAND_BONUS = 12;
+  // Städte und Orte gehen Routen vor: Ihre Zellen sind genau die Stadt und ganz modelliert, während Routen an ihren Enden
+  // auch Zellen tragen, in denen nur ihre Fassung der Umgebung steht (Route 116 legte ihren Tunnelberg über die
+  // Wettbewerbshalle und ein Haus von Wiesenflur)
+  const TOWN_BONUS = 100, TOWNS = new Set(IS_XY ? [] : JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'oras.json'), 'utf8')).locations.filter(l => l.type === 'city' || l.type === 'town').map(l => l.id));
   // Abstand (Schachbrett-Metrik, in Kacheln) zu den Quellen; border: der Rand außerhalb zählt als Quelle
   const spread = (lw, lh, src, border) => {
     const d = new Int32Array(lw * lh).fill(-1), q = new Int32Array(lw * lh); let qh = 0, qt = 0;
@@ -839,11 +937,16 @@ if (MAIN) (async () => {
     }
     return d;
   };
-  if (!opts['places-only']) for (const m of MATS) {
+  if (!opts['places-only'] && !opts.solo) for (const m of MATS) {
     if (SPECIAL[m] || NO_DRAW.has(m)) continue;
     const w = owned[m], lw = w.W * 10, lh = w.H * 10, ownT = new Uint8Array(lw * lh), notOwn = new Uint8Array(lw * lh), has = new Uint8Array(lw * lh);
-    for (let z = 0; z < lh; z++) for (let x = 0; x < lw; x++) { const own = w.g[Math.floor(z / 10)][Math.floor(x / 10)] !== 0xffff; ownT[z * lw + x] = own ? 1 : 0; notOwn[z * lw + x] = own ? 0 : 1; }
-    for (const c of w.cells) for (let z = c.y * 40; z < c.y * 40 + 40; z++) for (let x = c.x * 40; x < c.x * 40 + 40; x++) has[z * lw + x] = 1;
+    const clipZ = CLIP_Z[m] || Infinity, zs = zonesOf[m] || [], townT = new Uint8Array(lw * lh);
+    for (let z = 0; z < lh; z++) for (let x = 0; x < lw; x++) {
+      const zid = w.g[Math.floor(z / 10)][Math.floor(x / 10)], own = zid !== 0xffff && z < clipZ;
+      ownT[z * lw + x] = own ? 1 : 0; notOwn[z * lw + x] = own ? 0 : 1;
+      if (own) { const zone = zs.includes(zid) ? zid : zs[0]; if (zone != null && TOWNS.has(zloc(zone))) townT[z * lw + x] = 1; }
+    }
+    for (const c of w.cells) for (let z = c.y * 40; z < Math.min(clipZ, c.y * 40 + 40); z++) for (let x = c.x * 40; x < c.x * 40 + 40; x++) has[z * lw + x] = 1;
     if (!ownT.some(v => v)) continue;
     const din = spread(lw, lh, notOwn, true), dout = spread(lw, lh, ownT, false);
     // Land oder Meer: höchstes Wasser und höchstes Übrige je Kachel
@@ -875,23 +978,34 @@ if (MAIN) (async () => {
       const lx = Math.floor(gx + 0.5 + GX0 - w.o[0]), lz = Math.floor(gz + 0.5 + GZ0 - w.o[1]);
       if (lx < 0 || lz < 0 || lx >= lw || lz >= lh) continue;
       const li = lz * lw + lx, i = gz * GW + gx;
-      if (ownT[li]) { const k = din[li] + (ly[li] > -Infinity && ly[li] > wy[li] + 1 ? LAND_BONUS : 0); if (k > bestKey[i]) { bestKey[i] = k; owner[i] = m; } }
+      // Eigentümer kann nur sein, wer dort auch etwas zeichnet: Das Modell von Faustauhaven endet 15 Kacheln vor dem Rand
+      // seiner Zellen – Route 107 zählte dort nur als Kulisse, ihr Meer blieb durchsichtig (gerade Kante am Hafen)
+      if (ownT[li] && (ly[li] > -Infinity || wy[li] > -Infinity)) { const k = din[li] + (ly[li] > -Infinity && ly[li] > wy[li] + 1 ? LAND_BONUS : 0) + (townT[li] ? TOWN_BONUS : 0); if (k > bestKey[i]) { bestKey[i] = k; owner[i] = m; } }
       else if (has[li] && dout[li] >= 0 && dout[li] < bdBest[i]) { bdBest[i] = dout[li]; bd[i] = m; }
     }
   }
   for (let i = 0; i < GW * GH; i++) if (owner[i] >= 0) bd[i] = owner[i];
+  // owner.png: welches Gebiet je Weltkachel zeichnet (Rot + 256 · Grün) – fill-oras.py gleicht daran die Helligkeit des
+  // Rasens beiderseits einer Gebietsgrenze an
+  if (!opts['places-only'] && !opts.solo && !IS_XY) {
+    const om = new Uint8Array(GW * GH * 4);
+    for (let i = 0; i < GW * GH; i++) if (bd[i] >= 0) { om[i * 4] = bd[i] & 255; om[i * 4 + 1] = bd[i] >> 8; om[i * 4 + 3] = 255; }
+    fs.writeFileSync(path.join(OUT, 'owner.png'), png(GW, GH, om));
+  }
   const prioFor = m => {
     const w = owned[m], sp = SPECIAL[m] || {};
     return (xw, zw) => {
       const fx = xw / TILE, fz = zw / TILE, tx = fx - w.o[0], tz = fz - w.o[1];
-      if (sp.box) return tx >= sp.box[0] && tz >= sp.box[1] && tx < sp.box[2] && tz < sp.box[3] ? 1 : -1;
+      if (CLIP_Z[m] && tz >= CLIP_Z[m] && !opts.solo) return -1;
       if (sp.prio != null) return sp.prio;
       const cx = Math.floor(tx / 10), cz = Math.floor(tz / 10);
+      if (opts.solo) return cx < 0 || cz < 0 || cx >= w.W || cz >= w.H || w.g[cz][cx] === 0xffff ? 0 : 1;   // --solo: jede Matrix ganz, samt Kulisse
+      if (sp.box) return tx >= sp.box[0] && tz >= sp.box[1] && tx < sp.box[2] && tz < sp.box[3] ? 1 : -1;
       const gx = Math.floor(fx - GX0), gz = Math.floor(fz - GZ0), inGrid = gx >= 0 && gz >= 0 && gx < GW && gz < GH;
       if (cx < 0 || cz < 0 || cx >= w.W || cz >= w.H || w.g[cz][cx] === 0xffff) {
         if (!inGrid) return 0;
         const b = bd[gz * GW + gx];
-        return b < 0 || b === m ? 0 : -1;
+        return b < 0 || b === m || BACKFILL[m] === b ? 0 : -1;
       }
       if (!inGrid) return 1;
       const ow = owner[gz * GW + gx];
@@ -919,8 +1033,32 @@ if (MAIN) (async () => {
     return { T, k: DEEP.map((d, c) => d / mean[c]), spp: PX * SS, lod: Math.max(0, Math.log2(T.w / (3 * PX * SS))) };
   })();
 
+  // Liga: ergänzte Südwand des Plateaus im Fels der Hänge (pk_gake01). Die Hänge sind Treppen aus 18 Einheiten hohen
+  // Stufen (links von x = 23 oben bis x = 6 unten, rechts von 71 bis 88, jeweils bei z = 80). Ecken der Wand: x in Kacheln
+  // der Matrix, Höhe; Farbe zwischen dem hellen West- und dem dunklen Osthang
+  const LIGA_WALL = [[23, 315], [71, 315], [88, 9], [6, 9]];
+  const ligaWall = IS_XY || !LAYOUT[19] || opts['places-only'] ? null : { tex: 'pk_gake01', col: [0.6, 0.53, 0.53, 1] };
+  // pk_gake01 ist ein Atlas aus vier Feldern; die Hänge benutzen das linke untere (reiner Fels, 2 Kacheln breit je Stufe)
+  let ligaTex;
+  const ligaRock = () => {
+    if (ligaTex !== undefined) return ligaTex;
+    const T = areaTextures(areaOf(19))[ligaWall.tex];
+    if (!T) return ligaTex = null;
+    const L0 = T.lv[0], w = L0.w >> 1, h = L0.h >> 1, px = new Uint8Array(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let q = 0; q < 4; q++) px[(y * w + x) * 4 + q] = Math.round(L0.px[((y + h) * L0.w + x) * 4 + q] * 255);
+    return ligaTex = mipTexture({ w, h, px, name: 'pk_gake01_fels' });
+  };
   // ── Rendern: Regionen à 4 × 4 Blöcke ──
-  const info = { shear: SHEAR, size: BLOCK * PX, rows: ROWS, cols: COLS, origin: [GX0, GZ0], tile: TILE, chunks: {}, layout: Object.fromEntries(MATS.map(m => [m, LAYOUT[m]])) };
+  // Lücken in Laufrichtung an Land (Nord-Süd): Spalten des Übergangs und Bildzeilen zwischen beiden Streifen – dort setzt
+  // fill-oras.py den Weg fort (x0, x1, z oben, z unten in Kartenkacheln)
+  const bridges = [];
+  if (!IS_XY) for (const e of eqs) {
+    if (!e.pa || e.dir > 1 || e.a > e.b || SEA_EDGE.has(ekey(e.a, e.b)) || !LAYOUT[e.a] || !LAYOUT[e.b]) continue;
+    const A = LAYOUT[e.a], B = LAYOUT[e.b], za = A[1] + e.pa[1] - SHEAR * (A[2] + e.pa[2]) / TILE, zb = B[1] + e.pb[1] - SHEAR * (B[2] + e.pb[2]) / TILE;
+    if (Math.abs(za - zb) < 8 || Math.abs(A[0] + e.pa[0] - B[0] - e.pb[0]) > 0.6) continue;
+    bridges.push([Math.floor(A[0] + e.pa[0]) - GX0, Math.floor(A[0] + e.pa[0]) + e.n[0] - GX0, Math.floor(Math.min(za, zb)) - GZ0, Math.ceil(Math.max(za, zb)) - GZ0]);
+  }
+  const info = { shear: SHEAR, size: BLOCK * PX, rows: ROWS, cols: COLS, origin: [GX0, GZ0], tile: TILE, chunks: {}, layout: Object.fromEntries(MATS.map(m => [m, LAYOUT[m]])), bridges };
   console.log('Welt', COLS + ' × ' + ROWS, 'Blöcke,', chunks.length, 'Kartenblöcke des Spiels');
   // Zum Testen: --only=Zeile:Spalte,… (Regionen à 4 × 4 Blöcke) · --probe=x,y;x,y (Kartenkoordinaten wie in places.json):
   // nennt je Punkt die Dreiecke (Matrix, Material, Rang, Tiefe, Farbe), die dort liegen
@@ -939,7 +1077,7 @@ if (MAIN) (async () => {
     const tg = makeTarget(tsz * PX * SS, tsz * PX * SS);
     for (const c of list) {
       const B = chunkModel(c.gr), tex = areaTextures(areaOf(c.m));
-      for (const md of B.models) renderModel(tg, B, md, tex, view, { matrix: c.m, ox: c.x * TILE + 360, oy: c.y, oz: c.z * TILE + 360, ...(IS_XY ? { prioAt: prioFor(c.m) } : { prioPix: prioFor(c.m) }), probe, seaFade: !IS_XY, sceneSkip: IS_XY ? null : SCENE_SKIP, cull: IS_XY ? null : CULL_IN[c.m] || (opts.cull && +opts.cull === c.m ? true : null) });
+      for (const md of B.models) renderModel(tg, B, md, tex, view, { matrix: c.m, ox: c.x * TILE + 360, oy: c.y, oz: c.z * TILE + 360, ...(IS_XY ? { prioAt: prioFor(c.m) } : { prioPix: prioFor(c.m) }), probe, seaFade: !IS_XY, seaYield: Object.values(BACKFILL).includes(c.m), sceneSkip: IS_XY ? null : SCENE_SKIP, cull: IS_XY ? null : CULL_IN[c.m] || (opts.cull && +opts.cull === c.m ? true : null) });
       if (!IS_XY && !opts.noprops) for (const pl of placements(c.gr)) {
         const bm = bmModel(pl.id);
         if (!bm) continue;
@@ -948,11 +1086,33 @@ if (MAIN) (async () => {
         for (const md of bm.B.models) renderModel(tg, bm.B, md, { ...tex, ...bm.own }, view, { matrix: c.m, prop: pl.id, ox: o[0] * TILE, oy: c.y, oz: o[1] * TILE, xf, prioPix: prioFor(c.m), probe, seaFade: true, sceneSkip: SCENE_SKIP });
       }
     }
+    // Liga: Südwand des Plateaus (Trapez zwischen den unteren Enden beider Hänge) im Fels der Hänge
+    if (ligaWall && (!MATS_ONLY || MATS_ONLY.has(19))) {
+      const o = LAYOUT[19], T = ligaRock(), sinP = Math.sin(PITCH), cosP = Math.cos(PITCH);
+      const scr = v => [(v[0] - view.x0) * view.S, (v[2] - view.z0 - v[1] * SHEAR) * view.S, v[1] * sinP + v[2] * cosP];
+      const [tl, tr, br, bl] = LIGA_WALL, STEP = 18;
+      // Stufe für Stufe wie die Hänge: je 18 Einheiten einmal der Fels von oben nach unten, alle 2 Kacheln wiederholt
+      if (T) for (let y0 = bl[1]; y0 < tl[1]; y0 += STEP) {
+        const y1 = Math.min(tl[1], y0 + STEP), at = y => { const f = (y - bl[1]) / (tl[1] - bl[1]); return [bl[0] + (tl[0] - bl[0]) * f, br[0] + (tr[0] - br[0]) * f]; };
+        const [l0, r0] = at(y0), [l1, r1] = at(y1);
+        const V = [[l1, y1, 0.04], [r1, y1, 0.04], [r0, y0, 0.96], [l0, y0, 0.96]].map(([x, y, v]) => ({ p: [(o[0] + x) * TILE, y + o[2], (o[1] + CLIP_Z[19]) * TILE], uv: [x / 2, v] }));
+        for (const t of [[0, 1, 2], [0, 2, 3]]) drawTri(tg, t.map(i => scr(V[i].p)), [{ tex: T, uv: t.map(i => V[i].uv), ws: 2, wt: 2, op: 'base' }], t.map(() => ligaWall.col), { prio: 1, zBias: 0, pix: true });
+      }
+    }
     if (probe) for (const q of probe) {
       console.log(`\nPunkt ${q.at.join(',')}:`);
       const seen = new Map();
       for (const h of q.hits) { const k = [h.matrix, h.mat, h.prio, h.water, h.blend].join('|'); if (!seen.has(k)) seen.set(k, h); }
       for (const h of [...seen.values()].sort((a, b) => b.prio - a.prio || b.depth - a.depth)) console.log(`   M${h.matrix} ${h.mat} [${h.tex}] Rang ${h.prio}${h.water ? ' Wasser' : ''}${h.blend ? ' gemischt' : ''} Tiefe ${h.depth} Höhe ${h.y} Farbe ${h.col}`);
+    }
+    // Meeresboden ohne Wasser darüber: durchsichtig, zählt als Kulissenmeer (sonst steht am Rand eines Hafens ein Strich Sand)
+    // (Farbe: die des nächsten Meeres in derselben Zeile – fill-oras.py hebt die Deckkraft beim Glätten wieder an)
+    if (!IS_XY) for (let y = 0; y < tg.h; y++) for (let x = 0; x < tg.w; x++) {
+      const i = y * tg.w + x; if (!tg.bed[i]) continue;
+      let c = null;
+      for (let d = 1; d <= 96 && !c; d++) for (const q of [x + d, x - d]) { if (q < 0 || q >= tg.w) continue; const j = y * tg.w + q; if (tg.sea[j] && !tg.bed[j]) { c = j * 4; break; } }
+      tg.px[i * 4] = c != null ? tg.px[c] : DEEP[0]; tg.px[i * 4 + 1] = c != null ? tg.px[c + 1] : DEEP[1]; tg.px[i * 4 + 2] = c != null ? tg.px[c + 2] : DEEP[2];
+      tg.px[i * 4 + 3] = 0; tg.sea[i] = 1;
     }
     const img = toRGBA8(tg, SS, !IS_XY), bp = BLOCK * PX;
     for (let br = 0; br < REG; br++) for (let bc = 0; bc < REG; bc++) {
@@ -1012,29 +1172,73 @@ if (MAIN) (async () => {
       let z = g[cz][cx];
       if (z === 0xffff) continue;
       if (sp.box && !(cx * 10 >= sp.box[0] - 5 && cz * 10 >= sp.box[1] - 5 && (cx + 1) * 10 <= sp.box[2] + 5 && (cz + 1) * 10 <= sp.box[3] + 5)) continue;
+      if (CLIP_Z[m] && cz * 10 >= CLIP_Z[m]) continue;
       if (!own.includes(z)) z = own[0];          // kleine Matrizen: Zone 0 = die Zone, die sie benutzt
       if (z == null) continue;
       cells.push({ m, cx, cz, loc: zloc(z) });
     }
   }
   // Bodenhöhe je Zelle: häufigste Höhe flacher Dreiecke (nach Fläche), ohne Bäume, Dächer, Schatten
-  const hist = new Map();
+  // Land zählt vor Wasser (unter dem Plateau der Liga liegt überall die Meeresfläche und gewann jede zweite Zelle – der
+  // Umriss des Ortes zerfiel in Stücke auf zwei Höhen). Zellen, die fast nur aus Hang bestehen, erben vom nächsten Nachbarn.
+  const hist = new Map(), histW = new Map(), slope = new Map();
   for (const m of MATS) for (const c of mats[m].cells) {
     const B = chunkModel(c.gr);
     for (const md of B.models) for (const me of meshes(B, md)) {
-      if (/wood|tree|kusa_b|shadow|kage|roof|yane/i.test(me.mat.name)) continue;
+      if (/wood|tree|kusa_b|shadow|kage|roof|yane/i.test(me.mat.name) || SKIP.test(me.mat.name)) continue;
+      const wat = WATER.test(me.mat.name) || me.mat.tex.some(t => t && WATER.test(t));
       for (const f of me.faces) for (let i = 0; i + 2 < f.idx.length; i += 3) {
         const p = [0, 1, 2].map(k => { const v = f.idx[i + k]; return [me.pos[v * 3], me.pos[v * 3 + 1], me.pos[v * 3 + 2]]; });
         const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2], vx = p[2][0] - p[0][0], vy = p[2][1] - p[0][1], vz = p[2][2] - p[0][2];
         const ny = uz * vx - ux * vz, len = Math.hypot(uy * vz - uz * vy, ny, ux * vy - uy * vx);
-        if (!len || Math.abs(ny) / len < 0.9) continue;
+        if (!len) continue;
         const key = m + ':' + Math.floor(((p[0][0] + p[1][0] + p[2][0]) / 3 + c.x * 720 + 360) / 180) + ':' + Math.floor(((p[0][2] + p[1][2] + p[2][2]) / 3 + c.y * 720 + 360) / 180);
-        let h = hist.get(key); if (!h) hist.set(key, h = new Map());
-        const q = Math.round((p[0][1] + p[1][1] + p[2][1]) / 3 / 4.5); h.set(q, (h.get(q) || 0) + len / 2);
+        const q = Math.round((p[0][1] + p[1][1] + p[2][1]) / 3 / 4.5);
+        if (!wat) { let sl = slope.get(key); if (!sl) slope.set(key, sl = new Map()); sl.set(q, (sl.get(q) || 0) + Math.abs(ny) / 2); }   // Grundfläche jedes Dreiecks, nach Höhe
+        if (Math.abs(ny) / len < 0.9) continue;
+        const H = wat ? histW : hist;
+        let h = H.get(key); if (!h) H.set(key, h = new Map());
+        h.set(q, (h.get(q) || 0) + len / 2);
       }
     }
   }
-  for (const c of cells) { const h = hist.get(c.m + ':' + c.cx + ':' + c.cz); let best = 0, bw = -1; if (h) for (const [q, w] of h) if (w > bw) { bw = w; best = q; } c.h = best * 4.5 + LAYOUT[c.m][2]; }
+  const CELL_A = 180 * 180, modeOf = (h, above) => { let best = null, bw = 0; if (h) for (const [q, w] of h) if (w > bw && (above == null || q > above)) { bw = w; best = q; } return [best, bw]; };
+  // → Höhe in Einheiten der Matrix; null: Hang ohne nennenswerte ebene Fläche. Was unter dem Wasserspiegel der Zelle liegt
+  // (Meeresboden), zählt nicht als Land
+  const ground = key => {
+    const [qw] = modeOf(histW.get(key)), [ql, wl] = modeOf(hist.get(key), qw);
+    if (ql != null && wl >= 0.25 * CELL_A) return ql * 4.5;
+    if (qw == null) return null;
+    let above = 0; for (const [q, w] of slope.get(key) || []) if (q > qw) above += w;
+    return above < 0.5 * CELL_A ? qw * 4.5 : null;
+  };
+  const groundAny = key => { const g = ground(key); if (g != null) return g; const [ql] = modeOf(hist.get(key)), [qw] = modeOf(histW.get(key)); return (ql != null ? ql : qw != null ? qw : 0) * 4.5; };
+  {
+    const at = new Map(cells.map(c => [c.m + ':' + c.cx + ':' + c.cz, c]));
+    for (const c of cells) c.g = ground(c.m + ':' + c.cx + ':' + c.cz);
+    for (const c of cells) {
+      if (c.g != null) { c.h = c.g + LAYOUT[c.m][2]; continue; }
+      let found = null;
+      for (let r = 1; r <= 6 && found == null; r++) for (const same of [true, false]) {
+        let sum = 0, n = 0;
+        for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+          const o = at.get(c.m + ':' + (c.cx + dx) + ':' + (c.cz + dz));
+          if (o && o.g != null && (!same || o.loc === c.loc)) { sum += o.g; n++; }
+        }
+        if (n) { found = sum / n; break; }
+      }
+      c.h = (found != null ? found : groundAny(c.m + ':' + c.cx + ':' + c.cz)) + LAYOUT[c.m][2];
+    }
+    // einzelne Ausreißer glätten: Median über die Zelle und ihre Nachbarn desselben Ortes
+    const sm = cells.map(c => {
+      const v = [];
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const o = at.get(c.m + ':' + (c.cx + dx) + ':' + (c.cz + dz)); if (o && o.loc === c.loc) v.push(o.h); }
+      v.sort((x, y) => x - y);
+      return v.length >= 5 ? v[v.length >> 1] : c.h;
+    });
+    cells.forEach((c, i) => { c.h = sm[i]; });
+  }
   const areas = {}, byLocM = {};
   cells.forEach(c => { const k = c.loc + ':' + c.m; (byLocM[k] = byLocM[k] || []).push(c); });
   for (const [k, list] of Object.entries(byLocM)) {
@@ -1070,7 +1274,7 @@ if (MAIN) (async () => {
   // Orte ohne Fläche und ohne direkten Eingang (Schlotberg hinter der Seilbahn, Safari-Zone hinter ihrem Tor …): der
   // Außen-Eingang, von dem aus man sie über höchstens drei Innengebiete erreicht
   if (!IS_XY) {
-    const onMapZone = z => onMapM.has(zm(z));
+    const onMapZone = z => onMapM.has(zmat(z));
     const found = {};
     for (const m of MATS) for (const z of zonesOf[m] || []) for (const w of W[z]) {
       if (w[2] >= NZ || onMapZone(w[2])) continue;
@@ -1097,7 +1301,7 @@ if (MAIN) (async () => {
       ['Xeneroville', 'Route 126', [1.3, 10.3], true],      // Mitte des Kraters
       ['Urzeithöhle', 'Route 126', [1.3, 1.5]],             // im Norden der Stadt
       ['Tiefseehöhle', 'Route 128', [-32.4, -4.7]],         // Tauchstelle (Ring) auf Route 128
-      ['Siegelkammer', 'Route 134', null, false, [490, 542]],   // Tauchstelle zwischen den sechs Felsen
+      ['Siegelkammer', 'Route 134', [33.6, 22.3]],             // Tauchstelle zwischen den sechs Felsen
       ['Küstenhöhle', 'Route 125', [0.4, -4]],              // Höhleneingang auf der Felseninsel
     ];
     for (const [name, rel, d, label, abs] of HAND) {
@@ -1129,15 +1333,15 @@ if (MAIN) (async () => {
       tmMove[id] = code.readUInt16LE(at + idx * 2);
     });
   }
-  const cellH = (m, x, z) => { const h = hist.get(m + ':' + Math.floor(x / 10) + ':' + Math.floor(z / 10)); let best = 0, bw = -1; if (h) for (const [q, w] of h) if (w > bw) { bw = w; best = q; } return best * 4.5 + LAYOUT[m][2]; };
+  const cellH = (m, x, z) => groundAny(m + ':' + Math.floor(x / 10) + ':' + Math.floor(z / 10)) + LAYOUT[m][2];
   const items = {}, trainers = {}, seenItem = new Map(), seenTr = new Map();
   const onMap = new Set(MATS);
   for (let z = 0; z < NZ; z++) {
     let e; try { e = pack(ZO[z])[1]; } catch (err) { continue; }
-    const m = zm(z), loc = zloc(z), out = onMap.has(m) && !(SPECIAL[m] && SPECIAL[m].box);
+    const m = zmat(z), loc = zloc(z), out = onMap.has(m) && !(SPECIAL[m] && SPECIAL[m].box);
     for (let i = 0, o = 8 + e[4] * 0x14; i < e[5]; i++, o += 0x30) {
       const model = u16(e, o + 6), s = u16(e, o + 14), x = u16(e, o + 44), zz = u16(e, o + 46);
-      const pos = out ? [+(LAYOUT[m][0] + x + 0.5 - GX0).toFixed(1), +(LAYOUT[m][1] + zz + 0.5 - GZ0).toFixed(1), +(SHEAR * cellH(m, x, zz) / TILE).toFixed(2)] : [null, null, null];
+      const pos = out && !(CLIP_Z[m] && zz >= CLIP_Z[m]) ? [+(LAYOUT[m][0] + x + 0.5 - GX0).toFixed(1), +(LAYOUT[m][1] + zz + 0.5 - GZ0).toFixed(1), +(SHEAR * cellH(m, x, zz) / TILE).toFixed(2)] : [null, null, null];
       if (s >= 7000 && s < 7000 + fieldItems.length && (model === 8192 || model === 8193)) {
         const [it, qty] = fieldItems[s - 7000], prev = seenItem.get(s);
         if (prev && (prev[3] != null || pos[0] == null)) continue;            // derselbe Ball in einer anderen Zone (Story-Stand)

@@ -6,6 +6,8 @@
  * je Edition ({ heartgold: […], soulsilver: […] }) und mit den HG/SS-eigenen Arten (Zertrümmerer, Kopfnuss, Radio …).
  * FR/LG: frlg.json (tools/build-frlg.js) und tiles-frlg/ (tools/render-frlg.js) – Pixelgrafik aus der GBA-ROM; die Orte
  * der Oberwelt sind Rechtecke (locations[i].rects) statt 32er-Blöcke, Gras ohne Tageszeit (wild[…].grass).
+ * Smaragd: emerald.json (tools/build-emerald.js) und tiles-emerald/ (tools/render-emerald.js) – wie FR/LG, nur eine
+ * Edition (wild ist eine Liste wie bei Platin).
  * Koordinaten sind Spiel-Kacheln: x nach rechts, z nach unten. Leaflet (CRS.Simple) bekommt [−z, x].
  * Das Bild zeigt die Welt aus dem Blickwinkel der Spielkamera: höher gelegene Stellen erscheinen weiter oben.
  */
@@ -16,12 +18,16 @@ document.documentElement.lang = window.LANG;
 const HUB_GAME = window.PokeHubGame && window.PokeHubGame.get();
 const IS_HGSS = HUB_GAME === 'heartgold-soulsilver';
 const IS_FRLG = HUB_GAME === 'feuerrot-blattgruen';
+const IS_EMERALD = HUB_GAME === 'smaragd';
 const GAME = IS_HGSS
   ? { key: 'hgss', data: 'hgss.json', tiles: 'tiles-hgss/', body: 'is-hgss', versions: ['heartgold', 'soulsilver'], storage: 'karte-hgss-version',
       starters: [152, 153, 154, 155, 156, 157, 158, 159, 160], planner: false, rando: false, scene: false, maxDex: 493, start: 'new-bark-town' }
   : IS_FRLG
   ? { key: 'frlg', data: 'frlg.json', tiles: 'tiles-frlg/', body: 'is-frlg', versions: ['firered', 'leafgreen'], storage: 'karte-frlg-version',
       starters: [1, 2, 3, 4, 5, 6, 7, 8, 9], planner: false, rando: false, scene: false, maxDex: 386, pixel: true, labelShift: 1, start: 'pallet-town' }
+  : IS_EMERALD
+  ? { key: 'emerald', data: 'emerald.json', tiles: 'tiles-emerald/', body: 'is-emerald', versions: null,
+      starters: [252, 253, 254, 255, 256, 257, 258, 259, 260], planner: false, rando: false, scene: false, maxDex: 386, pixel: true, labelShift: 1, start: 'littleroot-town' }
   : { key: 'platin', data: 'platin.json', tiles: 'tiles/', body: '', versions: null,
       starters: [387, 388, 389, 390, 391, 392, 393, 394, 395], planner: true, rando: true, scene: true, maxDex: 493, start: 'twinleaf-town' };
 if (GAME.body && !window.KARTE_HOENN && !window.KARTE_RETRO) document.body.classList.add(GAME.body);
@@ -192,9 +198,31 @@ const FRLG_TEXT = {
     monNotInGameText: '{p} only exists from Gen {g} – not in FireRed/LeafGreen.',
   },
 };
+const EMERALD_TEXT = {
+  de: {
+    title: 'Karte von Hoenn', gameBadge: 'Smaragd',
+    subtitle: 'Items, versteckte Items, TMs, Trainer und wilde Pokémon – mit allen Höhlen, Gebäuden und Unterwasser-Karten, an ihrer echten Stelle im Spiel.',
+    note: 'Karte aus den Kartenblöcken, Tilesets und Paletten der deutschen Smaragd-ROM gerendert, Positionen und Inhalte aus dem Spielcode (pret/pokeemerald), deutsche Namen aus der ROM. Zwischen den Karten zeigt sie – wie das Spiel am Kartenrand – die Randblöcke der nächsten Karte; Safari-Zone und Kampfzone liegen dort, wo die Regionskarte sie zeigt. Xeneroville öffnet sich über seinen Krater auf Route 126.',
+    backToMap: 'Hoenn', groupTowns: 'Städte', groupRoutes: 'Routen', groupPlaces: 'Höhlen, Gebäude & Orte',
+    hiddenHint: 'Mit dem Detektor oder durch Absuchen der Stelle zu finden.',
+    monNotInGame: 'gibt es in Smaragd nicht',
+    monNoWildText: '{p} steht auf der Karte nicht als wildes Pokémon. Vielleicht bekommst du es in Smaragd auf anderem Weg: Geschenk, Ei, Tausch, Entwicklung oder eine besondere Begegnung.',
+    monNotInGameText: '{p} gibt es erst ab Gen {g} – in Smaragd nicht.',
+  },
+  en: {
+    title: 'Map of Hoenn', gameBadge: 'Emerald',
+    subtitle: 'Items, hidden items, TMs, trainers and wild Pokémon – with every cave, building and underwater map, at their real spot in the game.',
+    note: 'Map rendered from the map blocks, tilesets and palettes of the German Emerald ROM; positions and contents from the game code (pret/pokeemerald), German names from the ROM. Between the maps it shows – like the game at a map edge – the border blocks of the nearest map; the Safari Zone and Battle Frontier sit where the region map shows them. Sootopolis opens from its crater on Route 126.',
+    backToMap: 'Hoenn', groupTowns: 'Towns & cities', groupRoutes: 'Routes', groupPlaces: 'Caves, buildings & places',
+    hiddenHint: 'Find them with the Itemfinder or by checking the spot.',
+    monNotInGame: 'not in Emerald',
+    monNoWildText: '{p} is not listed as a wild Pokémon on the map. You may get it another way in Emerald: gift, egg, trade, evolution or a special encounter.',
+    monNotInGameText: '{p} only exists from Gen {g} – not in Emerald.',
+  },
+};
 const tr = () => {
   const lang = TRANSLATIONS[window.LANG] ? window.LANG : 'de';
-  return { ...TRANSLATIONS[lang], ...EXTRA[lang], ...(IS_HGSS ? HGSS_TEXT[lang] : IS_FRLG ? FRLG_TEXT[lang] : {}) };
+  return { ...TRANSLATIONS[lang], ...EXTRA[lang], ...(IS_HGSS ? HGSS_TEXT[lang] : IS_FRLG ? FRLG_TEXT[lang] : IS_EMERALD ? EMERALD_TEXT[lang] : {}) };
 };
 const t = (key, vars) => {
   let s = tr()[key] ?? TRANSLATIONS.de[key] ?? key;
@@ -492,6 +520,7 @@ function onZoom() {
   // Namen je nach Zoom: die GBA-Welt ist kleiner (gleiche Pixel je Kachel, aber weniger Kacheln) – eine Stufe später
   const zl = z - (GAME.labelShift || 0);
   el.classList.toggle('z-far', zl < 0);
+  el.classList.toggle('z-wide', zl < -1.25);   // ganz weit draußen (Smaragd: dann nur noch die Städte)
   el.classList.toggle('z-mid', zl >= 0 && zl < 1.5);
   el.classList.toggle('z-near', zl >= 1.5);
   // Über der Auflösung der Kacheln: Pixel scharf vergrößern statt verschwimmen lassen (Pixelgrafik sofort)
@@ -1350,10 +1379,10 @@ if (!window.KARTE_HOENN && !window.KARTE_RETRO) $('lang-toggle').addEventListene
 
 // Randomizer-Stand: Chip „Randomizer: Name ×“ bzw. „Randomizer-ROM laden“ im Kopf
 if (window.PokeHubRando && GAME.rando && !window.KARTE_RETRO && !window.KARTE_HOENN) window.PokeHubRando.chip($('map-rando'));
-// Zwischen Platin, HG/SS und FR/LG (alle über diese Seite) beim Wechsel des Spiel-Chips neu laden
+// Zwischen Platin, HG/SS, FR/LG und Smaragd (alle über diese Seite) beim Wechsel des Spiel-Chips neu laden
 document.addEventListener('hubgamechange', () => {
   if (window.KARTE_HOENN || window.KARTE_RETRO) return;
   const next = window.PokeHubGame && window.PokeHubGame.get();
-  if ((next === 'heartgold-soulsilver') !== IS_HGSS || (next === 'feuerrot-blattgruen') !== IS_FRLG) location.reload();
+  if ((next === 'heartgold-soulsilver') !== IS_HGSS || (next === 'feuerrot-blattgruen') !== IS_FRLG || (next === 'smaragd') !== IS_EMERALD) location.reload();
 });
 if (!window.KARTE_HOENN && !window.KARTE_RETRO) init();

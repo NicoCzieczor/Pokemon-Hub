@@ -4,9 +4,9 @@
  *
  * Für jeden Trainer mit Namen das vollständige Team so, wie es in der ROM steht (Bosse/oras-rom.js):
  *  - Attacken: eigene aus den Trainerdaten oder – wie im Spiel – die letzten vier Level-Attacken
- *  - DVs: DV-Stufe · 31 / 255 für alle Werte, keine FP (EVs)
- *  - Fähigkeit: Platz aus den Trainerdaten (0 = beliebig → erste, 3 = versteckte)
- *  - Wesen: wie Gen 6 es für Trainer erzeugt, ist nicht dokumentiert → null (der Planer rechnet neutral)
+ *  - DVs: DV-Byte & 31 für alle Werte, keine FP (EVs) – so übernimmt es das Spiel (oras-rom.js trainerTable)
+ *  - Fähigkeit: Platz aus den Trainerdaten (1–3), sonst wie das Spiel ihn bestimmt
+ *  - Wesen: wie das Spiel es erzeugt (TinyMT32 aus DV-Byte + Level + Art, Trainerklasse; oras-rom.js trainerTable)
  *  - Mega-Stein der eigenen Art → Mega-Form (Index 8 im Eintrag), wie im Kampf
  * Story-Reihenfolge, Orte und Rivalen-Zuordnung (nach Starter und Geschlecht des Spielers) stehen unten in STORY/POST –
  * die Trainernummern sind die der ROM. „v“ = nur in Omega Rubin („or“) bzw. Alpha Saphir („as“).

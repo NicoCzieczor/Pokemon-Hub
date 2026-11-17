@@ -76,6 +76,11 @@
         <span class="drop-sub" data-i18n="dropSub">Platin: Datei endet auf .sav oder .dsv. Omega Rubin / Alpha Saphir: Datei „main“ von Citra oder Azahar. Sie bleibt auf deinem Gerät und wird nirgendwo hochgeladen.</span>
       </button>
       <div class="recent" id="recent" hidden></div>
+      <div class="find" id="find" hidden>
+        <button type="button" class="small-btn" id="find-dir" data-i18n="findBtn">Spielstand suchen lassen</button>
+        <span data-i18n="findSub">Du musst die Datei nicht selbst finden: Wähle einmal den Ordner deines Emulators (Azahar/Citra: den, den du beim ersten Start gewählt hast) oder den Ordner mit deinen Spielen – die Seite sucht den Spielstand heraus und merkt ihn sich.</span>
+      </div>
+      <div class="found" id="found" hidden></div>
       <div class="save-card" id="save-card" hidden></div>
       <p class="msg msg-error" id="file-error" hidden></p>
       <p class="msg msg-warn" id="pick-hint" hidden></p>
@@ -154,6 +159,7 @@
 <script src="../SaveViewer/hub-save.js"></script>
 <script src="../scene.js"></script>
 <script src="chip.js"></script>
+<script src="find-saves.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

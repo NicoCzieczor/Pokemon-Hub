@@ -1,15 +1,32 @@
 Pokémon Smaragd – Kartenquellen
-=================================
+================================
 
-Die Hoenn-Karte wurde aus der vollständigen pret/pokeemerald-Disassembly
-gerendert. Verwendet werden Smaragds originale GBA-Tilesets, Paletten,
-Metatiles, Layout-Blöcke und Kartenverbindungen. Kampffront, Safari-Zone
-und weitere Außenbereiche sind als eigene Kartenbereiche enthalten.
-Die Funddaten stammen direkt aus Smaragds Begegnungstabellen.
+Die Kartenbilder wurden lokal aus der vom Benutzer bereitgestellten deutschen
+Pokémon-Smaragd-ROM (Game Code BPED) gerendert (Karte/tools/render-emerald.js,
+Parser aus render-frlg.js mit Smaragd-Profil). Die ROM selbst ist nicht Teil
+dieses Projekts und wurde nicht in den Projektordner kopiert.
 
-Quelle: https://github.com/pret/pokeemerald
-Stand: 731ad5bfd6e6
+Oberwelt: die 57 Außenkarten von Hoenn, über ihre Kartenverbindungen
+zusammengesetzt, dazu Safari-Zone und Kampfzone dort, wo die Regionskarte des
+Spiels sie zeigt. Zwischen den Karten stehen – wie im Spiel am Kartenrand – bis
+zu 12 Kacheln weit die Randblöcke der jeweils nächsten Karte (Bäume, Felsen,
+Wasser); größere Lücken zeigen den Rand, der sie am meisten umgibt, ringsum
+liegt offenes Meer. Xeneroville ist größer als sein Krater auf Route 126: der
+Krater ist sein Ort, die Stadt eine Innenkarte. Innenkarten: jede Höhle, jedes
+Gebäude, jede Etage und jede Unterwasser-Karte mit Items, Trainern oder wilden
+Pokémon einzeln, gepackt in Atlanten (in/). Alles verlustfreies WebP.
+
+Inhalte (Orte, Items, versteckte Items, Trainer mit Team, wilde Pokémon, feste
+Begegnungen, Geschenke, Eier, Ein- und Ausgänge) stammen aus dem Spielcode
+(github.com/pret/pokeemerald, Karte/tools/build-emerald.js), die deutschen
+Namen von Orten, Items, Attacken, Trainern und Trainerklassen aus der ROM.
+
+Neu bauen:
+  node Karte/tools/render-emerald.js <smaragd.gba> <render> --decomp=<pokeemerald>
+  node Karte/tools/build-emerald.js <pokeemerald> <render>/render.json <smaragd.gba>
+  node Karte/tools/render-emerald.js <smaragd.gba> <render> --decomp=<pokeemerald> --interiors-only --data=Karte/emerald.json
+  python Karte/tools/make-tiles.py <render> Karte/tiles-emerald --interiors <render> --lossless
 
 Pokémon, die Karten- und Grafikdaten sind Eigentum von GAME FREAK, Nintendo,
-Creatures Inc. und The Pokémon Company. Die Ausgabe dient nur der privaten,
+Creatures Inc. und The Pokémon Company. Diese Dateien dienen nur der privaten,
 lokalen Darstellung innerhalb des Pokémon Hubs.

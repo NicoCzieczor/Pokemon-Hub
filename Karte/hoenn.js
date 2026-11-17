@@ -318,14 +318,26 @@
       for (var x = r[0]; x < r[2]; x += 10) for (var z = r[1]; z < r[3]; z += 10) cells[x + ':' + z] = r[4];
       selLayer.addLayer(L.rectangle(L.latLngBounds(ll(r[0], r[3] - r[4]), ll(r[2], r[1] - r[4])), { stroke: false, fillColor: '#57d2ff', fillOpacity: 0.14, interactive: false }));
     });
+    // Jede Zelle ist um ihre Bodenhöhe nach oben gerückt (Schrägsicht). Wo Nachbarzellen verschieden hoch liegen, endeten
+    // die Randstücke auf verschiedener Höhe – der Umriss zerfiel an Bergen (Liga, Prachtpolis City) in lose Striche. An
+    // jeder Ecke des Zellrasters verbindet deshalb ein senkrechtes Stück die Enden: der Umriss bleibt geschlossen
+    var corners = {};
+    var edge = function (x1, z1, x2, z2, up) {
+      segs.push([ll(x1, z1 - up), ll(x2, z2 - up)]);
+      [[x1, z1], [x2, z2]].forEach(function (p) {
+        var c = corners[p[0] + ':' + p[1]] || (corners[p[0] + ':' + p[1]] = [p[0], Infinity, -Infinity]);
+        c[1] = Math.min(c[1], p[1] - up); c[2] = Math.max(c[2], p[1] - up);
+      });
+    };
     Object.keys(cells).forEach(function (k) {
       var c = k.split(':').map(Number), x = c[0], z = c[1], up = cells[k];
       var has = function (dx, dz) { return (x + dx) + ':' + (z + dz) in cells; };
-      if (!has(0, -10)) segs.push([ll(x, z - up), ll(x + 10, z - up)]);
-      if (!has(0, 10)) segs.push([ll(x, z + 10 - up), ll(x + 10, z + 10 - up)]);
-      if (!has(-10, 0)) segs.push([ll(x, z - up), ll(x, z + 10 - up)]);
-      if (!has(10, 0)) segs.push([ll(x + 10, z - up), ll(x + 10, z + 10 - up)]);
+      if (!has(0, -10)) edge(x, z, x + 10, z, up);
+      if (!has(0, 10)) edge(x, z + 10, x + 10, z + 10, up);
+      if (!has(-10, 0)) edge(x, z, x, z + 10, up);
+      if (!has(10, 0)) edge(x + 10, z, x + 10, z + 10, up);
     });
+    Object.keys(corners).forEach(function (k) { var c = corners[k]; if (c[2] - c[1] > 0.05) segs.push([ll(c[0], c[1]), ll(c[0], c[2])]); });
     if (segs.length) selLayer.addLayer(L.polyline(segs, { color: '#57d2ff', weight: 2, opacity: 0.95, interactive: false }));
     entrancesOf(li).forEach(function (e) {
       selLayer.addLayer(L.circleMarker(ll(e[0], e[1] - e[2]), { radius: 12, color: '#57d2ff', weight: 2.5, fill: false, interactive: false }));
@@ -701,7 +713,10 @@
     window.LANG = window.LANG === 'de' ? 'en' : 'de';
     try { localStorage.setItem('hub-lang', window.LANG); } catch (e) { /* egal */ }
     rerender();
+    document.dispatchEvent(new CustomEvent('langchange'));   // der Randomizer-Chip im Kopf wechselt mit
   });
+  // Randomizer-Stand wie im Boss-Planer: Chip „Randomizer: Name ×“ (entfernen) bzw. „Randomizer-ROM laden“
+  if (window.PokeHubRando) window.PokeHubRando.chip($('map-rando'));
   var timer = null;
   $('map-search').addEventListener('input', function (e) { clearTimeout(timer); timer = setTimeout(function () { if (D) search(e.target.value); }, 120); });
   $('map-search').addEventListener('keydown', function (e) {

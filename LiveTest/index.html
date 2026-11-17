@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- PWA: Homescreen-App + Offline -->
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0d0f2b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PokéHub">
+  <link rel="apple-touch-icon" href="../icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+  <script src="../pwa.js"></script>
+  <link rel="stylesheet" href="../theme.css">
+  <title>Live-Test – Pokémon Hub</title>
+  <link rel="stylesheet" href="../Pokelocke/base.css">
+  <link rel="stylesheet" href="../SaveEditor/style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" class="win-frame">
+
+<button class="lang-toggle" id="lang-toggle" type="button">DE</button>
+
+<!-- Versuchsseite: steht selbst nicht in der Leiste und ist mit keiner anderen Seite verbunden -->
+<nav class="tool-nav" aria-label="Pokemon tools">
+  <a class="tool-nav-link" href="../index.html">Home</a>
+  <a class="tool-nav-link" href="../RunDashboard/index.html">Run</a>
+  <a class="tool-nav-link" href="../Pokelocke/index.html">Solo</a>
+  <a class="tool-nav-link" href="../Duo/index.html">Duo</a>
+  <a class="tool-nav-link" href="../Trio/index.html">Trio</a>
+  <a class="tool-nav-link" href="../Catchrate/index.html">Fangrate</a>
+  <a class="tool-nav-link" href="../DamageCalc/index.html">Schaden</a>
+  <a class="tool-nav-link" href="../Typrechner/index.html">Typen</a>
+  <a class="tool-nav-link" href="../PokemonInfo/index.html">Dex</a>
+  <a class="tool-nav-link" href="../Karte/index.html">Karte</a>
+  <a class="tool-nav-link" href="../Bosse/index.html">Bosse</a>
+  <a class="tool-nav-link" href="../SaveViewer/index.html">Save</a>
+  <a class="tool-nav-link" href="../SaveEditor/index.html">Editor</a>
+  <a class="tool-nav-link" href="../Randomizer/index.html">Randomizer</a>
+  <a class="tool-nav-link" href="../Rules/index.html">Regeln</a>
+</nav>
+
+<header class="page-head">
+  <h1><span data-i18n="title1">Live-</span><span class="accent" data-i18n="title2">Test</span> <span class="lv-tag" data-i18n="tag">Versuch</span></h1>
+  <p data-i18n="subtitle">Die Seite beobachtet deine Spielstand-Datei. Sobald du im Spiel speicherst, steht hier, was seit dem letzten Speichern passiert ist – gefangen, besiegt, Level, Entwicklung, Orden.</p>
+</header>
+
+<input type="file" id="file-input" hidden>
+
+<!-- 1: Datei wählen und beobachten -->
+<section class="lv-card" id="watch-card">
+  <h2 data-i18n="watchTitle">Spielstand beobachten</h2>
+  <div class="btn-row">
+    <button type="button" class="small-btn lv-main-btn" id="pick" data-i18n="pick">Spielstand wählen</button>
+    <button type="button" class="small-btn" id="find-dir" data-i18n="findBtn" hidden>Im Ordner suchen lassen</button>
+    <button type="button" class="small-btn" id="resume" hidden></button>
+  </div>
+  <p class="lv-hint" id="pick-hint" data-i18n="pickHint">Platin: .sav oder .dsv. Omega Rubin / Alpha Saphir: „main“ von Citra oder Azahar. Die Datei wird nur gelesen, nie geändert, und bleibt auf deinem Gerät. Du kannst sie auch hier hineinziehen.</p>
+  <div class="found" id="found" hidden></div>
+  <p class="msg msg-warn" id="no-watch" hidden></p>
+  <p class="msg msg-error" id="error" hidden></p>
+
+  <div class="lv-status" id="status" hidden>
+    <span class="lv-dot" id="dot"></span>
+    <div class="lv-status-main">
+      <b id="status-title"></b>
+      <span id="status-meta"></span>
+      <small id="status-tech"></small>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="small-btn" id="check" data-i18n="check">Jetzt prüfen</button>
+      <button type="button" class="small-btn" id="pause"></button>
+    </div>
+  </div>
+</section>
+
+<!-- 1b: Live aus dem Arbeitsspeicher des Emulators (Hilfsprogramm bridge/PokeHub-Live.cmd) -->
+<section class="lv-card" id="live-card">
+  <div class="lv-head">
+    <h2 data-i18n="liveTitle">Sofort – direkt aus dem Emulator</h2>
+    <span class="lv-tag" data-i18n="liveTag">nur Windows-PC</span>
+  </div>
+  <p class="lv-hint" data-i18n="liveHint">Mit einem kleinen Hilfsprogramm liest die Seite Team und Boxen aus dem laufenden Emulator mit. Dann erscheinen Fänge, Level und besiegte Pokémon sofort – nicht erst beim Speichern.</p>
+  <ol class="lv-steps">
+    <li data-i18n="live1">Hilfsprogramm starten: <a href="bridge/PokeHub-Live.cmd" download>PokeHub-Live.cmd</a> herunterladen und doppelklicken.</li>
+    <li data-i18n="live2">Emulator starten und im Spiel den Spielstand laden (Azahar, Citra, melonDS, DeSmuME …).</li>
+    <li data-i18n="live3">Oben die Spielstand-Datei wählen – an ihr erkennt die Seite dein Team im Speicher – und dann hier verbinden.</li>
+  </ol>
+  <div class="lv-status">
+    <span class="lv-dot" id="live-dot"></span>
+    <div class="lv-status-main">
+      <b id="live-title"></b>
+      <small id="live-meta"></small>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="small-btn" id="live-rescan" data-i18n="liveRescan" hidden>Neu suchen</button>
+      <button type="button" class="small-btn" id="live-toggle"></button>
+    </div>
+  </div>
+</section>
+
+<!-- 2: Team, wie es im Spielstand steht -->
+<section class="lv-card" id="team-card" hidden>
+  <div class="lv-head">
+    <h2><span data-i18n="teamTitle">Team</span> <span class="lv-tag lv-tag--live" id="team-live" hidden>live</span></h2>
+    <span class="lv-sum" id="summary"></span>
+  </div>
+  <div class="lv-team" id="team"></div>
+</section>
+
+<!-- 3: Ereignisse -->
+<section class="lv-card" id="log-card">
+  <div class="lv-head">
+    <h2 data-i18n="logTitle">Ereignisse</h2>
+    <button type="button" class="small-btn" id="clear" data-i18n="clear" hidden>Protokoll leeren</button>
+  </div>
+  <p class="lv-hint" id="log-empty" data-i18n="logEmpty">Noch nichts. Wähle oben deinen Spielstand, spiele und speichere im Spiel – dann erscheint hier, was passiert ist.</p>
+  <ol class="lv-log" id="log" aria-live="polite"></ol>
+</section>
+
+<details class="where lv-about">
+  <summary data-i18n="aboutTitle">Was dieser Test kann – und was nicht</summary>
+  <ul>
+    <li data-i18n="about1">Die Seite schaut alle zwei Sekunden nach, ob sich die Datei geändert hat. Der Emulator schreibt sie nur, wenn du <b>im Spiel speicherst</b> – dazwischen kann hier nichts erscheinen.</li>
+    <li data-i18n="about2">„Besiegt“ heißt: Beim Speichern hatte das Pokémon im Team 0 KP. Wer vor dem Speichern heilt, hinterlässt keine Spur. Für wirklich sofortige Meldungen müsste ein Skript im Emulator den Arbeitsspeicher mitlesen – das wäre der nächste Schritt.</li>
+    <li data-i18n="about3">Beobachten geht in Chrome und Edge am PC und in Chrome auf Android (ab Version 132). In Firefox und auf dem iPhone kannst du die Datei nach dem Speichern nur von Hand neu einlesen.</li>
+    <li data-i18n="about4">Am Handy ruht die Seite, solange der Emulator im Vordergrund ist. Sobald du zurückwechselst, prüft sie sofort und trägt alles nach.</li>
+    <li data-i18n="about5">Der letzte Stand und das Protokoll bleiben in diesem Browser gespeichert. Die Seite ist ein Versuch und gibt nichts an Run-Dashboard, Solo, Duo oder Trio weiter.</li>
+  </ul>
+</details>
+
+</div>
+
+<script src="../SaveViewer/data-pt.js"></script>
+<script src="../SaveViewer/pt-save.js"></script>
+<script src="../SaveViewer/data-oras.js"></script>
+<script src="../SaveViewer/oras-save.js"></script>
+<script src="../SaveViewer/hub-save.js"></script>
+<script src="../SaveEditor/find-saves.js"></script>
+<script src="live-diff.js"></script>
+<script src="live-mem.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

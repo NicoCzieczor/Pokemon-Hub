@@ -46,6 +46,14 @@
       recentTitle: 'Zuletzt geöffnet:', recentOpen: 'Neu laden',
       recentHint: 'Liest die Datei frisch von der Festplatte – Speichern schreibt wieder genau dorthin.',
       recentGone: function (n) { return '„' + n + '“ ist nicht mehr da (verschoben oder gelöscht) – bitte neu auswählen.'; },
+      findBtn: 'Spielstand suchen lassen',
+      findSub: 'Du musst die Datei nicht selbst finden: Wähle einmal den Ordner deines Emulators (Azahar/Citra: den, den du beim ersten Start gewählt hast) oder den Ordner mit deinen Spielen – die Seite sucht den Spielstand heraus und merkt ihn sich.',
+      findBusy: function (n) { return 'Suche nach Spielständen … (' + n + ' Ordner)'; },
+      findNone: 'In diesem Ordner liegt kein Spielstand von Platin oder Omega Rubin / Alpha Saphir. Nimm den Ordner des Emulators – bei Azahar/Citra den, in dem „sdmc“ liegt – oder den Ordner mit deinem Spiel.',
+      findStopped: 'Der Ordner ist sehr groß – die Suche hat aufgehört, bevor sie fertig war. Wähle einen Ordner weiter innen (z. B. den des Emulators).',
+      findPick: 'Mehrere Spielstände gefunden – welchen möchtest du öffnen?',
+      findBlocked: 'Diesen Ordner gibt der Browser nicht frei (Systemordner). Wähle einen Ordner darin – oder die Datei direkt über das Feld oben.',
+      findChanged: function (d) { return 'geändert ' + d; },
       pickPlain: 'Ohne Direktspeichern öffnen',
       whereNote: 'Wichtig: Nimm den normalen Spielstand – keinen Savestate („Schnellspeichern“ im Emulator).',
       s3Title: 'Ändern, was du willst',
@@ -217,6 +225,14 @@
       recentTitle: 'Last opened:', recentOpen: 'Reload',
       recentHint: 'Reads the file fresh from disk – saving writes right back to it.',
       recentGone: function (n) { return '“' + n + '” is gone (moved or deleted) – please choose it again.'; },
+      findBtn: 'Find my save for me',
+      findSub: 'You do not have to find the file yourself: choose your emulator\'s folder once (Azahar/Citra: the one you picked on first start) or the folder with your games – the page finds the save and remembers it.',
+      findBusy: function (n) { return 'Looking for saves … (' + n + ' folders)'; },
+      findNone: 'There is no Platinum or Omega Ruby / Alpha Sapphire save in this folder. Take the emulator\'s folder – for Azahar/Citra the one that contains “sdmc” – or the folder with your game.',
+      findStopped: 'The folder is very large – the search stopped before it was done. Choose a folder further inside (e.g. the emulator\'s).',
+      findPick: 'Found several saves – which one do you want to open?',
+      findBlocked: 'The browser does not allow this folder (system folder). Choose a folder inside it – or the file itself via the field above.',
+      findChanged: function (d) { return 'changed ' + d; },
       pickPlain: 'Open without direct saving',
       whereNote: 'Important: use the normal save file – not a save state (the emulator\'s quick save).',
       s3Title: 'Change whatever you want',
@@ -370,7 +386,7 @@
   // shift = Platz des Pokémon, das gerade verschoben wird (wKey); shiftNote = warum es nicht ging;
   // add = Formular für ein neues Pokémon (placing: jetzt einen freien Platz antippen)
   // recent = zuletzt geöffnete Datei mit Datei-Griff (Recent)
-  var state = { save: null, tab: 'mons', mon: null, box: 0, pocket: 0, picker: null, busy: false, result: null, error: '', backups: [], shift: null, shiftNote: '', add: null, recent: null };
+  var state = { save: null, tab: 'mons', mon: null, box: 0, pocket: 0, picker: null, busy: false, result: null, error: '', backups: [], shift: null, shiftNote: '', add: null, find: null, recent: null };
 
   var $ = function (id) { return document.getElementById(id); };
   function narrow() { return !!(window.matchMedia && matchMedia('(max-width: 860px)').matches); }
@@ -500,7 +516,7 @@
   })();
   var runDb = Backups.runDb;
 
-  // Zuletzt geöffnete Datei (am PC mit Datei-Zugriff): der Datei-Griff selbst, damit „Neu laden“ immer den
+  // Zuletzt geöffnete Datei (mit Datei-Zugriff): der Datei-Griff selbst, damit „Neu laden“ immer den
   // aktuellen Stand von der Festplatte liest und „Speichern“ wieder genau dorthin schreibt. Dazu Name, Spiel und
   // Trainer für die Anzeige. Der Browser fragt beim ersten Zugriff nach einem Neustart einmal nach der Erlaubnis.
   var Recent = {
@@ -605,6 +621,67 @@
       if (err && err.name === 'AbortError') { state.pickHint = true; render(); return; }
       $('file-input').click();      // z. B. in einem eingebetteten Fenster nicht erlaubt
     });
+  }
+
+  // „Spielstand suchen lassen“: einmal den Ordner des Emulators (oder der Spiele) wählen – find-saves.js sucht darin die
+  // Spielstände, HubSave entscheidet, ob es einer ist. Einer gefunden: gleich öffnen; mehrere: zur Auswahl. Der Griff auf
+  // die Datei gilt wie beim Öffnen am PC: direkt speichern und „Zuletzt geöffnet → Neu laden“ – auch am Handy.
+  // state.find: { busy, n } | { list } | { msg }
+  var canFind = function () { return !!(window.showDirectoryPicker && window.SaveFinder); };
+  function findInFolder() {
+    if (!canFind() || state.busy || (state.find && state.find.busy)) return;
+    window.showDirectoryPicker({ id: 'pokehub-emu', mode: 'readwrite' }).then(function (dir) {
+      state.error = '';
+      state.find = { busy: true, n: 0 };
+      render();
+      var shown = 0;
+      return SaveFinder.find(dir, {
+        check: function (bytes) {
+          var d = HubSave.parse(bytes);
+          return d.ok && d.checksums.general ? { kind: d.kind, trainer: d.trainer.name, badges: d.trainer.badgeCount, time: d.trainer.playTime } : null;
+        },
+        onProgress: function (n) {
+          var now = Date.now();
+          if (now - shown < 150) return;
+          shown = now;
+          state.find = { busy: true, n: n };
+          var el = $('found'); if (el) el.textContent = L().findBusy(n);
+        }
+      }).then(function (res) {
+        if (res.list.length === 1) { state.find = null; return openFound(res.list[0]); }
+        state.find = res.list.length ? { list: res.list } : { msg: res.stopped ? 'findStopped' : 'findNone' };
+        render();
+      });
+    }).catch(function (err) {
+      if (err && err.name === 'AbortError') {
+        // abgebrochen – oder der Browser hat den Ordner gesperrt (dann zeigt er dazu selbst einen Hinweis)
+        if (state.find && state.find.busy) { state.find = null; render(); }
+        return;
+      }
+      state.find = { msg: err && err.name === 'SecurityError' ? 'findBlocked' : 'findNone' };
+      render();
+    });
+  }
+  function openFound(item) {
+    return item.handle.getFile().then(function (f) { state.find = null; return load(f, item.handle); }).catch(function (err) {
+      state.find = null;
+      state.error = L().errRead + (err && err.message);
+      render();
+    });
+  }
+  function findHtml() {
+    var l = L(), f = state.find;
+    if (!f) return '';
+    if (f.busy) return esc(l.findBusy(f.n));
+    if (f.msg) return '<p class="msg msg-warn">' + esc(l[f.msg]) + '</p>';
+    var fmt = function (t) { return new Date(t).toLocaleString(lang === 'de' ? 'de-DE' : 'en-US', { dateStyle: 'short', timeStyle: 'short' }); };
+    return '<p class="found-title">' + esc(l.findPick) + '</p>' + f.list.map(function (it, i) {
+      var game = HubSave.GAMES.indexOf(it.info.kind) >= 0 ? HubSave.get(it.info.kind).name[lang] : '';
+      return '<button type="button" class="found-item" data-found="' + i + '">' +
+        '<b>' + esc(game) + ' · ' + esc(it.info.trainer) + '</b>' +
+        '<span>' + esc(l.badges(it.info.badges)) + ' · ' + esc(l.playTime(it.info.time.h, it.info.time.m)) + (it.modified ? ' · ' + esc(l.findChanged(fmt(it.modified))) : '') + '</span>' +
+        '<small>' + esc(it.path) + '</small></button>';
+    }).join('');
   }
 
   /* ── Ändern (immer in der Arbeitskopie) ────────────────────────── */
@@ -1296,6 +1373,13 @@
         '</span><button type="button" class="small-btn" id="recent-open" title="' + esc(l.recentHint) + '"' + (state.busy ? ' disabled' : '') + '>' + esc(l.recentOpen) + '</button>';
     }
 
+    // Spielstand suchen lassen (nur wo der Browser Ordner freigeben kann)
+    $('find').hidden = !canFind() || !!sv;
+    $('find-dir').disabled = state.busy || !!(state.find && state.find.busy);
+    $('found').hidden = !state.find || !!sv;
+    $('found').classList.toggle('is-busy', !!(state.find && state.find.busy));
+    if (state.find && !sv) $('found').innerHTML = findHtml();
+
     // Schritt 3: ändern
     var dirty = !!sv && !sameBytes(sv.orig, sv.work);
     var saved = !dirty && !!state.result && /^(direct|download)$/.test(state.result.kind);
@@ -1349,8 +1433,14 @@
   $('drop').addEventListener('click', function () { if (!state.busy) pickFile(); });
   $('pick-hint').addEventListener('click', function (e) { if (e.target.closest('#pick-plain')) $('file-input').click(); });
   $('recent').addEventListener('click', function (e) { if (e.target.closest('#recent-open')) openRecent(); });
-  // Zuletzt geöffnete Datei (nur mit Datei-Zugriff, also am PC in Chrome/Edge)
-  if (window.showOpenFilePicker && !PHONE) {
+  $('find-dir').addEventListener('click', findInFolder);
+  $('found').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-found]');
+    if (b && state.find && state.find.list) openFound(state.find.list[+b.dataset.found]);
+  });
+  // Zuletzt geöffnete Datei (nur mit Datei-Zugriff: am PC in Chrome/Edge; am Handy, wenn der Spielstand über
+  // „Spielstand suchen lassen“ kam – nur dann gibt es dort einen Griff)
+  if (window.showOpenFilePicker || window.showDirectoryPicker) {
     Recent.get().then(function (rec) { if (rec && rec.handle && !state.recent) { state.recent = rec; render(); } });
   }
   $('file-input').addEventListener('change', function (e) {

@@ -14,6 +14,7 @@
       'pokedex-name': 'Pokédex', 'map-name': 'Karte', 'rules-name': 'Regelwerk',
       'backup-export': 'Daten sichern', 'backup-import': 'Daten laden',
       'ai-notice': 'Erstellt mit KI-Unterstützung',
+      'live-test': 'Live-Test (Versuch)',
       'footer': 'Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.'
     },
     en: {
@@ -24,6 +25,7 @@
       'pokedex-name': 'Pokédex', 'map-name': 'Map', 'rules-name': 'Rulebook',
       'backup-export': 'Back up data', 'backup-import': 'Restore data',
       'ai-notice': 'Built with AI assistance',
+      'live-test': 'Live test (experiment)',
       'footer': 'Pokémon and all related names are trademarks of Nintendo / Game Freak.'
     }
   };

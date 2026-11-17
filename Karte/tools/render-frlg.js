@@ -33,11 +33,15 @@ const OUT = path.resolve(args[1] || 'render-frlg');
 const ROM_BASE = 0x08000000;
 const CHUNK = 512;
 const METATILE_PX = 16;
-const PRIMARY_METATILES = 640;
+// Aufteilung der Tilesets: Feuerrot/Blattgrün 640 Tiles/Metatiles und 7 Paletten im ersten Tileset, Smaragd 512 und 6.
+// Smaragd ordnet außerdem die Felder der Tileset-Struktur anders (Attribute vor dem Rückruf) und hat keinen
+// Randblock-Rahmen in der Layout-Struktur (immer 2 × 2).
+const PROFILES = {
+  frlg: { primaryMetatiles: 640, primaryTiles: 640, primaryPalettes: 7, callbackAt: 16, attributesAt: 20, borderSize: true },
+  emerald: { primaryMetatiles: 512, primaryTiles: 512, primaryPalettes: 6, callbackAt: 20, attributesAt: 16, borderSize: false },
+};
 const TOTAL_METATILES = 1024;
-const PRIMARY_TILES = 640;
 const TOTAL_TILES = 1024;
-const PRIMARY_PALETTES = 7;
 const FILL_MARGIN = 3;   // so viele Kacheln Rand bekommt jede Inselgruppe rundherum
 const FILL_REACH = +(opts.reach || 8); // so weit (Kacheln) reicht der Rand einer Karte – etwa so weit wie im Spiel auf dem Bildschirm
 
@@ -76,7 +80,7 @@ function lz77(rom, o) {
   return out;
 }
 
-function makeReader(rom) {
+function makeReader(rom, profile = PROFILES.frlg) {
   const tileCache = new Map(), tilesetCache = new Map(), layoutCache = new Map(), headerCache = new Map();
 
   function tileset(o) {
@@ -85,9 +89,9 @@ function makeReader(rom) {
     if (o % 4 === 0 && o + 24 <= rom.length) {
       const compressed = u8(rom, o), secondary = u8(rom, o + 1);
       const tiles = ptr(rom, o + 4), palettes = ptr(rom, o + 8);
-      const metatiles = ptr(rom, o + 12), callbackRaw = u32(rom, o + 16);
-      const attributes = ptr(rom, o + 20);
-      const callbackOk = callbackRaw === 0 || ((callbackRaw & 1) && ptr(rom, o + 16) != null);
+      const metatiles = ptr(rom, o + 12), callbackRaw = u32(rom, o + profile.callbackAt);
+      const attributes = ptr(rom, o + profile.attributesAt);
+      const callbackOk = callbackRaw === 0 || ((callbackRaw & 1) && ptr(rom, o + profile.callbackAt) != null);
       if (compressed <= 1 && secondary <= 1 && u16(rom, o + 2) === 0 && callbackOk &&
           tiles != null && palettes != null && metatiles != null && attributes != null) {
         value = { offset: o, compressed: !!compressed, secondary: !!secondary, tiles, palettes, metatiles, attributes };
@@ -104,7 +108,7 @@ function makeReader(rom) {
       const width = u32(rom, o), height = u32(rom, o + 4);
       const border = ptr(rom, o + 8), blocks = ptr(rom, o + 12);
       const primary = ptr(rom, o + 16), secondary = ptr(rom, o + 20);
-      let borderWidth = u8(rom, o + 24), borderHeight = u8(rom, o + 25);
+      let borderWidth = profile.borderSize ? u8(rom, o + 24) : 2, borderHeight = profile.borderSize ? u8(rom, o + 25) : 2;
       if (!(borderWidth >= 1 && borderWidth <= 8 && borderHeight >= 1 && borderHeight <= 8)) {
         borderWidth = 2; borderHeight = 2;
       }
@@ -183,13 +187,13 @@ function makeReader(rom) {
 
   function tiles(t, primary) {
     if (tileCache.has(t.offset)) return tileCache.get(t.offset);
-    const count = primary ? PRIMARY_TILES : TOTAL_TILES - PRIMARY_TILES;
+    const count = primary ? profile.primaryTiles : TOTAL_TILES - profile.primaryTiles;
     const value = t.compressed ? (lz77(rom, t.tiles) || Buffer.alloc(0)) : rom.subarray(t.tiles, Math.min(rom.length, t.tiles + count * 32));
     tileCache.set(t.offset, value);
     return value;
   }
 
-  return { tileset, layout, header, findGroups, tiles };
+  return { tileset, layout, header, findGroups, tiles, profile };
 }
 
 function color555(value) {
@@ -202,6 +206,7 @@ const metatileSets = new Map();
 function metatiles(rom, reader, l, stats) {
   const key = `${l.primary}:${l.secondary}`;
   if (metatileSets.has(key)) return metatileSets.get(key);
+  const { primaryMetatiles: PRIMARY_METATILES, primaryTiles: PRIMARY_TILES, primaryPalettes: PRIMARY_PALETTES } = reader.profile;
   const primary = reader.tileset(l.primary), secondary = reader.tileset(l.secondary);
   const primaryTiles = reader.tiles(primary, true), secondaryTiles = reader.tiles(secondary, false);
   const palettes = Array.from({ length: 16 }, (_, p) => {
@@ -516,4 +521,4 @@ if (require.main === module) {
   } catch (error) { console.error(error.stack || error); process.exit(1); }
 }
 
-module.exports = { makeReader, renderMap, arrange, lz77, ptr, u8, u16, u32 };
+module.exports = { PROFILES, makeReader, renderMap, metatiles, connections, makeWorld, blockOffset, arrange, lz77, ptr, u8, u16, u32, i32 };

@@ -1,30 +1,25 @@
 #!/usr/bin/env node
 /*
- * Builds the Black/White Unova location data from a fixed map layout and PokeAPI encounters.
- * Usage: node build-unova.js [output.json]
+ * Baut die Orte der Schwarz/Weiß-Karte (unova.json): Lage aus layout-unova.js (Zonen der ROM in der
+ * zusammengesetzten Welt), wilde Pokémon aus PokeAPI.
+ * Aufruf: node build-unova.js [ausgabe.json] --layout=<layout.json> [--reuse=<alte unova.json>]
+ *   --reuse: wilde Pokémon aus einer vorhandenen unova.json übernehmen statt PokeAPI neu abzufragen
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const OUT = path.resolve(process.argv[2] || path.join(__dirname, '..', 'unova.json'));
+const argv = process.argv.slice(2), opt = k => (argv.find(a => a.startsWith(`--${k}=`)) || '').slice(k.length + 3);
+const OUT = path.resolve(argv.find(a => !a.startsWith('--')) || path.join(__dirname, '..', 'unova.json'));
 const API = 'https://pokeapi.co/api/v2/location-area/';
-const WORLD_WIDTH = 26 * 32;
-const WORLD_HEIGHT = 23 * 32;
+if (!opt('layout')) { console.error('--layout=<layout.json> fehlt (node layout-unova.js <weiss.nds> layout.json)'); process.exit(1); }
+const LAYOUT = JSON.parse(fs.readFileSync(path.resolve(opt('layout')), 'utf8'));
+const REUSE = opt('reuse') ? new Map(JSON.parse(fs.readFileSync(path.resolve(opt('reuse')), 'utf8')).locations.map(l => [l.key, l.wild])) : null;
+const WORLD_WIDTH = LAYOUT.width;
+const WORLD_HEIGHT = LAYOUT.height;
 
-// Die Ortsdefinitionen stammen noch aus dem beschrifteten Mewmaps-Komposit. Zwei weit
-// auseinanderliegende, eindeutig erkennbare Anker bringen sie in Matrix 0 der ROM:
-// Pokémon-Liga (735, 120) -> (464, 16), Avenitia (1080, 755) -> (752, 688).
-const SCALE_X = 288 / 345;
-const OFFSET_X = 464 - SCALE_X * 735;
-const SCALE_Z = 672 / 635;
-const OFFSET_Z = 16 - SCALE_Z * 120;
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const romPoint = ([x, z]) => [
-  clamp(Math.round((SCALE_X * x + OFFSET_X) * 10) / 10, 0, WORLD_WIDTH),
-  clamp(Math.round((SCALE_Z * z + OFFSET_Z) * 10) / 10, 0, WORLD_HEIGHT),
-];
-
+// Ortsliste (Name, Typ, PokeAPI-Gebiete). Die Zahlen hinter dem Typ sind die alten Mewmaps-Koordinaten und werden nicht
+// mehr benutzt – die Lage kommt aus layout.json.
 const defs = [];
 function add(de, en, type, x, z, aliases = [], showLabel = type === 'city' || type === 'town', label = null) {
   defs.push({ de, en, type, pos: [x, z], aliases, showLabel, label });
@@ -72,6 +67,9 @@ add('Siegesstraße', 'Victory Road', 'place', 735, 155, [
   'unova-victory-road-unknown-area-54', 'unova-victory-road-unknown-area-55', 'unova-victory-road-4f-middle-room'
 ]);
 add('Pokémon Liga', 'Pokémon League', 'place', 735, 120, [], true, [735, 100]);
+add('Himmelspfeilbrücke', 'Skyarrow Bridge', 'place', 0, 0, ['skyarrow-bridge-area']);
+add('Zylinderbrücke', 'Tubeline Bridge', 'place', 0, 0, ['tubeline-bridge-area']);
+add('Ferrula', 'Anville Town', 'town', 0, 0, ['anville-town-area'], true);
 
 // Eastern postgame loop.
 route(11, 640, 305);
@@ -141,29 +139,63 @@ function wildFromArea(area, version) {
   return out;
 }
 
+// Lage: Zonen gleichen Namens in der zusammengesetzten Welt (layout-unova.js). Orte ohne eigene Außenkarte (Höhlen,
+// Türme) bekommen Eingänge an den Türen, die zu ihnen führen; Siegesstraße, Liga und Schloss von N liegen hinter Route 10.
+const ZONE_NAMES = { 'Weißer Wald / Schwarze Stadt': ['Schwarze Stadt', 'Weißer Wald'] };
+const BEHIND = { 'Siegesstraße': 'Route 10', 'Pokémon Liga': 'Route 10', 'Schloss von N': 'Route 10', 'Kammer der Weisung': 'Panaero-Höhle', 'Kammer der Prüfung': 'Panaero-Höhle' };
+function placeOf(def) {
+  const names = ZONE_NAMES[def.de] || [def.de];
+  const rects = names.flatMap(n => LAYOUT.zones[n] || []);
+  if (rects.length) {
+    const box = [Math.min(...rects.map(r => r[0])), Math.min(...rects.map(r => r[1])), Math.max(...rects.map(r => r[2])), Math.max(...rects.map(r => r[3]))];
+    const mid = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+    const big = rects.slice().sort((a, b) => (b[2] - b[0]) * (b[3] - b[1]) - (a[2] - a[0]) * (a[3] - a[1]))[0];
+    const label = rects.some(r => mid[0] >= r[0] && mid[0] < r[2] && mid[1] >= r[1] && mid[1] < r[3]) ? mid : [(big[0] + big[2]) / 2, (big[1] + big[3]) / 2];
+    return { rects, area: box, label };
+  }
+  const near = (list, p) => list.some(q => Math.abs(q[0] - p[0]) + Math.abs(q[1] - p[1]) < 4);
+  let entrances = [];
+  for (const d of LAYOUT.doors) if (d.to === def.de && d.from !== def.de && !near(entrances, d.at)) entrances.push(d.at);
+  if (!entrances.length) for (const d of LAYOUT.doors) if (d.next.includes(def.de) && d.from !== def.de && d.to !== d.from && !near(entrances, d.at)) entrances.push(d.at);
+  if (!entrances.length && BEHIND[def.de]) {
+    const via = placeOf({ de: BEHIND[def.de] });
+    if (via.rects) { const r = via.area; entrances = [[Math.round((r[0] + r[2]) / 2), r[1] + 2]]; }
+    else entrances = via.entrances || [];
+  }
+  if (!entrances.length) return {};
+  const e = entrances[0];
+  return { entrances, area: [e[0] - 2, e[1] - 2, e[0] + 3, e[1] + 3], label: [e[0] + 0.5, e[1] - 1] };
+}
+
 async function buildLocation(def) {
-  const areas = (await Promise.all(def.aliases.map(getArea))).filter(Boolean);
-  const wild = {};
-  for (const version of ['black', 'white']) {
-    wild[version] = { grass: [], surf: [] };
-    for (const area of areas) {
-      const part = wildFromArea(area, version);
-      wild[version].grass = mergeWild(wild[version].grass, part.grass);
-      wild[version].surf = mergeWild(wild[version].surf, part.surf);
+  const key = def.en.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  let wild = REUSE && REUSE.get(key);
+  if (!wild) {
+    const areas = (await Promise.all(def.aliases.map(getArea))).filter(Boolean);
+    wild = {};
+    for (const version of ['black', 'white']) {
+      wild[version] = { grass: [], surf: [] };
+      for (const area of areas) {
+        const part = wildFromArea(area, version);
+        wild[version].grass = mergeWild(wild[version].grass, part.grass);
+        wild[version].surf = mergeWild(wild[version].surf, part.surf);
+      }
     }
   }
-  const [x, z] = romPoint(def.pos);
-  const rx = (def.type === 'route' ? 28 : def.type === 'place' ? 22 : 31) * SCALE_X;
-  const rz = (def.type === 'route' ? 17 : def.type === 'place' ? 20 : 25) * SCALE_Z;
-  return {
-    key: def.en.toUpperCase().replace(/[^A-Z0-9]+/g, '_'), slug: slugify(def.en), de: def.de, en: def.en,
+  const at = placeOf(def);
+  if (!at.area) console.warn(`  ohne Lage: ${def.de}`);
+  const out = {
+    key, slug: slugify(def.en), de: def.de, en: def.en,
     type: def.type,
     region: 'unova',
-    area: [clamp(x - rx, 0, WORLD_WIDTH), clamp(z - rz, 0, WORLD_HEIGHT), clamp(x + rx, 0, WORLD_WIDTH), clamp(z + rz, 0, WORLD_HEIGHT)],
-    label: romPoint(def.label || def.pos),
+    area: at.area || [0, 0, 1, 1],
+    label: at.label ? at.label.map(v => Math.round(v * 10) / 10) : [0, 0],
     showLabel: def.showLabel,
     items: [], trainers: [], wild
   };
+  if (at.rects) out.rects = at.rects;
+  if (at.entrances) out.entrances = at.entrances;
+  return out;
 }
 
 (async () => {
@@ -174,13 +206,14 @@ async function buildLocation(def) {
     while (next < defs.length) { const i = next++; locations[i] = await buildLocation(defs[i]); }
   }));
   const result = {
-    version: 2,
-    source: 'PokeAPI + user-provided Pokémon White ROM (IRAD) + Mewmaps Black fallback',
-    mapSource: 'ROM archives a/0/0/8, a/0/0/9 and a/0/1/4',
-    mapAuthor: 'GAME FREAK / Nintendo; Black fallback by Mewmaps',
+    version: 3,
+    source: `PokeAPI (wilde Pokémon) + Pokémon-Weiß-ROM (${LAYOUT.gameCode}: Zonen, Ortsnamen, Warps)`,
+    mapSource: 'ROM a/0/0/8, a/0/0/9, a/0/1/4 (Modelle, Matrizen, Texturen) – zusammengesetzt mit layout-unova.js',
+    mapAuthor: 'GAME FREAK / Nintendo',
     width: WORLD_WIDTH,
     height: WORLD_HEIGHT,
-    origin: [32, 64],
+    origin: [0, 0],
+    links: LAYOUT.links.map(pts => ({ pts })),
     locations
   };
   fs.writeFileSync(OUT, JSON.stringify(result));

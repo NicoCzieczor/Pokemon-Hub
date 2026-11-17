@@ -1,0 +1,118 @@
+/*
+ * Live-Test (Versuchsseite). Grundgerüst, Knöpfe und Meldungen kommen aus SaveEditor/style.css – hier nur, was es
+ * nur auf dieser Seite gibt (Klassen lv-…). Farben über die Theme-Bausteine aus theme.css.
+ */
+.lv-tag {
+  display: inline-block; vertical-align: middle; margin-left: 6px; padding: 3px 10px; border-radius: 999px;
+  border: 1px solid rgba(var(--t-acc), 0.5); color: rgb(var(--t-acc));
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  -webkit-text-fill-color: currentColor;
+}
+
+.lv-card {
+  display: grid; gap: 12px; min-width: 0;
+  padding: 20px 22px; border-radius: 24px;
+  border: 1px solid rgba(var(--t-ink), 0.08);
+  background: linear-gradient(180deg, rgba(var(--t-n-262952), 0.6), rgba(var(--t-n-161838), 0.8));
+  transition: border-color 0.2s;
+}
+.lv-card.is-over { border-color: rgba(var(--t-acc), 0.6); }
+.lv-card h2 { margin: 0; font-size: 1.15rem; }
+.lv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; }
+.lv-sum { color: var(--color-muted); font-size: 0.86rem; }
+.lv-hint { color: var(--color-muted); font-size: 0.88rem; }
+.small-btn.lv-main-btn { background: rgb(var(--t-acc)); border-color: rgb(var(--t-acc)); color: rgb(var(--t-on-acc)); }
+.small-btn.lv-main-btn:hover { color: rgb(var(--t-on-acc)); filter: brightness(1.08); }
+.lv-card .small-btn { min-height: 40px; }
+
+/* Stand der Beobachtung */
+.lv-status {
+  display: flex; align-items: center; gap: 12px 14px; flex-wrap: wrap;
+  padding: 12px 16px; border-radius: 18px;
+  background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08);
+}
+.lv-status-main { display: grid; gap: 2px; flex: 1 1 240px; min-width: 0; }
+.lv-status-main b { color: rgb(var(--t-white)); overflow-wrap: anywhere; }
+.lv-status-main span { color: var(--color-muted); font-size: 0.86rem; overflow-wrap: anywhere; }
+.lv-status-main small { color: var(--color-muted); opacity: 0.8; font-size: 0.78rem; }
+.lv-dot { flex: 0 0 auto; width: 12px; height: 12px; border-radius: 50%; background: rgba(var(--t-ink), 0.25); }
+.lv-dot.is-on { background: rgb(var(--t-c-8ef0b4)); animation: lv-pulse 2s ease-out infinite; }
+.lv-dot.is-warn { background: rgb(var(--t-acc)); }
+@keyframes lv-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(98, 220, 150, 0.55); }
+  100% { box-shadow: 0 0 0 10px rgba(98, 220, 150, 0); }
+}
+
+/* Live-Verbindung */
+.lv-steps { display: grid; gap: 6px; padding-left: 22px; color: var(--color-muted); font-size: 0.88rem; }
+.lv-steps code { color: var(--color-accent-strong); font-size: 0.82rem; }
+.lv-steps a { color: rgb(var(--t-acc)); text-decoration: underline; text-underline-offset: 2px; }
+.lv-tag--live { border-color: rgba(98, 220, 150, 0.6); color: rgb(var(--t-c-8ef0b4)); }
+.lv-ev-text small.lv-live { color: rgb(var(--t-c-8ef0b4)); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* Team */
+.lv-team { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.lv-mon {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 8px 12px 8px 6px; border-radius: 14px;
+  background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08);
+}
+.lv-mon img, .lv-ev-icon img { width: 40px; height: 30px; flex: 0 0 auto; object-fit: cover; object-position: 0 -4px; image-rendering: pixelated; }
+.lv-mon-main { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.lv-mon-main b { color: rgb(var(--t-white)); font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-mon-main > span { color: var(--color-muted); font-size: 0.78rem; }
+.lv-mon-main i { font-style: normal; font-weight: 800; color: rgb(var(--t-c-fc8181)); }
+.lv-hp { display: block; height: 6px; border-radius: 999px; background: rgba(var(--t-ink), 0.12); overflow: hidden; }
+.lv-hp > span { display: block; height: 100%; border-radius: inherit; background: #62dc96; }
+.lv-hp.is-mid > span { background: #f2c94c; }
+.lv-hp.is-low > span { background: #fc8181; }
+.lv-mon.is-down { border-color: rgba(252, 129, 129, 0.5); }
+.lv-mon.is-down img { filter: grayscale(1); opacity: 0.6; }
+
+/* Ereignisse */
+.lv-log { list-style: none; display: grid; gap: 6px; }
+.lv-ev {
+  display: grid; grid-template-columns: 74px 40px minmax(0, 1fr); align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 14px;
+  background: rgba(var(--t-ink), 0.04); border: 1px solid rgba(var(--t-ink), 0.08); border-left-width: 4px;
+  font-size: 0.9rem;
+}
+.lv-ev time { color: var(--color-muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.lv-ev-icon { height: 30px; }
+.lv-ev-icon:empty { display: none; }
+.lv-ev-icon:empty + .lv-ev-text { grid-column: 2 / -1; }
+.lv-ev-text { min-width: 0; overflow-wrap: anywhere; }
+.lv-ev-text small { margin-left: 4px; color: var(--color-muted); font-size: 0.74rem; }
+.lv-ev-tag {
+  display: inline-block; margin-right: 4px; padding: 1px 8px; border-radius: 999px;
+  background: rgba(var(--t-ink), 0.1); color: rgb(var(--t-white));
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.lv-ev--catch, .lv-ev--gift, .lv-ev--egg, .lv-ev--hatch { border-left-color: #62dc96; }
+.lv-ev--faint, .lv-ev--gone { border-left-color: #fc8181; }
+.lv-ev--faint .lv-ev-tag, .lv-ev--gone .lv-ev-tag { background: rgba(252, 129, 129, 0.22); }
+.lv-ev--faint .lv-ev-icon img { filter: grayscale(1); opacity: 0.7; }
+.lv-ev--evolve, .lv-ev--level, .lv-ev--heal { border-left-color: #7cc0ff; }
+.lv-ev--badge { border-left-color: #f2c94c; }
+.lv-ev--badge .lv-ev-tag { background: rgba(242, 201, 76, 0.22); }
+.lv-ev--start, .lv-ev--switch, .lv-ev--rewind { border-left-color: rgb(var(--t-acc)); }
+.lv-ev.is-new { animation: lv-new 2.4s ease-out; }
+@keyframes lv-new {
+  0% { background: rgba(var(--t-acc), 0.35); transform: translateY(-4px); }
+  20% { transform: none; }
+  100% { background: rgba(var(--t-ink), 0.04); }
+}
+
+.lv-about ul { display: grid; gap: 8px; padding: 0 16px 14px 34px; color: var(--color-muted); font-size: 0.86rem; }
+.lv-about b { color: rgb(var(--t-white)); }
+
+@media (max-width: 720px) {
+  .lv-card { padding: 16px 14px; border-radius: 18px; }
+  .lv-ev { grid-template-columns: 40px minmax(0, 1fr); }
+  .lv-ev time { grid-column: 1 / -1; }
+  .lv-ev-icon:empty + .lv-ev-text { grid-column: 1 / -1; }
+  .lv-team { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lv-dot.is-on, .lv-ev.is-new { animation: none; }
+}

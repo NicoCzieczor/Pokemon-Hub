@@ -221,6 +221,8 @@ body {
 }
 .win-notes .trademark,
 .win-notes .app-version { opacity: 0.65; }
+/* Versuchsseite (LiveTest/) – bewusst klein, sie gehört noch nicht zu den Tools */
+.lab-link { color: rgb(var(--t-acc)); text-decoration: underline; text-underline-offset: 2px; }
 .ai-notice {
   display: inline-flex;
   align-items: center;

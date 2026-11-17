@@ -32,9 +32,12 @@ npm test
 | `map-gold-silver.mjs` | Gold/Silber lädt 72 echte GBC-Außenkarten, Editionsdaten und Offline-Dateien |
 | `map-diamond-pearl.mjs` | Diamant/Perl lädt echte DS-3D-Tiles, 61 Sinnoh-Orte, Editionsdaten und Offline-Dateien |
 | `map-frlg.mjs` | Feuerrot/Blattgrün über die Platin-Karte: ROM-Tiles, Kanto + Sieben Inseln, Innenkarten, Eingänge, Editionsdaten und Offline-Dateien |
+| `map-emerald.mjs` | Smaragd über die Platin-Karte: ROM-Tiles, Hoenn mit Safari-Zone und Kampfzone, Innenkarten, Unterwasser, Xeneroville im Krater, Offline-Dateien |
 | `duo.mjs` | Duo gegen nachgebaute Supabase-Funktionen (`fake-supabase.js`) |
+| `live-test.mjs` | Live-Test (Versuchsseite): Datei beobachten, Datei ohne Spielstand, ohne Datei-Zugriff; mit `SAVE_FILE=<Spielstand>` der ganze Weg (0 KP nach dem Speichern erscheint von selbst, Neuladen, Sprache) – nicht in `npm test` |
+| `live-bridge.mjs` | Live-Test, Live-Verbindung: Seite ↔ echtes Hilfsprogramm (`LiveTest/bridge/PokeHub-Live.cmd`) ↔ nachgebauter Emulator (`fake-emu.cjs`); 0 KP und Fang erscheinen ohne Speichern. Nur Windows, braucht `SAVE_FILE=<Spielstand>` – nicht in `npm test` |
 | `update.mjs` | Service Worker echt: Versionsanzeige, Update bei offener Startseite, offline (auf einer Kopie des Projekts) |
 
-Zusätzliche Kartenprüfungen: `map-yellow-crystal.mjs` prüft Gelb und Kristall; `map-emerald.mjs` prüft Smaragds eigene GBA-Tiles, Funddaten, Kampffront und Offline-Dateien.
+Zusätzliche Kartenprüfungen: `map-yellow-crystal.mjs` prüft Gelb und Kristall.
 
 Chrome liegt woanders? `CHROME_PATH` setzen.

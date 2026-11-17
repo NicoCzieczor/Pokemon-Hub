@@ -396,6 +396,7 @@
     writeChecksum: writeChecksum,
     decryptPK6: decryptPK6,
     encryptPK6: encryptPK6,
+    readPK6: readPK6,          // (D, bytes, offset, 232 | 260, where) → Pokémon, { bad } oder null
     calcStats: calcStats,
     levelFromExp: levelFromExp,
     personalEntry: personalEntry,

@@ -49,14 +49,15 @@ try {
   const toEmerald = page.waitForNavigation({ waitUntil: 'domcontentloaded' });
   await page.evaluate(() => window.PokeHubGame.set('smaragd'));
   await toEmerald;
-  await waitFor(page, () => !!window.KARTE_EMERALD && document.getElementById('map-loading')?.hidden, undefined, 90000);
-  check('R/S: Wechsel zu Smaragd lädt die separate Smaragd-Karte', await page.evaluate(() => !!window.KARTE_EMERALD && !window.KARTE_RS));
+  // Smaragd läuft über die Platin-Karte (app.js), nicht über die einfache Karte
+  await waitFor(page, () => document.body.classList.contains('is-emerald') && !window.KARTE_RETRO && document.getElementById('map-loading')?.hidden, undefined, 90000);
+  check('R/S: Wechsel zu Smaragd lädt die separate Smaragd-Karte', await page.evaluate(() => document.body.classList.contains('is-emerald') && !window.KARTE_RS && /tiles-emerald/.test([...document.images].map(i => i.src).join())));
 
   const back = page.waitForNavigation({ waitUntil: 'domcontentloaded' });
   await page.evaluate(() => window.PokeHubGame.set('rubin-saphir'));
   await back;
   await waitFor(page, () => document.body.classList.contains('is-rs') && document.getElementById('map-loading')?.hidden, undefined, 90000);
-  check('R/S: Menüwechsel zurück lädt wieder die R/S-Tiles', await page.evaluate(() => !!window.KARTE_RS && !window.KARTE_EMERALD));
+  check('R/S: Menüwechsel zurück lädt wieder die R/S-Tiles', await page.evaluate(() => !!window.KARTE_RS && !document.body.classList.contains('is-emerald')));
   check('R/S: keine JavaScript-Fehler', errors.length === 0, errors.join(' | '));
   await page.close();
 

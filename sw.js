@@ -6,9 +6,9 @@
  *    sofort aus dem Speicher – immer alle aus derselben Version. Eine neue Version kommt als Ganzes mit einem
  *    neuen Service Worker (VERSION ändert sich), nicht Datei für Datei; offene Seiten lädt pwa.js dann neu.
  *  - Antworten der PokeAPI und Sprites werden gespeichert, sobald sie einmal geladen wurden.
- *  - Kartenblätter der Sinnoh-, Hoenn-, Kanto-, Gold/Silber-, HG/SS-, Einall- und FR/LG-Karte
+ *  - Kartenblätter der Sinnoh-, Hoenn-, Kanto-, Gold/Silber-, HG/SS-, Einall-, FR/LG- und Smaragd-Karte
  *    (Karte/tiles/, Karte/tiles-oras/, Karte/tiles-kanto/, Karte/tiles-gold-silver/,
- *    Karte/tiles-hgss/, Karte/tiles-unova/, Karte/tiles-frlg/)
+ *    Karte/tiles-hgss/, Karte/tiles-unova/, Karte/tiles-frlg/, Karte/tiles-emerald/)
  *    ebenso – sie ändern sich nur, wenn die Karte neu gerendert wird.
  *  - Supabase (Duo-Sync) läuft nie über den Speicher, sondern immer live.
  *  - Randomizer, Omega Rubin / Alpha Saphir: Die ROM (rund 2 GB) liest CheerpJ stückweise über …/Randomizer/__rom/…
@@ -18,9 +18,9 @@
  * und zählt dabei VERSION hoch (tests/sw-version.test.cjs prüft das). Die vorderen Stellen von VERSION dürfen
  * von Hand angehoben werden. Nach neu gerenderten Kartenblättern: TILE_VERSION hochzählen.
  */
-const VERSION = '0.1.81';            // steht unten auf der Startseite
-const CONTENT = '44c185f218';       // ändert sich mit jeder Datei → neue Version für alle Geräte
-const TILE_VERSION = 't21';
+const VERSION = '0.1.107';            // steht unten auf der Startseite
+const CONTENT = 'e10da71fc8';       // ändert sich mit jeder Datei → neue Version für alle Geräte
+const TILE_VERSION = 't34';
 const PREFIX = 'pokehub-';
 const STATIC_CACHE = `${PREFIX}static-${VERSION}`;
 const API_CACHE = `${PREFIX}api`;
@@ -191,6 +191,7 @@ const PRECACHE = [
   './Karte/tiles-ruby-sapphire/index.json',
   './Karte/tiles-ruby-sapphire/0/0_0.webp',
   './Karte/tiles-emerald/index.json',
+  './Karte/tiles-emerald/interiors.json',
   './Karte/tiles-emerald/0/0_0.webp',
   './Karte/tiles-diamond-pearl/index.json',
   './Karte/tiles-diamond-pearl/0/0_0.webp',
@@ -233,6 +234,13 @@ const PRECACHE = [
   './SaveEditor/app.js',
   './SaveEditor/chip.css',
   './SaveEditor/chip.js',
+  './SaveEditor/find-saves.js',
+  './LiveTest/index.html',
+  './LiveTest/style.css',
+  './LiveTest/live-diff.js',
+  './LiveTest/live-mem.js',
+  './LiveTest/bridge/PokeHub-Live.cmd',
+  './LiveTest/app.js',
   './Sonderbonbons/index.html',
   './Randomizer/index.html',
   './Randomizer/style.css',

@@ -284,8 +284,45 @@
 
   // Trainer (UPR Gen6RomHandler): trdata = Format u16 (Bit 0 eigene Attacken, Bit 1 Items), Klasse u16, Kampfart @6
   // (0 Einzel, 1 Doppel, 2 Dreier, 3 Rotation, 4 Horde), Anzahl @7, 4 Items u16 @8, KI u32 @0x10.
-  // trpoke je Pokémon: DV-Stufe (×31/255), Fähigkeit (obere 4 Bit; 0 = zufällig, 1–3 = Platz) und Geschlecht (untere 4 Bit),
+  // trpoke je Pokémon: DV-Byte, Fähigkeit (obere 4 Bit; 0 = vom Spiel bestimmt, 1–3 = Platz) und Geschlecht (untere 4 Bit),
   // Level u16, Art u16, Form u16, dann Item u16 und 4 Attacken u16, wenn das Format sie hat.
+  //
+  // Wie das Spiel daraus das Pokémon baut (Programmcode, Omega Rubin: Funktion bei 0x453B30, aufgerufen für jedes
+  // Team-Mitglied): Zufallsgenerator TinyMT32 (Standardparameter) mit Startwert DV-Byte + Level + Art, so oft
+  // weitergedreht, wie die Nummer der Trainerklasse groß ist; der nächste Wert v ergibt
+  //  - das Wesen: (v >> 8) % 25 – also bei jedem Kampf dasselbe,
+  //  - den Platz der Fähigkeit, wenn die Trainerdaten keinen festlegen: Bit 16 von v (erste oder zweite Fähigkeit).
+  // Die DVs übernimmt das Spiel unverändert in alle sechs Werte; gespeichert werden davon nur 5 Bit (DV-Byte & 31 –
+  // nicht DV-Byte · 31 / 255 wie in Gen 4/5). Die Freundschaft setzt es auf 255, mit Frustration auf 0.
+  function tinyMT(seed) {
+    var MAT1 = 0x8F7011EE, MAT2 = 0xFC78FF1F, TMAT = 0x3793FDFF;
+    var s = [seed >>> 0, MAT1, MAT2, TMAT];
+    for (var i = 1; i < 8; i++) {
+      var p = s[(i - 1) & 3];
+      s[i & 3] = (s[i & 3] ^ ((Math.imul(0x6C078965, (p ^ (p >>> 30)) | 0) + i) | 0)) >>> 0;
+    }
+    if (!(s[0] & 0x7FFFFFFF) && !s[1] && !s[2] && !s[3]) s = [0x54, 0x49, 0x4E, 0x59];   // 'TINY'
+    function step() {
+      var y = s[3], x = ((s[0] & 0x7FFFFFFF) ^ s[1] ^ s[2]) >>> 0;
+      x = (x ^ (x << 1)) >>> 0;
+      y = (y ^ (y >>> 1) ^ x) >>> 0;
+      s[0] = s[1]; s[1] = s[2]; s[2] = (x ^ (y << 10)) >>> 0; s[3] = y;
+      if (y & 1) { s[1] = (s[1] ^ MAT1) >>> 0; s[2] = (s[2] ^ MAT2) >>> 0; }
+    }
+    for (var k = 0; k < 8; k++) step();
+    return function () {
+      step();
+      var t1 = (s[0] + (s[2] >>> 8)) >>> 0, t0 = (s[3] ^ t1) >>> 0;
+      return (t1 & 1 ? t0 ^ TMAT : t0) >>> 0;
+    };
+  }
+  // Wesen und Platz der Fähigkeit (0/1) eines Trainer-Pokémon wie im Spiel
+  function trainerRoll(ivByte, level, species, cls) {
+    var next = tinyMT((ivByte & 0xFF) + (level & 0xFF) + species);
+    for (var i = 0; i < cls; i++) next();
+    var v = next();
+    return { nature: (v >>> 8) % 25, slot: (v >>> 16) & 1 };
+  }
   function trainerTable(trdata, trpoke) {
     return trdata.map(function (t, id) {
       var p = trpoke[id];
@@ -296,7 +333,10 @@
       var size = 8 + (fmt & 2 ? 2 : 0) + (fmt & 1 ? 8 : 0), party = [];
       for (var i = 0; i < n && (i + 1) * size <= p.length; i++) {
         var o = i * size, q = 8;
-        var mon = { iv: Math.floor(p[o] * 31 / 255), ability: p[o + 1] >> 4, gender: p[o + 1] & 15, level: u16(p, o + 2), species: u16(p, o + 4), form: u16(p, o + 6), item: 0, moves: null };
+        var mon = { iv: p[o] & 31, ability: p[o + 1] >> 4, gender: p[o + 1] & 15, level: u16(p, o + 2), species: u16(p, o + 4), form: u16(p, o + 6), item: 0, moves: null };
+        var roll = trainerRoll(p[o], mon.level, mon.species, cls);
+        mon.nature = roll.nature;
+        mon.slot = mon.ability >= 1 && mon.ability <= 3 ? mon.ability - 1 : roll.slot;   // 0 erste, 1 zweite, 2 versteckte Fähigkeit
         if (fmt & 2) { mon.item = u16(p, o + q); q += 2; }
         if (fmt & 1) { mon.moves = [0, 1, 2, 3].map(function (m) { return u16(p, o + q + m * 2); }).filter(Boolean); }
         party.push(mon);
@@ -390,9 +430,10 @@
   }
 
   /* ── Teams im Format des Boss-Planers ──────────────────────────── */
-  // p-Einträge wie in bosses-oras.json: [Art, Form, Level, Item, Attacken, Wesen (null = unbekannt), Fähigkeit, DVs, Mega-Form?]
-  // Attacken ohne eigene: die letzten vier Level-Attacken bis zum Level (wie im Spiel). Fähigkeit: Platz 1–3, 0 = beliebig
-  // (→ erste). Mega-Stein der eigenen Art → Mega-Form. personal/learnsets/megas: aus der ROM oder aus base (Original).
+  // p-Einträge wie in bosses-oras.json: [Art, Form, Level, Item, Attacken, Wesen, Fähigkeit, DVs, Mega-Form?]
+  // Attacken ohne eigene: die letzten vier Level-Attacken bis zum Level (wie im Spiel). Wesen und Fähigkeit wie das Spiel
+  // sie bestimmt (trainerTable). Mega-Stein der eigenen Art → Mega-Form. personal/learnsets/megas: aus der ROM oder aus
+  // base (Original).
   function bossTeam(t, personal, learnsets, megas) {
     var learnOf = function (sp, form) { return learnsets[formEntry(personal, sp, form)] || learnsets[sp] || []; };
     function defaultMoves(sp, form, level) {
@@ -406,8 +447,9 @@
     }
     return t.party.map(function (m) {
       var per = personal[formEntry(personal, m.species, m.form)] || personal[m.species] || { abilities: [0, 0, 0] };
-      var ab = m.ability === 3 ? per.abilities[2] : m.ability === 2 ? per.abilities[1] : per.abilities[0];
-      var entry = [m.species, m.form, m.level, m.item, m.moves && m.moves.length ? m.moves : defaultMoves(m.species, m.form, m.level), null, ab, m.iv];
+      var slot = m.slot != null ? m.slot : m.ability === 3 ? 2 : m.ability === 2 ? 1 : 0;
+      var ab = per.abilities[slot] || per.abilities[0];
+      var entry = [m.species, m.form, m.level, m.item, m.moves && m.moves.length ? m.moves : defaultMoves(m.species, m.form, m.level), m.nature != null ? m.nature : null, ab, m.iv];
       var mega = m.item && (megas[m.species] || []).filter(function (x) { return x[1] === m.item; })[0];
       if (mega) entry.push(mega[0]);
       return entry;
@@ -544,7 +586,7 @@
     openRom: openRom, openLayered: openLayered, openPath: openPath, openFiles: openFiles,
     readGameData: readGameData, readTexts: readTexts, readFiles: readFiles,
     formEntry: formEntry, wildTables: wildTables, bossTeam: bossTeam, hubState: hubState, unflatLearn: unflatLearn, personalFromData: personalFromData,
-    _internal: { garc: garc, lz11: lz11, textFile: textFile, personalTable: personalTable, moveTable: moveTable, learnsetTable: learnsetTable,
+    _internal: { tinyMT: tinyMT, trainerRoll: trainerRoll, garc: garc, lz11: lz11, textFile: textFile, personalTable: personalTable, moveTable: moveTable, learnsetTable: learnsetTable,
       trainerTable: trainerTable, wildTable: wildTable, megaTable: megaTable, startersFrom: startersFrom, romfsTree: romfsTree }
   };
 });

@@ -69,9 +69,6 @@
 .out-name input:focus { outline: none; border-color: rgb(var(--t-acc2)); }
 .cxi-status { font-size: 0.86rem; font-weight: 700; text-align: center; color: rgb(var(--t-c-8ef0b4)); }
 .cxi-status.msg-error { color: var(--color-error, #ff6b6b); }
-.play-mod summary { cursor: pointer; color: var(--color-muted); font-size: 0.86rem; font-weight: 700; }
-.play-mod[open] summary { margin-bottom: 8px; }
-.play-mod ol { margin-top: 8px; }
 .play-boss { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--color-muted); font-size: 0.88rem; }
 
 @media (max-width: 560px) {

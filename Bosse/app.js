@@ -36,8 +36,9 @@ const TEXT = {
     loadError: 'Die Kampfdaten konnten nicht geladen werden.',
     saveError: 'Das ist kein Spielstand von Platin (.sav/.dsv) oder Omega Rubin / Alpha Saphir („main“ von Citra).',
     saveOtherGame: g => `Das ist ein Spielstand von ${g} – wähle oben unter „Spiel wählen“ dieses Spiel, dann ist er hier.`,
-    footNoteOras: 'Teams, Attacken, DVs und Fähigkeiten aus der ROM von Omega Rubin / Alpha Saphir oder aus deiner randomisierten, Mega-Entwicklung wie im Kampf. Wie Gen 6 die Wesen der Gegner würfelt, ist nicht bekannt – gerechnet wird neutral. Schaden nach der Gen-6-Formel des Schadens-Rechners – ohne Statusänderungen im Kampf.',
+    footNoteOras: 'Teams, Attacken, DVs, Wesen und Fähigkeiten aus der ROM von Omega Rubin / Alpha Saphir oder aus deiner randomisierten – berechnet wie im Spiel (das Wesen eines Trainer-Pokémon ist bei jedem Kampf dasselbe), Mega-Entwicklung wie im Kampf. Schaden nach der Gen-6-Formel des Schadens-Rechners – ohne Statusänderungen im Kampf.',
     natureUnknown: 'unbekannt (neutral gerechnet)',
+    natureReload: 'unbekannt – dein Randomizer-Stand ist älter: lade die Randomizer-ROM einmal neu, dann stehen hier Wesen und DVs wie im Spiel',
     footNoteRb: 'Teams, Level, Attacken (mit den Sonderattacken der Arenaleiter, Top Vier und des Champs) und DVs aus dem Spielcode von Rot / Blau (pret/pokered). Schaden nach der Gen-1-Formel des Schadens-Rechners mit Orden-Bonus, Volltreffer nach Basis-Initiative – ohne Statusänderungen im Kampf. Spielstände von Rot / Blau kann der Hub noch nicht lesen: Stell dein Team unter „Eigenes Team“ zusammen.',
     special: 'Spez.', itemsPerMon: 'Items je Pokémon', badgeBoost: list => `Orden-Bonus (×1,125): ${list}`,
     manualNoteOld: 'Ohne Spielstand: DVs wie bei den Trainern (Angriff 9, sonst 8), keine Statuspunkte. Antippen zum Bearbeiten.',
@@ -85,7 +86,7 @@ const TEXT = {
       magnitude: 'Stärke zufällig (Durchschnitt)', charge: 'braucht eine Runde zum Aufladen', recharge: 'danach eine Runde Pause',
       berry: 'Beere halbiert den ersten Treffer', future: 'trifft nach 2 Runden, ohne Typ', facade: 'doppelt mit Statusproblem',
       brine: 'doppelt, wenn das Ziel unter halben KP ist', rollout: 'wird jede Runde stärker', return: 'nach Freundschaft',
-      returnFoe: 'Freundschaft des Gegners angenommen (70)', hiddenPower: 'Kraftreserve', firstTurn: 'nur in der ersten Runde',
+      returnFoe: 'Freundschaft des Gegners angenommen (70)', returnFoeOras: 'Freundschaft des Gegners wie im Spiel', hiddenPower: 'Kraftreserve', firstTurn: 'nur in der ersten Runde',
       variable: 'Stärke hängt von der Situation ab', reckless: 'Rückstoß',
       rechargeGen1: 'danach eine Runde Pause – außer er besiegt das Ziel', ohkoGen1: 'trifft nur, wenn schneller',
     },
@@ -107,8 +108,9 @@ const TEXT = {
     loadError: 'The battle data could not be loaded.',
     saveError: 'This is not a Platinum (.sav/.dsv) or Omega Ruby / Alpha Sapphire save file (“main” from Citra).',
     saveOtherGame: g => `This is a ${g} save – choose that game above under “Choose game” and it shows up here.`,
-    footNoteOras: 'Teams, moves, IVs and abilities from the Omega Ruby / Alpha Sapphire ROM or your randomized one, Mega Evolution like in battle. How Gen 6 rolls enemy natures is unknown – they are treated as neutral. Damage uses the Gen 6 formula of the Damage Calculator – without stat changes during battle.',
+    footNoteOras: 'Teams, moves, IVs, natures and abilities from the Omega Ruby / Alpha Sapphire ROM or your randomized one – generated like in the game (a trainer Pokémon has the same nature in every battle), Mega Evolution like in battle. Damage uses the Gen 6 formula of the Damage Calculator – without stat changes during battle.',
     natureUnknown: 'unknown (treated as neutral)',
+    natureReload: 'unknown – your randomizer data is older: load the randomizer ROM again once, then natures and IVs show as in the game',
     footNoteRb: 'Teams, levels, moves (with the special moves of the Gym Leaders, Elite Four and Champion) and DVs from the Red / Blue game code (pret/pokered). Damage uses the Gen 1 formula of the Damage Calculator with badge boosts, critical hits based on base Speed – without stat changes during battle. The hub cannot read Red / Blue save files yet: build your team under “Own team”.',
     special: 'Spc', itemsPerMon: 'Items per Pokémon', badgeBoost: list => `Badge boost (×1.125): ${list}`,
     manualNoteOld: 'Without a save: DVs like the trainers (Attack 9, others 8), no stat experience. Tap to edit.',
@@ -156,7 +158,7 @@ const TEXT = {
       magnitude: 'random power (average)', charge: 'needs a turn to charge', recharge: 'must recharge afterwards',
       berry: 'berry halves the first hit', future: 'hits two turns later, typeless', facade: 'doubled with a status condition',
       brine: 'doubled if the target is below half HP', rollout: 'gets stronger every turn', return: 'based on friendship',
-      returnFoe: 'enemy friendship assumed (70)', hiddenPower: 'Hidden Power', firstTurn: 'first turn only',
+      returnFoe: 'enemy friendship assumed (70)', returnFoeOras: 'enemy friendship as in the game', hiddenPower: 'Hidden Power', firstTurn: 'first turn only',
       variable: 'power depends on the situation', reckless: 'recoil',
       rechargeGen1: 'must recharge afterwards – unless it knocks out the target', ohkoGen1: 'only hits if the user is faster',
     },
@@ -306,7 +308,8 @@ function foeMon(p) {
   const base = per.slice(0, 6);
   const ivs = Array.isArray(iv) ? iv : [iv, iv, iv, iv, iv, iv]; // Liste = vom Spiel gewürfelte DVs
   return {
-    side: 'foe', species: sp, form, level, item, moves, nature, ability, ivs, friendship: 70, base,
+    // Omega Rubin / Alpha Saphir: Freundschaft 255, mit Frustration 0 (so setzt das Spiel sie); sonst angenommen 70
+    side: 'foe', species: sp, form, level, item, moves, nature, ability, ivs, friendship: G.key === 'oras' ? ((moves || []).includes(218) ? 0 : 255) : 70, base,
     types: per[6] === per[7] ? [per[6]] : [per[6], per[7]],
     stats: statsOf(base, ivs, [0, 0, 0, 0, 0, 0], level, nature, sp),
     name: megaName(sp, mega), mega: !!mega,
@@ -416,8 +419,8 @@ function calcMove(att, def, mid) {
   if (eff === 'INCREASE_POWER_WITH_LESS_HP') { power = 20; notes.push(t.n.flail); }
   if (eff === 'DECREASE_POWER_WITH_LESS_USER_HP') { power = 150; notes.push(t.n.eruption); }
   if (eff === 'INCREASE_POWER_WITH_MORE_HP') power = 121;
-  if (eff === 'POWER_BASED_ON_FRIENDSHIP') { power = Math.max(1, Math.floor(att.friendship * 10 / 25)); notes.push(att.side === 'foe' ? t.n.returnFoe : t.n.return); }
-  if (eff === 'POWER_BASED_ON_LOW_FRIENDSHIP') { power = Math.max(1, Math.floor((255 - att.friendship) * 10 / 25)); notes.push(att.side === 'foe' ? t.n.returnFoe : t.n.return); }
+  if (eff === 'POWER_BASED_ON_FRIENDSHIP') { power = Math.max(1, Math.floor(att.friendship * 10 / 25)); notes.push(att.side === 'foe' ? (G.key === 'oras' ? t.n.returnFoeOras : t.n.returnFoe) : t.n.return); }
+  if (eff === 'POWER_BASED_ON_LOW_FRIENDSHIP') { power = Math.max(1, Math.floor((255 - att.friendship) * 10 / 25)); notes.push(att.side === 'foe' ? (G.key === 'oras' ? t.n.returnFoeOras : t.n.returnFoe) : t.n.return); }
   if (eff === 'HIGHER_POWER_WHEN_LOW_PP') power = 40;
   if (eff === 'INCREASE_POWER_WITH_MORE_STAT_UP') power = 60;
   if (eff === 'DOUBLE_POWER_WHEN_STATUSED') notes.push(t.n.facade);
@@ -959,7 +962,8 @@ const typeBadge = ty => `<span class="type" style="--c:${TYPE_HEX[ty]}">${esc(T(
 const iconImg = sp => `<img class="mon-icon" src="${ICON_SPR}${sp}.png" alt="" loading="lazy">`;
 const itemImg = id => (PT.itemSprites[id] ? `<img class="item-icon" src="${SPR}/items/${PT.itemSprites[id]}.png" alt="" loading="lazy">` : '');
 function natureText(n) {
-  if (n == null) return tr().natureUnknown;
+  // Omega Rubin / Alpha Saphir kennt alle Wesen – fehlt eins, stammt der Randomizer-Stand von vor 2026-11-14
+  if (n == null) return G.key === 'oras' ? tr().natureReload : tr().natureUnknown;
   const up = Math.floor(n / 5), down = n % 5;
   const s = tr().stat;
   const name = T().natures[n];

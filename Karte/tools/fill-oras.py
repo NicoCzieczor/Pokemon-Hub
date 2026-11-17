@@ -55,6 +55,50 @@ for key in info['chunks']:
     wat = (cov & (t[..., 2] > t[..., 0] + 25) & (t[..., 2] > t[..., 1] + 5)) | (sea_t > 0.5)
     cover[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32] = cov | (sea_t > 0.5)
     water[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32] = wat
+# ── Brücken (render.json „bridges“): Die Runde Route 118 → 119 → Baumhausen → … → 123 schließt sich im Spiel nicht; die
+# Karte lässt den Rest zwischen Route 118 und 119 klaffen (render-oras.js). Beide Routen zeigen ihren Weg noch ein Stück
+# als Kulisse – dazwischen bliebe Füllwald. In den Spalten des Übergangs wird der Weg fortgesetzt: vier Kachelzeilen von
+# knapp über der Lücke, wiederholt bis zur anderen Seite ──
+def tiles_get(xa, za, xb, zb):
+    res = np.zeros(((zb - za) * PX, (xb - xa) * PX, 4), np.uint8)
+    for r in range(za // 32, (zb - 1) // 32 + 1):
+        for c in range(xa // 32, (xb - 1) // 32 + 1):
+            a = blocks.get((r, c))
+            if a is None:
+                continue
+            y0, y1, x0, x1 = max(za, r * 32), min(zb, (r + 1) * 32), max(xa, c * 32), min(xb, (c + 1) * 32)
+            res[(y0 - za) * PX:(y1 - za) * PX, (x0 - xa) * PX:(x1 - xa) * PX] = a[(y0 - r * 32) * PX:(y1 - r * 32) * PX, (x0 - c * 32) * PX:(x1 - c * 32) * PX]
+    return res
+def tiles_put(xa, za, img):
+    zb, xb = za + img.shape[0] // PX, xa + img.shape[1] // PX
+    for r in range(za // 32, (zb - 1) // 32 + 1):
+        for c in range(xa // 32, (xb - 1) // 32 + 1):
+            if not (0 <= r < ROWS and 0 <= c < COLS):
+                continue
+            a = blocks.get((r, c))
+            if a is None:
+                a = blocks[(r, c)] = np.zeros((S, S, 4), np.uint8)
+            y0, y1, x0, x1 = max(za, r * 32), min(zb, (r + 1) * 32), max(xa, c * 32), min(xb, (c + 1) * 32)
+            a[(y0 - r * 32) * PX:(y1 - r * 32) * PX, (x0 - c * 32) * PX:(x1 - c * 32) * PX] = img[(y0 - za) * PX:(y1 - za) * PX, (x0 - xa) * PX:(x1 - xa) * PX]
+for bx0, bx1, bz0, bz1 in info.get('bridges', []):
+    za, zb = max(0, bz0 - 12), min(H, bz1 + 12)
+    reg = tiles_get(bx0, za, bx1, zb)
+    solid = (reg[..., 3] > 128).reshape(zb - za, PX, bx1 - bx0, PX).mean(axis=(1, 2, 3))
+    gap_rows = [i for i in range(bz0 - za, bz1 - za) if solid[i] < 0.5]
+    if not gap_rows or gap_rows[0] < 6:
+        continue
+    top, bot = gap_rows[0], gap_rows[-1] + 1
+    band = reg[(top - 6) * PX:(top - 2) * PX].copy()
+    if (band[..., 3] > 128).mean() < 0.98:
+        continue                                   # über der Lücke liegt kein geschlossener Weg
+    for i in range(top - 1, min(bot + 1, zb - za)):
+        row = reg[i * PX:(i + 1) * PX]
+        srow = band[((i - top) % 4) * PX:((i - top) % 4 + 1) * PX]
+        hole = row[..., 3] < 128
+        row[hole] = srow[hole]
+    tiles_put(bx0, za, reg)
+    cover[za + top - 1:za + bot + 1, bx0:bx1] = True
+    print('Brücke', bx0, bx1, 'Zeilen', za + top, 'bis', za + bot)
 land = cover & ~water
 
 # ── Offenes Meer glätten: Das Spiel blendet sein helles Routen-Meer über grobe Dreiecke ins tiefe Meer aus – als
@@ -180,6 +224,20 @@ fill_g = filler.reshape(H // G, G, W // G, G).mean(axis=(1, 3)) > 0.5
 body = landgap | lc | fill_g
 opened = dilate(~dilate(~body, 2), 2)
 drop = (landgap | fill_g) & ~opened & ~lc
+# kleine Waldstücke, die überwiegend ans Meer grenzen (ein Bart aus Kulisse unter der Klippe südlich von Moosbach, ein
+# Inselchen neben dem Liga-Gebäude): ebenfalls weg – samt ihrer Kulisse
+comp_m = (landgap | fill_g) & ~lc & ~drop
+labc, nc = label(comp_m)
+if nc:
+    land_touch = np.zeros(nc + 1); sea_touch = np.zeros(nc + 1)
+    size = np.bincount(labc.ravel(), minlength=nc + 1)
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        nb_l, nb_c = np.roll(lc, (dy, dx), (0, 1)), np.roll(comp_m, (dy, dx), (0, 1))
+        np.add.at(land_touch, labc[comp_m & nb_l], 1)
+        np.add.at(sea_touch, labc[comp_m & ~nb_l & ~nb_c], 1)
+    small = (size * G * G < 1500) & (land_touch < 0.6 * (land_touch + sea_touch))
+    small[0] = False
+    drop |= small[labc]
 landgap &= ~drop
 # Küste des Füllwalds: rund und leicht unregelmäßig statt gerader und schräger Kanten (die Abstimmung über 8 Richtungen
 # liefert Achtecke). Wald + Land weichzeichnen, Rauschen dazu, Schwelle – nur in Lücken; direkt am Land bleibt der Wald
@@ -195,7 +253,9 @@ def noise_field(shape, period, amp, seed):
     return np.asarray(Image.fromarray(co).resize((co.shape[1] * period, co.shape[0] * period), Image.Resampling.BICUBIC))[:shape[0], :shape[1]]
 body = (landgap | lc).astype(np.float32)
 soft = soften(soften(body, 2), 2) + noise_field(body.shape, 7, 0.2, 21) + noise_field(body.shape, 3, 0.1, 22)
-landgap = (gap & (soft > 0.5)) | (landgap & dilate(lc, 1))
+# nur am Rand des Füllwalds selbst (bis 8 Kacheln): an geraden Küsten des Gerenderten steht der weichgezeichnete Wert genau
+# auf der Schwelle – dort ließ das Rauschen sonst Waldflecken ins Meer wachsen (nördlich des Liga-Gebäudes)
+landgap = (gap & (soft > 0.5) & dilate(landgap, 2)) | (landgap & dilate(lc, 1))
 drop_t = np.kron(drop, np.ones((G, G), bool)) & filler
 filler &= ~drop_t
 lg = np.kron(landgap, np.ones((G, G), bool))
@@ -229,7 +289,93 @@ if n_e:
             holes[cy, cx] = True
 print('Fugen', int(seam.sum()), 'Kacheln, Löcher', int(holes.sum()))
 lg |= dilate(seam | holes, 1)       # eine Kachel weiter: das Waldgras liegt unter dem Gerenderten und füllt dort nur dessen Lücken
+# Angeschnittene Kacheln am Rand des Gerenderten (teils leer oder halb deckend), rundum von Land oder Füllwald umgeben:
+# auch dort Waldgras darunter – sonst schimmert an der Kante ein blauer Strich (das Meer hinter der Karte) durch
+part = np.zeros((H, W), bool)
+for (r, c), a in blocks.items():
+    al = (a[..., 3] > 250).reshape(32, PX, 32, PX).mean(axis=(1, 3))
+    part[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32] = (al > 0) & (al < 0.999)
+sol = land | lg
+enc = sol.copy()
+enc[1:] &= sol[:-1]; enc[:-1] &= sol[1:]; enc[:, 1:] &= sol[:, :-1]; enc[:, :-1] &= sol[:, 1:]
+lg |= part & ~water & ~bgsea & enc
 print('Lücken', int(gap.sum()) * G * G, 'Kacheln, davon Wald', int(landgap.sum()) * G * G)
+
+# ── Rasen an Gebietsgrenzen angleichen (owner.png aus render-oras.js) ──
+# Jedes Gebiet tönt seinen Rasen selbst: hell, wo man laufen kann, dunkel am Rand und in Städten wie Baumhausen. Wo zwei
+# Gebiete aneinanderstoßen, stand deshalb eine gerade Kante zwischen hellem und dunklem Grün. Beiderseits der Grenze wird
+# die Helligkeit des Rasens über 8 Kacheln aufeinander zu geführt (je zur Hälfte); Bäume, Wege, Häuser bleiben, wie sie sind.
+own_png = os.path.join(src, 'owner.png')
+if os.path.exists(own_png):
+    om = np.array(Image.open(own_png).convert('RGBA'))
+    oid = np.where(om[..., 3] > 0, om[..., 0].astype(np.int32) + om[..., 1].astype(np.int32) * 256, -1)[:H, :W]
+    def lawn_of(f):
+        return (f[..., 3] > 250) & (f[..., 1] > f[..., 0] + 25) & (f[..., 2] < 0.62 * f[..., 1]) & (f[..., 1] > 60)
+    ell = np.full((H, W), np.nan, np.float32)             # log der mittleren Helligkeit des Rasens je Kachel
+    for (r, c), a in blocks.items():
+        f = a.astype(np.float32)
+        lw = lawn_of(f)
+        cnt = lw.reshape(32, PX, 32, PX).sum(axis=(1, 3))
+        sm = (f[..., 1] * lw).reshape(32, PX, 32, PX).sum(axis=(1, 3))
+        okt = cnt > 0.5 * PX * PX
+        e = np.full((32, 32), np.nan, np.float32)
+        e[okt] = np.log(sm[okt] / cnt[okt])
+        ell[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32] = e
+    fin = np.isfinite(ell) & (oid >= 0)
+    ell0 = np.where(fin, ell, 0).astype(np.float32)
+    # je Gebiet über 5 × 5 Kacheln gemittelt (einzelne Blumen- und Schattenkacheln sollen die Stufe nicht bestimmen)
+    ell_s = np.zeros((H, W), np.float32)
+    for o in np.unique(oid[fin]):
+        mk = (fin & (oid == o)).astype(np.float32)
+        den = box(mk, 2)
+        ell_s = np.where(mk > 0, box(ell0 * mk, 2) / np.maximum(den, 1e-6), ell_s)
+    # Stufe an der Grenze: Nachbar minus eigene Kachel, nur Rasen gegen Rasen
+    dsum = np.zeros((H, W), np.float32); dn = np.zeros((H, W), np.float32)
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        nb_o, nb_f, nb_e = np.roll(oid, (dy, dx), (0, 1)), np.roll(fin, (dy, dx), (0, 1)), np.roll(ell_s, (dy, dx), (0, 1))
+        hit = fin & nb_f & (nb_o != oid)
+        dsum += np.where(hit, nb_e - ell_s, 0); dn += hit
+    DMAX = 8
+    delta = np.where(dn > 0, dsum / np.maximum(dn, 1), 0).astype(np.float32)
+    dist = np.where(dn > 0, 0, -1).astype(np.int32)
+    for d in range(1, DMAX + 1):                          # ins eigene Gebiet hinein weitertragen (Mittel der Nachbarn)
+        acc = np.zeros((H, W), np.float32); n = np.zeros((H, W), np.float32)
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nb_d, nb_o, nb_v = np.roll(dist, (dy, dx), (0, 1)), np.roll(oid, (dy, dx), (0, 1)), np.roll(delta, (dy, dx), (0, 1))
+            take = (dist < 0) & (nb_d == d - 1) & (nb_o == oid) & (oid >= 0)
+            acc += np.where(take, nb_v, 0); n += take
+        new = n > 0
+        delta[new] = acc[new] / n[new]; dist[new] = d
+    delta = np.clip(delta, -1.0, 1.0)
+    gam = np.where((dist >= 0) & (np.abs(delta) > 0.06), 0.5 * delta * (1 - dist / DMAX), 0).astype(np.float32)   # an der Grenze treffen sich beide Seiten
+    act = gam != 0
+    changed = 0
+    for (r, c), a in blocks.items():
+        y0, x0 = r * 32, c * 32
+        if not act[y0:y0 + 32, x0:x0 + 32].any():
+            continue
+        # je Gebiet für sich hochrechnen (über die Grenze hinweg gemittelt höbe sich die Angleichung dort gerade auf)
+        ya, yb, xa, xb = max(0, y0 - 1), min(H, y0 + 33), max(0, x0 - 1), min(W, x0 + 33)
+        g_t, o_t, a_t = gam[ya:yb, xa:xb], oid[ya:yb, xa:xb], act[ya:yb, xa:xb]
+        gpx = np.zeros((S, S), np.float32)
+        opx = np.kron(oid[y0:y0 + 32, x0:x0 + 32], np.ones((PX, PX), np.int32))
+        for o in np.unique(o_t[a_t]):
+            mk = ((o_t == o) & (dist[ya:yb, xa:xb] >= 0)).astype(np.float32)
+            size = (mk.shape[1] * PX, mk.shape[0] * PX)
+            num = np.asarray(Image.fromarray(g_t * mk).resize(size, Image.Resampling.BILINEAR))
+            den = np.asarray(Image.fromarray(mk).resize(size, Image.Resampling.BILINEAR))
+            oy, ox = (y0 - ya) * PX, (x0 - xa) * PX
+            num, den = num[oy:oy + S, ox:ox + S], den[oy:oy + S, ox:ox + S]
+            sel = (opx == o) & (den > 0.05)
+            gpx[sel] = num[sel] / den[sel]
+        f = a.astype(np.float32)
+        # angewandt auch auf die Schatten im Rasen (dunkler als die Rasen-Schwelle), nicht auf das blaugrüne Laub der Bäume
+        lw = (f[..., 3] > 250) & (f[..., 1] > f[..., 0] + 15) & (f[..., 2] < 0.72 * f[..., 1]) & (gpx != 0)
+        if lw.any():
+            f[..., :3] = np.where(lw[..., None], np.clip(f[..., :3] * np.exp(gpx)[..., None], 0, 255), f[..., :3])
+            a[...] = (f + 0.5).astype(np.uint8)
+            changed += 1
+    print('Rasen angeglichen in', changed, 'Blöcken')
 
 # ── Meermuster: chip_sea_b im Ton des Kartenmeeres, 3 Kacheln je Wiederholung ──
 sea_rgb = np.array([0.19, 0.44, 0.71]) * 255      # = DEEP in render-oras.js (dort ist das Kulissenmeer genauso gefärbt)

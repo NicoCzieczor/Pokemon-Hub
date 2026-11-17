@@ -20,6 +20,7 @@
     de: {
       'hero-desc': 'Dein zentraler Anlaufpunkt für Pokémon-Tools &amp; Hilfsmittel.',
       'ai-notice': 'Erstellt mit KI-Unterstützung',
+      'live-test': 'Live-Test (Versuch)',
       'footer': 'Pokémon und alle zugehörigen Namen sind Marken von Nintendo / Game Freak.',
       'backup-export': 'Daten sichern',
       'backup-import': 'Daten laden',
@@ -59,6 +60,7 @@
     en: {
       'hero-desc': 'Your central hub for Pokémon tools &amp; utilities.',
       'ai-notice': 'Built with AI assistance',
+      'live-test': 'Live test (experiment)',
       'footer': 'Pokémon and all related names are trademarks of Nintendo / Game Freak.',
       'backup-export': 'Back up data',
       'backup-import': 'Restore data',

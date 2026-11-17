@@ -47,6 +47,14 @@ try {
   await waitFor(page, () => document.documentElement.lang === 'en');
   const en = await labels();
   check('ORAS: Ortsnamen auf der Karte wechseln mit der Sprache', en.includes('Sootopolis City') && !en.includes('Xeneroville'), en.slice(0, 4).join(', '));
+  // Randomizer-Stand im Kopf: laden, wenn keiner da ist; mit einem Stand der Chip mit × zum Entfernen (wie im Boss-Planer)
+  check('ORAS: ohne Randomizer-Stand gibt es „Randomizer-ROM laden“', await page.evaluate(() => !!document.querySelector('#map-rando .hub-rando-load')));
+  await page.evaluate(() => window.PokeHubRando.set({ game: 'oras', version: 'or', name: 'Test.cxi', loadedAt: 1, wild: [], starters: [], trainers: {} }));
+  await waitFor(page, () => !!document.querySelector('#map-rando .hub-rando-chip button'));
+  check('ORAS: mit Randomizer-Stand steht sein Name im Kopf', await page.evaluate(() => document.querySelector('#map-rando .hub-rando-chip b').textContent === 'Test.cxi'));
+  await page.click('#map-rando .hub-rando-chip button');
+  await waitFor(page, () => !!document.querySelector('#map-rando .hub-rando-load'));
+  check('ORAS: × entfernt den Randomizer-Stand', await page.evaluate(() => window.PokeHubRando.get() === null && !document.querySelector('.wild-mode')));
   check('ORAS: keine JavaScript-Fehler', errors.length === 0, errors.join(' | '));
   await page.close();
 } finally {

@@ -142,7 +142,7 @@ await run('smoke', async () => {
   const pages = ['index.html', 'mobile.html', 'RunDashboard/index.html', 'Pokelocke/index.html', 'Duo/index.html', 'Duo/mobile.html',
     'Trio/index.html', 'Catchrate/index.html', 'DamageCalc/index.html', 'Typrechner/index.html', 'PokemonInfo/index.html',
     'Rules/index.html', 'Karte/index.html', 'Bosse/index.html', 'SaveViewer/index.html', 'SaveEditor/index.html',
-    'Sonderbonbons/index.html', 'Randomizer/index.html'];
+    'Sonderbonbons/index.html', 'Randomizer/index.html', 'LiveTest/index.html'];
   for (const p of pages) {
     const { page, errors } = await openPage(browser, `${BASE}/${p}`, { storage: {} });
     await sleep(400);

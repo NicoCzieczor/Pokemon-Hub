@@ -1,6 +1,6 @@
 /*
  * Interaktive Kanto-Karte für Pokémon Rot / Blau – und die einfachen Karten der anderen Spiele.
- * (HeartGold/SoulSilver und Feuerrot/Blattgrün laufen über app.js mit allen Funktionen der Platin-Karte.)
+ * (HeartGold/SoulSilver, Feuerrot/Blattgrün und Smaragd laufen über app.js mit allen Funktionen der Platin-Karte.)
  *
  * Die Kartenblätter und kanto.json werden mit tools/build-kanto.py aus pret/pokered erzeugt.
  * Ein Kartenkoordinatenpunkt entspricht einem Schritt im Spiel (16 × 16 Game-Boy-Pixel).
@@ -9,7 +9,7 @@
   'use strict';
 
   var GAME = window.PokeHubGame && window.PokeHubGame.get();
-  var isRetroGame = function (game) { return game === 'rot-blau' || game === 'gelb' || game === 'gold-silber' || game === 'kristall' || game === 'rubin-saphir' || game === 'smaragd' || game === 'diamant-perl' || game === 'schwarz-weiss' || game === 'schwarz2-weiss2' || game === 'x-y' || game === 'sonne-mond'; };
+  var isRetroGame = function (game) { return game === 'rot-blau' || game === 'gelb' || game === 'gold-silber' || game === 'kristall' || game === 'rubin-saphir' || game === 'diamant-perl' || game === 'schwarz-weiss' || game === 'schwarz2-weiss2' || game === 'x-y' || game === 'sonne-mond'; };
   var CFGS = {
     'rot-blau': {
       start: 'pallet-town',
@@ -39,12 +39,6 @@
       base: 'tiles-ruby-sapphire/', data: 'ruby-sapphire.json', storage: 'karte-rs-version', versions: ['ruby', 'sapphire'], fallback: 'ruby',
       sprite: 'generation-iii/ruby-sapphire', maxDex: 386, body: 'is-rs', markers: false, maxZoom: 6,
       attribution: 'tiles-ruby-sapphire/SOURCE.txt'
-    },
-    'smaragd': {
-      start: 'littleroot-town',
-      base: 'tiles-emerald/', data: 'emerald.json', storage: 'karte-emerald-version', versions: ['emerald'], fallback: 'emerald',
-      sprite: 'generation-iii/emerald', maxDex: 386, body: 'is-emerald', markers: false, maxZoom: 6,
-      attribution: 'tiles-emerald/SOURCE.txt'
     },
     'diamant-perl': {
       start: 'twinleaf-town',
@@ -92,7 +86,6 @@
   window.KARTE_GS = GAME === 'gold-silber';
   window.KARTE_CRYSTAL = GAME === 'kristall';
   window.KARTE_RS = GAME === 'rubin-saphir';
-  window.KARTE_EMERALD = GAME === 'smaragd';
   window.KARTE_DP = GAME === 'diamant-perl';
   window.KARTE_UNOVA = GAME === 'schwarz-weiss';
   window.KARTE_B2W2 = GAME === 'schwarz2-weiss2';
@@ -216,22 +209,6 @@
       loadError: 'The Crystal map could not be loaded.', crystal: 'Crystal'
     }
   };
-  var EMERALD_TEXT = {
-    de: {
-      title: 'Karte von Hoenn', badge: 'Smaragd',
-      subtitle: 'Smaragds originale GBA-Welt mit Kampffront, Safari-Zone und eigenen Fundorten.',
-      note: 'Karte, Tiles, Paletten und Funddaten wurden direkt aus der vollständigen Smaragd-Disassembly (pret/pokeemerald) gerendert.',
-      search: 'Ort oder Pokémon suchen…', loading: 'Smaragd-Karte wird geladen…',
-      loadError: 'Die Smaragd-Karte konnte nicht geladen werden.', emerald: 'Smaragd'
-    },
-    en: {
-      title: 'Map of Hoenn', badge: 'Emerald',
-      subtitle: 'Emerald’s original GBA world with the Battle Frontier, Safari Zone and its own encounters.',
-      note: 'The map, tiles, palettes and encounters are rendered directly from the complete Emerald disassembly (pret/pokeemerald).',
-      search: 'Search place or Pokémon…', loading: 'Loading Emerald map…',
-      loadError: 'The Emerald map could not be loaded.', emerald: 'Emerald'
-    }
-  };
   var RS_TEXT = {
     de: {
       title: 'Karte von Hoenn', badge: 'Rubin / Saphir',
@@ -283,15 +260,15 @@
   var UNOVA_TEXT = {
     de: {
       title: 'Karte von Einall', badge: 'Schwarz / Weiß',
-      subtitle: 'Orte und wilde Pokémon aus Schwarz und Weiß – mit editionsspezifischen Fundorten.',
-      note: 'Weiß wurde direkt aus den Kartenmodellen und Texturen der bereitgestellten Spiel-ROM gerendert. Schwarz nutzt bis zu einer passenden ROM die ausgerichtete Mewmaps-Karte; Funddaten stammen aus der PokeAPI.',
+      subtitle: 'Orte und wilde Pokémon aus Schwarz und Weiß – mit Stratos City, allen Brücken und editionsspezifischen Fundorten.',
+      note: 'Beide Editionen wurden aus den Kartenmodellen und Texturen der deutschen Weiß-ROM gerendert (Schwarz mit Schwarzer Stadt und den Schwarz-Blöcken von Twindrake City). Einall ist im Spiel nicht maßstabsgetreu – die Brücken sind länger als die Lücken dazwischen –, deshalb sind die Gebiete so auseinandergerückt, dass alles passt; gestrichelte Linien verbinden Türen, die nicht direkt nebeneinanderliegen. Funddaten stammen aus der PokeAPI.',
       search: 'Ort oder Pokémon suchen…', loading: 'Einall-Karte wird geladen…',
       loadError: 'Die Einall-Karte konnte nicht geladen werden.', black: 'Schwarz', white: 'Weiß'
     },
     en: {
       title: 'Map of Unova', badge: 'Black / White',
-      subtitle: 'Places and wild Pokémon from Black and White – with version-specific encounters.',
-      note: 'White is rendered directly from the supplied game ROM’s map models and textures. Black uses the aligned Mewmaps map until a matching ROM is available; encounter data comes from PokeAPI.',
+      subtitle: 'Places and wild Pokémon from Black and White – with Castelia City, every bridge and version-specific encounters.',
+      note: 'Both versions are rendered from the German White ROM’s map models and textures (Black with Black City and Opelucid’s Black blocks). Unova is not to scale in the game – the bridges are longer than the gaps between – so the areas are spread out until everything fits; dashed lines connect doors that do not sit side by side. Encounter data comes from PokeAPI.',
       search: 'Search place or Pokémon…', loading: 'Loading Unova map…',
       loadError: 'The Unova map could not be loaded.', black: 'Black', white: 'White'
     }
@@ -349,7 +326,6 @@
     if (GAME === 'gold-silber') return Object.assign({}, TEXT[lang()], GS_TEXT[lang()]);
     if (GAME === 'kristall') return Object.assign({}, TEXT[lang()], CRYSTAL_TEXT[lang()]);
     if (GAME === 'rubin-saphir') return Object.assign({}, TEXT[lang()], RS_TEXT[lang()]);
-    if (GAME === 'smaragd') return Object.assign({}, TEXT[lang()], EMERALD_TEXT[lang()]);
     if (GAME === 'diamant-perl') return Object.assign({}, TEXT[lang()], DP_TEXT[lang()]);
     if (GAME === 'schwarz-weiss') return Object.assign({}, TEXT[lang()], UNOVA_TEXT[lang()]);
     if (GAME === 'schwarz2-weiss2') return Object.assign({}, TEXT[lang()], B2W2_TEXT[lang()]);
@@ -1284,7 +1260,7 @@
       applyLang();
       if (!fromHash()) renderDirectory();
     }).catch(function (err) {
-      console.error(GAME === 'gelb' ? 'Yellow map:' : GAME === 'gold-silber' ? 'Gold/Silver map:' : GAME === 'kristall' ? 'Crystal map:' : GAME === 'rubin-saphir' ? 'Ruby/Sapphire map:' : GAME === 'smaragd' ? 'Emerald map:' : GAME === 'diamant-perl' ? 'Diamond/Pearl map:' : GAME === 'schwarz-weiss' ? 'Unova map:' : GAME === 'schwarz2-weiss2' ? 'Black 2/White 2 map:' : GAME === 'x-y' ? 'X/Y map:' : GAME === 'sonne-mond' ? 'Sun/Moon map:' : 'Kanto map:', err);
+      console.error(GAME === 'gelb' ? 'Yellow map:' : GAME === 'gold-silber' ? 'Gold/Silver map:' : GAME === 'kristall' ? 'Crystal map:' : GAME === 'rubin-saphir' ? 'Ruby/Sapphire map:' : GAME === 'diamant-perl' ? 'Diamond/Pearl map:' : GAME === 'schwarz-weiss' ? 'Unova map:' : GAME === 'schwarz2-weiss2' ? 'Black 2/White 2 map:' : GAME === 'x-y' ? 'X/Y map:' : GAME === 'sonne-mond' ? 'Sun/Moon map:' : 'Kanto map:', err);
       $('map-loading').hidden = false;
       $('map-loading').textContent = tx().loadError;
     });

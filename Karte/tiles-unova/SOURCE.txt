@@ -1,26 +1,84 @@
-Pokémon Black / White – sources for the Unova map
+Pokémon Schwarz / Weiß – Quellen der Einall-Karte
+=================================================
 
-WHITE
-The White tiles were rendered locally from a user-provided German Pokémon
-White Nintendo DS ROM (game code IRAD). The ROM is not copied into this
-project. Karte/tools/render-unova.js reads only the required Nitro archives:
+KARTENGRAFIK
+Beide Editionen wurden lokal aus der vom Benutzer bereitgestellten deutschen
+Pokémon-Weiß-ROM (Spielcode IRAD) gerendert. Die ROM wird nicht in dieses
+Projekt kopiert. Gelesen werden nur:
 
-  a/0/0/8  map containers and BMD0 models
-  a/0/0/9  world matrices (matrix 0)
-  a/0/1/4  shared texture banks
+  a/0/0/8  Kartencontainer und BMD0-Modelle
+  a/0/0/9  Weltmatrizen
+  a/0/1/4  gemeinsame Texturbanken
+  a/0/1/2  Zonen (Matrix, Ortsname)
+  a/1/2/5  Ereignisse der Zonen (Warps / Türen)
+  a/0/0/2  Ortsnamen (Text 89)
+  a/2/2/9  Gebäudepakete (Modelle der Häuser, Lagerhallen, Pokémon-Center …)
+  a/1/7/6  Texturen der Gebäudepakete
 
-The renderer rebuilt 229 occupied 32 x 32 map blocks from the original models
-and textures. Karte/tools/make-tiles.py converted that render into the local
-zoom sheets under white/.
+Gebäude stehen nicht im Geländemodell, sondern als Liste in jeder Karte
+(Nummer, Lage, Drehung); gezeichnet wird das Modell aus dem Gebäudepaket, das
+alle Nummern der Karte enthält.
 
-BLACK FALLBACK
-A Black ROM was not supplied. Black therefore keeps an aligned fallback made
-from the Mewmaps composite until the matching game files are available:
+Matrix 0 ist die normale Oberwelt. Sie zeigt die Schwarz-Fassung der Blöcke;
+Weiß tauscht im Spiel einzelne Blöcke gegen „whiteSS_ZZ"-Modelle (Twindrake
+City u. a.) – so entstehen beide Editionen aus einer ROM. Schwarze Stadt und
+Weißer Wald sind eigene Matrizen gleicher Größe.
 
-  https://www.mewmaps.org/black-white
-  https://drive.google.com/file/d/1n0lgrrQYa6t1LBhHGAJPbEGwVy7HjMUu/view
+Viele Gebiete sind eigene Matrizen, die das Spiel über Warps und Torhäuser
+erreicht: Stratos City (Hauptstraße, Platz, vier Straßen, Hafen), die fünf
+Brücken, Ewigenwald und Wüstenresort innen, die Riesengrotte, Ferrula, Moor,
+Schrein, Hain, Traumbrache, der Park von Rayono City. Einall ist dabei nicht
+maßstabsgetreu (die Marea-Zugbrücke ist doppelt so lang wie die Lücke in
+Matrix 0). Karte/tools/layout-unova.js schiebt deshalb die Inseln von Matrix 0
+auseinander, bis die Brücken genau zwischen ihre Tore passen, und legt die
+übrigen Gebiete daneben; gestrichelte Linien verbinden Türen, die nicht direkt
+nebeneinanderliegen.
 
-The sheets contain copyrighted Pokémon game imagery. Pokémon and the original
-game assets belong to Nintendo, Creatures Inc. and GAME FREAK. The Black
-fallback remains credited to Mewmaps. These local sheets are used by this
-non-commercial fan tool; no additional license is claimed.
+Stratos City ist im Spiel ein Hufeisen: der runde Platz in der Mitte, von dort
+die Straßen strahlenförmig zur Uferstraße mit ihren Piers. Die Hafenkarte der
+ROM zeigt genau das, aber winzig – die Straßen sind dort nur Kulisse, in
+Wahrheit eigene, viel größere Karten mit eigener Kamera. Ihre Häuser sind
+Fassaden für diese Kamera: sauber sehen sie nur aus, wenn die Straße quer liegt
+und die Fassade zur Kamera zeigt. Die Stadt wird deshalb im Maßstab der
+Straßenkarten als Scheibe um den Platz aufgebaut, innen mit einem Straßenraster:
+die Hauptstraße nach Norden zum Tor an Route 4, die vier Straßen als Avenues
+nach Westen und Osten, nach Süden eine Allee zum mittleren Pier. Dafür dreht
+render-unova.js die Straßenkarten im Raum (nicht das fertige Bild) und rendert
+alles zusammen als eine Szene in der Schrägsicht der übrigen Karte. Vor und
+hinter den Avenues stehen Häuserzeilen: die Gebäudereihen derselben
+Straßenkarten (ergänzt; im Spiel sieht man dort nur Kulissen). Häuser bleiben
+ganz oder fallen ganz weg, nie angeschnitten; gebackene Schatten und Blenden
+der Kamerafahrt werden weggelassen, schwarz eingefärbte Rückwände dunkelgrau
+gezeichnet. Außen herum die Uferstraße (Asphalt und Kaimauer aus der
+Hafenkarte) mit den echten Piers, von oben gerendert; Allee und Anschlüsse an
+den Platz sind ergänzt. Auch die Karte der Himmelspfeilbrücke ist eine Kulisse
+für die Kamerafahrt (Waldhänge, Skyline); verwendet wird nur ihr Brückendeck,
+schräg von der Uferstraße über die Bucht zum Tor im Ewigenwald. Die Küste der
+Füllung (Wald/Meer zwischen den Gebieten) ist gerundet und leicht verrauscht.
+Schatten – Texturen „kage" und Dreiecke mit ganz
+schwarzen Eckenfarben (unter Dächern und Brücken, Felsen unter Wasser) – werden
+halbdurchsichtig gezeichnet; deckend lägen sonst schwarze Flecken auf der Karte.
+
+Leere Stellen zwischen den Gebieten füllt compose-unova.py mit den Füllmodellen
+des Spiels (map_outtree = Wald, map_outsea = Meer), so wie das Spiel leere
+Kartenfelder füllt: was die Gebiete umschließen, bekommt das Gelände der
+nächsten Karte (meist Wald, an Brücken und Buchten Meer), außen herum Meer mit
+runder Küste – Einall wird so wieder eine zusammenhängende Landmasse.
+
+ORTE UND FUNDDATEN
+Ortsflächen: die Zonen der ROM in der zusammengesetzten Welt; Höhlen und Türme
+ohne eigene Außenkarte bekommen Eingänge an ihren Türen. Wilde Pokémon (Gras,
+Surfen) je Edition aus der PokeAPI.
+
+Neu bauen:
+  node Karte/tools/layout-unova.js <weiss.nds> <arbeit>/layout.json
+  node Karte/tools/render-unova.js <weiss.nds> <arbeit>/renders --layout=<arbeit>/layout.json
+  python Karte/tools/compose-unova.py <arbeit>/layout.json <arbeit>/renders <arbeit>/black --edition=black
+  python Karte/tools/compose-unova.py <arbeit>/layout.json <arbeit>/renders <arbeit>/white --edition=white
+  python Karte/tools/make-tiles.py <arbeit>/black Karte/tiles-unova/black
+  python Karte/tools/make-tiles.py <arbeit>/white Karte/tiles-unova/white
+  node Karte/tools/build-unova.js Karte/unova.json --layout=<arbeit>/layout.json [--reuse=Karte/unova.json]
+
+Pokémon, Kartenmodelle, Texturen und Spieldaten sind Eigentum von Nintendo,
+Creatures Inc., GAME FREAK und The Pokémon Company. Die Ausgabe dient nur der
+privaten, lokalen Darstellung innerhalb des Pokémon Hubs.

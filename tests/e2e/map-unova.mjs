@@ -29,7 +29,7 @@ try {
   }));
   check('Einall: Schwarz/Weiß lädt die eigene Karte', initial.unova && /Einall/.test(initial.heading) && /Schwarz/.test(initial.title), JSON.stringify(initial));
   check('Einall: echte lokale ROM-Kartenblätter für Weiß geladen', /tiles-unova\/white\//.test(initial.tile), initial.tile);
-  check('Einall: 58 Orte auswählbar', initial.places === 58, String(initial.places));
+  check('Einall: alle Orte auswählbar (mit Brücken und Ferrula)', initial.places >= 60, String(initial.places));
   check('Einall: Editionsschalter und Ortsbeschriftungen angezeigt', initial.editions === 2 && initial.filters === 0 && initial.labels > 10, JSON.stringify(initial));
   check('Einall: Kartenquellen sind lokal dokumentiert', /tiles-unova\/SOURCE\.txt/.test(initial.credit), initial.credit);
   check('Einall: keine Sinnoh-Meerszene und kein Überlauf', initial.seaChildren === 0 && initial.overflow <= 1, JSON.stringify(initial));
@@ -47,9 +47,10 @@ try {
     blackPressed: document.querySelector('[data-version="black"]')?.getAttribute('aria-pressed'),
     mons: [...document.querySelectorAll('.wild-table [data-mon]')].map(r => r.dataset.mon).sort().join(','),
     blackTile: [...document.images].some(img => /tiles-unova\/black\//.test(img.src)),
-    labelsHidden: [...document.querySelectorAll('.kanto-label-wrap')].every(el => getComputedStyle(el).display === 'none'),
+    // Schwarz ist jetzt ebenfalls ein ROM-Render ohne eingebrannte Beschriftung – die Namen bleiben sichtbar
+    labelsShown: [...document.querySelectorAll('.kanto-label-wrap')].some(el => getComputedStyle(el).display !== 'none'),
   }));
-  check('Einall: Schwarz/Weiß-Schalter aktualisiert Karte und Funddaten', version.stored === 'black' && version.blackPressed === 'true' && version.mons !== whiteMons && version.blackTile && version.labelsHidden, JSON.stringify(version));
+  check('Einall: Schwarz/Weiß-Schalter aktualisiert Karte und Funddaten', version.stored === 'black' && version.blackPressed === 'true' && version.mons !== whiteMons && version.blackTile && version.labelsShown, JSON.stringify(version));
 
   const toPlatinum = page.waitForNavigation({ waitUntil: 'networkidle0' });
   await page.evaluate(() => window.PokeHubGame.set('platin'));
